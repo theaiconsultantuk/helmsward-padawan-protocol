@@ -13,3 +13,7 @@ Result: all outbound comms are drafts only. Saved as a standing rule.
 Prompt used internally: "Build a dependency-free Node app: CSV catalogue of Star Wars gifts, score = bestseller rank (40) + units sold (30) + rating weighted by review count (30), filters for price, recipient age, theme; tiny web UI."
 Result: `src/rank.mjs`, `src/cli.mjs`, `src/server.mjs`, `data/gifts.csv` (24 SAMPLE items). Screenshot: `docs/screenshots/01-gift-finder-default.png`.
 Run: `npm start` then open http://127.0.0.1:4173
+
+## 04 (Paul) keys
+> If we need API keys for the Star Wars project let's gather them now. Load up TMDB and do everything apart from me generating the password. Any good open source or low cost Amazon feeds?
+Result: `src/tmdb.mjs` written (UNTESTED until TMDB_API_KEY is in Doppler). Key shortlist in STATUS.md.

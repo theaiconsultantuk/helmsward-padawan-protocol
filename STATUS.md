@@ -5,5 +5,5 @@
 - [x] simple UI + first screenshot
 - [ ] LLM explain step (needs a key name from Doppler: OPENROUTER_API_KEY exists; Paul to confirm)
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
-- [ ] real data sources (Open Library for books, IMDb datasets for film/TV)
+- [ ] real data sources: TMDB loader written (src/tmdb.mjs), UNTESTED, waits for TMDB_API_KEY; Open Library no key
 - [ ] push copy to Drive (waiting on Paul to confirm which folder)
