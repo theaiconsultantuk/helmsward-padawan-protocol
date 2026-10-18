@@ -19,7 +19,7 @@ img{float:left;width:60px;margin-right:.8rem;border-radius:4px}.q{width:100%;box
 <div id=p2 hidden><p><small>Star Wars films and shows, by TMDB rating.</small></p><div id=w></div>
 <p><small>This product uses the TMDB API but is not endorsed or certified by TMDB.</small></p></div>
 <hr><details><summary>Give feedback to the team</summary><form id=fb><textarea name=text rows=3 style="width:100%;box-sizing:border-box" placeholder="What works, what is confusing, what is missing?"></textarea><input name=who placeholder="Your name"><button>Send</button></form><p id=fbm><small></small></p></details>
-<script>fb.onsubmit=async e=>{e.preventDefault();const r=await fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(fb)))});fbm.textContent=r.ok?'Thanks, saved.':'Could not save, tell Paul.';if(r.ok)fb.reset()};</script>
+<script>fb.onsubmit=async e=>{e.preventDefault();const r=await fetch('/api/feedback',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(fb)))});fbm.textContent=r.ok?'Thanks, saved.':'Feedback box is not switched on yet. Please post it in the team WhatsApp group.';if(r.ok)fb.reset()};</script>
 <script>
 const card=(g,i)=>'<div class=card><span class=s>'+g.score+'</span><b>'+(i+1)+'. '+g.name+'</b><br><small>£'+g.price_gbp.toFixed(2)+' · rank '+g.bestseller_rank+' · '+g.units_sold_month+' sold/month · '+g.rating+'★ ('+g.reviews+')</small></div>';
 const run=async()=>{const r=await (await fetch('/api/gifts?'+new URLSearchParams(new FormData(f)))).json();out.innerHTML=r.map(card).join('')||'<p>No match.</p>'};
