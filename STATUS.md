@@ -6,6 +6,6 @@
 - [x] keys in Doppler project jedi-pack: NVIDIA, TMDB, Oxylabs (free credit)
 - [x] screenshots 01-04 in docs/screenshots
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
-- [ ] live Amazon price/rating lookups (Oxylabs Web API only returns search links; needs scraper source)
+- [x] real Amazon.co.uk data via Oxylabs scrape/amazon/search: 305 products in data/amazon-gifts.csv (9 paid calls from free credit)
 - [ ] add teammates to GitHub repo and Doppler (need GitHub usernames)
 - [ ] copy to Drive (waiting on Paul to confirm which folder)

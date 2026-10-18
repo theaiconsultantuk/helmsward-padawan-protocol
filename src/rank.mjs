@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-export function loadGifts(path = join(here, "..", "data", "gifts.csv")) {
+// Prefers live Amazon data (data/amazon-gifts.csv); falls back to the hand-made sample.
+export function loadGifts(path = existsSync(join(here, "..", "data", "amazon-gifts.csv")) ? join(here, "..", "data", "amazon-gifts.csv") : join(here, "..", "data", "gifts.csv")) {
   const [head, ...rows] = readFileSync(path, "utf8").trim().split("\n");
   const cols = head.split(",");
   return rows.map((r) => {
@@ -33,7 +34,12 @@ export function find(filters = {}, all = loadGifts(), limit = 5) {
     .filter((g) => (filters.recipientAge == null || g.age_min <= filters.recipientAge))
     .filter((g) => (!filters.tag || g.franchise_tag === filters.tag))
     .filter((g) => (!filters.category || g.category === filters.category))
-    .filter((g) => (!filters.keyword || `${g.name} ${g.category}`.toLowerCase().includes(filters.keyword.toLowerCase())))
+    .filter((g) => {
+      if (!filters.keyword) return true;
+      const k = filters.keyword.toLowerCase();
+      const alias = { lego: "construction", brick: "construction", bricks: "construction", doll: "toy", figure: "collectible", funko: "collectible", clothes: "clothing", shirt: "clothing", game: "board-game", cup: "homeware" }[k];
+      return `${g.name} ${g.category}`.toLowerCase().includes(k) || (alias && g.category === alias);
+    })
     .map((g) => ({ ...g, score: score(g, all) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);

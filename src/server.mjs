@@ -18,7 +18,7 @@ button{background:#ffe81f;color:#000;font-weight:700;cursor:pointer}
 .s{float:right;color:#ffe81f;font-weight:700}small{color:#9aa}.ai{background:#101726;border:1px solid #2a3350;padding:.8rem 1rem;border-radius:8px;margin:.8rem 0}
 img{float:left;width:60px;margin-right:.8rem;border-radius:4px}.q{width:100%;box-sizing:border-box;margin:.4rem 0}</style>
 <h1>JEDI PACK GIFT FINDER</h1>
-<p><small>Gift rank, sales and prices are SAMPLE data, not live Amazon figures. Powered by NVIDIA Nemotron.</small></p>
+<p><small>Prices, ratings and units bought last month are from Amazon.co.uk (pulled 18 Oct 2026). Rank is our own: by units bought, then reviews. Powered by NVIDIA Nemotron.</small></p>
 <div class=tabs><button id=t1 class=on>Ask for a gift</button><button id=t2>Watch and read list</button></div>
 <div id=p1><form id=a><input class=q name=q value="gift for my 10 year old nephew who loves the Mandalorian, under 30 pounds"><button>Ask the Council</button></form>
 <div id=ai></div>

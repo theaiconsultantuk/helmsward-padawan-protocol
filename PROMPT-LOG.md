@@ -33,3 +33,9 @@ Prompts inside the app (see `src/ask.mjs`):
 Lessons: (1) first version ranked a mug top for "loves LEGO" because only price/age/theme were extracted, so a `keyword` filter was added. (2) The model called "units sold" "searches" until the label and prompt said sold per month. (3) If a filter is too strict we relax keyword and theme so the answer is never empty.
 Provider order: NVIDIA Nemotron first, OpenRouter free Nemotron as fallback.
 Screenshots: 03-ask-nemotron.png, 04-watch-list-tmdb.png.
+
+## 08 (Paul) real Amazon data
+> I thought we planned to pull real data using the 5 pound trial to pull from Amazon.
+Result: my first Oxylabs test used the generic search endpoint (links only). The Amazon-specific endpoint `POST https://webapi.oxylabs.io/v1/scrape/amazon/search` (Bearer key, `{"query","domain":"co.uk","pages":1,"output":["json"]}`) returns price, rating, reviews_count, asin and `sales_volume` ("1K+ bought in past month"). `/amazon/bestsellers` with query "toys" returned no results (needs a real category id). `src/amazon.mjs` runs 9 searches and wrote 305 products to `data/amazon-gifts.csv`. App now prefers it; rank is ours (units bought, then reviews).
+Fixes found while testing: "general" theme was treated as a filter; "lego" missed sets because Amazon titles omit the brand (alias to category); model invented list positions (prompt now forbids).
+Prompt tip: ask for the parsed JSON output, and keep one query per product type.
