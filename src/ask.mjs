@@ -1,5 +1,5 @@
 import { chat } from "./llm.mjs";
-import { find } from "./rank.mjs";
+import { find } from "./rank-core.mjs";
 
 const SYS = `You turn a gift request into JSON filters. Reply with ONLY a JSON object, no prose:
 {"maxPrice": number|null, "recipientAge": number|null, "tag": "mandalorian"|"original-trilogy"|"prequels"|"clone-wars"|"rebels"|"general"|null, "keyword": a single product word the person wants (e.g. "lego", "book", "plush", "mug", "board") or null}`;
@@ -9,8 +9,8 @@ function parseJson(t) {
   return m ? JSON.parse(m[0]) : {};
 }
 
-export async function ask(question, all) {
-  const a = await chat([{ role: "system", content: SYS }, { role: "user", content: question }], { maxTokens: 300 });
+export async function ask(question, all, env) {
+  const a = await chat([{ role: "system", content: SYS }, { role: "user", content: question }], { maxTokens: 300 }, env);
   let f = {};
   try { f = parseJson(a.text); } catch { /* fall through with no filters */ }
   const filters = {
@@ -25,6 +25,6 @@ export async function ask(question, all) {
   const b = await chat([
     { role: "system", content: "You are a friendly Star Wars gift advisor. In 3 short sentences, explain why the top pick fits the request, using only the facts given. Do not invent facts. Units are units bought in the past month, never searches. Do not mention list positions or rankings." },
     { role: "user", content: `Request: ${question}\nRanked picks:\n${list}` },
-  ], { maxTokens: 400 });
+  ], { maxTokens: 400 }, env);
   return { filters, picks, explanation: b.text, provider: b.provider };
 }

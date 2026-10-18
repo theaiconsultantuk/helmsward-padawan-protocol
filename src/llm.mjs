@@ -1,19 +1,19 @@
 // OpenAI-format chat call. NVIDIA Nemotron first (required hackathon runtime), OpenRouter free Nemotron as fallback.
 // Keys come from the environment only (see run.sh). Nothing is logged except which provider answered.
-const providers = () => [
-  process.env.NVIDIA_API_KEY && {
+const providers = (env) => [
+  env.NVIDIA_API_KEY && {
     name: "nvidia", url: "https://integrate.api.nvidia.com/v1/chat/completions",
-    key: process.env.NVIDIA_API_KEY, model: "nvidia/nemotron-3-super-120b-a12b",
+    key: env.NVIDIA_API_KEY, model: "nvidia/nemotron-3-super-120b-a12b",
   },
-  process.env.OPENROUTER_API_KEY && {
+  env.OPENROUTER_API_KEY && {
     name: "openrouter", url: "https://openrouter.ai/api/v1/chat/completions",
-    key: process.env.OPENROUTER_API_KEY, model: "nvidia/nemotron-3-super-120b-a12b:free",
+    key: env.OPENROUTER_API_KEY, model: "nvidia/nemotron-3-super-120b-a12b:free",
   },
 ].filter(Boolean);
 
-export async function chat(messages, { maxTokens = 500, timeoutMs = 40000 } = {}) {
+export async function chat(messages, { maxTokens = 500, timeoutMs = 40000 } = {}, env = globalThis.process?.env ?? {}) {
   const errors = [];
-  for (const p of providers()) {
+  for (const p of providers(env)) {
     try {
       const r = await fetch(p.url, {
         method: "POST",

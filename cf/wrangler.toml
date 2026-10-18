@@ -1,0 +1,4 @@
+name = "jedi-pack-gifts"
+pages_build_output_dir = "public"
+compatibility_date = "2026-05-01"
+# KV namespace JP_KV (daily AI cap, login throttle, feedback) is bound in the Pages dashboard or added here once created.
