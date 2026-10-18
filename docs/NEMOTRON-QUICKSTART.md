@@ -1,4 +1,4 @@
-# Nemotron quickstart (DRAFT, untested until we have a key)
+# Nemotron quickstart (VERIFIED 2026-10-18: base URL and model returned HTTP 200)
 
 Nemotron is NVIDIA's open-weight model family and the hackathon's required runtime.
 
@@ -12,7 +12,7 @@ Create `.env.local` in the repo (gitignored) with one line, then `chmod 600 .env
 `NVIDIA_API_KEY=<paste here>`
 
 ## 3. Call it (OpenAI-compatible)
-- Base URL: `https://integrate.api.nvidia.com/v1` (to confirm on the model page)
+- Base URL: `https://integrate.api.nvidia.com/v1`
 - Model: `nvidia/nemotron-3-super-120b-a12b`
 - Same shape as the OpenAI chat completions API, so any OpenAI client works with a different base URL.
 

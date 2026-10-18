@@ -3,7 +3,8 @@
 - [x] sample catalogue (24 items, SAMPLE numbers, not live Amazon data)
 - [x] ranking + filters, tested via CLI and HTTP
 - [x] simple UI + first screenshot
-- [ ] LLM explain step (needs a key name from Doppler: OPENROUTER_API_KEY exists; Paul to confirm)
+- [x] NVIDIA key in Doppler (jedi-pack/prd), Nemotron call tested OK
+- [ ] LLM explain step (wire Nemotron into the app)
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
 - [ ] real data sources: TMDB loader written (src/tmdb.mjs), UNTESTED, waits for TMDB_API_KEY; Open Library no key
 - [ ] push copy to Drive (waiting on Paul to confirm which folder)
