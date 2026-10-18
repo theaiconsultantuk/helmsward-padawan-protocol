@@ -17,3 +17,7 @@ Run: `npm start` then open http://127.0.0.1:4173
 ## 04 (Paul) keys
 > If we need API keys for the Star Wars project let's gather them now. Load up TMDB and do everything apart from me generating the password. Any good open source or low cost Amazon feeds?
 Result: `src/tmdb.mjs` written (UNTESTED until TMDB_API_KEY is in Doppler). Key shortlist in STATUS.md.
+
+## 05 (Paul) Oxylabs
+> Free 5 pounds budget on Oxylabs, API key in clipboard.
+Result: stored as OXYLABS_API_KEY (jedi-pack/prd). Test: POST webapi.oxylabs.io/v1/search returned HTTP 200 with Amazon.co.uk search-page links only. Not bestseller rank or units sold.
