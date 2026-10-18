@@ -6,6 +6,6 @@
 - [x] NVIDIA key in Doppler (jedi-pack/prd), Nemotron call tested OK
 - [ ] LLM explain step (wire Nemotron into the app)
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
-- [ ] real data sources: TMDB loader written (src/tmdb.mjs), UNTESTED, waits for TMDB_API_KEY; Open Library no key
+- [ ] real data sources: TMDB key stored, loader tested (9 films, 20 TV); Open Library no key
 - [x] Oxylabs key stored (free credit). Web API works but returns search links, not rank or units. Product data would need their Amazon scraper source (separate creds)
 - [ ] push copy to Drive (waiting on Paul to confirm which folder)

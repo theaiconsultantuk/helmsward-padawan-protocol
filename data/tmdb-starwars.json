@@ -1,0 +1,263 @@
+[
+  {
+    "type": "film",
+    "id": 11,
+    "title": "Star Wars",
+    "year": "1977",
+    "rating": 8.207,
+    "votes": 23025,
+    "poster": "/fai0rspsNeJCS69wHNjOdWxcI7P.jpg"
+  },
+  {
+    "type": "film",
+    "id": 1891,
+    "title": "The Empire Strikes Back",
+    "year": "1980",
+    "rating": 8.393,
+    "votes": 18990,
+    "poster": "/nNAeTmF4CtdSgMDplXTDPOpYzsX.jpg"
+  },
+  {
+    "type": "film",
+    "id": 1892,
+    "title": "Return of the Jedi",
+    "year": "1983",
+    "rating": 7.9,
+    "votes": 17438,
+    "poster": "/jQYlydvHm3kUix1f8prMucrplhm.jpg"
+  },
+  {
+    "type": "film",
+    "id": 1893,
+    "title": "Star Wars: Episode I - The Phantom Menace",
+    "year": "1999",
+    "rating": 6.583,
+    "votes": 16325,
+    "poster": "/6wkfovpn7Eq8dYNKaG5PY3q2oq6.jpg"
+  },
+  {
+    "type": "film",
+    "id": 1894,
+    "title": "Star Wars: Episode II - Attack of the Clones",
+    "year": "2002",
+    "rating": 6.6,
+    "votes": 14794,
+    "poster": "/oZNPzxqM2s5DyVWab09NTQScDQt.jpg"
+  },
+  {
+    "type": "film",
+    "id": 1895,
+    "title": "Star Wars: Episode III - Revenge of the Sith",
+    "year": "2005",
+    "rating": 7.5,
+    "votes": 15413,
+    "poster": "/xfSAoBEm9MNBjmlNcDYLvLSMlnq.jpg"
+  },
+  {
+    "type": "film",
+    "id": 140607,
+    "title": "Star Wars: The Force Awakens",
+    "year": "2015",
+    "rating": 7.24,
+    "votes": 21025,
+    "poster": "/wqnLdwVXoBjKibFRR5U3y0aDUhs.jpg"
+  },
+  {
+    "type": "film",
+    "id": 181812,
+    "title": "Star Wars: The Rise of Skywalker",
+    "year": "2019",
+    "rating": 6.244,
+    "votes": 11239,
+    "poster": "/db32LaOibwEliAmSL2jjDF6oDdj.jpg"
+  },
+  {
+    "type": "film",
+    "id": 181808,
+    "title": "Star Wars: The Last Jedi",
+    "year": "2017",
+    "rating": 6.732,
+    "votes": 16783,
+    "poster": "/kOVEVeg59E0wsnXmF9nrh6OmWII.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 4194,
+    "title": "Star Wars: The Clone Wars",
+    "year": "2008",
+    "rating": 8.462,
+    "votes": 2449,
+    "poster": "/e1nWfnnCVqxS2LeTO3dwGyAsG2V.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 60554,
+    "title": "Star Wars Rebels",
+    "year": "2014",
+    "rating": 7.718,
+    "votes": 1046,
+    "poster": "/eLrScs6Bs26JMcS8hiZhf7YRROr.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 114478,
+    "title": "Star Wars: Visions",
+    "year": "2021",
+    "rating": 7.082,
+    "votes": 496,
+    "poster": "/lG9ltUP4FwvsQBcwOJYceDbP48E.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 79093,
+    "title": "Star Wars Resistance",
+    "year": "2018",
+    "rating": 6.188,
+    "votes": 181,
+    "poster": "/xul6SG8rar3wkHPY8YusUtxcdlZ.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 105971,
+    "title": "Star Wars: The Bad Batch",
+    "year": "2021",
+    "rating": 8.138,
+    "votes": 1207,
+    "poster": "/5mHus672nuinyaE0FtqvD0AddcY.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 3122,
+    "title": "Star Wars: Clone Wars",
+    "year": "2003",
+    "rating": 7.78,
+    "votes": 523,
+    "poster": "/jKfAVTGkf9qpGPZ4E1pNKdW6vra.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 202998,
+    "title": "Star Wars: Young Jedi Adventures",
+    "year": "2023",
+    "rating": 4.6,
+    "votes": 34,
+    "poster": "/bC2Mix1WPUiY6pldh77oiFl1MvI.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 202879,
+    "title": "Star Wars: Skeleton Crew",
+    "year": "2024",
+    "rating": 6.776,
+    "votes": 501,
+    "poster": "/srQbJhLRKoAwRrNN5ga7webPHbC.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 25,
+    "title": "Star Wars: Droids",
+    "year": "1985",
+    "rating": 5.5,
+    "votes": 95,
+    "poster": "/AuGZbGeOQt30zsoTUSPlS8kMe1v.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 289219,
+    "title": "Star Wars: Maul - Shadow Lord",
+    "year": "2026",
+    "rating": 8.6,
+    "votes": 245,
+    "poster": "/fTfLd3s9yBNOzbFHD2aXvwEs93H.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 71412,
+    "title": "Star Wars: Forces of Destiny",
+    "year": "2017",
+    "rating": 5.24,
+    "votes": 77,
+    "poster": "/7xe9Hx4sVxuRa3uPGXYvPclTcnq.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 66837,
+    "title": "LEGO Star Wars: The Freemaker Adventures",
+    "year": "2016",
+    "rating": 6.9,
+    "votes": 58,
+    "poster": "/wmY6axhpMkZJhLY4agymOlZ2xHx.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 251091,
+    "title": "Star Wars: Tales of the Empire",
+    "year": "2024",
+    "rating": 7.349,
+    "votes": 242,
+    "poster": "/qA28nLteurVboSSzltuyYt1lvlC.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 101978,
+    "title": "Disney Gallery / Star Wars: The Mandalorian",
+    "year": "2020",
+    "rating": 7.4,
+    "votes": 71,
+    "poster": "/qwc5RFNadL7YYtMfly58AjYUA50.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 253760,
+    "title": "LEGO Star Wars: Rebuild the Galaxy",
+    "year": "2024",
+    "rating": 7,
+    "votes": 37,
+    "poster": "/2X2gEEAOFfGlRSmv5QvFU8h5xrV.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 63722,
+    "title": "LEGO Star Wars: Droid Tales",
+    "year": "2015",
+    "rating": 6.6,
+    "votes": 50,
+    "poster": "/kwEtB6toMVkmoqEoG5Hl63KP9NL.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 203085,
+    "title": "Star Wars: Tales of the Jedi",
+    "year": "2022",
+    "rating": 7.951,
+    "votes": 510,
+    "poster": "/k3nWQb0E8mLSR8acSkJP78VRVMv.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 289324,
+    "title": "Star Wars: Visions Presents - The Ninth Jedi",
+    "year": "2026",
+    "rating": 7.306,
+    "votes": 36,
+    "poster": "/AthqHRKJFOIbLa459I3D5yHdrQL.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 288055,
+    "title": "Star Wars: Tales of the Underworld",
+    "year": "2025",
+    "rating": 7.223,
+    "votes": 137,
+    "poster": "/qv1hagzp08cDJF6C04LyJVhcI1x.jpg"
+  },
+  {
+    "type": "tv",
+    "id": 85536,
+    "title": "Star Wars Galaxy of Adventures",
+    "year": "2018",
+    "rating": 5.5,
+    "votes": 38,
+    "poster": "/isxrTD9RfqxJR0qPahuTZsNVa8H.jpg"
+  }
+]

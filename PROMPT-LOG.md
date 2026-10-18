@@ -21,3 +21,7 @@ Result: `src/tmdb.mjs` written (UNTESTED until TMDB_API_KEY is in Doppler). Key 
 ## 05 (Paul) Oxylabs
 > Free 5 pounds budget on Oxylabs, API key in clipboard.
 Result: stored as OXYLABS_API_KEY (jedi-pack/prd). Test: POST webapi.oxylabs.io/v1/search returned HTTP 200 with Amazon.co.uk search-page links only. Not bestseller rank or units sold.
+
+## 06 (Paul) TMDB
+> Grab the API key and put it in the project; use the hackathon details page as the application URL.
+Result: TMDB application submitted by Paul (name, address, terms by hand). Read Access Token stored as TMDB_API_KEY (jedi-pack/prd). `src/tmdb.mjs` tested: 9 films, 20 TV entries into `data/tmdb-starwars.json`.
