@@ -7,5 +7,6 @@
 - [x] screenshots 01-04 in docs/screenshots
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
 - [x] real Amazon.co.uk data via Oxylabs scrape/amazon/search: 305 products in data/amazon-gifts.csv (9 paid calls from free credit)
-- [ ] add teammates to GitHub repo and Doppler (need GitHub usernames)
+- [x] teammates invited to repo (Dean, Jocke, Kristof) - waiting for acceptance
 - [ ] copy to Drive (waiting on Paul to confirm which folder)
+- [ ] password-protected live site on Cloudflare Pages (option B), includes Amazon data; NEVER submit Amazon data to the contest
