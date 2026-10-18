@@ -18,3 +18,15 @@ shortlist, sorted by rank, units sold and rating, with the reason for each pick.
 ## Rules
 - No keys in the repo. Keys come from Doppler at run time.
 - Private repo. Add teammates by GitHub username.
+
+## Run it
+1. Needs the Doppler CLI and access to the `jedi-pack` project (NVIDIA + TMDB keys). Teammates without access: put `NVIDIA_API_KEY` in your own shell env (see `docs/NEMOTRON-QUICKSTART.md`).
+2. `./run.sh`, then open http://127.0.0.1:4173
+3. `doppler run --project jedi-pack --config prd -- node src/tmdb.mjs` refreshes the Star Wars film/TV data.
+4. `OPENROUTER_API_KEY` is optional and only used as a fallback if the NVIDIA call fails.
+
+## How it works
+Plain-English request -> Nemotron turns it into filters (price, age, theme, product word) -> ranking in `src/rank.mjs` -> Nemotron explains the top pick using only the facts given.
+
+## Attribution
+This product uses the TMDB API but is not endorsed or certified by TMDB.

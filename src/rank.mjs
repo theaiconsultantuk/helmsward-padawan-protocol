@@ -33,6 +33,7 @@ export function find(filters = {}, all = loadGifts(), limit = 5) {
     .filter((g) => (filters.recipientAge == null || g.age_min <= filters.recipientAge))
     .filter((g) => (!filters.tag || g.franchise_tag === filters.tag))
     .filter((g) => (!filters.category || g.category === filters.category))
+    .filter((g) => (!filters.keyword || `${g.name} ${g.category}`.toLowerCase().includes(filters.keyword.toLowerCase())))
     .map((g) => ({ ...g, score: score(g, all) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);

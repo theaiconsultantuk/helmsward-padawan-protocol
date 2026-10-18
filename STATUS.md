@@ -1,11 +1,11 @@
 # Status (2026-10-18)
-- [x] repo scaffold (private: theaiconsultantuk/jedi-pack-star-wars-gifts)
-- [x] sample catalogue (24 items, SAMPLE numbers, not live Amazon data)
+- [x] repo (private: theaiconsultantuk/jedi-pack-star-wars-gifts), scaffold, sample catalogue (24 items, SAMPLE numbers)
 - [x] ranking + filters, tested via CLI and HTTP
-- [x] simple UI + first screenshot
-- [x] NVIDIA key in Doppler (jedi-pack/prd), Nemotron call tested OK
-- [ ] LLM explain step (wire Nemotron into the app)
+- [x] Nemotron wired (NVIDIA first, OpenRouter fallback), tested: plain-English request -> filters -> ranked picks -> explanation
+- [x] TMDB films/TV tab with posters and attribution (9 films, 20 TV)
+- [x] keys in Doppler project jedi-pack: NVIDIA, TMDB, Oxylabs (free credit)
+- [x] screenshots 01-04 in docs/screenshots
 - [ ] Zetaris load (admin account was locked earlier: do NOT retry login in a loop; Paul to unlock/confirm)
-- [ ] real data sources: TMDB key stored, loader tested (9 films, 20 TV); Open Library no key
-- [x] Oxylabs key stored (free credit). Web API works but returns search links, not rank or units. Product data would need their Amazon scraper source (separate creds)
-- [ ] push copy to Drive (waiting on Paul to confirm which folder)
+- [ ] live Amazon price/rating lookups (Oxylabs Web API only returns search links; needs scraper source)
+- [ ] add teammates to GitHub repo and Doppler (need GitHub usernames)
+- [ ] copy to Drive (waiting on Paul to confirm which folder)

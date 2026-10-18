@@ -25,3 +25,11 @@ Result: stored as OXYLABS_API_KEY (jedi-pack/prd). Test: POST webapi.oxylabs.io/
 ## 06 (Paul) TMDB
 > Grab the API key and put it in the project; use the hackathon details page as the application URL.
 Result: TMDB application submitted by Paul (name, address, terms by hand). Read Access Token stored as TMDB_API_KEY (jedi-pack/prd). `src/tmdb.mjs` tested: 9 films, 20 TV entries into `data/tmdb-starwars.json`.
+
+## 07 (Claude) LLM wiring
+Prompts inside the app (see `src/ask.mjs`):
+- Filter extraction: "You turn a gift request into JSON filters. Reply with ONLY a JSON object ... maxPrice, recipientAge, tag, keyword".
+- Explanation: "You are a friendly Star Wars gift advisor. In 3 short sentences, explain why the top pick fits the request, using only the facts given. Do not invent facts. Units are sales per month, never searches."
+Lessons: (1) first version ranked a mug top for "loves LEGO" because only price/age/theme were extracted, so a `keyword` filter was added. (2) The model called "units sold" "searches" until the label and prompt said sold per month. (3) If a filter is too strict we relax keyword and theme so the answer is never empty.
+Provider order: NVIDIA Nemotron first, OpenRouter free Nemotron as fallback.
+Screenshots: 03-ask-nemotron.png, 04-watch-list-tmdb.png.
