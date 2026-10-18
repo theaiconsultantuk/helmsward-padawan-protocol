@@ -1,0 +1,2 @@
+{ "name": "jedi-pack-star-wars-gifts", "private": true, "type": "module",
+  "scripts": { "start": "node src/server.mjs", "cli": "node src/cli.mjs" } }

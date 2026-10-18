@@ -1,0 +1,25 @@
+id,name,category,franchise_tag,price_gbp,age_min,bestseller_rank,units_sold_month,rating,reviews
+1,LEGO Star Wars Millennium Falcon,construction,original-trilogy,149.99,18,3,2400,4.9,5120
+2,LEGO Star Wars The Mandalorian N-1 Starfighter,construction,mandalorian,54.99,9,12,1900,4.8,2210
+3,Grogu Plush 28cm,plush,mandalorian,24.99,3,5,3100,4.9,6410
+4,Darth Vader Mug Helmet Shape,homeware,original-trilogy,14.99,12,8,2600,4.7,3380
+5,Star Wars Lightsaber Forge Kyber Saber,toy,general,29.99,6,9,1700,4.6,1980
+6,Neopixel Lightsaber Replica Obi-Wan,collectible,prequels,189.00,14,41,310,4.8,860
+7,Star Wars The Complete Visual Dictionary,book,general,19.99,10,18,950,4.8,1470
+8,Star Wars Rebels Art Of Book,book,rebels,28.00,12,66,210,4.7,330
+9,Baby Yoda Pyjama Set Kids,clothing,mandalorian,16.00,3,14,1500,4.7,1210
+10,Star Wars Monopoly,board-game,general,32.00,8,22,880,4.5,1890
+11,Star Wars Rebellion Board Game,board-game,original-trilogy,89.99,14,60,260,4.9,1240
+12,R2-D2 Bluetooth Speaker,electronics,original-trilogy,34.99,8,27,720,4.4,990
+13,Death Star Ice Cube Tray,homeware,original-trilogy,7.99,6,31,640,4.3,540
+14,Hot Toys Boba Fett Figure,collectible,mandalorian,259.00,16,90,95,4.9,210
+15,Black Series Mandalorian Helmet,collectible,mandalorian,99.99,14,35,470,4.7,1330
+16,Funko Pop Ahsoka Tano,collectible,clone-wars,12.99,6,17,1250,4.6,2080
+17,Star Wars Jedi Robe Kids,clothing,original-trilogy,22.50,4,25,780,4.5,1120
+18,Star Wars Poster Set A3 6 Pack,art,general,11.99,8,44,420,4.2,680
+19,Star Wars Jigsaw 1000 Piece Falcon Cockpit,puzzle,original-trilogy,13.50,12,38,520,4.6,760
+20,Ahsoka Season 1 Blu-ray,film-tv,clone-wars,19.99,12,54,260,4.6,410
+21,LEGO Star Wars AT-AT,construction,original-trilogy,139.99,14,10,980,4.9,1960
+22,Star Wars Tote Bag,accessories,general,9.99,8,70,180,4.3,120
+23,Darth Vader Mini Fridge,electronics,original-trilogy,59.99,10,29,340,4.5,610
+24,Star Wars Cookbook Wookiee Pies,book,general,15.00,12,47,300,4.7,550
