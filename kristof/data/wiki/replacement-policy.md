@@ -1,3 +1,10 @@
+---
+title: "Replacement policy"
+description: "Fictional Jedi Pack Inc rule: a replacement is not a refund, and the owner is employee 8 with employee 9 as backup."
+date: "2026-10-22"
+tags: [policy, fictional, jedi-pack]
+---
+
 # Replacement policy
 
 Fictional policy for Jedi Pack Inc. The company is not real.

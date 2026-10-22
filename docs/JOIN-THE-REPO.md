@@ -1,3 +1,10 @@
+---
+title: "Join the Jedi Pack repo (10 minutes)"
+description: "Steps for a teammate to accept the GitHub invite, clone the Jedi Pack repo, and run it."
+date: "2026-10-18"
+tags: [hackathon, team]
+---
+
 # Join the Jedi Pack repo (10 minutes)
 1. Make a free GitHub account at github.com/signup if you have none. Tell Paul your username.
 2. Accept the invite: github.com/notifications (or the email from GitHub). It says "write access".

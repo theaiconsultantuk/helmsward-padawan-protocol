@@ -1,3 +1,10 @@
+---
+title: "GenAI Academy notes (read 18 Oct 2026, signed in via \"Continue with Hackathon\")"
+description: "Notes from the free Open Agent Hackathon 2026 course on GenAI Academy, read on 18 Oct 2026."
+date: "2026-10-18"
+tags: [hackathon, team]
+---
+
 # GenAI Academy notes (read 18 Oct 2026, signed in via "Continue with Hackathon")
 
 ## Access and cost

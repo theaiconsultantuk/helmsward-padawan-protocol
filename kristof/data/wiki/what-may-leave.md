@@ -1,3 +1,10 @@
+---
+title: "What may leave the company"
+description: "Fictional Jedi Pack Inc rule for which facts a customer reply may include, and which facts must stay inside the company."
+date: "2026-10-22"
+tags: [policy, fictional, jedi-pack]
+---
+
 # What may leave the company
 
 Fictional policy for Jedi Pack Inc. The company is not real.

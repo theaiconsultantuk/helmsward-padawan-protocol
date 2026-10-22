@@ -1,3 +1,10 @@
+---
+title: "Judge video script"
+description: "Jedi Pack inbox. Target runtime 2 minutes 20 seconds. One screen recording, no music over the spoken lines. Company is fictional."
+date: "2026-10-22"
+tags: [jedi-pack, inbox, kristof]
+---
+
 # Judge video script
 
 Jedi Pack inbox. Target runtime 2 minutes 20 seconds. One screen recording, no music over the spoken lines. Company is fictional.

@@ -1,3 +1,10 @@
+---
+title: "Nemotron quickstart (VERIFIED 2026-10-18: base URL and model returned HTTP 200)"
+description: "Nemotron is NVIDIA's open-weight model family and the hackathon's required runtime."
+date: "2026-10-18"
+tags: [hackathon, team]
+---
+
 # Nemotron quickstart (VERIFIED 2026-10-18: base URL and model returned HTTP 200)
 
 Nemotron is NVIDIA's open-weight model family and the hackathon's required runtime.

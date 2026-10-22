@@ -1,3 +1,10 @@
+---
+title: "Prompt log"
+description: "Running record of the prompts used to build this, so the team can reuse them. Newest last."
+date: "2026-10-18"
+tags: [prompts, log]
+---
+
 # Prompt log
 Running record of the prompts used to build this, so the team can reuse them. Newest last.
 

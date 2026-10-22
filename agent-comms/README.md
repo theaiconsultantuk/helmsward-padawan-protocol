@@ -1,3 +1,10 @@
+---
+title: "Agent Comms: who is doing what, and where"
+description: "Every human and every agent (Claude, Codex, Cursor, sub-agents) reads this folder before starting and writes to it before stopping."
+date: "2026-10-18"
+tags: [team, board]
+---
+
 # Agent Comms: who is doing what, and where
 
 Every human and every agent (Claude, Codex, Cursor, sub-agents) reads this folder before starting and writes to it before stopping. It is the team's shared memory.
