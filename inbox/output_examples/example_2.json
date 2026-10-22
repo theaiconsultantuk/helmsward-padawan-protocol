@@ -1,0 +1,61 @@
+{
+  "run_id": "example-2",
+  "status": "success",
+  "output": {
+    "decision": "send",
+    "reasons": [
+      "both critics passed on round 1; weight 0.84 meets the floor 0.8, within the limit, someone is available"
+    ],
+    "cited_rows": [
+      "threads_parquet:T18",
+      "policy:refund",
+      "responsibility:fallback",
+      "holiday_2026:15@2026-10-22",
+      "holiday_2026:16@2026-10-22",
+      "employees:15",
+      "employees:16",
+      "trust_ledger:appreciation",
+      "wiki_what_may_leave"
+    ],
+    "draft": {
+      "text": "Hello Joss Keller,\n\nYou wrote about \"Beautiful saber\". Thank you for getting in touch (policy rows: threads_parquet:T18, policy:refund, responsibility:fallback, holiday_2026:15@2026-10-22, holiday_2026:16@2026-10-22, employees:15, employees:16, trust_ledger:appreciation, wiki_what_may_leave).\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-2",
+  "log_file": "logs/trace-example-2.jsonl",
+  "execution_time_seconds": 0.019
+}

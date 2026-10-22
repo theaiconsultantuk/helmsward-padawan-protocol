@@ -1,0 +1,53 @@
+{
+  "run_id": "example-3",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "reasons": [
+      "misread: the customer says the reply \"refund\" misread the ask; You misunderstood me. I did not ask for my money back. The saber arrived cracked and I asked you to replace it. Your reply says a refund is"
+    ],
+    "cited_rows": [
+      "threads_parquet:T01",
+      "policy:refund",
+      "holiday_2026:8@2026-10-22",
+      "holiday_2026:9@2026-10-22",
+      "employees:8",
+      "employees:9",
+      "wiki_what_may_leave"
+    ],
+    "queued_for": {
+      "owner_id": 8,
+      "backup_id": 9,
+      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--inbox-build/inbox/data/memory/queue/T01.json"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-3",
+  "log_file": "logs/trace-example-3.jsonl",
+  "execution_time_seconds": 0.02
+}

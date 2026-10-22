@@ -177,7 +177,33 @@ async function sqlName(args) {
   return 0;
 }
 
-const { values, positionals } = parseArgs({ allowPositionals: true, options: { apply: { type: "boolean", default: false } } });
+const { values, positionals } = parseArgs({ allowPositionals: true, options: {
+  apply: { type: "boolean", default: false }, thread: { type: "string" }, "as-of": { type: "string" },
+  "run-id": { type: "string" }, example: { type: "string" },
+} });
+
+async function runCmd(v) {
+  let body;
+  if (v.example !== undefined) {
+    if (!/^\d+$/.test(v.example)) { console.error("usage: run --example N"); return 64; }
+    body = JSON.parse(readFileSync(join(INBOX_ROOT, "input_examples", `example_${v.example}.json`), "utf8"));
+  } else if (v.thread) {
+    body = { input: { thread_id: v.thread } };
+  } else { console.error("usage: run --thread <id> [--as-of YYYY-MM-DD] [--run-id <id>] [--example N]"); return 64; }
+  if (v["as-of"]) body.input = { ...body.input, as_of: v["as-of"] };
+  if (v["run-id"]) body.run_id = v["run-id"];
+  let cfg = config();
+  if (body.options?.sample_mode === true) cfg = { ...cfg, SAMPLE_MODE: "true" };
+  const { runTicket } = await import("./loop.mjs");
+  const result = await runTicket(body.input.thread_id, { run_id: body.run_id, as_of: body.input.as_of, cfg, deps: { quiet: true } });
+  const out = {
+    run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
+    trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
+    ...(result.error ? { error: result.error } : {}),
+  };
+  console.log(JSON.stringify(mask(out, secrets()), null, 2));
+  return result.status === "success" ? 0 : 1;
+}
 const [cmd, ...rest] = positionals;
 let code = 64;
 try {
@@ -185,8 +211,9 @@ try {
   else if (cmd === "pin-primary") code = await pinPrimary();
   else if (cmd === "sql") code = await sql(rest, values.apply);
   else if (cmd === "gates") code = await gatesCmd(rest);
+  else if (cmd === "run") code = await runCmd(values);
   else if (cmd === "sql-name") code = await sqlName(rest);
-  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...]");
+  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...] | run --thread <id>|--example N");
 } catch (e) {
   console.error(`${e.name}: ${mask(String(e.message), secrets())}`);
   code = 1;

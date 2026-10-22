@@ -152,7 +152,7 @@ export async function draft(messages, { cfg = config(), trace = null, purpose = 
     trace?.line({
       step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
       output_summary: `${primary} failed (${e.name}); trying ${fallback}`,
-      status: "retrying", retry_count: 1, sponsor: "nightshift",
+      status: "retrying", retry_count: 1, sponsor: "meterless",
     });
     try {
       return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl });

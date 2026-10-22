@@ -1,0 +1,60 @@
+{
+  "run_id": "example-1",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "reasons": [
+      "refund weight 0.55 is under the floor 0.8; owner 15 out, backup 16 in. Both critics passed; the reply waits for backup 16 with the draft attached"
+    ],
+    "cited_rows": [
+      "threads_parquet:T02",
+      "policy:refund",
+      "holiday_2026:15@2026-10-22",
+      "holiday_2026:16@2026-10-22",
+      "employees:15",
+      "employees:16",
+      "trust_ledger:refund",
+      "wiki_what_may_leave"
+    ],
+    "draft": {
+      "text": "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 USD (policy rows: threads_parquet:T02, policy:refund, holiday_2026:15@2026-10-22, holiday_2026:16@2026-10-22, employees:15, employees:16, trust_ledger:refund, wiki_what_may_leave).\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": "40.0",
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-1",
+  "log_file": "logs/trace-example-1.jsonl",
+  "execution_time_seconds": 0.018
+}

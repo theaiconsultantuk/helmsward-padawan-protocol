@@ -41,10 +41,10 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
     mid = `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD${cite}, so we are not promising it today. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
     promises.refund_amount = ticket.amount_usd ?? null;
-    mid = `We will refund ${ticket.amount_usd} USD${cite}.`;
+    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
   } else if (cat === "refund") {
     promises.refund_amount = ticket.amount_usd ?? null;
-    mid = `We will refund ${ticket.amount_usd} USD${cite}.`;
+    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
   } else if (cat === "replacement") {
     promises.replacement = true;
     mid = `We will send you a replacement${cite}.`;
