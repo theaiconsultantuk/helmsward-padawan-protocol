@@ -1,0 +1,72 @@
+[
+  {
+    "memory_id": "mem-01",
+    "thread_id": "T02",
+    "summary": "Customer asked for a refund on order JP-1042 because the hilt color was wrong.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-02",
+    "thread_id": "T03",
+    "summary": "Refund of 400.00 USD for Cass Holm is on the way.",
+    "leak": "amount",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-03",
+    "thread_id": "T07",
+    "summary": "Customer reported a crushed box and did not ask for money.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-04",
+    "thread_id": "T11",
+    "summary": "Customer asked which blade colors can ship this month.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-05",
+    "thread_id": "T17",
+    "summary": "Ship the change to 14 Amber Court.",
+    "leak": "address",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-06",
+    "thread_id": "T18",
+    "summary": "Five-star note. The customer praised the hilt.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-07",
+    "thread_id": "T01",
+    "summary": "Customer asked for a replacement of a cracked saber.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-08",
+    "thread_id": "T12",
+    "summary": "Customer asked how many days a standard hilt takes to arrive.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-09",
+    "thread_id": "T21",
+    "summary": "Wholesale catalog pitch. Not a customer order.",
+    "leak": "",
+    "fictional": true
+  },
+  {
+    "memory_id": "mem-10",
+    "thread_id": "T16",
+    "summary": "Customer said the earlier answer solved it.",
+    "leak": "",
+    "fictional": true
+  }
+]

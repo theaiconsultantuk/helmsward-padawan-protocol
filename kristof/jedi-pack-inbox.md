@@ -308,16 +308,24 @@ Yes, as the web app at meterless.ai/gaia. Chat, H-MEM, tools, and WebLLM. Deskto
 
 ## Dataset sketch
 
-Fictional files are in `kristof/data/`. They are not loaded into a Zetaris instance. The refund limit used in the files is 150.00 USD.
+Fictional files are in `kristof/data/`. They are not loaded into a Zetaris instance. The refund limit used in the files is 150.00 USD. Each source sits in a different container so a Zetaris filestore can register them side by side.
 
-| Source | Shape | Demo fact |
+| Source | Container | Demo fact |
 |---|---|---|
-| Employees | id, given name, family name, email | 3 or 4 double given names, emails `given.family@jedipack.com` with a hyphen where the name has one |
-| Holiday | employee id, date, kind (`vacation` or `us-holiday`) | Owner is out on the demo day. Backup is in. |
-| Responsibility | topic, owner id, backup id | Refund topic points at employee 15, backup 16 |
-| Policy | topic, limit amount, under-limit owner, over-limit owner | Under the limit: employee 15 / 16. Over: employee 3 / 4 |
-| Categories | complaint, refund, question, appreciation, other | Rules first. Model only if no rule hits |
-| Trust ledger | category, weight, floor, source id | Seeded from the 24 threads. Affirm raises weight. Reject lowers it. |
+| Employees | `employees.csv`, and the `employees` table in `jedipack.sqlite` | 4 double given names, emails `given.family@jedipack.com` with a hyphen where the name has one |
+| Holiday | `holiday-2026.xlsx`, with `holiday-2026.csv` beside it | On 2026-10-22 employees 8, 15, 17, and 20 are out. Backup 16 is in. |
+| Responsibility | `responsibility.csv`, and the same table in `jedipack.sqlite` | Refund is employee 15, backup 16. Replacement is employee 8, backup 9. |
+| Policy | `policy.csv`, plus `wiki/refund-policy.md`, `wiki/replacement-policy.md`, and `wiki/what-may-leave.md` | Under 150.00 USD: employee 15 / 16. Over: employee 3 / 4. A replacement is not a refund. |
+| Categories | `categories.csv` | complaint, refund, question, appreciation, other. Rules first. |
+| Trust ledger | `trust-ledger.csv` | Weights are the stored seeds. Affirm raises a weight. Reject lowers it. The 24 threads do not recompute the numbers. |
+| Automation matrix | `automation-matrix.xml` | Autonomous only when the category weight is at or above the floor 0.80. Only appreciation qualifies. |
+| Email intake | `intakes/email/*.eml` | One mailbox file per email thread. Padmé's correction is `T01-reply.eml`. |
+| Contact form | `intakes/contact-form/submissions.json` | Five fictional form posts. No live endpoint. |
+| Trustpilot | `intakes/trustpilot/reviews.json` | Three fictional reviews. `live_api` is false. |
+| 24 threads | `threads/threads.jsonl` and the same rows in `threads/threads.parquet` | Send, hold, escalate, pure thank-you, follow-up, duplicate, and two external-data blocks. |
+| Privacy sample | `memory/privacy-sample.json` | 10 memory rows. `mem-02` leaks an amount. `mem-05` leaks a fictional street. |
+
+T01 is the misread. Her message asks for a replacement. The responsibility topic is replacement, so `category` is `replacement` even though that word is not one of the five mail labels. `agent_category` is `refund`, which is the mistake. The follow-up text is the quote in the judge sample below.
 
 ## Judge samples
 
@@ -365,7 +373,7 @@ Filled only from his words, the published docs, and the search below. A missing 
   - Nightshift hotspot at `http://127.0.0.1:8088/v1` may be absent on a judge machine. Sample mode is required.
   - Seeded weights will be declared as seeded. If the deck says "the model learned," that claim is false.
 - **Scope reason.** 144 hours, four people, submissions close Tue 27 Oct 2026 23:45 UTC. Both versions stay until the group rules. The scoped list is the one that can be run twice inside the window. Kristof wants the H-MEM learn proof inside it.
-- **Next slice.** Team keeps or drops the brief. On keep: generate the four sources and the 24 threads, then one ticket path. That is IMPLEMENT, and this pane does not start it.
+- **Next slice.** The four sources and the 24 threads are files in `kristof/data/`. The group has not kept the brief. The ticket path is still not built. That path is IMPLEMENT, and this pane does not start it.
 - **Learning.** Whether a human reject on the dashboard changes the next ticket's action. If it does not, H-MEM and the ledger are decoration.
 - **Sketch.** Above. No visual prototype this turn.
 

@@ -1,0 +1,35 @@
+[
+  {
+    "review_id": "TP-T05",
+    "thread_id": "T05",
+    "created_at": "2026-10-22T09:44:00Z",
+    "reviewer_name": "Nessa Quill",
+    "stars": 2,
+    "title": "Saber arrived late",
+    "text": "The saber arrived two weeks late. I want to know if I can get my money back. I did not name an amount.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T10",
+    "thread_id": "T10",
+    "created_at": "2026-10-22T10:16:00Z",
+    "reviewer_name": "Sable Wren",
+    "stars": 1,
+    "title": "Do not buy from Jedi Pack",
+    "text": "This is a public complaint. The photo on the listing does not match the saber I received. I will keep this review up.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T18",
+    "thread_id": "T18",
+    "created_at": "2026-10-22T11:28:00Z",
+    "reviewer_name": "Joss Keller",
+    "stars": 5,
+    "title": "Beautiful saber",
+    "text": "The saber is beautiful and the hilt feels solid. Five stars.",
+    "source": "fictional",
+    "live_api": false
+  }
+]
