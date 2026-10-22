@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Jedi Pack inbox, Scout verdict</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; background: #fff; color: #1c1c1f; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 8px 4px 20px; }
+  h1 { font-size: 28px; font-weight: 650; margin: 0 0 8px; }
+  h2 { font-size: 18px; font-weight: 650; margin: 0 0 8px; }
+  p { margin: 0 0 10px; color: #3f3f48; line-height: 1.45; font-size: 14px; }
+  .muted { color: #5e5e6a; font-size: 12px; }
+  .stats { display: flex; gap: 10px; margin: 12px 0; }
+  .stat { flex: 1; border: 1px solid #e4e4ea; border-radius: 8px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 22px; font-weight: 680; }
+  .stat span { color: #5e5e6a; font-size: 12px; }
+  .ok b { color: #1f7a4d; }
+  .warn b { color: #9a6400; }
+  .callout { border-radius: 8px; padding: 12px 14px; margin: 12px 0 16px; }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .success { background: #eef7f1; border: 1px solid #b7dcc6; }
+  .warning { background: #fff6e8; border: 1px solid #f0d7a6; }
+  section { margin: 18px 0; }
+  section.keep { break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; font-size: 11px; letter-spacing: 0.02em; color: #5e5e6a; font-weight: 650; padding: 6px 8px; border-bottom: 1px solid #d8d8e0; white-space: nowrap; }
+  td { padding: 7px 8px; border-bottom: 1px solid #eeeef2; vertical-align: top; line-height: 1.35; }
+  td.num, th.num { text-align: right; }
+  .mark { width: 4px; padding: 0; }
+  .tone-info { background: #4251e7; }
+  .tone-warning { background: #e39b12; }
+  .tone-success { background: #1f7a4d; }
+  .tone-danger { background: #b42318; }
+  .tone-neutral { background: #b7b7c2; }
+  .who { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 650; }
+  svg.chart { width: 100%; height: auto; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: #3f3f48; margin: 4px 0 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Jedi Pack inbox</h1>
+  <p>Scout verdict, 22 Oct 2026. Primary track is Reasoning Architecture. The product is one decision: send, hold, or escalate, with the Zetaris rows that justified it.</p>
+  <div class="stats">
+    <div class="stat ok"><b>9/10</b><span>Track 3 fit</span></div>
+    <div class="stat ok"><b>80</b><span>Scoped estimate / 100</span></div>
+    <div class="stat warn"><b>56</b><span>Full list estimate / 100</span></div>
+    <div class="stat warn"><b>14/20</b><span>Worksheet, as written</span></div>
+  </div>
+  <p class="muted">Rubric estimates are Scout's reading of the published weights in inputdocs/016. They are not a predicted judge score. Worksheet band 11–15 means reduce scope.</p>
+
+  <div class="callout success">
+    <strong>Closest track: 3, Reasoning Architecture</strong>
+    The official track 3 example is a front desk that combines availability, policy, and memory of past decisions, then produces a decision with the reasoning. This brief is that pattern for a company inbox: holiday, refund limit, responsible person, backup, and a trust floor, then send, hold, or escalate.
+  </div>
+
+  <section class="keep">
+    <h2>Fit to the published track text</h2>
+    <svg class="chart" viewBox="0 0 720 188" role="img" aria-label="Track fit scores">
+      <text x="0" y="28" font-size="13" fill="#1c1c1f">1 Fragmented Intelligence</text>
+      <rect x="230" y="14" width="168" height="20" rx="3" fill="#4251e7"/>
+      <text x="406" y="29" font-size="13" fill="#1c1c1f">4</text>
+      <text x="0" y="74" font-size="13" fill="#1c1c1f">2 Explain Why</text>
+      <rect x="230" y="60" width="294" height="20" rx="3" fill="#4251e7"/>
+      <text x="532" y="75" font-size="13" fill="#1c1c1f">7</text>
+      <text x="0" y="120" font-size="13" fill="#1c1c1f">3 Reasoning Architecture</text>
+      <rect x="230" y="106" width="378" height="20" rx="3" fill="#1f7a4d"/>
+      <text x="616" y="121" font-size="13" fill="#1c1c1f">9</text>
+      <text x="0" y="166" font-size="13" fill="#1c1c1f">Bonus Tinkerer</text>
+      <rect x="230" y="152" width="42" height="20" rx="3" fill="#4251e7"/>
+      <text x="280" y="167" font-size="13" fill="#1c1c1f">1</text>
+    </svg>
+    <p class="muted">Source: inputdocs/016 section 6, read 22 Oct 2026. Score is how closely the braindump matches that track's "what you build" sentence. Axis: track, fit score (0–10). Track 3 is the locked choice.</p>
+  </section>
+
+  <section class="keep">
+    <h2>Estimated share of each rubric criterion</h2>
+    <div class="legend">
+      <span><i style="background:#e39b12"></i>As written, 27 items</span>
+      <span><i style="background:#1f7a4d"></i>Scoped cut</span>
+      <span><i style="background:#8a8a96"></i>Strong band, 70%</span>
+    </div>
+    <svg class="chart" viewBox="0 0 720 300" role="img" aria-label="Rubric share by criterion">
+      <line x1="48" y1="224" x2="688" y2="224" stroke="#d8d8e0"/>
+      <line x1="48" y1="84" x2="688" y2="84" stroke="#8a8a96" stroke-dasharray="4 3"/>
+      <text x="52" y="78" font-size="11" fill="#5e5e6a">70%</text>
+      <text x="20" y="228" font-size="11" fill="#5e5e6a">0</text>
+      <text x="12" y="32" font-size="11" fill="#5e5e6a">100</text>
+
+      <rect x="66" y="118" width="32" height="106" fill="#e39b12"/>
+      <rect x="102" y="70" width="32" height="154" fill="#1f7a4d"/>
+      <text x="70" y="112" font-size="11" fill="#1c1c1f">53</text>
+      <text x="106" y="64" font-size="11" fill="#1c1c1f">77</text>
+      <text x="62" y="246" font-size="12" fill="#1c1c1f">Impact</text>
+
+      <rect x="173" y="114" width="32" height="110" fill="#e39b12"/>
+      <rect x="209" y="64" width="32" height="160" fill="#1f7a4d"/>
+      <text x="177" y="108" font-size="11" fill="#1c1c1f">55</text>
+      <text x="213" y="58" font-size="11" fill="#1c1c1f">80</text>
+      <text x="160" y="246" font-size="12" fill="#1c1c1f">Technical</text>
+
+      <rect x="280" y="118" width="32" height="106" fill="#e39b12"/>
+      <rect x="316" y="78" width="32" height="146" fill="#1f7a4d"/>
+      <text x="284" y="112" font-size="11" fill="#1c1c1f">53</text>
+      <text x="320" y="72" font-size="11" fill="#1c1c1f">73</text>
+      <text x="262" y="246" font-size="12" fill="#1c1c1f">Innovation</text>
+
+      <rect x="386" y="130" width="32" height="94" fill="#e39b12"/>
+      <rect x="422" y="50" width="32" height="174" fill="#1f7a4d"/>
+      <text x="390" y="124" font-size="11" fill="#1c1c1f">47</text>
+      <text x="426" y="44" font-size="11" fill="#1c1c1f">87</text>
+      <text x="386" y="246" font-size="12" fill="#1c1c1f">Demo</text>
+
+      <rect x="493" y="104" width="32" height="120" fill="#e39b12"/>
+      <rect x="529" y="64" width="32" height="160" fill="#1f7a4d"/>
+      <text x="497" y="98" font-size="11" fill="#1c1c1f">60</text>
+      <text x="533" y="58" font-size="11" fill="#1c1c1f">80</text>
+      <text x="478" y="246" font-size="12" fill="#1c1c1f">Product</text>
+      <text x="490" y="262" font-size="12" fill="#1c1c1f">and UX</text>
+
+      <rect x="600" y="64" width="32" height="160" fill="#e39b12"/>
+      <rect x="636" y="44" width="32" height="180" fill="#1f7a4d"/>
+      <text x="604" y="58" font-size="11" fill="#1c1c1f">80</text>
+      <text x="640" y="38" font-size="11" fill="#1c1c1f">90</text>
+      <text x="592" y="246" font-size="12" fill="#1c1c1f">Sponsor</text>
+      <text x="604" y="262" font-size="12" fill="#1c1c1f">tech</text>
+    </svg>
+    <p class="muted">Each bar is the estimate divided by that criterion's maximum, so Impact (30) and Sponsor tech (10) can sit on one axis. Axis: criterion, share of that criterion's points (%). Source: Scout estimate, 22 Oct 2026.</p>
+  </section>
+
+  <section>
+    <h2>Point estimates behind the chart</h2>
+    <table>
+      <thead>
+        <tr><th class="mark"></th><th>Criterion</th><th class="num">Max</th><th class="num">As written</th><th class="num">Scoped cut</th><th>What moves it</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mark tone-info"></td><td>Impact</td><td class="num">30</td><td class="num">16</td><td class="num">23</td><td>Name the mailbox owner and the decision. A fictional company is fine if the README says so.</td></tr>
+        <tr><td class="mark tone-warning"></td><td>Technical</td><td class="num">20</td><td class="num">11</td><td class="num">16</td><td>Deterministic gates, Scout's risk check, and the Nightshift judge. The 27-item list will not finish.</td></tr>
+        <tr><td class="mark tone-info"></td><td>Innovation</td><td class="num">15</td><td class="num">8</td><td class="num">11</td><td>The held send is the idea. An auto-reply alone is a known helpdesk product.</td></tr>
+        <tr><td class="mark tone-success"></td><td>Demo</td><td class="num">15</td><td class="num">7</td><td class="num">13</td><td>One thread: owner on holiday, amount over the limit, reply held, backup named.</td></tr>
+        <tr><td class="mark tone-success"></td><td>Product and UX</td><td class="num">10</td><td class="num">6</td><td class="num">8</td><td>Four counters, the draft, affirm or reject. One screen, queried from Zetaris.</td></tr>
+        <tr><td class="mark tone-danger"></td><td>Sponsor tech</td><td class="num">10</td><td class="num">8</td><td class="num">9</td><td>Zetaris for the cited rows, and again for the dashboard. The Evaluator is the Nightshift judge. Risk is Scout's risk check. NVIDIA writes the draft and the critique.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Sponsor stack</h2>
+    <p>A name in the README scores when a judge can see that piece change the decision. Gaia on this Mac is the web app. It stays the workspace.</p>
+    <table>
+      <thead>
+        <tr><th class="mark"></th><th>Piece</th><th>Place</th><th>Job in the decision</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="51.86 52.23 101.75 101.75" aria-hidden="true"><rect x="51.86" y="52.23" width="101.75" height="101.75" rx="32.71" fill="#4251e7"/><path fill="#fff" d="M84.56,121.3l21.49-30.74c1.28-1.83-.03-4.33-2.26-4.33h-15.5c-1.52,0-2.75-1.23-2.75-2.75v-4.45c0-1.52,1.23-2.75,2.75-2.75h32.49c1.52,0,2.75,1.23,2.75,2.75v5.6c0,.56-.17,1.11-.49,1.57l-21.43,30.75c-1.27,1.83.03,4.33,2.26,4.33h17.65c1.52,0,2.75,1.23,2.75,2.75v4.45c0,1.52-1.23,2.75-2.75,2.75h-34.7c-1.52,0-2.75-1.23-2.75-2.75v-5.6c0-.56.17-1.12.5-1.58Z"/></svg>Zetaris</span></td><td>Load-bearing</td><td>Holiday, HR, policy, and backup are rows the draft cites. The dashboard reads the same surface: counts, the draft, affirm and reject, weights, and token totals.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Scout Intent</span></td><td>Load-bearing</td><td>Classifies the mail and signs before send.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>H-MEM</span></td><td>Load-bearing</td><td>A similar refund reuses the path. A human reject raises the floor. The escalate gate is queueForHuman.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>World Model</span></td><td>Load-bearing</td><td>Ticket, thread, and who currently holds the claim.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#76B900" d="M8.948 8.798v-1.43a6.7 6.7 0 0 1 .424-.018c3.922-.124 6.493 3.374 6.493 3.374s-2.774 3.851-5.75 3.851c-.398 0-.787-.062-1.158-.185v-4.346c1.528.185 1.837.857 2.747 2.385l2.04-1.714s-1.492-1.952-4-1.952a6.016 6.016 0 0 0-.796.035m0-4.735v2.138l.424-.027c5.45-.185 9.01 4.47 9.01 4.47s-4.08 4.964-8.33 4.964c-.37 0-.733-.035-1.095-.097v1.325c.3.035.61.062.91.062 3.957 0 6.82-2.023 9.593-4.408.459.371 2.34 1.263 2.73 1.652-2.633 2.208-8.772 3.984-12.253 3.984-.335 0-.653-.018-.971-.053v1.864H24V4.063zm0 10.326v1.131c-3.657-.654-4.673-4.46-4.673-4.46s1.758-1.944 4.673-2.262v1.237H8.94c-1.528-.186-2.73 1.245-2.73 1.245s.68 2.412 2.739 3.11M2.456 10.9s2.164-3.197 6.5-3.533V6.201C4.153 6.59 0 10.653 0 10.653s2.35 6.802 8.948 7.42v-1.237c-4.84-.6-6.492-5.936-6.492-5.936z"/></svg>Nightshift, NVIDIA</span></td><td>Load-bearing</td><td>POWER route. Nemotron drafts the reply. The Evaluator is Nightshift's judge lane, and Nemotron writes that critique.</td></tr>
+        <tr><td class="mark tone-info"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Markovian</span></td><td>After the core</td><td>Long thread and the privacy scan as chunks with a short carryover.</td></tr>
+        <tr><td class="mark tone-warning"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Swarm</span></td><td>Cut from v1</td><td>Claim lock stays in the ticket table. Spawning workers waits.</td></tr>
+        <tr><td class="mark tone-neutral"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Gaia</span></td><td>Workspace only</td><td>Web app on this Mac. World Model is what the product imports.</td></tr>
+        <tr><td class="mark tone-neutral"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Relay</span></td><td>Method only</td><td>Orchestrator is code. The Windows app is not a judge dependency.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#171717"/><path transform="translate(6 6)" d="M0 7l2.4 6 2.4-12 2.4 9 2.4-4.5 2.4 3h2.4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>HARDEN</span></td><td>Prompt library</td><td>Scout guard on inbound mail before the model. Trust floor is the weight table.</td></tr>
+        <tr><td class="mark tone-success"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#76B900" d="M8.948 8.798v-1.43a6.7 6.7 0 0 1 .424-.018c3.922-.124 6.493 3.374 6.493 3.374s-2.774 3.851-5.75 3.851c-.398 0-.787-.062-1.158-.185v-4.346c1.528.185 1.837.857 2.747 2.385l2.04-1.714s-1.492-1.952-4-1.952a6.016 6.016 0 0 0-.796.035m0-4.735v2.138l.424-.027c5.45-.185 9.01 4.47 9.01 4.47s-4.08 4.964-8.33 4.964c-.37 0-.733-.035-1.095-.097v1.325c.3.035.61.062.91.062 3.957 0 6.82-2.023 9.593-4.408.459.371 2.34 1.263 2.73 1.652-2.633 2.208-8.772 3.984-12.253 3.984-.335 0-.653-.018-.971-.053v1.864H24V4.063zm0 10.326v1.131c-3.657-.654-4.673-4.46-4.673-4.46s1.758-1.944 4.673-2.262v1.237H8.94c-1.528-.186-2.73 1.245-2.73 1.245s.68 2.412 2.739 3.11M2.456 10.9s2.164-3.197 6.5-3.533V6.201C4.153 6.59 0 10.653 0 10.653s2.35 6.802 8.948 7.42v-1.237c-4.84-.6-6.492-5.936-6.492-5.936z"/></svg>POWER</span></td><td>Prompt library</td><td>Nightshift provider. NVIDIA Nemotron is the model inside it.</td></tr>
+        <tr><td class="mark tone-info"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1c1c1f" d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>IMPLEMENT</span></td><td>Prompt library</td><td>Cursor builds the engines from the specs after the group keeps the brief.</td></tr>
+        <tr><td class="mark tone-info"></td><td><span class="who"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="#1c1c1f" d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>Cursor</span></td><td>How it was built</td><td>Runs the Implement prompts.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <div class="callout warning">
+    <strong>The list is a company simulator</strong>
+    Twenty staff, 300 threads, three live channels, a swarm threshold, and three dashboard pages hide the decision. The cut is four Zetaris sources, 24 authored threads, file drop-ins for email, the contact form, and Trustpilot, and one screen with the four counters.
+  </div>
+</main>
+</body>
+</html>
