@@ -1,3 +1,10 @@
+---
+title: "Board (orchestrator edits this; everyone reads it)"
+description: "Updated: 2026-10-18. Status: PRACTICE phase. Real challenge arrives 22 Oct 00:00 UTC."
+date: "2026-10-18"
+tags: [team, board]
+---
+
 # Board (orchestrator edits this; everyone reads it)
 Updated: 2026-10-18. Status: PRACTICE phase. Real challenge arrives 22 Oct 00:00 UTC.
 

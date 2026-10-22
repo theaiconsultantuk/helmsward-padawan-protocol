@@ -1,3 +1,10 @@
+---
+title: "Refund policy"
+description: "Fictional Jedi Pack Inc rule: refunds at or under 150.00 USD stay with employee 15, and amounts above that go to the manager."
+date: "2026-10-22"
+tags: [policy, fictional, jedi-pack]
+---
+
 # Refund policy
 
 Fictional policy for Jedi Pack Inc. The company is not real.

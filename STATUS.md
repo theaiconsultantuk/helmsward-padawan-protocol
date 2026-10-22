@@ -1,3 +1,10 @@
+---
+title: "Status (2026-10-18)"
+description: "What runs, what was tested, and what is still blocked for the Jedi Pack practice build as of 2026-10-18."
+date: "2026-10-18"
+tags: [status, team]
+---
+
 # Status (2026-10-18)
 - [x] repo (private: theaiconsultantuk/jedi-pack-star-wars-gifts), scaffold, sample catalogue (24 items, SAMPLE numbers)
 - [x] ranking + filters, tested via CLI and HTTP

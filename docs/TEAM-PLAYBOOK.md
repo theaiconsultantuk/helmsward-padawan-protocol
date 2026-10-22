@@ -1,3 +1,10 @@
+---
+title: "Jedi Pack team playbook (DRAFT for Paul)"
+description: "Practice phase now. Real challenge arrives 22 Oct 00:00 UTC; build window to 27 Oct; our own freeze 26 Oct."
+date: "2026-10-18"
+tags: [hackathon, team]
+---
+
 # Jedi Pack team playbook (DRAFT for Paul)
 
 Practice phase now. Real challenge arrives 22 Oct 00:00 UTC; build window to 27 Oct; our own freeze 26 Oct.

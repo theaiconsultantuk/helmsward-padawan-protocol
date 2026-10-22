@@ -1,3 +1,10 @@
+---
+title: "Jedi Pack training page"
+description: "Official course (free with the hackathon, sign in with \"Continue with Hackathon\"): https://academy.genai.works/courses/open-agent-hackathon-2026"
+date: "2026-10-18"
+tags: [hackathon, team]
+---
+
 # Jedi Pack training page
 
 Official course (free with the hackathon, sign in with "Continue with Hackathon"):

@@ -1,3 +1,10 @@
+---
+title: "Jedi Pack: Star Wars Gift Finder (practice use case)"
+description: "Practice build for the Open Agent Hackathon 2026 (22-27 Oct). Team: Jedi Pack. Picked by team vote."
+date: "2026-10-18"
+tags: [hackathon, gift-finder]
+---
+
 # Jedi Pack: Star Wars Gift Finder (practice use case)
 
 Practice build for the Open Agent Hackathon 2026 (22-27 Oct). Team: Jedi Pack.
