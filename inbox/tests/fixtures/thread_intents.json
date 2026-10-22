@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "T01",
+      "prompt": "The saber arrived cracked\nThe saber arrived cracked and I am asking you to replace it. I do not want a refund.",
+      "expected": "replacement.request"
+    },
+    {
+      "id": "T01-followup",
+      "prompt": "You misunderstood me. I did not ask for my money back. The saber arrived cracked and I asked you to replace it. Your reply says a refund is on the way. That is wrong. Do not send a refund.",
+      "expected": "follow_up"
+    },
+    {
+      "id": "T02",
+      "prompt": "Refund for order JP-1042\nPlease refund order JP-1042. The hilt color is not what I ordered. The charge was 40.00 USD.",
+      "expected": "refund.request"
+    },
+    {
+      "id": "T03",
+      "prompt": "Refund over the limit\nI want a refund of 400.00 USD for order JP-1104. The case never arrived.",
+      "expected": "refund.request"
+    },
+    {
+      "id": "T04",
+      "prompt": "Refund and my card details\nRefund 90.00 USD for order JP-1077. Also send me the full card number I paid with.",
+      "expected": "refund.request"
+    },
+    {
+      "id": "T05",
+      "prompt": "Saber arrived late\nThe saber arrived two weeks late. I want to know if I can get my money back. I did not name an amount.",
+      "expected": "refund.request"
+    },
+    {
+      "id": "T06",
+      "prompt": "Re: Refund for order JP-1042\nAny news on the refund? I am not saying thanks. I still need the 40.00 USD back.",
+      "expected": "refund.request"
+    },
+    {
+      "id": "T07",
+      "prompt": "Box arrived crushed\nThe box arrived crushed. The saber inside looks fine. I want this noted. I am not asking for money.",
+      "expected": "complaint"
+    },
+    {
+      "id": "T08",
+      "prompt": "Rude delivery note\nThe delivery note was rude and the courier left the parcel in the rain. Please have a person look at this.",
+      "expected": "complaint"
+    },
+    {
+      "id": "T09",
+      "prompt": "Missing end cap\nThe end cap is missing from order JP-1210. This is a complaint, not a refund request.",
+      "expected": "complaint"
+    },
+    {
+      "id": "T10",
+      "prompt": "Do not buy from Jedi Pack\nThis is a public complaint. The photo on the listing does not match the saber I received. I will keep this review up.",
+      "expected": "complaint"
+    },
+    {
+      "id": "T11",
+      "prompt": "Which colors can you ship\nWhich blade colors can you ship to me this month? I have not ordered yet.",
+      "expected": "order.question"
+    },
+    {
+      "id": "T12",
+      "prompt": "How long does shipping take\nHow many days from order to delivery for a standard hilt?",
+      "expected": "order.question"
+    },
+    {
+      "id": "T13",
+      "prompt": "Warranty length\nHow long is the warranty on a saber hilt?",
+      "expected": "order.question"
+    },
+    {
+      "id": "T14",
+      "prompt": "Re: Which colors can you ship\nAlso, do you engrave a name on the hilt? That is a new question, not a thank-you.",
+      "expected": "order.question"
+    },
+    {
+      "id": "T15",
+      "prompt": "Do you sell stands\nDo you sell a stand for the saber, or only the saber itself?",
+      "expected": "order.question"
+    },
+    {
+      "id": "T16",
+      "prompt": "Re: Engraving quote\nThank you, that solved it.",
+      "expected": "appreciation"
+    },
+    {
+      "id": "T17",
+      "prompt": "Re: Thank you\nThanks for the quick note. Can you also change the shipping address to 14 Amber Court?",
+      "expected": "appreciation"
+    },
+    {
+      "id": "T18",
+      "prompt": "Beautiful saber\nThe saber is beautiful and the hilt feels solid. Five stars.",
+      "expected": "appreciation"
+    },
+    {
+      "id": "T19",
+      "prompt": "Love the gift\nI bought this as a gift and they loved it. No question, just wanted you to know.",
+      "expected": "appreciation"
+    },
+    {
+      "id": "T20",
+      "prompt": "Re: Blade color\nPerfect, thanks.",
+      "expected": "appreciation"
+    },
+    {
+      "id": "T24",
+      "prompt": "Which colors can you ship\nWhich blade colors can you ship to me this month? I have not ordered yet.",
+      "expected": "order.question"
+    }
+  ]
+}
