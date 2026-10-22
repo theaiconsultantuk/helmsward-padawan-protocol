@@ -1,6 +1,9 @@
 // The decision loop core: one ticket in, one decision (send, hold, escalate, close) out, every step traced.
 // Order follows methodology.md. Every step the run does not reach is still logged, status "skipped".
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
+import { createServer } from "node:net";
+import * as zetaris from "./adapters/zetaris.mjs";
 import { config, sampleMode as isSampleMode, INBOX_ROOT } from "./config.mjs";
 import { Trace, mask } from "./trace.mjs";
 import { factsForTicket } from "./queries.mjs";
@@ -27,10 +30,52 @@ const WHO = {
   "memory.write": ["Memory", "memory_write"], synthesis: ["Planner", "synthesis"], recovery: ["Planner", "recover"],
 };
 
+// Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's data-block,
+// follow-up, duplicate and public-channel.
+// The duplicate lookup reads the committed threads file (also the Zetaris source file).
+// A Zetaris template for it belongs in CP4.
+export function findDuplicateInFile(ticket, { file = join(INBOX_ROOT, "data", "synthetic", "threads", "threads.jsonl") } = {}) {
+  let rows;
+  try {
+    rows = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  } catch {
+    return null;
+  }
+  const key = (t) => [t.sender_email, t.subject, t.body].join("\u0000");
+  const mine = key(ticket);
+  const at = Date.parse(ticket.received_at);
+  const hits = rows.filter((t) => t.thread_id !== ticket.thread_id && key(t) === mine && Date.parse(t.received_at) < at)
+    .sort((a, b) => Date.parse(a.received_at) - Date.parse(b.received_at));
+  return hits.length ? { thread_id: hits[0].thread_id, received_at: hits[0].received_at } : null;
+}
+
+// FAULT_ZETARIS_REFUSE_ONCE in sample mode: the first Zetaris call of the run goes through the real adapter with
+// sample mode off and a loopback port that was bound and released, so the refusal is a genuine ECONNREFUSED.
+// The adapter then answers from the cached rows (error line, then recovery line). Later calls stay in sample mode.
+async function closedLoopbackUrl() {
+  return new Promise((resolve) => {
+    const srv = createServer();
+    srv.once("error", () => resolve("http://127.0.0.1:2"));
+    srv.listen(0, "127.0.0.1", () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(`http://127.0.0.1:${port}`));
+    });
+  });
+}
+function faultingSqlRun(cfg, trace) {
+  let first = true;
+  return async (sql, o) => {
+    if (!first) return zetaris.sqlRun(sql, { ...o, cfg });
+    first = false;
+    const url = await closedLoopbackUrl();
+    return zetaris.sqlRun(sql, { ...o, trace, retryDelayMs: 0, cfg: { ...cfg, SAMPLE_MODE: "false", ZETARIS_REST_URL: url } });
+  };
+}
+
 const BRANCH_RE = /^amount .* over the policy limit/;
 
 // Pure. gates and memory may be null (the planner calls it before the gates have run).
-export function decideBranch(facts, gates, memory) {
+export function decideBranch(facts, gates, memory, extra = {}) {
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
   const followUp = Number(g.is_follow_up ?? 0);
@@ -39,6 +84,18 @@ export function decideBranch(facts, gates, memory) {
   }
   if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you") {
     return { branch_id: "thank-you", why: "a pure thank-you with no new question: nothing to send" };
+  }
+  if (facts.follow_up_kind === "follow-up") {
+    return { branch_id: "follow-up", why: "a follow-up on an open ticket: the ticket stays open, nothing new is sent" };
+  }
+  if (facts.may_leave === false) {
+    return { branch_id: "data-block", why: "the cited fact may not leave the company: external-data block" };
+  }
+  if (extra.duplicate_of) {
+    return { branch_id: "duplicate", why: `the same sender, subject and body as earlier thread ${extra.duplicate_of.thread_id}: closed as a duplicate` };
+  }
+  if (facts.category === "complaint" && facts.channel === "trustpilot") {
+    return { branch_id: "public-channel", why: "a complaint on a public channel (trustpilot): public image risk" };
   }
   if (facts.amount_usd != null && facts.policy_limit_usd != null && facts.amount_usd > facts.policy_limit_usd) {
     return { branch_id: "over-limit", why: `amount ${facts.amount_usd} USD is over the ${facts.policy_limit_usd} USD policy limit` };
@@ -49,7 +106,7 @@ export function decideBranch(facts, gates, memory) {
   const tf = trustFloor(facts, gates ?? undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}` : `owner ${facts.owner_id} in`;
-    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${memory?.length ? "; memory consulted" : ""}` };
+    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount_usd == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
   }
   return { branch_id: "send-ok", why: `weight ${tf.weight} meets the floor ${tf.floor}, within the limit, someone is available` };
 }
@@ -86,7 +143,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const hmem = deps.hmem && typeof deps.hmem.query === "function" ? deps.hmem : new HMEM({ persistDir: deps.hmem?.persistDir ?? memoryDir, clock });
   const scout = deps.scout ?? new Scout({ intentRegistry: join(INBOX_ROOT, "src", "engines", "scout", "intents.inbox.json"), policyPack: ["default"], secret });
   const gatesFn = deps.gates ?? typedGates;
-  const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg }));
+  const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
+  const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
   const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose }));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
@@ -143,6 +201,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     const f = S.facts;
     const ticket = f?.ticket ?? { thread_id };
+    let dup = null;
+    if (f) {
+      try {
+        dup = await (deps.findDuplicate ?? findDuplicateInFile)({ ...(f.ticket ?? {}), thread_id, sender_email: f.sender_email, subject: f.subject, body: f.body, received_at: f.received_at });
+      } catch {
+        dup = null;
+      }
+    }
     const inputText = f ? (f.follow_up_kind ? (f.follow_up_body || f.body) : f.body) : "";
 
     // 1. memory.read
@@ -167,7 +233,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
@@ -182,12 +248,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 4. executor.act (+ the zetaris.query lines it caused)
     S.current = "executor.act";
-    for (const b of buf) L(b);
+    for (const b of buf) {
+      if (b.status === "error" && b.step === "zetaris.query") S.recovered.push({ step: "zetaris.query", type: "UpstreamRefused", message: safeMsg(b.output_summary) });
+      L(b);
+    }
     if (factsErr) fatal("executor.act", factsErr, "facts unavailable, escalated to human with the ticket id only");
     L({
       step: "executor.act", agent_name: "Executor", action: "act", input_summary: `facts for ${thread_id} as of ${f.as_of ?? as_of ?? "received_at"}`,
       output_summary: `${f.cited_rows.length} rows cited: ${f.cited_rows.slice(0, 8).join(", ")}${f.cited_rows.length > 8 ? ", ..." : ""}; amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"}; owner ${f.owner_id} ${f.owner_out ? "out" : "in"}, backup ${f.backup_id} ${f.backup_out ? "out" : "in"}`
-        + (known ? "; facts rows still read in one call (full reuse from memory is not implemented)" : ""),
+        + (known ? "; facts rows still read in one call (full reuse from memory is not implemented)" : "")
+        + (dup ? `; duplicate check: same sender, subject and body as ${dup.thread_id} (${dup.received_at})` : "; duplicate check: none"),
       status: "success", sponsor: "zetaris",
     });
 
@@ -231,7 +301,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead);
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup });
     const B = S.branch.branch_id;
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
@@ -245,6 +315,23 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       for (const s of ["nvidia.model", "critique", "risk.signoff", "retry", "escalate_or_fallback"]) skipped(s, "thank-you: nothing to send");
       S.decision = "close";
       S.reasons.push(S.branch.why);
+      return;
+    }
+    if (["data-block", "follow-up", "duplicate", "public-channel"].includes(B)) {
+      const refusal = B === "data-block" ? "fact may not leave" : B === "public-channel" ? "public image risk: no autonomous reply" : null;
+      skipped("nvidia.model", `${B}: no draft`);
+      skipped("critique", `${B}: no draft to critique`);
+      if (refusal) {
+        L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: 0, input_summary: S.branch.why, output_summary: `Refused: ${refusal}`, status: "refused" });
+      } else skipped("risk.signoff", `${B}: nothing to sign`);
+      skipped("retry", `${B}: a rewrite cannot change it`);
+      if (B === "public-channel") {
+        escalate([{ source: "Risk", reason: refusal }], `${S.branch.why}; ${refusal}`);
+      } else {
+        S.decision = B === "duplicate" ? "close" : "hold";
+        S.reasons.push(B === "data-block" ? `${S.branch.why}: held for owner ${f.owner_id}, no draft` : S.branch.why);
+        skipped("escalate_or_fallback", `${B}: no escalation`);
+      }
       return;
     }
     if (B === "misread") {
