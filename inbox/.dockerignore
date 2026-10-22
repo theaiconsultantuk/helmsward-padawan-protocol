@@ -1,0 +1,9 @@
+.env
+.env.*
+!.env.example
+.tunnel.sock
+logs/
+data/memory/
+data/runtime/
+node_modules/
+engines/scout-evals/node_modules/

@@ -1,0 +1,2462 @@
+[
+  {
+    "route": "nvidia/nemotron-3-super-120b-a12b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-2fzdax34mvk5x9tx",
+      "object": "chat.completion",
+      "created": 1792711172,
+      "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 1,
+        "total_tokens": 27
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_htvxazsd",
+        "decision_id": "req_htvxazsd",
+        "requested_model": "nvidia/nemotron-3-super-120b-a12b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+          "label": "Qwen 2.5 1.5B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "ms": 11715,
+            "tokensIn": 26,
+            "tokensOut": 1,
+            "outputTps": 0.08536064874093043,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 26,
+          "output_tokens": 1,
+          "total_tokens": 27,
+          "output_tps": 0.08536064874093043,
+          "latency_ms": 11715
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0.000093,
+          "baseline": {
+            "model": "claude-sonnet-4-5-20250929",
+            "label": "Claude 4.5 Sonnet",
+            "source": "fixed-reference"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0.000093,
+          "currency": "USD",
+          "vs": "Claude 4.5 Sonnet",
+          "baseline_source": "fixed-reference"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 2,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 2,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_htvxazsd",
+          "request_id": "req_htvxazsd",
+          "decision_id": "req_htvxazsd",
+          "created_at": 1792711172801,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "label": "Qwen 2.5 1.5B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+              "ms": 11715,
+              "tokensIn": 26,
+              "tokensOut": 1,
+              "outputTps": 0.08536064874093043,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 26,
+            "output_tokens": 1,
+            "total_tokens": 27,
+            "output_tps": 0.08536064874093043,
+            "latency_ms": 11715
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0.000093,
+            "baseline": {
+              "model": "claude-sonnet-4-5-20250929",
+              "label": "Claude 4.5 Sonnet",
+              "source": "fixed-reference"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0.000093,
+            "currency": "USD",
+            "vs": "Claude 4.5 Sonnet",
+            "baseline_source": "fixed-reference"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 2,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 1,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "3 models disagreed — treat with caution",
+            "raced": 3,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": true,
+            "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "judge_local": true,
+            "judge_was_racer": false,
+            "ms": 13098,
+            "ranked": [
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "score": 98,
+                "reason": "OK is correct, complete, and faithful to the question.",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              }
+            ],
+            "best_index": 0,
+            "best": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "best_score": 98,
+            "parse_ok": true,
+            "reason": "partial",
+            "scale": 100,
+            "batches": 1,
+            "batches_timed_out": 0,
+            "scored_of": 3,
+            "shortlist_of": 3,
+            "abstained": 2,
+            "tokensIn": 264,
+            "tokensOut": 32,
+            "below_floor": false
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "ms": 827,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "ms": 990,
+                "tokensIn": 172,
+                "tokensOut": 3,
+                "local": true
+              },
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "ms": 11445,
+                "tokensIn": 175,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 522,
+            "tokensOut": 6,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 11446,
+            "adopted": false,
+            "unchanged": true
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.17,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": null,
+            "hedges_skipped": 0
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.00054,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Qwen 2.5 1.5B (this device) · miss · $0.0001 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 9,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 3,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 3 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 1,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "latency_ms": 36310
+  },
+  {
+    "route": "nvidia/nemotron-3-nano-30b-a3b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-fui7gq1umvk5y1ug",
+      "object": "chat.completion",
+      "created": 1792711210,
+      "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 1,
+        "total_tokens": 27
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_yvpzivic",
+        "decision_id": "req_yvpzivic",
+        "requested_model": "nvidia/nemotron-3-nano-30b-a3b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+          "label": "Qwen 2.5 3B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "ms": 13669,
+            "tokensIn": 26,
+            "tokensOut": 1,
+            "outputTps": 0.07315824127587972,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 26,
+          "output_tokens": 1,
+          "total_tokens": 27,
+          "output_tps": 0.07315824127587972,
+          "latency_ms": 13669
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0.000093,
+          "baseline": {
+            "model": "claude-sonnet-4-5-20250929",
+            "label": "Claude 4.5 Sonnet",
+            "source": "fixed-reference"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0.000093,
+          "currency": "USD",
+          "vs": "Claude 4.5 Sonnet",
+          "baseline_source": "fixed-reference"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 2,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 2,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_yvpzivic",
+          "request_id": "req_yvpzivic",
+          "decision_id": "req_yvpzivic",
+          "created_at": 1792711210064,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "label": "Qwen 2.5 3B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+              "ms": 13669,
+              "tokensIn": 26,
+              "tokensOut": 1,
+              "outputTps": 0.07315824127587972,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 26,
+            "output_tokens": 1,
+            "total_tokens": 27,
+            "output_tps": 0.07315824127587972,
+            "latency_ms": 13669
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0.000093,
+            "baseline": {
+              "model": "claude-sonnet-4-5-20250929",
+              "label": "Claude 4.5 Sonnet",
+              "source": "fixed-reference"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0.000093,
+            "currency": "USD",
+            "vs": "Claude 4.5 Sonnet",
+            "baseline_source": "fixed-reference"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 2,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "3 models disagreed — treat with caution",
+            "raced": 3,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": true,
+            "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "judge_local": true,
+            "judge_was_racer": false,
+            "ms": 12111,
+            "ranked": [
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "score": 85,
+                "reason": "The answer is correct, complete, and faithful to the question.",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              }
+            ],
+            "best_index": 0,
+            "best": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "best_score": 85,
+            "parse_ok": true,
+            "reason": "partial",
+            "scale": 100,
+            "batches": 1,
+            "batches_timed_out": 0,
+            "scored_of": 3,
+            "shortlist_of": 3,
+            "abstained": 2,
+            "tokensIn": 264,
+            "tokensOut": 33,
+            "below_floor": false
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "ms": 802,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "ms": 989,
+                "tokensIn": 172,
+                "tokensOut": 3,
+                "local": true
+              },
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "ms": 11442,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 522,
+            "tokensOut": 5,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 11442,
+            "adopted": false,
+            "unchanged": true
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.031,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": null,
+            "hedges_skipped": 0
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Qwen 2.5 3B (this device) · miss · $0.0001 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 10,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 3,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 3 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+    "latency_ms": 37264
+  },
+  {
+    "route": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-gh2t28vumvk5yull",
+      "object": "chat.completion",
+      "created": 1792711246,
+      "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 1,
+        "total_tokens": 27
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_u059zu3o",
+        "decision_id": "req_u059zu3o",
+        "requested_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+          "label": "Qwen 2.5 3B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "ms": 11643,
+            "tokensIn": 26,
+            "tokensOut": 1,
+            "outputTps": 0.0858885167053165,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 26,
+          "output_tokens": 1,
+          "total_tokens": 27,
+          "output_tps": 0.0858885167053165,
+          "latency_ms": 11643
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0.000093,
+          "baseline": {
+            "model": "claude-sonnet-4-5-20250929",
+            "label": "Claude 4.5 Sonnet",
+            "source": "fixed-reference"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0.000093,
+          "currency": "USD",
+          "vs": "Claude 4.5 Sonnet",
+          "baseline_source": "fixed-reference"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 2,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 2,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_u059zu3o",
+          "request_id": "req_u059zu3o",
+          "decision_id": "req_u059zu3o",
+          "created_at": 1792711246062,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "label": "Qwen 2.5 3B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+              "ms": 11643,
+              "tokensIn": 26,
+              "tokensOut": 1,
+              "outputTps": 0.0858885167053165,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 26,
+            "output_tokens": 1,
+            "total_tokens": 27,
+            "output_tps": 0.0858885167053165,
+            "latency_ms": 11643
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0.000093,
+            "baseline": {
+              "model": "claude-sonnet-4-5-20250929",
+              "label": "Claude 4.5 Sonnet",
+              "source": "fixed-reference"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0.000093,
+            "currency": "USD",
+            "vs": "Claude 4.5 Sonnet",
+            "baseline_source": "fixed-reference"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 2,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 1,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "3 models disagreed — treat with caution",
+            "raced": 3,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": true,
+            "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "judge_local": true,
+            "judge_was_racer": false,
+            "ms": 11095,
+            "ranked": [
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "score": 85,
+                "reason": "The answer is correct, complete, and faithful to the question.",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "score": null,
+                "reason": "",
+                "judge_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+              }
+            ],
+            "best_index": 0,
+            "best": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "best_score": 85,
+            "parse_ok": true,
+            "reason": "partial",
+            "scale": 100,
+            "batches": 1,
+            "batches_timed_out": 0,
+            "scored_of": 3,
+            "shortlist_of": 3,
+            "abstained": 2,
+            "tokensIn": 264,
+            "tokensOut": 33,
+            "below_floor": false
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "ms": 804,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "ms": 1221,
+                "tokensIn": 172,
+                "tokensOut": 3,
+                "local": true
+              },
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "ms": 13215,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 522,
+            "tokensOut": 5,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 13216,
+            "adopted": false,
+            "unchanged": true
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.101,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": null,
+            "hedges_skipped": 0
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.00027,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Qwen 2.5 3B (this device) · miss · $0.0001 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 11,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 3,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 3 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 1,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+    "latency_ms": 35996
+  },
+  {
+    "route": "meterless/auto",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-vj5ltb02mvk5zmdh",
+      "object": "chat.completion",
+      "created": 1792711290,
+      "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 1,
+        "total_tokens": 27
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_bzdzowz7",
+        "decision_id": "req_bzdzowz7",
+        "requested_model": "meterless/auto",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+          "label": "Qwen 2.5 3B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "ms": 35192,
+            "tokensIn": 26,
+            "tokensOut": 1,
+            "outputTps": 0.028415548988406456,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 26,
+          "output_tokens": 1,
+          "total_tokens": 27,
+          "output_tps": 0.028415548988406456,
+          "latency_ms": 35192
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0.000093,
+          "baseline": {
+            "model": "claude-sonnet-4-5-20250929",
+            "label": "Claude 4.5 Sonnet",
+            "source": "fixed-reference"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0.000093,
+          "currency": "USD",
+          "vs": "Claude 4.5 Sonnet",
+          "baseline_source": "fixed-reference"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 2,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 2,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_bzdzowz7",
+          "request_id": "req_bzdzowz7",
+          "decision_id": "req_bzdzowz7",
+          "created_at": 1792711290979,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "label": "Qwen 2.5 3B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+              "ms": 35192,
+              "tokensIn": 26,
+              "tokensOut": 1,
+              "outputTps": 0.028415548988406456,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 26,
+            "output_tokens": 1,
+            "total_tokens": 27,
+            "output_tps": 0.028415548988406456,
+            "latency_ms": 35192
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0.000093,
+            "baseline": {
+              "model": "claude-sonnet-4-5-20250929",
+              "label": "Claude 4.5 Sonnet",
+              "source": "fixed-reference"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0.000093,
+            "currency": "USD",
+            "vs": "Claude 4.5 Sonnet",
+            "baseline_source": "fixed-reference"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 2,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "3 models disagreed — treat with caution",
+            "raced": 3,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": true,
+            "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "judge_local": true,
+            "judge_was_racer": false,
+            "ms": 2717,
+            "ranked": [
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "score": 100,
+                "reason": "Correct answer and concise",
+                "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "score": 100,
+                "reason": "Correct answer and concise",
+                "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "score": 100,
+                "reason": "Correct answer and concise",
+                "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+              }
+            ],
+            "best_index": 0,
+            "best": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "best_score": 100,
+            "parse_ok": true,
+            "reason": "ok",
+            "scale": 100,
+            "batches": 1,
+            "batches_timed_out": 0,
+            "scored_of": 3,
+            "shortlist_of": 3,
+            "abstained": 0,
+            "tokensIn": 264,
+            "tokensOut": 59,
+            "reward": {
+              "arms": 3,
+              "weight": 0.6,
+              "rewards": [
+                {
+                  "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                  "reward": 0.5
+                },
+                {
+                  "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                  "reward": 0.5
+                },
+                {
+                  "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                  "reward": 0.5
+                }
+              ]
+            },
+            "below_floor": false
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "ms": 1144,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+                "ms": 1220,
+                "tokensIn": 172,
+                "tokensOut": 3,
+                "local": true
+              },
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "ms": 6969,
+                "tokensIn": 175,
+                "tokensOut": 1,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 522,
+            "tokensOut": 5,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 6969,
+            "adopted": false,
+            "unchanged": true
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.116,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": null,
+            "hedges_skipped": 0
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Qwen 2.5 3B (this device) · miss · $0.0001 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 12,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 3,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 3 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+    "latency_ms": 44925
+  },
+  {
+    "route": "meterless/fast",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-r7qtzkrnmvk60l1f",
+      "object": "chat.completion",
+      "created": 1792711310,
+      "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK"
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 26,
+        "completion_tokens": 1,
+        "total_tokens": 27
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_ddrvk1e0",
+        "decision_id": "req_ddrvk1e0",
+        "requested_model": "meterless/fast",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+          "label": "Qwen 2.5 1.5B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "ms": 12379,
+            "tokensIn": 26,
+            "tokensOut": 1,
+            "outputTps": 0.08078196946441554,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 26,
+          "output_tokens": 1,
+          "total_tokens": 27,
+          "output_tps": 0.08078196946441554,
+          "latency_ms": 12379
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0.000093,
+          "baseline": {
+            "model": "claude-sonnet-4-5-20250929",
+            "label": "Claude 4.5 Sonnet",
+            "source": "fixed-reference"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0.000093,
+          "currency": "USD",
+          "vs": "Claude 4.5 Sonnet",
+          "baseline_source": "fixed-reference"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_ddrvk1e0",
+          "request_id": "req_ddrvk1e0",
+          "decision_id": "req_ddrvk1e0",
+          "created_at": 1792711310762,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "label": "Qwen 2.5 1.5B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+              "ms": 12379,
+              "tokensIn": 26,
+              "tokensOut": 1,
+              "outputTps": 0.08078196946441554,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 26,
+            "output_tokens": 1,
+            "total_tokens": 27,
+            "output_tps": 0.08078196946441554,
+            "latency_ms": 12379
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0.000093,
+            "baseline": {
+              "model": "claude-sonnet-4-5-20250929",
+              "label": "Claude 4.5 Sonnet",
+              "source": "fixed-reference"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0.000093,
+            "currency": "USD",
+            "vs": "Claude 4.5 Sonnet",
+            "baseline_source": "fixed-reference"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": true,
+            "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+            "judge_local": true,
+            "judge_was_racer": false,
+            "ms": 1907,
+            "ranked": [
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "score": 100,
+                "reason": "Correct answer and concise",
+                "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+              },
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "score": 100,
+                "reason": "Correct answer and concise",
+                "judge_model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+              }
+            ],
+            "best_index": 0,
+            "best": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "best_score": 100,
+            "parse_ok": true,
+            "reason": "ok",
+            "scale": 100,
+            "batches": 1,
+            "batches_timed_out": 0,
+            "scored_of": 2,
+            "shortlist_of": 2,
+            "abstained": 0,
+            "tokensIn": 232,
+            "tokensOut": 42,
+            "reward": {
+              "arms": 2,
+              "weight": 0.6,
+              "rewards": [
+                {
+                  "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                  "reward": 0.5
+                },
+                {
+                  "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                  "reward": 0.5
+                }
+              ]
+            },
+            "below_floor": false
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC",
+                "ms": 681,
+                "tokensIn": 162,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+                "ms": 5444,
+                "tokensIn": 162,
+                "tokensOut": 1,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Qwen2.5-3B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 324,
+            "tokensOut": 2,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 5445,
+            "adopted": false,
+            "unchanged": true
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "fast",
+            "routed_mode": "auto",
+            "mode_coerced": true,
+            "bound_mode": "auto"
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.047,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/gemma-2-2b-it-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": null,
+            "hedges_skipped": 0
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.00027,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Qwen 2.5 1.5B (this device) · miss · $0.0001 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 13,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    "latency_ms": 19775
+  }
+]

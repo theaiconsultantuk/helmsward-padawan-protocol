@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.tunnel.sock
+node_modules/
+engines/scout-evals/node_modules/
+logs/*.jsonl
+data/memory/*
+!data/memory/.gitkeep
+data/runtime/
+engines/scout-evals/reports/latest.md
