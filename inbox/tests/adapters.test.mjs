@@ -162,3 +162,76 @@ test("nightshift fallback failure rethrows; sample mode makes no call", async ()
     assert.equal(r.model, "sample/rules"); assert.equal(r.text, null); assert.equal(calls.length, 0);
   });
 });
+
+// ---- task 0.9: direct local lane (only when the Nightshift endpoint itself is unreachable) ----
+const laneCfg = { ...cfg, LOCAL_LANE_BASE_URL: "http://lane.test/v1", LOCAL_LANE_MODELS: "meta/muse-glimmer,ternary-bonsai-2-27b-mlx,qwen/qwen3.8-27b", LOCAL_LANE_TIMEOUT_MS: "5000" };
+const isLane = (u) => u.startsWith("http://lane.test/");
+const withoutLaneEnv = async (fn) => {
+  const saved = ["LOCAL_LANE_BASE_URL", "LOCAL_LANE_MODELS", "LOCAL_LANE_TIMEOUT_MS"].map((k) => [k, process.env[k]]);
+  for (const [k] of saved) delete process.env[k];
+  try { return await fn(); } finally { for (const [k, v] of saved) if (v !== undefined) process.env[k] = v; }
+};
+
+test("local lane: both Nightshift routes refused -> lane serves, two retry lines, route and model from the lane", () => withoutLaneEnv(async () => {
+  const tr = fakeTrace();
+  const routes = [
+    { match: (u) => !isLane(u), reply: () => { throw mockRefused(); } },
+    { match: isLane, reply: () => chatOk("meta/muse-glimmer") },
+  ];
+  await withMockFetch(routes, async (calls) => {
+    const r = await nightshift.draft([{ role: "user", content: "hi" }], { cfg: laneCfg, trace: tr });
+    assert.equal(r.route, "local-lane:meta/muse-glimmer");
+    assert.equal(r.model, "meta/muse-glimmer");
+    assert.equal(r.lane, "local-lane"); assert.equal(r.sponsor, null); assert.equal(r.text, "hi");
+    assert.equal(calls.length, 3);
+    const laneCall = calls[2];
+    assert.equal(laneCall.url, "http://lane.test/v1/chat/completions");
+    assert.equal(laneCall.init.headers.Authorization, undefined);
+    const b = JSON.parse(laneCall.init.body);
+    assert.equal(b.temperature, 0.2); assert.equal(b.max_tokens, 1024);
+  });
+  const retries = tr.lines.filter((l) => l.step === "retry");
+  assert.equal(retries.length, 2);
+  assert.equal(retries[1].retry_count, 2); assert.equal(retries[1].action, "fallback_local_lane"); assert.equal(retries[1].agent_name, "Provider");
+  assert.match(retries[1].output_summary, /Nightshift unreachable \(UpstreamRefused\); trying local lane meta\/muse-glimmer/);
+}));
+
+test("local lane: Nightshift answered 503 twice (it is up) -> no lane call, the 503 is rethrown", () => withoutLaneEnv(async () => {
+  await withMockFetch([{ match: () => true, reply: () => ({ status: 503, body: {} }) }], async (calls) => {
+    await assert.rejects(nightshift.draft([], { cfg: laneCfg }), (e) => e.status === 503);
+    assert.equal(calls.length, 2);
+    assert.ok(!calls.some((c) => isLane(c.url)));
+  });
+}));
+
+test("local lane: first model refused, second answers -> route names the second", () => withoutLaneEnv(async () => {
+  const routes = [
+    { match: (u, i) => isLane(u) && JSON.parse(i.body).model === "meta/muse-glimmer", reply: () => { throw mockRefused(); } },
+    { match: (u, i) => isLane(u) && JSON.parse(i.body).model === "ternary-bonsai-2-27b-mlx", reply: () => chatOk("ternary-bonsai-2-27b-mlx") },
+  ];
+  await withMockFetch(routes, async (calls) => {
+    const r = await nightshift.localLane([{ role: "user", content: "hi" }], { cfg: laneCfg });
+    assert.equal(r.route, "local-lane:ternary-bonsai-2-27b-mlx");
+    assert.equal(r.model, "ternary-bonsai-2-27b-mlx");
+    assert.equal(calls.length, 2);
+  });
+  await withMockFetch([{ match: isLane, reply: () => { throw mockRefused(); } }], async (calls) => {
+    await assert.rejects(nightshift.localLane([], { cfg: laneCfg }), { name: "UpstreamRefused" });
+    assert.equal(calls.length, 3);
+  });
+}));
+
+test("local lane: LOCAL_LANE_BASE_URL empty -> disabled, draft behaves as before", () => withoutLaneEnv(async () => {
+  await withMockFetch([{ match: () => true, reply: () => { throw mockRefused(); } }], async (calls) => {
+    await assert.rejects(nightshift.draft([], { cfg: { ...laneCfg, LOCAL_LANE_BASE_URL: "" } }), { name: "UpstreamRefused" });
+    assert.equal(calls.length, 2);
+    assert.ok(!calls.some((c) => isLane(c.url)));
+  });
+}));
+
+test("local lane: Unauthorized from Nightshift never retries and never reaches the lane", () => withoutLaneEnv(async () => {
+  await withMockFetch([{ match: () => true, reply: () => ({ status: 401, body: {} }) }], async (calls) => {
+    await assert.rejects(nightshift.draft([], { cfg: laneCfg }), { name: "Unauthorized" });
+    assert.equal(calls.length, 1);
+  });
+}));

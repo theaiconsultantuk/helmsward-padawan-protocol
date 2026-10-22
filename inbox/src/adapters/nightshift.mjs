@@ -88,10 +88,63 @@ export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg 
   return { text: out.trim(), model: handledModel(raw), route, latencyMs: Date.now() - t0, raw };
 }
 
+// Direct local lane (task 0.9): einh's Bionic server reached through LM Link. NOT through Nightshift.
+// Fires only when Nightshift itself is unreachable. Models are tried in order; the last error is thrown.
+// Probed live 23 Oct: reasoning:{effort:"none"} and chat_template_kwargs.enable_thinking=false are accepted
+// (HTTP 200) but change nothing (the model still thinks), so neither is sent.
+const LOCAL_LANE_TIMEOUT_MS = 180000;
+const laneSetting = (cfg, key) => String(process.env[key] ?? cfg?.[key] ?? "").trim();
+const laneBase = (cfg) => laneSetting(cfg, "LOCAL_LANE_BASE_URL").replace(/\/+$/, "");
+const laneModels = (cfg) => laneSetting(cfg, "LOCAL_LANE_MODELS").split(",").map((m) => m.trim()).filter(Boolean);
+
+export async function localLane(messages, { cfg = config(), trace = null, timeoutMs, maxTokens = 1024, fetchImpl = globalThis.fetch } = {}) {
+  const base = laneBase(cfg);
+  const ids = laneModels(cfg);
+  if (!base || !ids.length) throw badResponse("local lane: LOCAL_LANE_BASE_URL or LOCAL_LANE_MODELS is empty", { service: "local-lane" });
+  const ms = timeoutMs ?? (Number(laneSetting(cfg, "LOCAL_LANE_TIMEOUT_MS")) || LOCAL_LANE_TIMEOUT_MS);
+  let last;
+  for (const id of ids) {
+    const t0 = Date.now();
+    try {
+      let res;
+      try {
+        res = await fetchImpl(`${base}/chat/completions`, {
+          method: "POST",
+          signal: AbortSignal.timeout(ms),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: id, messages, temperature: 0.2, max_tokens: maxTokens }),
+        });
+      } catch (e) {
+        throw fromFetchError(e, "local-lane");
+      }
+      const text = await res.text().catch(() => "");
+      if (res.status >= 400) throw badResponse(`local-lane: HTTP ${res.status} on ${id}`, { status: res.status, service: "local-lane", recoverable: true });
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch (e) {
+        throw badResponse("local-lane: response was not JSON", { status: res.status, cause: e, service: "local-lane" });
+      }
+      const out = body?.choices?.[0]?.message?.content;
+      if (typeof out !== "string") throw badResponse("local-lane: response has no message content", { status: res.status, service: "local-lane" });
+      const headers = Object.fromEntries([...res.headers.entries()].map(([k, v]) => [k.toLowerCase(), v]));
+      return { text: out.trim(), model: (typeof body.model === "string" && body.model) || id, route: `local-lane:${id}`, latencyMs: Date.now() - t0, raw: { status: res.status, headers, body }, lane: "local-lane" };
+    } catch (e) {
+      last = e;
+      trace?.line?.({ step: "retry", agent_name: "Provider", action: "local_lane_next_model", input_summary: id, output_summary: `local lane ${id} failed (${e.name ?? "Error"}); trying next model`, status: "retrying", sponsor: null });
+    }
+  }
+  throw last;
+}
+
+const NIGHTSHIFT_DOWN = new Set(["UpstreamRefused", "UpstreamTimeout"]);
+const nightshiftUnreachable = (e) => isAdapterError(e) && e.service === "nightshift" && NIGHTSHIFT_DOWN.has(e.name);
+
 export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs } = {}) {
   if (sampleMode(cfg)) return { text: null, model: "sample/rules", route: "sample", latencyMs: 0, sample: true };
   const primary = cfg.NIGHTSHIFT_ROUTE_PRIMARY;
   const fallback = cfg.NIGHTSHIFT_ROUTE_FALLBACK;
+  let second;
   try {
     return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl });
   } catch (e) {
@@ -101,6 +154,19 @@ export async function draft(messages, { cfg = config(), trace = null, purpose = 
       output_summary: `${primary} failed (${e.name}); trying ${fallback}`,
       status: "retrying", retry_count: 1, sponsor: "nightshift",
     });
-    return chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl });
+    try {
+      return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl });
+    } catch (e2) {
+      second = e2;
+    }
   }
+  const ids = laneModels(cfg);
+  if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second)) throw second;
+  trace?.line({
+    step: "retry", agent_name: "Provider", action: "fallback_local_lane", input_summary: purpose,
+    output_summary: `Nightshift unreachable (${second.name}); trying local lane ${ids[0]}`,
+    status: "retrying", retry_count: 2, sponsor: null,
+  });
+  const r = await localLane(messages, { cfg, trace, fetchImpl });
+  return { ...r, sponsor: null };
 }
