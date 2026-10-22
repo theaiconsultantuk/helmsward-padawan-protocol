@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<automationMatrix fictional="true" company="Jedi Pack Inc" floor="0.80">
+  <category name="complaint" weight="0.62" autonomous="false"/>
+  <category name="refund" weight="0.55" autonomous="false"/>
+  <category name="question" weight="0.71" autonomous="false"/>
+  <category name="appreciation" weight="0.84" autonomous="true"/>
+  <category name="other" weight="0.40" autonomous="false"/>
+</automationMatrix>

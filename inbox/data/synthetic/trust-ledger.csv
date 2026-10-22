@@ -1,0 +1,6 @@
+category,weight,floor,source_id
+complaint,0.62,0.8,seed-complaint
+refund,0.55,0.8,seed-refund
+question,0.71,0.8,seed-question
+appreciation,0.84,0.8,seed-appreciation
+other,0.4,0.8,seed-other

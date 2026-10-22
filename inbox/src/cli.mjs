@@ -2,7 +2,7 @@
 // Jedi Pack inbox CLI: doctor, pin-primary (the Nightshift measuring step), sql, sql-name.
 // .env is read only through config.mjs; the one write is the NIGHTSHIFT_ROUTE_PRIMARY line, by sed.
 import { parseArgs } from "node:util";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
@@ -10,6 +10,7 @@ import { mask } from "./trace.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as openjev from "./adapters/openjev.mjs";
+import { typedGates, trustFloor, hardRisk } from "./gates.mjs";
 
 const PROMPT = [{ role: "user", content: "Reply with the single word OK." }];
 const CANDIDATES = [
@@ -119,6 +120,63 @@ async function sql(args, apply) {
   return 0;
 }
 
+const csv = (name) => {
+  const [head, ...rows] = readFileSync(join(INBOX_ROOT, "data", "synthetic", name), "utf8").trim().split("\n");
+  const cols = head.split(",");
+  return rows.map((r) => Object.fromEntries(r.split(",").map((v, i) => [cols[i], v])));
+};
+
+async function gatesCmd(args) {
+  const id = args[0];
+  if (!id) { console.error("usage: gates <thread_id>"); return 64; }
+  const ticket = readFileSync(join(INBOX_ROOT, "data", "synthetic", "threads", "threads.jsonl"), "utf8")
+    .split("\n").filter(Boolean).map((l) => JSON.parse(l)).find((t) => t.thread_id === id);
+  if (!ticket) { console.error(`no thread ${id}`); return 2; }
+  const pol = csv("policy.csv").find((p) => p.topic === "refund") ?? csv("policy.csv")[0];
+  const limit = Number(pol.limit_amount);
+  const led = csv("trust-ledger.csv").find((r) => r.category === ticket.category);
+  const over = ticket.amount_usd != null && ticket.amount_usd > limit;
+  const ownerId = Number(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
+  const backupId = Number(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
+  const day = String(ticket.received_at).slice(0, 10);
+  const hol = csv("holiday-2026.csv");
+  const out = (e) => hol.some((h) => Number(h.employee_id) === e && h.date === day);
+  const facts = {
+    thread_id: id, category: ticket.category, amount_usd: ticket.amount_usd, policy_limit_usd: limit,
+    category_weight: led ? Number(led.weight) : 0, floor: led ? Number(led.floor) : 0.8,
+    owner_id: ownerId, backup_id: backupId, owner_out: out(ownerId), backup_out: out(backupId),
+    may_leave: ticket.may_leave, restricted_terms: [], cited_rows: [], received_at: ticket.received_at,
+  };
+  const g = await typedGates(ticket, facts, { cfg: config() });
+  const a = g.answers;
+  console.log(`gate_source: ${g.gate_source}  model: ${g.model}  confidence: ${g.confidence.toFixed(2)}`);
+  console.log(`is_follow_up: ${a.is_follow_up.toFixed(2)}`);
+  console.log(`category: ${a.category.choice} (confidence ${a.category.confidence.toFixed(2)})`);
+  console.log(`urgency: ${a.urgency.score.toFixed(2)} (${JSON.stringify(a.urgency.legend)})`);
+  console.log(`tone: ${a.tone.score.toFixed(2)} (${JSON.stringify(a.tone.legend)})`);
+  console.log(`asks_for_money: ${a.asks_for_money.toFixed(2)}`);
+  console.log(`trustFloor: ${JSON.stringify(trustFloor(facts, g))}`);
+  console.log(`hardRisk: ${JSON.stringify(hardRisk(facts))}`);
+  return 0;
+}
+
+async function sqlName(args) {
+  const [tpl, ...kv] = args;
+  if (!tpl) { console.error("usage: sql-name <template> [k=v ...] | sql-name facts <thread_id> [as_of=YYYY-MM-DD]"); return 64; }
+  const cfg = config();
+  const queries = await import("./queries.mjs");
+  const kvObj = (a) => Object.fromEntries(a.map((x) => x.split(/=(.*)/s).slice(0, 2)));
+  if (tpl === "facts") {
+    if (!kv[0]) { console.error("usage: sql-name facts <thread_id> [as_of=YYYY-MM-DD]"); return 64; }
+    const f = await queries.factsForTicket(kv[0], { as_of: kvObj(kv.slice(1)).as_of, cfg });
+    console.log(JSON.stringify(mask(f, secrets()), null, 2));
+    return 0;
+  }
+  const r = await queries.run(tpl, kvObj(kv), { cfg });
+  console.log(JSON.stringify(mask(r.objects, secrets()), null, 2));
+  return 0;
+}
+
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { apply: { type: "boolean", default: false } } });
 const [cmd, ...rest] = positionals;
 let code = 64;
@@ -126,8 +184,9 @@ try {
   if (cmd === "doctor") code = await doctor();
   else if (cmd === "pin-primary") code = await pinPrimary();
   else if (cmd === "sql") code = await sql(rest, values.apply);
-  else if (cmd === "sql-name") { console.log("templates arrive in CP1"); code = 2; }
-  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | sql-name <template> [k=v ...]");
+  else if (cmd === "gates") code = await gatesCmd(rest);
+  else if (cmd === "sql-name") code = await sqlName(rest);
+  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...]");
 } catch (e) {
   console.error(`${e.name}: ${mask(String(e.message), secrets())}`);
   code = 1;

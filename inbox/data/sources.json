@@ -1,0 +1,176 @@
+{
+  "synthetic": true,
+  "generated_by": "scripts/gen_company.py --seed 42",
+  "sources": [
+    {
+      "name": "employees",
+      "path": "employees.csv",
+      "format": "CSV",
+      "table": "employees",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 200
+    },
+    {
+      "name": "holiday_2026",
+      "path": "holiday-2026.csv",
+      "format": "CSV",
+      "table": "holiday_2026",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 1251
+    },
+    {
+      "name": "responsibility",
+      "path": "responsibility.csv",
+      "format": "CSV",
+      "table": "responsibility",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 5
+    },
+    {
+      "name": "policy",
+      "path": "policy.csv",
+      "format": "CSV",
+      "table": "policy",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 1
+    },
+    {
+      "name": "categories",
+      "path": "categories.csv",
+      "format": "CSV",
+      "table": "categories",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 5
+    },
+    {
+      "name": "trust_ledger",
+      "path": "trust-ledger.csv",
+      "format": "CSV",
+      "table": "trust_ledger",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 5
+    },
+    {
+      "name": "automation_matrix",
+      "path": "automation-matrix.xml",
+      "format": "XML",
+      "table": "automation_matrix",
+      "database": "JEDI_PACK",
+      "options": {
+        "rowTag": "category"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 5
+    },
+    {
+      "name": "wiki_refund_policy",
+      "path": "wiki/refund-policy.md",
+      "format": "MARKDOWN",
+      "table": "wiki_refund_policy",
+      "database": "JEDI_PACK",
+      "options": {},
+      "licence": "synthetic, CC0",
+      "rows": 1
+    },
+    {
+      "name": "wiki_replacement_policy",
+      "path": "wiki/replacement-policy.md",
+      "format": "MARKDOWN",
+      "table": "wiki_replacement_policy",
+      "database": "JEDI_PACK",
+      "options": {},
+      "licence": "synthetic, CC0",
+      "rows": 1
+    },
+    {
+      "name": "wiki_what_may_leave",
+      "path": "wiki/what-may-leave.md",
+      "format": "MARKDOWN",
+      "table": "wiki_what_may_leave",
+      "database": "JEDI_PACK",
+      "options": {},
+      "licence": "synthetic, CC0",
+      "rows": 1
+    },
+    {
+      "name": "threads_json",
+      "path": "threads/threads.json",
+      "format": "JSON",
+      "table": "threads_json",
+      "database": "JEDI_PACK",
+      "options": {
+        "multiLine": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 100
+    },
+    {
+      "name": "threads_parquet",
+      "path": "threads/threads.parquet",
+      "format": "PARQUET",
+      "table": "threads_parquet",
+      "database": "JEDI_PACK",
+      "options": {},
+      "licence": "synthetic, CC0",
+      "rows": 100
+    },
+    {
+      "name": "contact_form_submissions",
+      "path": "intakes/contact-form/submissions.json",
+      "format": "JSON",
+      "table": "contact_form_submissions",
+      "database": "JEDI_PACK",
+      "options": {
+        "multiLine": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 41
+    },
+    {
+      "name": "trustpilot_reviews",
+      "path": "intakes/trustpilot/reviews.json",
+      "format": "JSON",
+      "table": "trustpilot_reviews",
+      "database": "JEDI_PACK",
+      "options": {
+        "multiLine": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 19
+    },
+    {
+      "name": "escalation_notes",
+      "path": "notes/escalation-notes.txt",
+      "format": "TEXT",
+      "table": "escalation_notes",
+      "database": "JEDI_PACK",
+      "options": {},
+      "licence": "synthetic, CC0",
+      "rows": 1
+    }
+  ]
+}
