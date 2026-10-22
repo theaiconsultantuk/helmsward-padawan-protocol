@@ -1,3 +1,10 @@
+---
+title: "Jedi Pack inbox"
+description: "Track 3 brief for a fictional Jedi Pack Inc mailbox that decides send, hold, or escalate from Zetaris rows."
+date: "2026-10-22"
+tags: [jedi-pack, inbox, kristof]
+---
+
 # Jedi Pack inbox
 
 Captured: 2026-10-22 05:10 Europe/Brussels · Status: STEP 3, sketch. Track locked by Kristof: 3, Reasoning Architecture. BACKUP-1 dropped by Kristof. Group has not yet kept the build.
@@ -89,7 +96,7 @@ Pipeline: sense, interpret, guard, route, recommend. Downstream build is refused
 
 Level: **medium**. Flags, not a block.
 
-- HARDEN, POWER, and IMPLEMENT are Meterless prompt-library concepts. The groups are Ideate, Implement, Combine, Harden, and Power, at meterless.ai/engines.html. Source: `docs/agent-ready/prompt-library.md` in `/Users/McEinh/code/meterless`. They are not extra engines beside H-MEM, World Model, Markovian, and Scout. Each one has a job below. The sponsor explanation names that job.
+- POWER is NVIDIA and Meterless Nightshift. HARDEN and IMPLEMENT are Meterless prompt-library concepts. The groups are Ideate, Implement, Combine, Harden, and Power, at meterless.ai/engines.html. Source: `docs/agent-ready/prompt-library.md` in `/Users/McEinh/code/meterless`. They are not extra engines beside H-MEM, World Model, Markovian, and Scout. Each one has a job below. The sponsor explanation names that job.
 - PII: the company is fictional. Generated names and `@jedipack.com` addresses stay inside the sample. The privacy scan exists so memory summaries do not keep a customer's refund detail.
 - Risk of the idea itself: an autonomous customer email can commit the company. The product's point is that send is the last step, after code gates and the evaluator. Sample mode never sends to a real address.
 - A randomizer "training loop" is a fake loop. Judges discount it. It is out of the contract.
@@ -109,7 +116,7 @@ Refused for this turn:
 
 ### Recommend
 
-Model profile for a future build: Nemotron through Nightshift for two calls only. Nemotron drafts the reply. The Evaluator is Nightshift's judge lane, and Nemotron writes that critique. Everything else is code. If the hotspot is down, sample mode uses a recorded draft and says so in the trace.
+Model profile for a future build: POWER is NVIDIA and Meterless Nightshift. Nemotron through Nightshift for two calls only. Nemotron drafts the reply. The Evaluator is Nightshift's judge lane, and Nemotron writes that critique. Everything else is code. If the hotspot is down, sample mode uses a recorded draft and says so in the trace.
 
 ### Contract
 
@@ -149,7 +156,7 @@ Track 1, Solving Fragmented Intelligence, fits 4/10. The sources are fragmented,
 
 Bonus Tinkerer fits 1/10. There is no existing project being extended.
 
-The idea is a **good sponsor showcase after the cut**, and a weak one if all 27 items ship as names. Zetaris, Scout, H-MEM, World Model, and Nemotron each have a job that changes the decision. HARDEN, POWER, and IMPLEMENT are named for the jobs in the prompt library, below. Gaia stays the workspace. The Relay app stays off the judge machine. Swarm stays out of the first build.
+The idea is a **good sponsor showcase after the cut**, and a weak one if all 27 items ship as names. Zetaris, Scout, H-MEM, World Model, and Nemotron each have a job that changes the decision. POWER is NVIDIA and Meterless Nightshift. HARDEN and IMPLEMENT are named for the jobs in the prompt library, below. Gaia stays the workspace. The Relay app stays off the judge machine. Swarm stays out of the first build.
 
 Worksheet, his 0–2 scale from `docs/worksheet.md`:
 
@@ -167,7 +174,7 @@ Worksheet, his 0–2 scale from `docs/worksheet.md`:
 | Limitations can be stated | 1 | 2 |
 | **Total** | **14** | **19** |
 
-14 is still the guide's "reduce scope" band. 19 is the strong band. The 144-hour cell stays 1 on the cut because the team has not accepted it and Zetaris plus Nightshift still have to come up on the day. The Meterless cell moved to 2 on both columns once HARDEN, POWER, and IMPLEMENT were read as prompt-library concepts, with NVIDIA Nemotron as the model inside Nightshift.
+14 is still the guide's "reduce scope" band. 19 is the strong band. The 144-hour cell stays 1 on the cut because the team has not accepted it and Zetaris plus Nightshift still have to come up on the day. The Meterless cell moved to 2 on both columns once POWER was read as NVIDIA and Meterless Nightshift, and HARDEN and IMPLEMENT as prompt-library concepts.
 
 Judge-point estimates, same date, labelled as estimates:
 
@@ -235,12 +242,12 @@ Risk (item 17) is Scout's risk check, the guard in `engines/scout-intent/docs/ri
 
 ## HARDEN, POWER, IMPLEMENT
 
-These three names are groups in the Meterless prompt library (`docs/agent-ready/prompt-library.md`, full set at meterless.ai/engines.html). The other two groups are Ideate and Combine.
+POWER is NVIDIA and Meterless Nightshift. HARDEN and IMPLEMENT are groups in the Meterless prompt library (`docs/agent-ready/prompt-library.md`, full set at meterless.ai/engines.html). The other two groups are Ideate and Combine.
 
 | Concept | Published job | Job in this inbox |
 |---|---|---|
 | IMPLEMENT | Build an engine from its spec and run the checks. The starter is the cold-run versus warm-run memory proof. | After the group keeps this brief, Cursor implements the engines this way. Done when the conformance checks pass. IMPLEMENT does not run at reply time. |
-| POWER | Add Meterless as the provider. | Drafts and Evaluator critiques go through Nightshift. Sample mode logs the call as skipped. This replaces a separate training library. |
+| POWER | NVIDIA and Meterless Nightshift. | POWER is both. Nightshift is the Meterless route. NVIDIA Nemotron is the model. Drafts and Evaluator critiques go through that pair. Sample mode logs the call as skipped. |
 | HARDEN | Scout's injection guard, scored against its own precision and recall targets. | Every inbound mail passes the guard before the model sees it. A blocked input does not enter the reply loop. The trust ledger is the weight table: affirm and reject move the weight, and the floor is when a send is allowed. HARDEN ships that audit. It does not fit a model. |
 
 ## Reply loop (items 15, 17, 18)
