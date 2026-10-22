@@ -1,0 +1,120 @@
+[
+  {
+    "params": {
+      "topic": "appreciation"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "billing"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "complaint"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "question"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "refund"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [
+        [
+          "refund",
+          "150.00",
+          "USD",
+          "15",
+          "16",
+          "3",
+          "4"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "replacement"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  }
+]

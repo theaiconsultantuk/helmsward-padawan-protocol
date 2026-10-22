@@ -1,0 +1,226 @@
+[
+  {
+    "params": {
+      "table": "automation_matrix"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "5"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "categories"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "5"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "contact_form_submissions"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "41"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "employees"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "200"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "escalation_notes"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "holiday_2026"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1251"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "policy"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "responsibility"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "5"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "threads_parquet"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "100"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "trust_ledger"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "5"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "trustpilot_reviews"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "19"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "wiki_refund_policy"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "wiki_replacement_policy"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "wiki_what_may_leave"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]

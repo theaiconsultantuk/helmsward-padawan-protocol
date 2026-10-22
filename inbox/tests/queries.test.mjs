@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted } from "../src/queries.mjs";
+import { TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
 import { withMockFetch } from "./helpers/mock_fetch.mjs";
 
 const live = { SAMPLE_MODE: "false", ZETARIS_REST_URL: "http://zetaris.invalid", ZETARIS_API_KEY: "k", ZETARIS_ORG_ID: "1" };
@@ -98,4 +98,29 @@ test("parseRestricted extracts the forbidden list", () => {
   assert.deepEqual(parseRestricted("A reply may not include a stored card number, an internal staff price list, or a staff home address.\nIf"),
     ["stored card number", "internal staff price list", "staff home address"]);
   assert.deepEqual(parseRestricted("nothing"), []);
+});
+
+test("factsForTicket: an appreciation thread with no owner resolves without throwing", async () => {
+  const tbl = {
+    threads_parquet: { headers: ["thread_id", "category", "amount_usd", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "", "", "2026-10-01T09:00:00", "true"]] },
+    policy: { headers: ["topic", "limit_amount", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [] },
+    responsibility: { headers: ["topic", "owner_id", "backup_id"], rows: [] },
+    holiday_2026: { headers: ["employee_id", "date"], rows: [] },
+    employees: { headers: ["employee_id", "given_name", "family_name"], rows: [["15", "A", "B"]] },
+  };
+  const impl = async (sql) => {
+    const t = Object.keys(tbl).find((k) => sql.includes(`JEDI_PACK.${k} `) || sql.endsWith(`JEDI_PACK.${k}`) || sql.includes(`JEDI_PACK.${k}\n`));
+    if (t === "policy" && sql.includes("'refund'")) return { headers: tbl.policy.headers, rows: [["refund", "150", "15", "16", "3", "4"]] };
+    return t ? tbl[t] : { headers: [], rows: [] };
+  };
+  const f = await factsForTicket("T18", { cfg: live, sqlRunImpl: impl });
+  assert.equal(f.owner_id, 15);
+  assert.equal(f.backup_id, 16);
+  assert.ok(f.cited_rows.includes("responsibility:fallback"));
+  // with no refund pair either, the owner is none and the note says so
+  const bare = async (sql) => (sql.includes("threads_parquet") ? tbl.threads_parquet : { headers: ["topic"], rows: [] });
+  const g = await factsForTicket("T18", { cfg: live, sqlRunImpl: bare });
+  assert.equal(g.owner_id, null);
+  assert.equal(g.owner_out, false);
+  assert.deepEqual(g.notes, ["owner: none (no responsibility row)"]);
 });

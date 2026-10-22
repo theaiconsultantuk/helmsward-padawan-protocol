@@ -1,0 +1,87 @@
+[
+  {
+    "params": {
+      "category": "appreciation"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [
+        [
+          "appreciation",
+          "Appreciation"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "complaint"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [
+        [
+          "complaint",
+          "Complaint"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "question"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [
+        [
+          "question",
+          "General question"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "refund"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [
+        [
+          "refund",
+          "Request for refund"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "replacement"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  }
+]

@@ -189,27 +189,53 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   const pol = (await run("policy", { topic }, o)).objects[0];
   const resp = (await run("responsibility", { topic }, o)).objects[0];
   let limit = pol ? Number(pol.limit_amount) : null;
-  let owner = Number(ticket.owner_id), backup = Number(ticket.backup_id);
+  const valid = (n) => Number.isInteger(n) && n >= 1 && n <= 200;
+  const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+  const notes = [];
+  let owner = null, backup = null;
   if (pol) {
     cited.push(`policy:${topic}`);
-    const over = amount != null && amount > limit;
-    owner = Number(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
-    backup = Number(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
   } else {
-    if (resp) {
-      cited.push(`responsibility:${topic}`);
-      owner = Number(resp.owner_id); backup = Number(resp.backup_id);
-    }
     // a category with no policy row of its own is measured against the refund limit
     const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
     if (ref) { limit = Number(ref.limit_amount); cited.push("policy:refund"); }
   }
+  const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
+  if (valid(tOwner) && valid(tBackup)) {
+    owner = tOwner; backup = tBackup;
+  } else if (pol) {
+    const over = amount != null && amount > limit;
+    owner = num(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
+    backup = num(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
+  } else if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
+    cited.push(`responsibility:${topic}`);
+    owner = num(resp.owner_id); backup = num(resp.backup_id);
+  } else {
+    let gen = null;
+    for (const t of ["general", "support"]) {
+      const r = (await run("responsibility", { topic: t }, o).catch(() => ({ objects: [] }))).objects[0];
+      if (r && valid(num(r.owner_id)) && valid(num(r.backup_id))) { gen = r; cited.push(`responsibility:${t}`); break; }
+    }
+    if (gen) { owner = num(gen.owner_id); backup = num(gen.backup_id); }
+    else {
+      const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
+      if (ref && valid(num(ref.under_limit_owner_id)) && valid(num(ref.under_limit_backup_id))) {
+        owner = num(ref.under_limit_owner_id); backup = num(ref.under_limit_backup_id);
+        cited.push("responsibility:fallback");
+      }
+    }
+  }
+  if (!valid(owner)) owner = null;
+  if (!valid(backup)) backup = null;
+  if (owner == null && backup == null) notes.push("owner: none (no responsibility row)");
 
   const day = as_of ?? String(ticket.received_at).slice(0, 10);
-  const ownerAv = await employeeAvailability(owner, day, o);
-  const backupAv = await employeeAvailability(backup, day, o);
-  cited.push(`holiday_2026:${owner}@${day}`, `holiday_2026:${backup}@${day}`);
-  const emps = await Promise.all([owner, backup].map((e) => run("employee", { employee_id: e }, o)));
+  const none = { out: false };
+  const ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
+  const backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+  if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
+  if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
+  const emps = await Promise.all([owner, backup].map((e) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, o))));
   for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 
@@ -230,7 +256,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
     thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
     owner_out: ownerAv.out, backup_out: backupAv.out, may_leave: ticket.may_leave === true || ticket.may_leave === "true",
-    restricted_terms: restricted, cited_rows: cited, received_at: ticket.received_at, as_of: day,
+    restricted_terms: restricted, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
     subject: ticket.subject, body: ticket.body, sender_name: ticket.sender_name, sender_email: ticket.sender_email,
     channel: ticket.channel, follow_up_kind: ticket.follow_up_kind || null, follow_up_body: ticket.follow_up_body || null,
     parent_thread_id: ticket.parent_thread_id || null, ticket,

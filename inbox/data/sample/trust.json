@@ -1,0 +1,105 @@
+[
+  {
+    "params": {
+      "category": "appreciation"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "appreciation",
+          "0.84",
+          "0.8",
+          "seed-appreciation"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "complaint"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "complaint",
+          "0.62",
+          "0.8",
+          "seed-complaint"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "question"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "question",
+          "0.71",
+          "0.8",
+          "seed-question"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "refund"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "refund",
+          "0.55",
+          "0.8",
+          "seed-refund"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "replacement"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  }
+]

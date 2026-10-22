@@ -1,0 +1,68 @@
+[
+  {
+    "params": {
+      "wiki": "leave"
+    },
+    "result": {
+      "headers": [
+        "type",
+        "format",
+        "path",
+        "preview"
+      ],
+      "rows": [
+        [
+          "markdown",
+          "md",
+          "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/what-may-leave.md",
+          "---\ntitle: \"What may leave the company\"\ndescription: \"Fictional Jedi Pack Inc rule for which facts a customer reply may include, and which facts must stay inside the company.\"\ndate: \"2026-10-22\"\ntags: [policy, fictional, jedi-pack]\n---\n\n# What may leave the company\n\nFictional policy for Jedi Pack Inc. The company is not real.\n\nA reply to a customer may quote the policy limit, the order reference the customer already wrote, and a short answer to their question.\n\nA reply may not include a stored card number, an internal staff price list, or a staff home address.\nIf the draft would need any of those, may_leave is false and the ticket is held.\n"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "wiki": "refund"
+    },
+    "result": {
+      "headers": [
+        "type",
+        "format",
+        "path",
+        "preview"
+      ],
+      "rows": [
+        [
+          "markdown",
+          "md",
+          "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/refund-policy.md",
+          "---\ntitle: \"Refund policy\"\ndescription: \"Fictional Jedi Pack Inc rule: refunds at or under 150.00 USD stay with employee 15, and amounts above that go to the manager.\"\ndate: \"2026-10-22\"\ntags: [policy, fictional, jedi-pack]\n---\n\n# Refund policy\n\nFictional policy for Jedi Pack Inc. The company is not real.\n\nA refund at or under 150.00 USD can be approved by employee 15. Their backup is employee 16.\nA refund above 150.00 USD goes to the manager, employee 3. Their backup is employee 4.\n\nThe amount is compared with this page's limit. The model does not choose the limit.\nA replacement is not a refund. Replacement requests use the replacement row in the responsibility table.\n"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "wiki": "replacement"
+    },
+    "result": {
+      "headers": [
+        "type",
+        "format",
+        "path",
+        "preview"
+      ],
+      "rows": [
+        [
+          "markdown",
+          "md",
+          "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/replacement-policy.md",
+          "---\ntitle: \"Replacement policy\"\ndescription: \"Fictional Jedi Pack Inc rule: a replacement is not a refund, and the owner is employee 8 with employee 9 as backup.\"\ndate: \"2026-10-22\"\ntags: [policy, fictional, jedi-pack]\n---\n\n# Replacement policy\n\nFictional policy for Jedi Pack Inc. The company is not real.\n\nA replacement is not a refund. Do not promise money back when the sender asked for a new item.\n\nThe replacement owner is employee 8. The backup is employee 9.\nOn 2026-10-22 employee 8 is out and employee 9 is in.\n\nThe model does not choose the owner. The responsibility row does.\n"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]
