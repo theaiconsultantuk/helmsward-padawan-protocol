@@ -1,0 +1,25 @@
+---
+title: Where the points are
+description: The Jedi Pack score review by criterion, with what has landed in the code and the artefact that shows it, and what is still open.
+date: 2026-10-23
+tags: [judging, score-review]
+---
+
+# Where the points are
+
+Source: ClaudeBWAI's review of the Scout verdict, from `plans/jedi-pack-inbox-build.md`. The Scout verdict gave the scoped cut a floor of 80/100 (Impact 23, Technical 16, Innovation 11, Demo 13, Product & UX 8, Sponsor 9). The Estimate column is the planner's estimate if every lever lands (86-88 in total). It is an estimate, not a score. The Landed column is checked against the repo as of CP5a (23 Oct 2026).
+
+| Criterion | Floor | Lever in the plan | Estimate | Landed |
+|---|---:|---|---:|---|
+| Impact 30 | 23 | A named user and one decision, said the same way in README, deck and video opening; `/ask` turns the same facts into an answer; the track statement is the loop. | 25 | Partly. User, problem and the one decision (send, hold, escalate, close) are in [../README.md](../README.md). `/ask` is in `src/ask.mjs`, with a live trace [trace-ask-mvk7jd5c](traces/trace-ask-mvk7jd5c.jsonl). Deck and video opening: not yet (CP6). |
+| Technical 20 | 16 | Per-line model id; `error` + `recovery` pairs; a blocking Evaluator; a signed contract the loop verifies; bounded rounds; Docker; sample mode with real logic; the grid, sweep and twin tests; two-run memory. | 18 | Yes for the parts that exist. Model id per line: any `nvidia.model` line in [traces/](traces/trace-two-run-A.jsonl). Recovery pairs: `FAULT_ZETARIS_REFUSE_ONCE` and the `loop_core` test. Evaluator and Risk block, bounded to 2 rounds: `src/loop.mjs`, `loop_core`. Signed contract: `scout_contract` test. Docker: `inbox/Dockerfile`, [clean-clone-run.md](clean-clone-run.md). Sample mode: `sample_mode` test, grid `loop_grid` (24 authored threads). Two-run memory: [engine-hmem-two-run.md](engine-hmem-two-run.md). |
+| Innovation 15 | 11 | Trust floor with a ledger that affirm/reject moves; signed execution contract gating every action; typed gates (OpenJev) beside Nemotron drafting; seven formats as one semantic layer. | 13 | Yes. Ledger: `POST /feedback`, `ledgerAdjust` in `src/gates.mjs`, `src/decisions.mjs`. Contract: `src/engines/scout/contract.mjs`. Gates: `src/gates.mjs`, `gate_source` on the trace line. Formats: [zetaris-register.md](zetaris-register.md) (6 file formats plus a REST source). |
+| Demo 15 | 13 | One real run, the collaboration moment in the log, the recovery cutaway, the two-run proof, the data tour; 2:20. | 14 | Partly. Two-run proof and real traces are committed. Video, data-tour beat, recovery cutaway: not yet (CP6). |
+| Product & UX 10 | 8 | A documented API with `/ask`; the frontend is the team's; honest limits. | 8 | API: `inbox/openapi.yaml` and the README's API section; limits: README "Limitations". There is no dashboard in `inbox/`; the frontend belongs to the team. |
+| Sponsor 10 | 9 | Remove Zetaris and the agent cannot decide; two engines with proofs; Nightshift primary with the model logged; Nemotron and DiffusionGemma both NVIDIA. | 10 | Mostly. Zetaris: [zetaris-register.md](zetaris-register.md). Engines: [engine-scout-evals.md](engine-scout-evals.md), [engine-hmem-two-run.md](engine-hmem-two-run.md). Model logged per request: `handledModel()` in `src/adapters/nightshift.mjs`. Nemotron served by Nightshift on five committed traces; the first probe was answered by Nightshift's local lane ([nightshift-first-call.json](nightshift-first-call.json)), so the claim is per trace. Text: [sponsor-explanation.md](sponsor-explanation.md). |
+
+## Still open
+
+- CP6 demo material: video script update, `demo-run.md`, `deck-outline.md` (the deck itself is Dean's and Paul's), the recorded video.
+- CP7 local-lane fallback proof (`fallback_proof.mjs`, `nightshift-local-lane.md`): pending Nightshift's local-lane answers. The adapter code for the fallback order exists; no run of the four-way proof is recorded yet.
+- The root `README.md` pointer to the submission: written on the build branch, takes effect when Paul merges.
