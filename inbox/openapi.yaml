@@ -317,7 +317,7 @@ paths:
   /static/{name}:
     get:
       summary: A page asset from a closed list
-      description: "Serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
+      description: "Reference server: serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. Hosted instance (https://jedi.blastworks.ai): the pages are served by a static file server, so ANY file under `inbox/public/` on main is reachable as `/static/<name>`, hidden paths (a segment starting with `.`) are 404, and a traversal never leaves the release. The four names here are the ones both servers agree on. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
       parameters:
         - name: name
           in: path

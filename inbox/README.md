@@ -41,7 +41,7 @@ Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, N
 
 ## API
 
-The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere, CORS open (`*`), no credentials.
+The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere, CORS open (`*`), no credentials by default (`API_TOKEN` unset); a shared instance that sets `API_TOKEN` protects the three POST routes, see below.
 
 **Base URL.** `http://127.0.0.1:8000` by default; `PORT` moves it (`8810` on the dev VM) and `HOST` defaults to `127.0.0.1`. Start it with `node src/server.mjs`. `SAMPLE_MODE=true` answers from cached rows with no network (counters then come from the local decisions file); `"options": {"sample_mode": true}` on a `/run` forces it for one call.
 
@@ -363,9 +363,9 @@ Sample mode:
 - Nightshift must run on a Mac or Windows PC. Here it is reached through an SSH tunnel to Thor (`scripts/thor-tunnels.sh`).
 - The handled model is reported as Nightshift's response says. Nightshift can serve a request from a local lane even when a Nemotron route is requested (the first probe did); `doctor` reports and warns.
 - The model's text is judged by another model call and by code rules; there is no human grading in the loop.
-- The API is unauthenticated, CORS is open, and it binds to loopback by default. Do not expose it as is.
+- With `API_TOKEN` unset the API is unauthenticated, CORS is open, and it binds to loopback by default. Do not expose it as is; a shared instance sets `API_TOKEN` (the hosted one does).
 - Results of the last 200 runs are kept in memory; a restart forgets them.
-- The two pages (`GET /` and `GET /dashboard`) are reference pages and, like the API, unauthenticated.
+- The two pages (`GET /` and `GET /dashboard`) are reference pages and, like the API's reads, open; their write calls carry the token when the instance has one.
 - Severity is a model read on ten levels (OpenJev accepts at most ten score levels), mapped to 1 to 10; escalation is at 9 or above. A different cut-off is a one-line change.
 - The synthetic company has no purchasing team, so an RFQ goes to sales (employee 6, backup 14) and every surface says "sales quotes".
 - A free-text ticket carries no authored `may_leave` flag, so the intake facts set it true and Risk guards the draft through restricted terms and the amount limit only.
