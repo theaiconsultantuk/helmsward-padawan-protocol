@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Scout } from "../src/engines/scout/index.mjs";
+import { Scout, extractParams } from "../src/engines/scout/index.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const REGISTRY = path.join(here, "../src/engines/scout/intents.inbox.json");
@@ -59,4 +59,32 @@ test("empty body -> GENERAL with clarification", async () => {
   const d = await decide("");
   assert.equal(d.executionContract.intent.primary.id, "GENERAL");
   assert.ok(d.clarification);
+});
+
+test("every registry example's top-1 intent is its own intent", async () => {
+  const reg = JSON.parse(fs.readFileSync(REGISTRY, "utf8"));
+  for (const intent of reg.intents) {
+    for (const ex of intent.examples) {
+      const d = await decide(ex);
+      assert.equal(d.executionContract.intent.primary.id, intent.id, `"${ex}" -> ${d.executionContract.intent.primary.id}, expected ${intent.id}`);
+    }
+  }
+});
+
+for (const text of ["refund 100 USD", "I ordered 2 hilts and one is broken", "thank you for the 2 sabers", "where is my order of 3 belts", "can I return 1 holster"]) {
+  test(`not an RFQ: ${text}`, async () => {
+    const d = await decide(text);
+    assert.notEqual(d.executionContract.intent.primary.id, "rfq.request");
+  });
+}
+
+test("quantities extraction", () => {
+  assert.deepEqual(extractParams("price difference between ordering 100000 items and 100").quantities, [100000, 100]);
+  assert.deepEqual(extractParams("quote 250 utility belts and 10 holsters").quantities, [250, 10]);
+  const r = extractParams("refund 100 USD for 2 hilts");
+  assert.deepEqual(r.quantities, [2]);
+  assert.equal(r.amount, 100);
+  assert.deepEqual(extractParams("RFQ for saber stands").quantities, []);
+  assert.deepEqual(extractParams("price for 1,000 units").quantities, [1000]);
+  assert.deepEqual(extractParams("I paid $100 on 2026-10-19 for JP-1042").quantities, []);
 });
