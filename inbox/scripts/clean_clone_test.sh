@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clean-clone proof for the Jedi Pack inbox: clone, docker build, run all three input examples twice.
+# Clean-clone proof for the Jedi Pack inbox: clone, docker build, run all nine input examples twice (1-3 threads, 4-9 free-text scenarios).
 #   LIVE leg:   host networking + the working copy's inbox/.env (Zetaris, Nightshift tunnel, OpenJev sit on the VM's loopback/LAN).
 #   SAMPLE leg: --network none, SAMPLE_MODE=true, examples run FROM INSIDE the container with `node src/cli.mjs run --example N`.
 # Writes inbox/judging/clean-clone-run.md. Exit 0 only when all six runs succeeded.
@@ -61,7 +61,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 if [ "$up" != "1" ]; then echo "live container never served /health" >&2; docker logs "$LIVE_CID" 2>&1 | tail -10 >&2; fi
-for n in 1 2 3; do
+for n in 1 2 3 4 5 6 7 8 9; do
   want="$(expected_decision "$n")"
   body="$TMP/live_body_$n.json"; resp="$TMP/live_resp_$n.json"
   # the shipped examples carry no mode, so posted to a live service they run live; only the run id is renamed
@@ -87,7 +87,7 @@ SAMPLE_CMD="docker run -d --network none -e SAMPLE_MODE=true $IMAGE"
 SAMPLE_CID="$(docker run -d --network none -e SAMPLE_MODE=true "$IMAGE")"
 CIDS+=("$SAMPLE_CID")
 sleep 2
-for n in 1 2 3; do
+for n in 1 2 3 4 5 6 7 8 9; do
   want="$(expected_decision "$n")"
   out="$TMP/sample_out_$n.json"
   rc=0; docker exec "$SAMPLE_CID" node src/cli.mjs run --example "$n" >"$out" 2>"$TMP/sample_err_$n.txt" || rc=$?
@@ -109,7 +109,7 @@ mkdir -p "$INBOX/judging"
   cat <<MD
 ---
 title: Clean-clone run
-description: A build of the repo into the oah-inbox Docker image, run on the three input examples live and the same three in sample mode with no network.
+description: A build of the repo into the oah-inbox Docker image, run on the nine input examples live and the same nine in sample mode with no network.
 date: $(date +%F)
 tags: [judging, docker, clean-clone, sample-mode]
 ---
