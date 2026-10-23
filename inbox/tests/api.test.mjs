@@ -399,3 +399,42 @@ test("GET /queue names the owner from the queue file, even after the runs map is
     assert.match(row.owner.name, /Tomas Keller/);
   } finally { for (const [k, v] of saved) runs.set(k, v); }
 });
+
+// ---- S5.3 review fixes (20, 21, 17) ----
+import { runs } from "../src/server.mjs";
+import { writeFileSync as _wf } from "node:fs";
+
+test("(20) /queue lists a hold with no draft, has_draft false, with its recommendation", async () => {
+  runs.set("synthetic-withheld", { run_id: "synthetic-withheld", status: "success", scenario: "customer_service",
+    input: { thread_id: "F-withheld" },
+    output: { decision: "hold", draft: null, recommendation: "Call the customer; the draft was withheld.",
+      queued_for: { owner_id: "E1", owner_name: "Ana", queue_file: null } } });
+  const q = await (await get("/queue")).json();
+  const row = q.find((x) => x.run_id === "synthetic-withheld");
+  assert.ok(row, "the withheld hold is listed");
+  assert.equal(row.has_draft, false);
+  assert.match(row.recommendation, /Call the customer/);
+  runs.delete("synthetic-withheld");
+});
+
+test("(21) a run_id whose trace file exists on disk is refused 409, even when the runs map no longer holds it", async () => {
+  _wf(join(logsDir, "trace-evicted-1.jsonl"), "{}\n");
+  const r = await post("/run", { run_id: "evicted-1", input: { thread_id: "T02" } });
+  assert.equal(r.status, 409);
+});
+
+test("(17) the stored result keeps memory, so the journey marks written memory ids as retained", async () => {
+  const r = await post("/run", { run_id: "api-mem1", input: { thread_id: "T02" } });
+  const run = await r.json();
+  assert.ok(run.memory && Array.isArray(run.memory.written), "memory is on the response");
+  const stored = await (await get("/runs/api-mem1")).json();
+  assert.deepEqual(stored, run);
+  const j = await (await get("/runs/api-mem1/journey")).json();
+  const w = j.nodes.find((n) => n.step === "memory.write");
+  if (w && w.consulted.length) {
+    assert.ok(run.memory.written.length > 0);
+    assert.deepEqual(w.retained, w.consulted);
+  } else {
+    assert.ok(Array.isArray(run.memory.written));
+  }
+});

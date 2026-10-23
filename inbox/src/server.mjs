@@ -70,14 +70,22 @@ function queueList(memoryDir) {
     } catch { /* an unreadable queue file is skipped */ }
   }
   for (const [id, r] of runs) {
-    if (r.output?.decision !== "hold" || !r.output?.draft) continue;
+    if (r.output?.decision !== "hold") continue;
+    const hasDraft = Boolean(r.output?.draft?.text ?? r.output?.draft);
     const qf = r.output.queued_for;
+    // a hold with no draft (the customer-service withheld draft) is still waiting on a human when it carries a recommendation
+    if (!hasDraft && !(qf?.recommendation ?? r.output.recommendation)) continue;
     out.push({ run_id: id, ticket_id: r.input?.thread_id ?? null, kind: "held", scenario: r.scenario ?? null,
-      owner: personOf(qf?.owner_id, qf?.owner_name), has_draft: true,
+      owner: personOf(qf?.owner_id, qf?.owner_name), has_draft: hasDraft,
       recommendation: qf?.recommendation ?? r.output.recommendation ?? null, at: atOf(id) });
   }
   const when = (x) => Date.parse(x.mtime ?? x.at ?? "") || 0;
   return out.sort((a, b) => when(b) - when(a));
+}
+
+// a run id whose trace file is on disk was used, even after the capped runs map has evicted it
+function traceExists(logsDir, id) {
+  try { statSync(join(logsDir, `trace-${id}.jsonl`)); return true; } catch { return false; }
 }
 
 // Static pages: a CLOSED list. The request only picks an entry; the file path is built from the entry, never from request input.
@@ -294,7 +302,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
           return;
         }
       }
-      if (runs.has(run_id) || inflight.has(run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
+      if (runs.has(run_id) || inflight.has(run_id) || traceExists(logsDir, run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
       inflight.add(run_id);
       claimed = true;
 
@@ -308,6 +316,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
         ...(result.scenario !== undefined ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
         ...(result.input ? { input: result.input } : {}),
+        ...(result.memory ? { memory: result.memory } : {}),
         ...(result.error ? { error: result.error } : {}),
       };
       remember(run_id, out);

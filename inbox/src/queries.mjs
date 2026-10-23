@@ -198,10 +198,10 @@ export async function counters(opts = {}) {
     r = await run("decision_counts", {}, { ...opts, trace: undefined });
   } catch (e) {
     // the table is registered in CP4: until then the SELECT fails (HTTP 400 / not found) and the answer is zeros
-    // only a positively identified missing table is zeros: the Zetaris adapter's bare "HTTP 400" on an unregistered table (its message
-    // carries no body), or an error text that says the table or view is not found. Anything else (500, 401, timeout) surfaces.
-    const missing = /table or view not found|not found|does not exist|no such table|cannot find|no cached rows|ENOENT/i.test(String(e?.message))
-      || (e?.name === "BadResponse" && e?.status === 400);
+    // only a positively identified missing table is zeros: Zetaris/Spark says [TABLE_OR_VIEW_NOT_FOUND] ... cannot be found
+    // (observed 23 Oct on JEDI_PACK.no_such_table_xyz), or the sample reader has no cached rows. A bare HTTP 400, 500, 401 or timeout surfaces.
+    const text = `${e?.message ?? ""} ${e?.detail ?? ""}`;
+    const missing = /TABLE_OR_VIEW_NOT_FOUND|table or view not found|table or view .{0,200}cannot be found|does not exist|no such table|no cached rows|ENOENT/i.test(text);
     if (missing) return out;
     throw e;
   }

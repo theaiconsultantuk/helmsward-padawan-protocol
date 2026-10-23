@@ -13,6 +13,7 @@
 // One context per edge target because the engine closes an open edge with the same from+type+context and a different target.
 // Facts carry the engine's content-addressed ids (fact_<hex>). Names live in attrs, never in a key.
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { WorldModel } from "./index.mjs";
 
 const SYSTEM = "jedi";
@@ -145,12 +146,21 @@ async function build({ rows, clock, storage, persistDir, namespace }) {
   return world;
 }
 
-/** One WorldModel per process, cached by the row counts; rebuilt when they change. */
+// a content fingerprint of what the build reads: changed rows with the same counts must rebuild
+function fingerprint(rows) {
+  const h = createHash("sha256");
+  const f = (...v) => h.update(v.map((x) => String(x ?? "")).join("|") + "\n");
+  for (const t of toObjects(rows.world_threads)) f("t", t.thread_id, t.sender_email, t.category, t.outcome, t.owner_id);
+  for (const p of toObjects(rows.products)) f("p", p.product_id);
+  for (const r of toObjects(rows.reviews)) f("r", r.review_id);
+  return h.digest("hex");
+}
+
+/** One WorldModel per process, cached by a content fingerprint of the rows; rebuilt when they change. */
 export async function getWorld({ rows, clock, storage = "memory", persistDir, namespace = "jedi-pack" } = {}) {
   if (!rows) throw new Error("getWorld: rows { world_threads, products, reviews } required");
   if (storage === "local" && !persistDir) storage = "memory";
-  const counts = ["world_threads", "products", "reviews"].map((k) => toObjects(rows[k]).length);
-  const key = [...counts, storage, persistDir ?? "", namespace].join("|");
+  const key = [fingerprint(rows), storage, persistDir ?? "", namespace].join("|");
   if (CACHE.key === key && CACHE.promise) return CACHE.promise;
   CACHE.key = key;
   CACHE.promise = build({ rows, clock, storage, persistDir: persistDir ? path.resolve(persistDir) : undefined, namespace })

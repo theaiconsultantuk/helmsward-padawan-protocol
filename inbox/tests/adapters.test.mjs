@@ -296,3 +296,11 @@ test("(b) openjev systemone() forwards the AbortSignal to fetch", async () => {
   await assert.rejects(p, { name: "UpstreamTimeout" });
   assert.equal(fetchSignal.aborted, true);
 });
+
+test("(14) zetaris keeps the first 300 chars of a non-ok body in message and detail", async () => {
+  const body = "[TABLE_OR_VIEW_NOT_FOUND] The table or view `JEDI_PACK`.`x` cannot be found. " + "y".repeat(500);
+  await withMockFetch([{ match: () => true, reply: () => ({ status: 400, body }) }], async () => {
+    await assert.rejects(zetaris.sqlRun("x", { cfg }), (e) =>
+      e.name === "BadResponse" && e.status === 400 && /TABLE_OR_VIEW_NOT_FOUND/.test(e.message) && e.detail.length <= 300 && e.detail.startsWith("[TABLE_OR_VIEW_NOT_FOUND]"));
+  });
+});

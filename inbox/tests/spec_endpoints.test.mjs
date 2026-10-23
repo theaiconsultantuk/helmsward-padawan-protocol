@@ -57,3 +57,17 @@ test(
     assert.deepEqual({ onlySpec, onlyApi }, { onlySpec: [], onlyApi: [] });
   },
 );
+
+test("(13) the response scenario enum allows legacy and customer_service, apart from the request enum", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { join, dirname } = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const text = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "openapi.yaml"), "utf8");
+  const m = /\n    ResolvedScenario:\n(?:      .*\n)+/.exec(text);
+  assert.ok(m, "ResolvedScenario schema exists");
+  assert.match(m[0], /enum: \[[^\]]*\blegacy\b[^\]]*\]/);
+  assert.match(m[0], /enum: \[[^\]]*\bcustomer_service\b[^\]]*\]/);
+  assert.match(text, /scenario: \{ \$ref: "#\/components\/schemas\/ResolvedScenario" \}/);
+  const req = /MessageInput:[\s\S]*?scenario: \{ type: string, enum: \[([^\]]*)\]/.exec(text);
+  assert.ok(req && !/legacy|customer_service/.test(req[1]), "the request enum stays the declared set");
+});

@@ -137,3 +137,13 @@ test("getWorld with local storage persists and a rebuild is idempotent", async (
     assert.equal(w2.view("facts").about("customer:email:tilda.moss@example.com").length, w.view("facts").about("customer:email:tilda.moss@example.com").length);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); resetWorldCache(); }
 });
+
+test("(15) same row counts, one changed outcome: a different instance", async () => {
+  resetWorldCache();
+  const a = await getWorld({ rows });
+  const changed = threads.map((t, i) => (i === 0 ? { ...t, outcome: `${t.outcome ?? ""}-changed` } : t));
+  const b = await getWorld({ rows: { world_threads: changed, products, reviews: rowsToObjects(rows.reviews) } });
+  assert.notEqual(a, b);
+  const c = await getWorld({ rows: { world_threads: changed, products, reviews: rowsToObjects(rows.reviews) } });
+  assert.equal(b, c);
+});

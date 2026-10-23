@@ -75,7 +75,7 @@ function consultedOf(line) {
     if (m && m[1].trim() !== "none") m[1].split(",").forEach(add);
   } else if (action === "world_context") {
     const m = outSum.match(/\bids:\s*(.*)$/s);
-    if (m) m[1].split(/[,;]/).forEach(add);
+    if (m && m[1].trim().toLowerCase() !== "none") m[1].split(/[,;]/).forEach(add); // "ids: none" is the empty sentinel
   }
   return out;
 }
@@ -128,6 +128,13 @@ function looksLikeAsk(result) {
   return typeof answer === "string";
 }
 
+// the human a hand-off is for: the explicit approver when an over-limit approval is queued, else the owner
+function recipientOf(q) {
+  const a = isObj(q?.approval) ? q.approval : null;
+  if (a && a.approver_id !== undefined && a.approver_id !== null) return { id: a.approver_id, name: a.approver_name ?? null };
+  return { id: q?.owner_id ?? null, name: q?.owner_name ?? null };
+}
+
 export function replyFor(result) {
   const r = isObj(result) ? result : {};
   const decision = r.output?.decision ?? null;
@@ -143,8 +150,7 @@ export function replyFor(result) {
     kind = "answer";
     outText = r.answer ?? r.output?.answer ?? null;
   }
-  const ownerId = q?.owner_id ?? null;
-  const ownerName = q?.owner_name ?? null;
+  const { id: ownerId, name: ownerName } = recipientOf(q);
   const to = q && (ownerId !== null || ownerName !== null)
     ? { employee_id: ownerId, name: ownerName, role: q.role ?? null }
     : null;
@@ -204,7 +210,7 @@ export function deriveJourney(result, lines) {
     const consulted = skipped ? [] : consultedOf(l);
     const retained = consulted.filter((id) => cites.includes(id) || text.includes(id));
     const reached =
-      (l.step === "escalate_or_fallback" && (l.status === "success" || l.status === "incomplete")) ||
+      (l.step === "escalate_or_fallback" && l.status === "success") ||
       (decision === "hold" && l.step === "synthesis" && i === lastSynthesis);
     return {
       n: i + 1,
@@ -239,19 +245,21 @@ export function deriveJourney(result, lines) {
   const gotSomething = Boolean(q) || decision === "hold" || decision === "escalate";
   let reached = null;
   if (gotSomething) {
+    const failed = ls.some((l) => l.step === "escalate_or_fallback" && l.status === "incomplete");
     const what = [];
-    if (draftText(res)) what.push("the draft");
-    const crit = res.output?.critiques ?? res.critiques ?? q?.critiques;
-    if (Array.isArray(crit) ? crit.length >= 2 : crit) what.push(Array.isArray(crit) && crit.length >= 2 ? "both critiques" : "the critiques");
-    else if (ls.some((l) => /both critiques/.test(str(l.output_summary)))) what.push("both critiques");
-    for (const id of reply.attachments) if (!what.includes(id)) what.push(id);
+    if (failed) what.push("nothing stored: the queue write failed");
+    else {
+      if (draftText(res)) what.push("the draft");
+      const crit = res.output?.critiques ?? res.critiques ?? q?.critiques;
+      if (Array.isArray(crit) ? crit.length >= 2 : crit) what.push(Array.isArray(crit) && crit.length >= 2 ? "both critiques" : "the critiques");
+      else if (ls.some((l) => l.step === "escalate_or_fallback" && l.status === "success" && /both critiques/.test(str(l.output_summary)))) what.push("both critiques");
+      for (const id of reply.attachments) if (!what.includes(id)) what.push(id);
+    }
+    const who = recipientOf(q);
     reached = {
-      who: {
-        employee_id: q?.owner_id ?? null,
-        name: q?.owner_name ?? null,
-      },
+      who: { employee_id: who.id, name: who.name },
       what,
-      queue_file: q?.queue_file ?? res.queue_file ?? null,
+      queue_file: failed ? null : (q?.queue_file ?? res.queue_file ?? null),
     };
   }
 

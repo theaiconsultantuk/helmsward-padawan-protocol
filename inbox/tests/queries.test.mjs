@@ -48,7 +48,9 @@ test("run builds objects, cites rows and traces success and error", async () => 
 });
 
 test("counters returns zeros when the table is missing, sums when present", async () => {
-  const missing = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse", status: 400 }); };
+  // the text Zetaris returned for a bogus table on 23 Oct (cli.mjs sql "SELECT COUNT(*) FROM JEDI_PACK.no_such_table_xyz")
+  const OBSERVED = "zetaris: HTTP 400: {\"msg\":\"[TABLE_OR_VIEW_NOT_FOUND] The table or view `JEDI_PACK`.`no_such_table_xyz` cannot be found. Verify the spelling";
+  const missing = async () => { throw Object.assign(new Error(OBSERVED), { name: "BadResponse", status: 400, detail: OBSERVED }); };
   assert.deepEqual(await counters({ cfg: live, sqlRunImpl: missing }),
     { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 });
   const some = async () => ({ headers: ["outcome", "ledger_effect", "n"], rows: [["hold", "affirm", "3"], ["send", "reject", "2"]] });
@@ -327,4 +329,11 @@ test("(e) counters: a positively identified missing table is zeros; any other er
   assert.deepEqual(await counters({ cfg: live, sqlRunImpl: notFound }), zeros);
   const generic = async () => { throw Object.assign(new Error("zetaris: HTTP 500"), { name: "BadResponse", status: 500 }); };
   await assert.rejects(counters({ cfg: live, sqlRunImpl: generic }), /HTTP 500/);
+});
+
+test("(14) counters: a bare HTTP 400, or a 400 with another body, surfaces instead of zeros", async () => {
+  const bare = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse", status: 400 }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: bare }), /HTTP 400/);
+  const other = async () => { throw Object.assign(new Error("zetaris: HTTP 400: syntax error near FROM"), { name: "BadResponse", status: 400, detail: "syntax error near FROM" }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: other }), /syntax error/);
 });

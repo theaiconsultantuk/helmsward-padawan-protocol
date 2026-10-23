@@ -142,3 +142,29 @@ test("object attachments contribute their cited id strings", () => {
   const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ product_id: "P01" }], quantities: [100], cited: ["products:P01"] } } } });
   assert.deepEqual(r.attachments, ["products:P01"]);
 });
+
+// ---- S5.3 review fixes (16, 18, 19) ----
+test("(16) an over-limit approval names the approver, not the owner, in reply.to and reached_human.who", () => {
+  const result = { run_id: "syn", output: { decision: "escalate", draft: { text: "d" }, queued_for: {
+    owner_id: "E1", owner_name: "Away Owner", queue_file: "/q/x.json", approval: { approver_id: "E9", approver_name: "Backup Boss", amount_usd: 900, limit_usd: 500 } } } };
+  const lines = [{ step: "escalate_or_fallback", status: "success", output_summary: "escalated; both critiques stored" }];
+  const j = deriveJourney(result, lines);
+  assert.equal(j.human.reply.to.employee_id, "E9");
+  assert.equal(j.reached_human.who.employee_id, "E9");
+  assert.equal(j.reached_human.who.name, "Backup Boss");
+});
+
+test("(18) a failed queue write is not reached_human and stores nothing", () => {
+  const result = { run_id: "syn", output: { decision: "escalate", draft: { text: "d" }, queued_for: { owner_id: "E1", owner_name: "O", queue_file: null } } };
+  const lines = [{ step: "escalate_or_fallback", status: "incomplete", output_summary: "escalated; the queue write failed, both critiques are in this trace" }];
+  const j = deriveJourney(result, lines);
+  assert.equal(j.nodes[0].reached_human, false);
+  assert.equal(j.reached_human.queue_file, null);
+  assert.deepEqual(j.reached_human.what, ["nothing stored: the queue write failed"]);
+});
+
+test("(19) the world line's 'ids: none' sentinel gives consulted []", () => {
+  const lines = [{ step: "nvidia.model", action: "world_context", output_summary: "5 entities, 3 relationships; customer none: 0 earlier threads; ids: none", status: "success" }];
+  const j = deriveJourney({ run_id: "syn", output: {} }, lines);
+  assert.deepEqual(j.nodes[0].consulted, []);
+});

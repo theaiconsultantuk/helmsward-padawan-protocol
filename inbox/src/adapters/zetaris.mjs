@@ -1,7 +1,8 @@
 // Zetaris Lightning REST adapter. Sample mode and recovery answer from adapters/sample.mjs by query name.
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:net";
-import { config, sampleMode } from "../config.mjs";
+import { config, sampleMode, secrets } from "../config.mjs";
+import { mask } from "../trace.mjs";
 import { badResponse, fromFetchError, isAdapterError, unauthorized } from "./errors.mjs";
 
 // Port 1 is on fetch's blocked-port list ("bad port", never a connect), so a genuine ECONNREFUSED needs a
@@ -54,7 +55,14 @@ async function post(baseUrl, sql, { limit, timeoutMs, cfg, fetchImpl }) {
   if (res.status === 401 || res.status === 403) {
     throw unauthorized(`zetaris: HTTP ${res.status}`, { status: res.status, service: "zetaris" });
   }
-  if (!res.ok) throw badResponse(`zetaris: HTTP ${res.status}`, { status: res.status, service: "zetaris" });
+  if (!res.ok) {
+    // keep the first 300 chars of the body (masked): a bare HTTP 400 cannot tell a missing table from a bad request
+    let detail = "";
+    try { detail = String(mask(String(await res.text()).slice(0, 300), secrets(cfg))).replace(/\s+/g, " ").trim(); } catch { detail = ""; }
+    const err = badResponse(`zetaris: HTTP ${res.status}${detail ? `: ${detail}` : ""}`, { status: res.status, service: "zetaris" });
+    err.detail = detail;
+    throw err;
+  }
   let body;
   try {
     body = await res.json();
