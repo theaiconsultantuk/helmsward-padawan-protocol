@@ -166,15 +166,17 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     const messages = msgs({ critiques });
     let res;
     try {
-      res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace });
+      res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
     } catch (e) {
       fatal("nvidia.model", e, "drafter failed, escalated to human");
     }
     if (res.sample || res.text == null) return sampled();
     let parsed = parseDraftJson(res.text);
+    let firstModel = null;
     if (!parsed) {
+      firstModel = res.model;
       try {
-        res = await io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "draft", trace: io.adapterTrace });
+        res = await io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
         parsed = parseDraftJson(res.text);
       } catch (e) {
         fatal("nvidia.model", e, "drafter failed on the JSON nudge, escalated to human");
@@ -184,7 +186,8 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     L({
       step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: res.model, ...(res.lane === "local-lane" ? {} : { sponsor: "nvidia" }),
       input_summary: `round ${n}${critiques.length ? ", with both critiques" : ""}`,
-      output_summary: parsed ? `drafted ${parsed.text.length} chars; promises ${JSON.stringify(parsed.promises)}` : "no valid JSON after one nudge; treated as needs_revision",
+      output_summary: (parsed ? `drafted ${parsed.text.length} chars; promises ${JSON.stringify(parsed.promises)}` : "no valid JSON after one nudge; treated as needs_revision")
+        + (firstModel !== null ? `; models: ${firstModel}, then ${res.model}` : ""),
       status: parsed ? "success" : "needs_revision", branch_id: B, retry_count: n - 1,
     });
     return parsed ? { ...parsed, model: res.model } : { text: "", promises: null, model: res.model, failed: true };
@@ -282,7 +285,19 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     output_summary: "gate not reached", status: "skipped", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...extra,
   });
 
-  const hmem = deps.hmem && typeof deps.hmem.query === "function" ? deps.hmem : new HMEM({ persistDir: deps.hmem?.persistDir ?? memoryDir, clock });
+  // H-MEM init is guarded: a failing persistDir does not throw out of runTicket. memory.read reports it as a soft error inside the
+  // pipeline; the queue write and the memory write then fail through their own existing error + recovery paths.
+  let hmemInitErr = null;
+  let hmem;
+  if (deps.hmem && typeof deps.hmem.query === "function") hmem = deps.hmem;
+  else {
+    try { hmem = new HMEM({ persistDir: deps.hmem?.persistDir ?? memoryDir, clock }); } catch (e) {
+      hmemInitErr = e;
+      const down = () => { throw hmemInitErr; };
+      hmem = { query: down, add: down, queueForHuman: down };
+    }
+  }
+  const runAbort = new AbortController();
   const scout = deps.scout ?? new Scout({ intentRegistry: join(INBOX_ROOT, "src", "engines", "scout", "intents.inbox.json"), policyPack: ["default"], secret });
   const gatesFn = deps.gates ?? typedGates;
   const runtimeDir = deps.runtimeDir ?? null;
@@ -292,11 +307,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
     ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
     : ledgerAdjustFor(category, { cfg, trace: o.trace })));
-  const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose }));
+  const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose, signal: o.signal ?? runAbort.signal }));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
   const critic = deps.critic ?? (async ({ draft, facts, ticket }) => {
-    const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique" });
+    const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique", signal: runAbort.signal });
     const j = parseCriticJson(r.text);
     return j ? { ...j, model: r.model } : { pass: false, reason: "evaluator returned no valid JSON", model: r.model };
   });
@@ -325,7 +340,10 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let memId = null;
     let queueFailed = false;
     try {
-      memId = hmem.queueForHuman(ticketObj, critiques);
+      memId = hmem.queueForHuman(ticketObj, critiques, {
+        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? null },
+        scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null,
+      });
     } catch (e) {
       queueFailed = true;
       soft("escalate_or_fallback", e, "queue write failed; ticket left with the logged critiques for a human");
@@ -445,12 +463,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let memories = [];
     let memCtx = "";
     try {
+      if (hmemInitErr) throw hmemInitErr;
       const q = f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id);
       const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [f.sender_name] } : {}) });
       memories = r.memories;
       memCtx = r.context;
     } catch (e) {
-      soft("memory.read", e, "continued without memory");
+      soft("memory.read", e, hmemInitErr ? "memory unavailable, continuing without it" : "continued without memory");
     }
     S.memRead = memories.map((m) => m.memory.id);
     L({
@@ -534,7 +553,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
-      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace },
+      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace, signal: runAbort.signal },
     };
 
     // 6. branch
@@ -658,6 +677,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   ]);
   clearTimeout(timer);
   if (timedOut) {
+    runAbort.abort(new Error("RunTimeout"));
     const msg = `run exceeded ${runTimeoutMs} ms at ${S.current}`;
     S.recovered.push({ step: S.current, type: "RunTimeout", message: msg });
     L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "run_timeout", input_summary: "whole-run cap", output_summary: msg, status: "error" });

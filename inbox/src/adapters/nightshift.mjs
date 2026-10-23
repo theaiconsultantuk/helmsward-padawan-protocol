@@ -53,14 +53,16 @@ export async function status({ cfg = config(), fetchImpl = globalThis.fetch } = 
 
 const UNKNOWN_MODEL = /model_not_found|unknown model|no such model/i;
 
-export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg = config(), fetchImpl = globalThis.fetch } = {}) {
+const withTimeout = (ms, signal) => (signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms));
+
+export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg = config(), fetchImpl = globalThis.fetch, signal } = {}) {
   const ms = timeoutMs ?? Number(cfg.NIGHTSHIFT_TIMEOUT_MS);
   const t0 = Date.now();
   let res;
   try {
     res = await fetchImpl(`${cfg.METERLESS_BASE_URL}/chat/completions`, {
       method: "POST",
-      signal: AbortSignal.timeout(ms),
+      signal: withTimeout(ms, signal),
       headers: authHeaders(cfg, { "meterless-scope": "user", "Content-Type": "application/json" }),
       body: JSON.stringify({ model: route, messages, temperature: 0.2 }),
     });
@@ -97,7 +99,7 @@ const laneSetting = (cfg, key) => String(process.env[key] ?? cfg?.[key] ?? "").t
 const laneBase = (cfg) => laneSetting(cfg, "LOCAL_LANE_BASE_URL").replace(/\/+$/, "");
 const laneModels = (cfg) => laneSetting(cfg, "LOCAL_LANE_MODELS").split(",").map((m) => m.trim()).filter(Boolean);
 
-export async function localLane(messages, { cfg = config(), trace = null, timeoutMs, maxTokens = 1024, fetchImpl = globalThis.fetch } = {}) {
+export async function localLane(messages, { cfg = config(), trace = null, timeoutMs, maxTokens = 1024, fetchImpl = globalThis.fetch, signal } = {}) {
   const base = laneBase(cfg);
   const ids = laneModels(cfg);
   if (!base || !ids.length) throw badResponse("local lane: LOCAL_LANE_BASE_URL or LOCAL_LANE_MODELS is empty", { service: "local-lane" });
@@ -110,7 +112,7 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
       try {
         res = await fetchImpl(`${base}/chat/completions`, {
           method: "POST",
-          signal: AbortSignal.timeout(ms),
+          signal: withTimeout(ms, signal),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model: id, messages, temperature: 0.2, max_tokens: maxTokens }),
         });
@@ -131,6 +133,7 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
       return { text: out.trim(), model: (typeof body.model === "string" && body.model) || id, route: `local-lane:${id}`, latencyMs: Date.now() - t0, raw: { status: res.status, headers, body }, lane: "local-lane" };
     } catch (e) {
       last = e;
+      if (signal?.aborted) break;
       trace?.line?.({ step: "retry", agent_name: "Provider", action: "local_lane_next_model", input_summary: id, output_summary: `local lane ${id} failed (${e.name ?? "Error"}); trying next model`, status: "retrying" });
     }
   }
@@ -140,33 +143,33 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
 const NIGHTSHIFT_DOWN = new Set(["UpstreamRefused", "UpstreamTimeout"]);
 const nightshiftUnreachable = (e) => isAdapterError(e) && e.service === "nightshift" && NIGHTSHIFT_DOWN.has(e.name);
 
-export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs } = {}) {
+export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs, signal } = {}) {
   if (sampleMode(cfg)) return { text: null, model: "sample/rules", route: "sample", latencyMs: 0, sample: true };
   const primary = cfg.NIGHTSHIFT_ROUTE_PRIMARY;
   const fallback = cfg.NIGHTSHIFT_ROUTE_FALLBACK;
   let second;
   try {
-    return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl });
+    return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl, signal });
   } catch (e) {
-    if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable) throw e;
+    if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable || signal?.aborted) throw e;
     trace?.line({
       step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
       output_summary: `${primary} failed (${e.name}); trying ${fallback}`,
       status: "retrying", retry_count: 1, sponsor: "meterless",
     });
     try {
-      return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl });
+      return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
     } catch (e2) {
       second = e2;
     }
   }
   const ids = laneModels(cfg);
-  if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second)) throw second;
+  if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second) || signal?.aborted) throw second;
   trace?.line({
     step: "retry", agent_name: "Provider", action: "fallback_local_lane", input_summary: purpose,
     output_summary: `Nightshift unreachable (${second.name}); trying local lane ${ids[0]}`,
     status: "retrying", retry_count: 2,
   });
-  const r = await localLane(messages, { cfg, trace, fetchImpl });
+  const r = await localLane(messages, { cfg, trace, fetchImpl, signal });
   return { ...r, sponsor: null };
 }

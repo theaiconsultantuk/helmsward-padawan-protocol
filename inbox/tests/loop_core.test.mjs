@@ -186,7 +186,7 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   ];
   const drafter = async (messages) => {
     seen.push(messages);
-    return { text: replies.shift(), model: "nvidia/nemotron-test", route: "meterless/test", lane: seen.length === 3 ? "local-lane" : undefined };
+    return { text: replies.shift(), model: seen.length === 2 ? "nvidia/nemotron-first" : "nvidia/nemotron-test", route: "meterless/test", lane: seen.length === 3 ? "local-lane" : undefined };
   };
   const gates = async (ticket, facts, { trace }) => {
     trace.line({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", input_summary: "g", output_summary: "stub gates", status: "success", model: "openjev-test", gate_source: "openjev" });
@@ -202,6 +202,9 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   assert.equal(drafts[0].sponsor, "nvidia");
   assert.equal(drafts[0].status, "success");
   assert.equal(drafts[1].sponsor, undefined, "local lane: no sponsor");
+  // (d) the nudged round names both model ids; the Drafter entry keeps the final one
+  assert.match(drafts[1].output_summary, /models: nvidia\/nemotron-first, then nvidia\/nemotron-test/);
+  assert.doesNotMatch(drafts[0].output_summary, /models:/);
   // the drafter prompt never carries the policy limit; the revised prompt carries both critiques
   assert.doesNotMatch(seen[0][1].content, /150/);
   assert.match(seen[1][1].content, /rejected/);
@@ -321,4 +324,37 @@ test("a declared question scenario on a refund thread runs the question route", 
   assert.equal(result.scenario, "question");
   assert.equal(result.resolved_how, "declared");
   assert.ok(["faq-hit", "question-records", "question-unanswered"].includes(result.branch_id), result.branch_id);
+});
+
+test("(b) the run timeout aborts the in-flight provider call: the signal handed to the drafter is aborted within the budget", async () => {
+  let seenSignal = null;
+  const live = config({ SAMPLE_MODE: "false" });
+  const drafter = (messages, o) => new Promise((_, rej) => {
+    seenSignal = o.signal;
+    o.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
+  const t0 = Date.now();
+  const t = await run("T18", { cfg: live, extra: { drafter, gates, runTimeoutMs: 60, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
+  assert.ok(seenSignal, "the drafter received a signal");
+  assert.equal(seenSignal.aborted, true);
+  assert.ok(Date.now() - t0 < 2000);
+  assert.equal(t.result.status, "error");
+  assert.equal(t.result.error.type, "RunTimeout");
+  assert.equal(t.result.output.decision, "escalate");
+});
+
+test("(c) a failing H-MEM init is a traced soft error: memory.read error then recovery, a decision, no throw", async () => {
+  const d = dirs();
+  const memoryDir = join(d.memoryDir, "a-file");
+  writeFileSync(memoryDir, "i am a file");
+  const t = await run("T02", { d: { ...d, memoryDir } });
+  assert.ok(t.result.output.decision);
+  const i = t.lines.findIndex((l) => l.step === "memory.read" && l.status === "error");
+  assert.ok(i > -1, "memory.read error line");
+  assert.equal(t.lines[i + 1].step, "recovery");
+  assert.match(t.lines[i + 1].output_summary, /memory unavailable, continuing without it/);
+  // the memory write is logged as an error + recovery (the same existing path), nothing is remembered
+  assert.ok(t.lines.some((l) => l.step === "memory.write" && l.status === "error"));
+  assert.deepEqual(t.result.memory.written, []);
 });

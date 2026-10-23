@@ -372,3 +372,30 @@ test("a token in a message is absent from /runs, the journey and /queue", async 
     assert.ok(!body.includes(TOKEN), `${p} masked`);
   }
 });
+
+test("(a) two concurrent message runs with different run ids get two distinct F ids; a concurrent reused run id is a 409", async () => {
+  const mk = (id) => post("/run", { run_id: id, input: { ...MSG, message: "How long does shipping take?" } });
+  const [a, b] = await Promise.all([mk("conc-a"), mk("conc-b")]);
+  assert.equal(a.status, 200); assert.equal(b.status, 200);
+  const ia = (await a.json()).input.thread_id, ib = (await b.json()).input.thread_id;
+  assert.match(ia, /^F\d+$/); assert.match(ib, /^F\d+$/);
+  assert.notEqual(ia, ib);
+  const [c, d] = await Promise.all([mk("conc-same"), mk("conc-same")]);
+  assert.deepEqual([c.status, d.status].sort(), [200, 409]);
+});
+
+test("GET /queue names the owner from the queue file, even after the runs map is cleared", async () => {
+  const { runs } = await import("../src/server.mjs");
+  const run = await (await get("/runs/msg-rfq")).json();
+  const file = JSON.parse(readFileSync(join(memoryDir, "queue", `${run.input.thread_id}.json`), "utf8"));
+  assert.equal(file.owner.owner_id, 6);
+  assert.equal(file.scenario, "rfq");
+  const saved = [...runs.entries()];
+  runs.clear();
+  try {
+    const q = await (await get("/queue")).json();
+    const row = q.find((x) => x.ticket_id === run.input.thread_id);
+    assert.equal(row.owner.employee_id, 6);
+    assert.match(row.owner.name, /Tomas Keller/);
+  } finally { for (const [k, v] of saved) runs.set(k, v); }
+});

@@ -269,3 +269,30 @@ test("F3b: local lane next-model retry with a real Trace does not throw and carr
   const l = readFileSync(tr.path, "utf8").split("\n").filter(Boolean).map((x) => JSON.parse(x)).find((x) => x.action === "local_lane_next_model");
   assert.ok(l && !("sponsor" in l));
 }));
+
+test("(b) draft() forwards the run's AbortSignal to fetch: a hanging call is aborted when the signal aborts", async () => {
+  let fetchSignal = null;
+  const fetchImpl = (url, init) => new Promise((_, rej) => {
+    fetchSignal = init.signal;
+    init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  const ac = new AbortController();
+  const p = nightshift.draft([{ role: "user", content: "hi" }], { cfg, fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(), 30);
+  await assert.rejects(p, (e) => e.name === "UpstreamTimeout" && e.cause?.name === "AbortError");
+  assert.equal(fetchSignal.aborted, true);
+});
+
+test("(b) openjev systemone() forwards the AbortSignal to fetch", async () => {
+  const { systemone } = await import("../src/adapters/openjev.mjs");
+  let fetchSignal = null;
+  const fetchImpl = (url, init) => new Promise((_, rej) => {
+    fetchSignal = init.signal;
+    init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  const ac = new AbortController();
+  const p = systemone("s", {}, { cfg, fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(), 30);
+  await assert.rejects(p, { name: "UpstreamTimeout" });
+  assert.equal(fetchSignal.aborted, true);
+});

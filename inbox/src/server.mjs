@@ -53,6 +53,7 @@ function queueList(memoryDir) {
     try {
       const full = join(qdir, f);
       const q = JSON.parse(readFileSync(full, "utf8"));
+      const own = q.owner ?? null;
       const t = q.ticket ?? {};
       const mtime = statSync(full).mtime.toISOString();
       const row = { ticket_id: t.thread_id ?? t.id ?? f.replace(/\.json$/, ""), file: f, category: t.category ?? null, decision_reason: t.decision_reason ?? null };
@@ -60,7 +61,7 @@ function queueList(memoryDir) {
       else {
         const hit = [...runs.values()].find((r) => (r.input?.thread_id ?? null) === row.ticket_id || r.output?.queued_for?.queue_file?.endsWith(`/${f}`));
         const qf = hit?.output?.queued_for;
-        row.owner = personOf(qf?.owner_id ?? t.owner_id, qf?.owner_name ?? t.owner_name);
+        row.owner = personOf(own?.owner_id ?? qf?.owner_id ?? t.owner_id, own?.owner_name ?? qf?.owner_name ?? t.owner_name);
       }
       row.has_draft = Boolean(t.draft?.text);
       row.critiques = Array.isArray(q.critiques) ? q.critiques : (q.critiques ? [q.critiques] : []);
@@ -170,6 +171,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   const publishLater = () => { queue(); };
   const publishNow = () => queue();
   const settled = () => pending;
+  const inflight = new Set(); // run ids being run now: a concurrent reuse is a 409 too
   const server = httpServer(async (req, res) => {
     const send = (status, body) => {
       if (res.headersSent) return;
@@ -184,6 +186,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
     };
     const t0 = Date.now();
     let run_id = null;
+    let claimed = false;
     try {
       const path = new URL(req.url ?? "/", "http://localhost").pathname;
       if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
@@ -291,7 +294,9 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
           return;
         }
       }
-      if (runs.has(run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
+      if (runs.has(run_id) || inflight.has(run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
+      inflight.add(run_id);
+      claimed = true;
 
       // options.sample_mode:true forces sample mode; false never turns a sample-mode server live.
       const runCfg = opts.sample_mode === true ? { ...cfg, SAMPLE_MODE: "true" } : cfg;
@@ -312,8 +317,10 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         await decisions.appendDecision({ run_id, thread_id: isMsg ? (result.input?.thread_id ?? "") : input.thread_id, category: isMsg ? (result.scenario ?? "") : (threadIndex().get(input.thread_id) ?? ""), decision: out.output.decision }, { dir });
         publishLater();
       }
+      inflight.delete(run_id);
       send(200, out);
     } catch (e) {
+      if (claimed) inflight.delete(run_id);
       if (e instanceof HttpError) { send(e.status, errBody(run_id, e.type, e.message, false, t0)); return; }
       send(500, errBody(run_id, "InternalError", "unexpected server error", true, t0));
     }

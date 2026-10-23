@@ -6,7 +6,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function systemone(state, questions, {
   timeoutMs = 30000, cfg = config(), fetchImpl = globalThis.fetch,
-  model = "openjev-latest", retryDelayMs,
+  model = "openjev-latest", retryDelayMs, signal,
 } = {}) {
   const base = String(cfg.OPENJEV_BASE_URL ?? "").replace(/\/+$/, "");
   const url = `${base}/v1/systemone`;
@@ -19,7 +19,7 @@ export async function systemone(state, questions, {
         method: "POST",
         headers: { Authorization: `Bearer ${cfg.OPENJEV_API_KEY ?? ""}`, "Content-Type": "application/json" },
         body: payload,
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
       });
     } catch (e) {
       throw fromFetchError(e, "openjev");

@@ -198,7 +198,11 @@ export async function counters(opts = {}) {
     r = await run("decision_counts", {}, { ...opts, trace: undefined });
   } catch (e) {
     // the table is registered in CP4: until then the SELECT fails (HTTP 400 / not found) and the answer is zeros
-    if (e?.name === "BadResponse" || /not found|does not exist|no such table|cannot find|no cached rows|ENOENT/i.test(String(e?.message))) return out;
+    // only a positively identified missing table is zeros: the Zetaris adapter's bare "HTTP 400" on an unregistered table (its message
+    // carries no body), or an error text that says the table or view is not found. Anything else (500, 401, timeout) surfaces.
+    const missing = /table or view not found|not found|does not exist|no such table|cannot find|no cached rows|ENOENT/i.test(String(e?.message))
+      || (e?.name === "BadResponse" && e?.status === 400);
+    if (missing) return out;
     throw e;
   }
   for (const o of r.objects) {

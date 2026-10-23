@@ -48,7 +48,7 @@ test("run builds objects, cites rows and traces success and error", async () => 
 });
 
 test("counters returns zeros when the table is missing, sums when present", async () => {
-  const missing = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse" }); };
+  const missing = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse", status: 400 }); };
   assert.deepEqual(await counters({ cfg: live, sqlRunImpl: missing }),
     { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 });
   const some = async () => ({ headers: ["outcome", "ledger_effect", "n"], rows: [["hold", "affirm", "3"], ["send", "reject", "2"]] });
@@ -319,4 +319,12 @@ test("a thread ticket read is unchanged by the intake switch", async () => {
   assert.equal(f.thread_id, "T02");
   assert.ok(f.cited_rows[0] === "threads_parquet:T02");
   assert.ok(!f.cited_rows.some((c) => c.startsWith("intake_runtime")));
+});
+
+test("(e) counters: a positively identified missing table is zeros; any other error surfaces", async () => {
+  const zeros = { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 };
+  const notFound = async () => { throw Object.assign(new Error("Table or view not found: JEDI_PACK.decisions"), { name: "BadResponse", status: 500 }); };
+  assert.deepEqual(await counters({ cfg: live, sqlRunImpl: notFound }), zeros);
+  const generic = async () => { throw Object.assign(new Error("zetaris: HTTP 500"), { name: "BadResponse", status: 500 }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: generic }), /HTTP 500/);
 });
