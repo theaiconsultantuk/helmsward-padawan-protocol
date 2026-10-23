@@ -1,0 +1,121 @@
+[
+  {
+    "name": "employees",
+    "format": "CSV",
+    "table": "employees",
+    "rows": 200,
+    "live": true
+  },
+  {
+    "name": "holiday_2026",
+    "format": "CSV",
+    "table": "holiday_2026",
+    "rows": 1251,
+    "live": true
+  },
+  {
+    "name": "responsibility",
+    "format": "CSV",
+    "table": "responsibility",
+    "rows": 5,
+    "live": true
+  },
+  {
+    "name": "policy",
+    "format": "CSV",
+    "table": "policy",
+    "rows": 1,
+    "live": true
+  },
+  {
+    "name": "categories",
+    "format": "CSV",
+    "table": "categories",
+    "rows": 5,
+    "live": true
+  },
+  {
+    "name": "trust_ledger",
+    "format": "CSV",
+    "table": "trust_ledger",
+    "rows": 5,
+    "live": true
+  },
+  {
+    "name": "automation_matrix",
+    "format": "XML",
+    "table": "automation_matrix",
+    "rows": 5,
+    "live": true
+  },
+  {
+    "name": "wiki_refund_policy",
+    "format": "MARKDOWN",
+    "table": "wiki_refund_policy",
+    "rows": 1,
+    "live": true
+  },
+  {
+    "name": "wiki_replacement_policy",
+    "format": "MARKDOWN",
+    "table": "wiki_replacement_policy",
+    "rows": 1,
+    "live": true
+  },
+  {
+    "name": "wiki_what_may_leave",
+    "format": "MARKDOWN",
+    "table": "wiki_what_may_leave",
+    "rows": 1,
+    "live": true
+  },
+  {
+    "name": "threads_json",
+    "format": "JSON",
+    "table": "threads_json",
+    "rows": 100,
+    "live": true
+  },
+  {
+    "name": "threads_parquet",
+    "format": "PARQUET",
+    "table": "threads_parquet",
+    "rows": 100,
+    "live": true
+  },
+  {
+    "name": "contact_form_submissions",
+    "format": "JSON",
+    "table": "contact_form_submissions",
+    "rows": 41,
+    "live": true
+  },
+  {
+    "name": "trustpilot_reviews",
+    "format": "JSON",
+    "table": "trustpilot_reviews",
+    "rows": 19,
+    "live": true
+  },
+  {
+    "name": "escalation_notes",
+    "format": "TEXT",
+    "table": "escalation_notes",
+    "rows": 1,
+    "live": true
+  },
+  {
+    "name": "decisions",
+    "format": "CSV",
+    "table": "decisions",
+    "rows": 0,
+    "live": true
+  },
+  {
+    "name": "intake_live",
+    "format": "REST",
+    "table": "intake_live",
+    "rows": 41,
+    "live": false
+  }
+]

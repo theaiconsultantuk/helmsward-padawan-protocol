@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: Jedi Pack inbox API
+  version: 0.1.0
+  description: |
+    The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
+    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and there are no credentials.
+    Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
+    Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
+    The examples below come from a sample-mode run of thread T02.
+servers:
+  - url: http://127.0.0.1:8000
+    description: Default. Set PORT to move it (8810 on the dev VM); HOST defaults to 127.0.0.1.
+paths:
+  /health:
+    get:
+      summary: Liveness and mode
+      responses:
+        "200":
+          description: The service is up.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+              example: { ok: true, sample_mode: true, version: "0.1.0", uptime_s: 12 }
+  /sources:
+    get:
+      summary: The registered data sources with live row counts
+      description: One entry per Zetaris table. `live` is true when the row count was measured through Zetaris just now, false when the manifest number is shown.
+      responses:
+        "200":
+          description: The sources.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Source" }
+              example:
+                - { name: employees, format: CSV, table: employees, rows: 200, live: true }
+                - { name: decisions, format: CSV, table: decisions, rows: 0, live: true }
+                - { name: intake_live, format: REST, table: intake_live, rows: 41, live: false }
+  /intake:
+    get:
+      summary: Contact-form submissions (the REST source Zetaris reads)
+      description: The same 41 synthetic submissions as `contact_form_submissions`, served as a JSON array. Zetaris registers it as `JEDI_PACK.intake_live`.
+      responses:
+        "200":
+          description: The submissions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Intake" }
+              example:
+                - submission_id: CF-T03
+                  thread_id: T03
+                  received_at: "2026-10-22T09:28:00Z"
+                  name: Cass Holm
+                  email: cass.holm@example.com
+                  subject: Refund over the limit
+                  message: I want a refund of 400.00 USD for order JP-1104. The case never arrived.
+                  fictional: true
+  /run:
+    post:
+      summary: Run the loop on one ticket
+      description: Returns the decision with its cited rows and a `trace_id`. A successful run also writes a row into the decisions table, so it can be given feedback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RunRequest" }
+            example: { run_id: demo-1, input: { thread_id: T02 } }
+      responses:
+        "200":
+          description: The run result (also kept for `GET /runs/{id}`).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunResult" }
+              example:
+                run_id: demo-1
+                status: success
+                output:
+                  decision: hold
+                  reasons: ["refund weight 0.55 is under the floor 0.8; owner 15 out, backup 16 in. Both critics passed; the reply waits for backup 16 with the draft attached"]
+                  cited_rows: ["threads_parquet:T02", "policy:refund", "employees:15", "trust_ledger:refund"]
+                  draft:
+                    text: "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 USD.\n\nBest regards,\nJedi Pack Support"
+                    promises: { refund_amount: "40.0", replacement: false, other: null }
+                    model: sample/rules
+                agents: [{ name: Planner, role: plan and delegate }, { name: Executor, role: facts from Zetaris }]
+                trace_id: demo-1
+                log_file: logs/trace-demo-1.jsonl
+                execution_time_seconds: 0.011
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /ask:
+    post:
+      summary: Ask a question about policy, owners or a customer
+      description: Scout guards the question first (a blocked one is refused with no model call), then Zetaris rows are read and the answer is phrased only from them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AskRequest" }
+            example: { question: "Can I get a refund on my lightsaber?" }
+      responses:
+        "200":
+          description: The answer with the rows it used. `run_id` also works on `GET /runs/{id}/trace`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AskResult" }
+              example:
+                run_id: ask_mvk7ru456hv
+                answer: "The refund limit is 150 USD: up to it the owner is employee 15, above it employee 3. Source: the \"Refund policy\" page."
+                intent: refund.request
+                cited_rows: [policy:refund, categories:refund, trust_ledger:refund, wiki_refund_policy]
+                model: sample/rules
+                confidence: 0.294
+                trace_id: ask_mvk7ru456hv
+                log_file: logs/trace-ask_mvk7ru456hv.jsonl
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /runs/{id}:
+    get:
+      summary: A stored run or ask result
+      description: Results are kept in memory (the last 200), so a restart forgets them.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: demo-1 }
+      responses:
+        "200":
+          description: The result exactly as `POST /run` (or `/ask`) returned it.
+          content:
+            application/json:
+              schema: { type: object }
+              example: { run_id: demo-1, status: success, output: { decision: hold, cited_rows: ["threads_parquet:T02"] }, trace_id: demo-1, log_file: logs/trace-demo-1.jsonl }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /runs/{id}/trace:
+    get:
+      summary: The run's trace as a JSON array, one object per step
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: demo-1 }
+      responses:
+        "200":
+          description: The trace lines in order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TraceLine" }
+              example:
+                - { timestamp: "2026-10-23T00:10:42Z", run_id: demo-1, trace_id: demo-1, step: memory.read, agent_name: Memory, action: memory_read, input_summary: Lira Venn refund T02, output_summary: "4 memories: mem-7 (...)", status: success }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /feedback:
+    post:
+      summary: Affirm or reject a decision
+      description: Sets the decision row's verdict and delta (affirm +0.05, reject -0.05), then refreshes the Zetaris decisions table so `/counters` and the trust floor see it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackRequest" }
+            example: { run_id: demo-1, verdict: affirm, note: good call }
+      responses:
+        "200":
+          description: The updated decision row. `published` says whether the table reached Zetaris (false in sample mode).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+              example: { run_id: demo-1, thread_id: T02, category: refund, decision: hold, verdict: affirm, delta: 0.05, ts: "2026-10-23T00:10:42.128Z", note: good call, published: true }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /counters:
+    get:
+      summary: Decision and feedback counters
+      description: Read through Zetaris from `JEDI_PACK.decisions` (from the local file in sample mode). `queued` is the escalate count.
+      responses:
+        "200":
+          description: The counters.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Counters" }
+              example: { send: 0, hold: 1, escalate: 0, close: 0, queued: 0, affirmed: 1, rejected: 0 }
+  /openapi.yaml:
+    get:
+      summary: This file
+      responses:
+        "200":
+          description: The OpenAPI document.
+          content:
+            application/yaml:
+              schema: { type: string }
+              example: "openapi: 3.0.3"
+components:
+  responses:
+    BadRequest:
+      description: The body or a field is invalid.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { run_id: null, status: error, error: { type: BadRequest, message: verdict must be affirm or reject, recoverable: false }, trace_id: null, execution_time_seconds: 0.001 }
+    NotFound:
+      description: Unknown thread, run or decision.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { run_id: nope, status: error, error: { type: NotFound, message: no stored run nope, recoverable: false }, trace_id: null, execution_time_seconds: 0 }
+  schemas:
+    Health:
+      type: object
+      properties: { ok: { type: boolean }, sample_mode: { type: boolean }, version: { type: string }, uptime_s: { type: integer } }
+    Source:
+      type: object
+      properties: { name: { type: string }, format: { type: string }, table: { type: string }, rows: { type: integer }, live: { type: boolean } }
+    Intake:
+      type: object
+      properties: { submission_id: { type: string }, thread_id: { type: string }, received_at: { type: string }, name: { type: string }, email: { type: string }, subject: { type: string }, message: { type: string }, fictional: { type: boolean } }
+    RunRequest:
+      type: object
+      required: [input]
+      properties:
+        run_id: { type: string, pattern: "^[A-Za-z0-9._-]{1,80}$", description: Optional, generated when absent. }
+        input:
+          type: object
+          properties: { thread_id: { type: string, example: T02 }, as_of: { type: string, example: "2026-10-22" } }
+        options: { type: object, properties: { sample_mode: { type: boolean } } }
+    RunResult:
+      type: object
+      properties:
+        run_id: { type: string }
+        status: { type: string, enum: [success, error] }
+        output:
+          type: object
+          properties:
+            decision: { type: string, enum: [send, hold, escalate, close] }
+            reasons: { type: array, items: { type: string } }
+            cited_rows: { type: array, items: { type: string } }
+            draft: { type: object }
+            queued_for: { type: object }
+        agents: { type: array, items: { type: object } }
+        trace_id: { type: string }
+        log_file: { type: string }
+        execution_time_seconds: { type: number }
+    AskRequest:
+      type: object
+      required: [question]
+      properties: { question: { type: string, maxLength: 2000 }, customer: { type: string, description: "Optional customer email or name; adds that customer's open ticket to the rows." } }
+    AskResult:
+      type: object
+      properties:
+        run_id: { type: string }
+        answer: { type: string }
+        intent: { type: string }
+        cited_rows: { type: array, items: { type: string } }
+        model: { type: string, nullable: true }
+        confidence: { type: number }
+        trace_id: { type: string }
+        log_file: { type: string }
+        refused: { type: object, description: Present only when Scout blocked the question. }
+    FeedbackRequest:
+      type: object
+      required: [run_id, verdict]
+      properties: { run_id: { type: string }, verdict: { type: string, enum: [affirm, reject] }, note: { type: string } }
+    Decision:
+      type: object
+      properties:
+        run_id: { type: string }
+        thread_id: { type: string }
+        category: { type: string }
+        decision: { type: string }
+        verdict: { type: string, enum: [affirm, reject, ""] }
+        delta: { type: number }
+        ts: { type: string }
+        note: { type: string }
+        published: { type: boolean }
+    Counters:
+      type: object
+      properties: { send: { type: integer }, hold: { type: integer }, escalate: { type: integer }, close: { type: integer }, queued: { type: integer }, affirmed: { type: integer }, rejected: { type: integer } }
+    TraceLine:
+      type: object
+      properties: { timestamp: { type: string }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
+      additionalProperties: true
+    Error:
+      type: object
+      properties:
+        run_id: { type: string, nullable: true }
+        status: { type: string, example: error }
+        error: { type: object, properties: { type: { type: string }, message: { type: string }, recoverable: { type: boolean } } }
+        trace_id: { type: string, nullable: true }
+        execution_time_seconds: { type: number }

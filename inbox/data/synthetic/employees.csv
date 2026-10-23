@@ -1,0 +1,201 @@
+employee_id,given_name,family_name,email,team,role,trust_weight_seed
+1,Mara,Solen,mara.solen@jedipack.com,Engineering,Site Reliability Engineer,0.46
+2,Owen,Briggs,owen.briggs@jedipack.com,Finance,Finance Analyst,0.52
+3,Caleb,Orth,caleb.orth@jedipack.com,Fulfilment,Picker,0.77
+4,Nia,Calder,nia.calder@jedipack.com,People,People Partner,0.70
+5,Priya,Raman,priya.raman@jedipack.com,Product,Product Specialist,0.41
+6,Tomas,Keller,tomas.keller@jedipack.com,Sales,Account Executive,0.52
+7,Mei-Ling,Zhao,mei-ling.zhao@jedipack.com,Support,Support Lead,0.41
+8,Elena,Voss,elena.voss@jedipack.com,Billing,Billing Clerk,0.76
+9,Jonah,Hale,jonah.hale@jedipack.com,Engineering,Site Reliability Engineer,0.67
+10,Sofia,Marquez,sofia.marquez@jedipack.com,Finance,Accountant,0.62
+11,Hae-Won,Park,hae-won.park@jedipack.com,Fulfilment,Dispatch Coordinator,0.80
+12,Felix,Drum,felix.drum@jedipack.com,People,People Partner,0.78
+13,Nora,Quinn,nora.quinn@jedipack.com,Product,Product Specialist,0.75
+14,An-Na,Nguyen,an-na.nguyen@jedipack.com,Sales,Sales Associate,0.54
+15,Soren,Adey,soren.adey@jedipack.com,Support,Support Agent,0.88
+16,Wynn,Okonkwo,wynn.okonkwo@jedipack.com,Billing,Refund Analyst,0.45
+17,Hugo,Brandt,hugo.brandt@jedipack.com,Engineering,Data Engineer,0.45
+18,Iris,Coleman,iris.coleman@jedipack.com,Finance,Finance Analyst,0.70
+19,Jin-Ho,Kim,jin-ho.kim@jedipack.com,Fulfilment,Packer,0.76
+20,Petra,Lang,petra.lang@jedipack.com,People,People Partner,0.89
+21,Merek,Reedley,merek.reedley@jedipack.example,Product,Product Manager,0.50
+22,Cora,Wickfield,cora.wickfield@jedipack.example,People,People Partner,0.83
+23,Dalwen,Inkby,dalwen.inkby@jedipack.example,Product,Product Specialist,0.59
+24,Galtis,Inkwood,galtis.inkwood@jedipack.example,Finance,Accountant,0.48
+25,Merul,Valeford,merul.valeford@jedipack.example,Fulfilment,Dispatch Coordinator,0.82
+26,Zana,Hartton,zana.hartton@jedipack.example,Product,Quality Inspector,0.53
+27,Galmel,Kernfield,galmel.kernfield@jedipack.example,Support,Senior Support Agent,0.84
+28,Ulric,Elmley,ulric.elmley@jedipack.example,Finance,Accountant,0.77
+29,Rosul,Stoneson,rosul.stoneson@jedipack.example,Sales,Sales Associate,0.51
+30,Eldro,Pikewood,eldro.pikewood@jedipack.example,Billing,Billing Clerk,0.48
+31,Fentis,Nashworth,fentis.nashworth@jedipack.example,Engineering,Data Engineer,0.59
+32,Oldro,Inkford,oldro.inkford@jedipack.example,Billing,Billing Lead,0.76
+33,Vendro,Inkman,vendro.inkman@jedipack.example,Engineering,Data Engineer,0.62
+34,Ola,Inkford,ola.inkford@jedipack.example,Finance,Accountant,0.84
+35,Jortis,Quistworth,jortis.quistworth@jedipack.example,Fulfilment,Picker,0.59
+36,Fendro,Quistton,fendro.quistton@jedipack.example,Product,Quality Inspector,0.41
+37,Lorul,Hartton,lorul.hartton@jedipack.example,Fulfilment,Packer,0.44
+38,Perek,Reeder,perek.reeder@jedipack.example,Finance,Finance Analyst,0.87
+39,Fenul,Quistworth,fenul.quistworth@jedipack.example,Sales,Account Executive,0.86
+40,Zanva,Groveley,zanva.groveley@jedipack.example,Sales,Sales Lead,0.72
+41,Oldro,Oakwood,oldro.oakwood@jedipack.example,Fulfilment,Picker,0.43
+42,Armel,Reedfield,armel.reedfield@jedipack.example,Fulfilment,Packer,0.44
+43,Ula,Hartwood,ula.hartwood@jedipack.example,Billing,Refund Analyst,0.44
+44,Halul,Wickby,halul.wickby@jedipack.example,Fulfilment,Picker,0.76
+45,Selmel,Pikefield,selmel.pikefield@jedipack.example,Support,Senior Support Agent,0.50
+46,Daltis,Nashman,daltis.nashman@jedipack.example,Sales,Sales Associate,0.63
+47,Yora,Wickwood,yora.wickwood@jedipack.example,Billing,Refund Analyst,0.76
+48,Dalob,Grovefield,dalob.grovefield@jedipack.example,Support,Support Agent,0.61
+49,Iveric,Hartwood,iveric.hartwood@jedipack.example,Support,Support Lead,0.45
+50,Uldro,Ashwood,uldro.ashwood@jedipack.example,Fulfilment,Picker,0.60
+51,Perob,Moorton,perob.moorton@jedipack.example,Finance,Finance Analyst,0.40
+52,Merul,Oakley,merul.oakley@jedipack.example,Sales,Sales Lead,0.88
+53,Rostis,Pikeer,rostis.pikeer@jedipack.example,Fulfilment,Dispatch Coordinator,0.51
+54,Belmel,Reedton,belmel.reedton@jedipack.example,Product,Product Specialist,0.43
+55,Perdro,Quister,perdro.quister@jedipack.example,Billing,Billing Lead,0.44
+56,Fenek,Thornwood,fenek.thornwood@jedipack.example,Fulfilment,Warehouse Lead,0.46
+57,Selob,Stoneworth,selob.stoneworth@jedipack.example,Billing,Billing Lead,0.44
+58,Venmel,Stoneford,venmel.stoneford@jedipack.example,Product,Quality Inspector,0.50
+59,Wilira,Hartley,wilira.hartley@jedipack.example,Sales,Account Executive,0.74
+60,Jorric,Kernwood,jorric.kernwood@jedipack.example,Billing,Refund Analyst,0.71
+61,Selek,Crestford,selek.crestford@jedipack.example,Fulfilment,Dispatch Coordinator,0.47
+62,Lorek,Hartman,lorek.hartman@jedipack.example,People,People Partner,0.62
+63,Rosva,Jossworth,rosva.jossworth@jedipack.example,Billing,Billing Lead,0.81
+64,Jortis,Drayer,jortis.drayer@jedipack.example,People,People Partner,0.84
+65,Yordro,Elmley,yordro.elmley@jedipack.example,People,People Partner,0.76
+66,Galtis,Valeley,galtis.valeley@jedipack.example,Support,Senior Support Agent,0.85
+67,Belek,Valeson,belek.valeson@jedipack.example,People,People Partner,0.40
+68,Zanin,Valeley,zanin.valeley@jedipack.example,Finance,Finance Analyst,0.68
+69,Nordro,Ashwood,nordro.ashwood@jedipack.example,Engineering,Site Reliability Engineer,0.85
+70,Rosa,Larkworth,rosa.larkworth@jedipack.example,Finance,Finance Analyst,0.46
+71,Jorira,Brenman,jorira.brenman@jedipack.example,Fulfilment,Picker,0.73
+72,Lordro,Nashworth,lordro.nashworth@jedipack.example,Finance,Accountant,0.83
+73,Fenwen,Asher,fenwen.asher@jedipack.example,Product,Quality Inspector,0.80
+74,Yorob,Inker,yorob.inker@jedipack.example,Engineering,Data Engineer,0.84
+75,Perob,Groveby,perob.groveby@jedipack.example,Product,Quality Inspector,0.81
+76,Halob,Ashfield,halob.ashfield@jedipack.example,Sales,Sales Associate,0.54
+77,Corul,Larkford,corul.larkford@jedipack.example,Sales,Sales Lead,0.89
+78,Rosira,Ashwood,rosira.ashwood@jedipack.example,People,People Partner,0.69
+79,Ivea,Drayworth,ivea.drayworth@jedipack.example,Sales,Sales Associate,0.76
+80,Kalwen,Thornford,kalwen.thornford@jedipack.example,Engineering,Data Engineer,0.85
+81,Galul,Brenson,galul.brenson@jedipack.example,Billing,Billing Lead,0.86
+82,Rostis,Wickfield,rostis.wickfield@jedipack.example,Product,Quality Inspector,0.43
+83,Venira,Thornman,venira.thornman@jedipack.example,Engineering,Site Reliability Engineer,0.85
+84,Quenul,Wickson,quenul.wickson@jedipack.example,Product,Quality Inspector,0.75
+85,Rosin,Groveson,rosin.groveson@jedipack.example,Sales,Sales Lead,0.77
+86,Fenmel,Stoneley,fenmel.stoneley@jedipack.example,Sales,Sales Lead,0.82
+87,Jorul,Groveson,jorul.groveson@jedipack.example,Product,Quality Inspector,0.62
+88,Venob,Quistby,venob.quistby@jedipack.example,Finance,Accountant,0.54
+89,Ventis,Thornman,ventis.thornman@jedipack.example,Engineering,Developer,0.74
+90,Halob,Elmton,halob.elmton@jedipack.example,Billing,Billing Clerk,0.89
+91,Tarek,Oakson,tarek.oakson@jedipack.example,Fulfilment,Warehouse Lead,0.65
+92,Halin,Valeton,halin.valeton@jedipack.example,Engineering,Data Engineer,0.51
+93,Wildro,Oakton,wildro.oakton@jedipack.example,Fulfilment,Packer,0.63
+94,Oltis,Quistford,oltis.quistford@jedipack.example,Product,Quality Inspector,0.71
+95,Yordro,Nashford,yordro.nashford@jedipack.example,Support,Support Agent,0.77
+96,Perric,Inkfield,perric.inkfield@jedipack.example,People,Recruiter,0.71
+97,Iveric,Crestley,iveric.crestley@jedipack.example,Fulfilment,Dispatch Coordinator,0.57
+98,Rosek,Elmer,rosek.elmer@jedipack.example,Fulfilment,Warehouse Lead,0.75
+99,Wilob,Crestson,wilob.crestson@jedipack.example,Sales,Sales Associate,0.67
+100,Nora,Groveson,nora.groveson@jedipack.example,Sales,Sales Lead,0.87
+101,Armel,Moorby,armel.moorby@jedipack.example,Billing,Refund Analyst,0.55
+102,Merwen,Reedford,merwen.reedford@jedipack.example,Fulfilment,Warehouse Lead,0.51
+103,Norric,Ashson,norric.ashson@jedipack.example,Product,Product Manager,0.74
+104,Merva,Fallby,merva.fallby@jedipack.example,Finance,Accountant,0.85
+105,Selmel,Wickton,selmel.wickton@jedipack.example,Engineering,Site Reliability Engineer,0.61
+106,Olin,Brenley,olin.brenley@jedipack.example,Sales,Sales Associate,0.51
+107,Kalira,Moorley,kalira.moorley@jedipack.example,Sales,Sales Associate,0.82
+108,Pera,Reedton,pera.reedton@jedipack.example,Product,Product Specialist,0.73
+109,Zantis,Brenton,zantis.brenton@jedipack.example,Fulfilment,Picker,0.82
+110,Tarin,Harter,tarin.harter@jedipack.example,Support,Support Lead,0.46
+111,Galric,Inkman,galric.inkman@jedipack.example,Finance,Accountant,0.79
+112,Fenul,Drayworth,fenul.drayworth@jedipack.example,Billing,Refund Analyst,0.69
+113,Merwen,Grovewood,merwen.grovewood@jedipack.example,Fulfilment,Packer,0.75
+114,Jortis,Thornwood,jortis.thornwood@jedipack.example,Billing,Refund Analyst,0.67
+115,Venira,Crestford,venira.crestford@jedipack.example,Product,Product Specialist,0.82
+116,Perek,Nashman,perek.nashman@jedipack.example,Support,Support Lead,0.48
+117,Fenva,Quistley,fenva.quistley@jedipack.example,Support,Senior Support Agent,0.62
+118,Yormel,Inkman,yormel.inkman@jedipack.example,Fulfilment,Packer,0.54
+119,Olob,Oakworth,olob.oakworth@jedipack.example,Sales,Sales Associate,0.41
+120,Kalin,Pikefield,kalin.pikefield@jedipack.example,Product,Quality Inspector,0.57
+121,Tarva,Inkford,tarva.inkford@jedipack.example,Billing,Billing Lead,0.87
+122,Corob,Nashby,corob.nashby@jedipack.example,Fulfilment,Warehouse Lead,0.72
+123,Perric,Ashwood,perric.ashwood@jedipack.example,People,People Partner,0.60
+124,Halul,Wickworth,halul.wickworth@jedipack.example,Product,Quality Inspector,0.68
+125,Lorwen,Reedman,lorwen.reedman@jedipack.example,Product,Product Manager,0.63
+126,Jorul,Hartwood,jorul.hartwood@jedipack.example,Fulfilment,Dispatch Coordinator,0.46
+127,Rosva,Fallfield,rosva.fallfield@jedipack.example,Fulfilment,Warehouse Lead,0.54
+128,Seldro,Thornley,seldro.thornley@jedipack.example,Engineering,Developer,0.55
+129,Lorin,Josston,lorin.josston@jedipack.example,Finance,Finance Analyst,0.42
+130,Beldro,Josser,beldro.josser@jedipack.example,Support,Support Agent,0.84
+131,Selul,Pikeby,selul.pikeby@jedipack.example,Support,Senior Support Agent,0.49
+132,Belul,Pikewood,belul.pikewood@jedipack.example,Engineering,Data Engineer,0.65
+133,Seltis,Wickton,seltis.wickton@jedipack.example,Finance,Accountant,0.81
+134,Jorek,Hartwood,jorek.hartwood@jedipack.example,Sales,Sales Lead,0.70
+135,Tarob,Quistson,tarob.quistson@jedipack.example,Support,Senior Support Agent,0.55
+136,Selwen,Jossworth,selwen.jossworth@jedipack.example,Billing,Billing Lead,0.88
+137,Dalob,Valefield,dalob.valefield@jedipack.example,People,People Partner,0.48
+138,Fendro,Crester,fendro.crester@jedipack.example,Billing,Refund Analyst,0.63
+139,Tarric,Josston,tarric.josston@jedipack.example,Fulfilment,Dispatch Coordinator,0.75
+140,Wilric,Crestfield,wilric.crestfield@jedipack.example,People,People Partner,0.61
+141,Rosob,Valeer,rosob.valeer@jedipack.example,People,People Partner,0.44
+142,Fenul,Thornworth,fenul.thornworth@jedipack.example,People,Recruiter,0.46
+143,Wilul,Moorley,wilul.moorley@jedipack.example,Support,Senior Support Agent,0.44
+144,Belwen,Kernworth,belwen.kernworth@jedipack.example,People,People Partner,0.45
+145,Venmel,Stoneton,venmel.stoneton@jedipack.example,People,People Partner,0.78
+146,Fenric,Quistby,fenric.quistby@jedipack.example,People,People Partner,0.90
+147,Nortis,Pikewood,nortis.pikewood@jedipack.example,Support,Senior Support Agent,0.60
+148,Kaltis,Drayer,kaltis.drayer@jedipack.example,Product,Quality Inspector,0.75
+149,Jortis,Moorford,jortis.moorford@jedipack.example,Billing,Refund Analyst,0.44
+150,Iveira,Drayson,iveira.drayson@jedipack.example,Billing,Billing Lead,0.83
+151,Olwen,Brenfield,olwen.brenfield@jedipack.example,Product,Product Manager,0.78
+152,Ulric,Brenfield,ulric.brenfield@jedipack.example,People,People Partner,0.86
+153,Olva,Pikewood,olva.pikewood@jedipack.example,Billing,Billing Lead,0.70
+154,Halva,Fallley,halva.fallley@jedipack.example,Billing,Billing Lead,0.60
+155,Halek,Oakwood,halek.oakwood@jedipack.example,Finance,Finance Analyst,0.87
+156,Jordro,Inkson,jordro.inkson@jedipack.example,Support,Senior Support Agent,0.52
+157,Rosin,Moorfield,rosin.moorfield@jedipack.example,Finance,Accountant,0.54
+158,Norira,Quistley,norira.quistley@jedipack.example,Billing,Refund Analyst,0.76
+159,Selmel,Wickby,selmel.wickby@jedipack.example,Finance,Finance Analyst,0.67
+160,Lorira,Reedford,lorira.reedford@jedipack.example,Sales,Sales Associate,0.87
+161,Galva,Hartworth,galva.hartworth@jedipack.example,Sales,Account Executive,0.83
+162,Nora,Kernby,nora.kernby@jedipack.example,Sales,Sales Associate,0.89
+163,Ulin,Piketon,ulin.piketon@jedipack.example,Finance,Finance Analyst,0.83
+164,Olek,Quistby,olek.quistby@jedipack.example,Billing,Billing Lead,0.47
+165,Ulin,Crestby,ulin.crestby@jedipack.example,People,Recruiter,0.71
+166,Mertis,Crestman,mertis.crestman@jedipack.example,Sales,Sales Associate,0.71
+167,Zanric,Reedton,zanric.reedton@jedipack.example,Engineering,Developer,0.72
+168,Jorob,Crestson,jorob.crestson@jedipack.example,Engineering,Site Reliability Engineer,0.75
+169,Dalric,Fallley,dalric.fallley@jedipack.example,Billing,Billing Clerk,0.56
+170,Belul,Larkman,belul.larkman@jedipack.example,Sales,Account Executive,0.52
+171,Normel,Wicker,normel.wicker@jedipack.example,Finance,Accountant,0.44
+172,Mermel,Wickfield,mermel.wickfield@jedipack.example,Support,Support Lead,0.47
+173,Oltis,Inkby,oltis.inkby@jedipack.example,People,People Partner,0.85
+174,Olul,Wickford,olul.wickford@jedipack.example,Finance,Accountant,0.62
+175,Lormel,Jossson,lormel.jossson@jedipack.example,People,Recruiter,0.82
+176,Galwen,Pikewood,galwen.pikewood@jedipack.example,Fulfilment,Warehouse Lead,0.69
+177,Selul,Josston,selul.josston@jedipack.example,Sales,Sales Associate,0.40
+178,Venva,Brenworth,venva.brenworth@jedipack.example,Support,Senior Support Agent,0.79
+179,Halmel,Larkfield,halmel.larkfield@jedipack.example,Fulfilment,Dispatch Coordinator,0.74
+180,Yortis,Wicker,yortis.wicker@jedipack.example,Engineering,Site Reliability Engineer,0.72
+181,Jorric,Brenworth,jorric.brenworth@jedipack.example,Product,Product Manager,0.47
+182,Jorira,Nasher,jorira.nasher@jedipack.example,Fulfilment,Picker,0.79
+183,Lordro,Quistley,lordro.quistley@jedipack.example,Finance,Finance Analyst,0.86
+184,Perul,Kernwood,perul.kernwood@jedipack.example,Support,Support Agent,0.47
+185,Haltis,Wickson,haltis.wickson@jedipack.example,Product,Product Specialist,0.80
+186,Arul,Reedwood,arul.reedwood@jedipack.example,Support,Senior Support Agent,0.74
+187,Venul,Stoneson,venul.stoneson@jedipack.example,Product,Product Specialist,0.74
+188,Pera,Thornford,pera.thornford@jedipack.example,Product,Product Manager,0.51
+189,Cortis,Oakley,cortis.oakley@jedipack.example,Sales,Account Executive,0.47
+190,Dalob,Reeder,dalob.reeder@jedipack.example,Sales,Sales Associate,0.59
+191,Yorva,Reedson,yorva.reedson@jedipack.example,Finance,Finance Analyst,0.73
+192,Permel,Nashley,permel.nashley@jedipack.example,Billing,Billing Lead,0.59
+193,Olric,Hartman,olric.hartman@jedipack.example,Engineering,Site Reliability Engineer,0.58
+194,Ulira,Brenson,ulira.brenson@jedipack.example,People,People Partner,0.88
+195,Olek,Wickfield,olek.wickfield@jedipack.example,Billing,Billing Clerk,0.79
+196,Halin,Stonefield,halin.stonefield@jedipack.example,Engineering,Site Reliability Engineer,0.50
+197,Galob,Kerner,galob.kerner@jedipack.example,Billing,Refund Analyst,0.83
+198,Elin,Reedley,elin.reedley@jedipack.example,Finance,Accountant,0.73
+199,Arin,Ashman,arin.ashman@jedipack.example,Fulfilment,Dispatch Coordinator,0.41
+200,Ivea,Elmson,ivea.elmson@jedipack.example,Engineering,Site Reliability Engineer,0.43

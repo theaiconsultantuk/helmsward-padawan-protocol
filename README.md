@@ -1,11 +1,19 @@
 ---
-title: "Jedi Pack: Star Wars Gift Finder (practice use case)"
-description: "Practice build for the Open Agent Hackathon 2026 (22-27 Oct). Team: Jedi Pack. Picked by team vote."
-date: "2026-10-18"
-tags: [hackathon, gift-finder]
+title: "Jedi Pack Inbox: Open Agent Hackathon 2026 submission"
+description: "A customer-support inbox agent that decides, critiques and escalates with a full trace. Track 3 Reasoning Architecture. Team: Jedi Pack."
+date: "2026-10-23"
+tags: [hackathon, inbox, zetaris, meterless, nvidia]
 ---
 
-# Jedi Pack: Star Wars Gift Finder (practice use case)
+# Jedi Pack Inbox
+
+A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
+Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". Team: Jedi Pack.
+Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/README.md](inbox/judging/README.md) (the evidence files).
+
+## Practice build (pre-existing, not part of the submission)
+
+### Jedi Pack: Star Wars Gift Finder (practice use case)
 
 Practice build for the Open Agent Hackathon 2026 (22-27 Oct). Team: Jedi Pack.
 Picked by team vote. The real challenge statement arrives 22 Oct; this is rehearsal for the stack.

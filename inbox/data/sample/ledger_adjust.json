@@ -1,0 +1,52 @@
+[
+  {
+    "params": {
+      "category": "appreciation"
+    },
+    "result": {
+      "headers": [],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "category": "complaint"
+    },
+    "result": {
+      "headers": [],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "category": "question"
+    },
+    "result": {
+      "headers": [],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "category": "refund"
+    },
+    "result": {
+      "headers": [],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "category": "replacement"
+    },
+    "result": {
+      "headers": [],
+      "rows": [],
+      "total": 0
+    }
+  }
+]

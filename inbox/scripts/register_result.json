@@ -1,0 +1,201 @@
+[
+  {
+    "stmt": "CREATE LIGHTNING DATABASE JEDI_PACK DESCRIBE BY \"Jedi Pack Inc synthetic company data\"",
+    "status": "exists, skipped"
+  },
+  {
+    "table": "employees",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE employees FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/employees.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 200,
+    "ok": true
+  },
+  {
+    "table": "holiday_2026",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE holiday_2026 FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/holiday-2026.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1251,
+    "ok": true
+  },
+  {
+    "table": "responsibility",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE responsibility FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/responsibility.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 5,
+    "ok": true
+  },
+  {
+    "table": "policy",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE policy FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/policy.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1,
+    "ok": true
+  },
+  {
+    "table": "categories",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE categories FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/categories.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 5,
+    "ok": true
+  },
+  {
+    "table": "trust_ledger",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE trust_ledger FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/trust-ledger.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 5,
+    "ok": true
+  },
+  {
+    "table": "automation_matrix",
+    "format": "XML",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE automation_matrix FROM JEDI_PACK FORMAT XML OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/automation-matrix.xml\", rowTag \"category\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 5,
+    "ok": true
+  },
+  {
+    "table": "wiki_refund_policy",
+    "format": "MARKDOWN",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_refund_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/refund-policy.md\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1,
+    "ok": true
+  },
+  {
+    "table": "wiki_replacement_policy",
+    "format": "MARKDOWN",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_replacement_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/replacement-policy.md\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1,
+    "ok": true
+  },
+  {
+    "table": "wiki_what_may_leave",
+    "format": "MARKDOWN",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_what_may_leave FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/what-may-leave.md\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1,
+    "ok": true
+  },
+  {
+    "table": "threads_json",
+    "format": "JSON",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE threads_json FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.json\", multiLine \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 100,
+    "ok": true,
+    "file_lines": 100
+  },
+  {
+    "table": "threads_parquet",
+    "format": "PARQUET",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE threads_parquet FROM JEDI_PACK FORMAT PARQUET OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.parquet\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 100,
+    "ok": true
+  },
+  {
+    "table": "contact_form_submissions",
+    "format": "JSON",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE contact_form_submissions FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/intakes/contact-form/submissions.json\", multiLine \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 41,
+    "ok": true,
+    "file_lines": 41
+  },
+  {
+    "table": "trustpilot_reviews",
+    "format": "JSON",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE trustpilot_reviews FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/intakes/trustpilot/reviews.json\", multiLine \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 19,
+    "ok": true,
+    "file_lines": 19
+  },
+  {
+    "table": "escalation_notes",
+    "format": "TEXT",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK FORMAT TEXT OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/notes/escalation-notes.txt\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 1,
+    "ok": true
+  },
+  {
+    "table": "decisions",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 0,
+    "ok": true
+  }
+]

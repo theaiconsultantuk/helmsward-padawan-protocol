@@ -1,0 +1,32 @@
+{
+  "_note": "Expected step:status order for the two recovery pairs, written from the methodology. Each listed entry must appear, in this order, in the actual trace (other lines may sit between them).",
+  "demo-recovery": {
+    "ticket": "T02",
+    "decision": "hold",
+    "sequence": [
+      "zetaris.query:error",
+      "recovery:success",
+      "executor.act:success",
+      "meterless.engine:success",
+      "branch:success",
+      "critique:success",
+      "risk.signoff:success",
+      "memory.write:success",
+      "synthesis:success"
+    ]
+  },
+  "demo-misread": {
+    "ticket": "T01",
+    "decision": "escalate",
+    "sequence": [
+      "executor.act:success",
+      "meterless.engine:success",
+      "branch:success",
+      "critique:needs_revision",
+      "risk.signoff:refused",
+      "escalate_or_fallback:success",
+      "memory.write:success",
+      "synthesis:success"
+    ]
+  }
+}

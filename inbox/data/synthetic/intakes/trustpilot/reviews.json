@@ -1,0 +1,211 @@
+[
+  {
+    "review_id": "TP-T05",
+    "thread_id": "T05",
+    "created_at": "2026-10-22T09:44:00Z",
+    "reviewer_name": "Nessa Quill",
+    "stars": 2,
+    "title": "Saber arrived late",
+    "text": "The saber arrived two weeks late. I want to know if I can get my money back. I did not name an amount.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T10",
+    "thread_id": "T10",
+    "created_at": "2026-10-22T10:16:00Z",
+    "reviewer_name": "Sable Wren",
+    "stars": 1,
+    "title": "Do not buy from Jedi Pack",
+    "text": "This is a public complaint. The photo on the listing does not match the saber I received. I will keep this review up.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T18",
+    "thread_id": "T18",
+    "created_at": "2026-10-22T11:28:00Z",
+    "reviewer_name": "Joss Keller",
+    "stars": 5,
+    "title": "Beautiful saber",
+    "text": "The saber is beautiful and the hilt feels solid. Five stars.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T26",
+    "thread_id": "T26",
+    "created_at": "2026-10-02T12:45:00Z",
+    "reviewer_name": "Edric Ostler",
+    "stars": 3,
+    "title": "Partnership idea",
+    "text": "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T27",
+    "thread_id": "T27",
+    "created_at": "2026-10-03T13:59:00Z",
+    "reviewer_name": "Pavo Rowan",
+    "stars": 3,
+    "title": "Refund request JP-1880",
+    "text": "Order JP-1880 was a mistake on my side. Could I get a refund of 180.00 USD for the travel cloak?",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T33",
+    "thread_id": "T33",
+    "created_at": "2026-10-05T14:44:00Z",
+    "reviewer_name": "Brenna Calloway",
+    "stars": 4,
+    "title": "Do you ship to my region",
+    "text": "Can a training saber be sent to a post box? I could not find it on the site.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T41",
+    "thread_id": "T41",
+    "created_at": "2026-10-08T08:42:00Z",
+    "reviewer_name": "Vesna Wren",
+    "stars": 1,
+    "title": "Listing does not match",
+    "text": "The photo of the travel cloak does not match what I received in order JP-1249.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T51",
+    "thread_id": "T51",
+    "created_at": "2026-10-11T10:29:00Z",
+    "reviewer_name": "Tavi Bright",
+    "stars": 2,
+    "title": "Money back for my travel cloak",
+    "text": "I want my money back for order JP-1274. The travel cloak never fit. I paid 260.00 USD.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T53",
+    "thread_id": "T53",
+    "created_at": "2026-10-13T13:49:00Z",
+    "reviewer_name": "Hale Wren",
+    "stars": 1,
+    "title": "Slow answers from support",
+    "text": "I wrote twice about order JP-1818 and nobody answered. This is not good enough.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T54",
+    "thread_id": "T54",
+    "created_at": "2026-10-13T15:11:00Z",
+    "reviewer_name": "Kessa Jessop",
+    "stars": 5,
+    "title": "Thank you",
+    "text": "Order JP-1589 arrived early and the saber stand is great. Thank you to the packers.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T61",
+    "thread_id": "T61",
+    "created_at": "2026-10-16T11:15:00Z",
+    "reviewer_name": "Ulric Bright",
+    "stars": 1,
+    "title": "Box arrived crushed",
+    "text": "My training saber arrived in a crushed box and the courier left it outside. Order JP-1736. Please have a person look at this.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T64",
+    "thread_id": "T64",
+    "created_at": "2026-10-16T16:24:00Z",
+    "reviewer_name": "Pavo Vance",
+    "stars": 1,
+    "title": "Box arrived crushed",
+    "text": "My training saber arrived in a crushed box and the courier left it outside. Order JP-1699. Please have a person look at this.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T72",
+    "thread_id": "T72",
+    "created_at": "2026-10-20T14:52:00Z",
+    "reviewer_name": "Pavo Ivers",
+    "stars": 2,
+    "title": "Listing does not match",
+    "text": "The photo of the hilt does not match what I received in order JP-1247.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T73",
+    "thread_id": "T73",
+    "created_at": "2026-10-20T17:15:00Z",
+    "reviewer_name": "Sorin Vance",
+    "stars": 3,
+    "title": "Partnership idea",
+    "text": "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T75",
+    "thread_id": "T75",
+    "created_at": "2026-10-21T11:48:00Z",
+    "reviewer_name": "Hale Slate",
+    "stars": 3,
+    "title": "Refund request JP-1598",
+    "text": "Order JP-1598 was a mistake on my side. Could I get a refund of 35.00 USD for the pilgrim pack?",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T76",
+    "thread_id": "T76",
+    "created_at": "2026-10-21T13:44:00Z",
+    "reviewer_name": "Xara Lowell",
+    "stars": 4,
+    "title": "Do you ship to my region",
+    "text": "Can a hilt be sent to a post box? I could not find it on the site.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T87",
+    "thread_id": "T87",
+    "created_at": "2026-10-26T10:18:00Z",
+    "reviewer_name": "Edric Calloway",
+    "stars": 2,
+    "title": "Money back for my padawan robe",
+    "text": "I want my money back for order JP-1371. The padawan robe never fit. I paid 55.00 USD.",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T90",
+    "thread_id": "T90",
+    "created_at": "2026-10-29T16:14:00Z",
+    "reviewer_name": "Mina Kestrel",
+    "stars": 3,
+    "title": "Refund request JP-1650",
+    "text": "Order JP-1650 was a mistake on my side. Could I get a refund of 150.00 USD for the holster?",
+    "source": "fictional",
+    "live_api": false
+  },
+  {
+    "review_id": "TP-T98",
+    "thread_id": "T98",
+    "created_at": "2026-10-30T16:44:00Z",
+    "reviewer_name": "Quill Wren",
+    "stars": 3,
+    "title": "How long does shipping take",
+    "text": "How many days from order to delivery for a pilgrim pack?",
+    "source": "fictional",
+    "live_api": false
+  }
+]

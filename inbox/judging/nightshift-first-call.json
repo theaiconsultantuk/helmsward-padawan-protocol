@@ -1,0 +1,2278 @@
+[
+  {
+    "route": "nvidia/nemotron-3-super-120b-a12b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-ijquy7ynmvk7oshv",
+      "object": "chat.completion",
+      "created": 1792714101,
+      "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 2,
+        "total_tokens": 33
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_fgk0z4j1",
+        "decision_id": "req_fgk0z4j1",
+        "requested_model": "nvidia/nemotron-3-super-120b-a12b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          "label": "Llama 3.2 1B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "ms": 239,
+            "tokensIn": 31,
+            "tokensOut": 2,
+            "outputTps": 8.368200836820083,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 31,
+          "output_tokens": 2,
+          "total_tokens": 33,
+          "output_tps": 8.368200836820083,
+          "latency_ms": 239
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0,
+          "baseline": {
+            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "label": "Nemotron 3.5 Lightning 30B A3B",
+            "source": "mode-default-frontier"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0,
+          "currency": "USD",
+          "vs": "Nemotron 3.5 Lightning 30B A3B",
+          "baseline_source": "mode-default-frontier"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_fgk0z4j1",
+          "request_id": "req_fgk0z4j1",
+          "decision_id": "req_fgk0z4j1",
+          "created_at": 1792714101500,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "label": "Llama 3.2 1B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+              "ms": 239,
+              "tokensIn": 31,
+              "tokensOut": 2,
+              "outputTps": 8.368200836820083,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 31,
+            "output_tokens": 2,
+            "total_tokens": 33,
+            "output_tps": 8.368200836820083,
+            "latency_ms": 239
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0,
+            "baseline": {
+              "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+              "label": "Nemotron 3.5 Lightning 30B A3B",
+              "source": "mode-default-frontier"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0,
+            "currency": "USD",
+            "vs": "Nemotron 3.5 Lightning 30B A3B",
+            "baseline_source": "mode-default-frontier"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": false,
+            "error": "nvidia_not_a_chat_model: nvidia/nemotron-3-embed-1b is an embeddings endpoint — it serves /v1/embeddings, not chat completions",
+            "judge_model": "nvidia/nemotron-3-embed-1b",
+            "judge_local": false,
+            "judge_was_racer": false,
+            "ms": 0,
+            "batches": 1
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                "ms": 642,
+                "tokensIn": 163,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+                "ms": 658,
+                "tokensIn": 183,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 346,
+            "tokensOut": 3,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 659,
+            "verify": {
+              "abstained": true
+            },
+            "adopted": false
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.072,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": {
+              "delay_ms": 1190,
+              "skipped": 1,
+              "lanes_delayed": 1
+            },
+            "hedges_skipped": 1
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.04618,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Llama 3.2 1B (this device) · miss · $0.0000 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 67,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "latency_ms": 1483
+  },
+  {
+    "route": "nvidia/nemotron-3-nano-30b-a3b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-25p54nmqmvk7otn2",
+      "object": "chat.completion",
+      "created": 1792714102,
+      "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 2,
+        "total_tokens": 33
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_k8mgnp9l",
+        "decision_id": "req_k8mgnp9l",
+        "requested_model": "nvidia/nemotron-3-nano-30b-a3b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          "label": "Llama 3.2 1B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "ms": 219,
+            "tokensIn": 31,
+            "tokensOut": 2,
+            "outputTps": 9.132420091324201,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 31,
+          "output_tokens": 2,
+          "total_tokens": 33,
+          "output_tps": 9.132420091324201,
+          "latency_ms": 219
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0,
+          "baseline": {
+            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "label": "Nemotron 3.5 Lightning 30B A3B",
+            "source": "mode-default-frontier"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0,
+          "currency": "USD",
+          "vs": "Nemotron 3.5 Lightning 30B A3B",
+          "baseline_source": "mode-default-frontier"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_k8mgnp9l",
+          "request_id": "req_k8mgnp9l",
+          "decision_id": "req_k8mgnp9l",
+          "created_at": 1792714102719,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "label": "Llama 3.2 1B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+              "ms": 219,
+              "tokensIn": 31,
+              "tokensOut": 2,
+              "outputTps": 9.132420091324201,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 31,
+            "output_tokens": 2,
+            "total_tokens": 33,
+            "output_tps": 9.132420091324201,
+            "latency_ms": 219
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0,
+            "baseline": {
+              "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+              "label": "Nemotron 3.5 Lightning 30B A3B",
+              "source": "mode-default-frontier"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0,
+            "currency": "USD",
+            "vs": "Nemotron 3.5 Lightning 30B A3B",
+            "baseline_source": "mode-default-frontier"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": false,
+            "error": "nvidia_not_a_chat_model: nvidia/nemotron-3-embed-1b is an embeddings endpoint — it serves /v1/embeddings, not chat completions",
+            "judge_model": "nvidia/nemotron-3-embed-1b",
+            "judge_local": false,
+            "judge_was_racer": false,
+            "ms": 0,
+            "batches": 1
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                "ms": 609,
+                "tokensIn": 163,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+                "ms": 626,
+                "tokensIn": 183,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 346,
+            "tokensOut": 3,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 626,
+            "verify": {
+              "abstained": true
+            },
+            "adopted": false
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.051,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": {
+              "delay_ms": 1190,
+              "skipped": 1,
+              "lanes_delayed": 1
+            },
+            "hedges_skipped": 1
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.04618,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Llama 3.2 1B (this device) · miss · $0.0000 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 68,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "latency_ms": 1220
+  },
+  {
+    "route": "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-cp66j34omvk7oukx",
+      "object": "chat.completion",
+      "created": 1792714103,
+      "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 2,
+        "total_tokens": 33
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_p1ctnmjn",
+        "decision_id": "req_p1ctnmjn",
+        "requested_model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          "label": "Llama 3.2 1B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "ms": 193,
+            "tokensIn": 31,
+            "tokensOut": 2,
+            "outputTps": 10.362694300518134,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 31,
+          "output_tokens": 2,
+          "total_tokens": 33,
+          "output_tps": 10.362694300518134,
+          "latency_ms": 193
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0,
+          "baseline": {
+            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "label": "Nemotron 3.5 Lightning 30B A3B",
+            "source": "mode-default-frontier"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0,
+          "currency": "USD",
+          "vs": "Nemotron 3.5 Lightning 30B A3B",
+          "baseline_source": "mode-default-frontier"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_p1ctnmjn",
+          "request_id": "req_p1ctnmjn",
+          "decision_id": "req_p1ctnmjn",
+          "created_at": 1792714103962,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "label": "Llama 3.2 1B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+              "ms": 193,
+              "tokensIn": 31,
+              "tokensOut": 2,
+              "outputTps": 10.362694300518134,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 31,
+            "output_tokens": 2,
+            "total_tokens": 33,
+            "output_tps": 10.362694300518134,
+            "latency_ms": 193
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0,
+            "baseline": {
+              "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+              "label": "Nemotron 3.5 Lightning 30B A3B",
+              "source": "mode-default-frontier"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0,
+            "currency": "USD",
+            "vs": "Nemotron 3.5 Lightning 30B A3B",
+            "baseline_source": "mode-default-frontier"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": false,
+            "error": "nvidia_not_a_chat_model: nvidia/nemotron-3-embed-1b is an embeddings endpoint — it serves /v1/embeddings, not chat completions",
+            "judge_model": "nvidia/nemotron-3-embed-1b",
+            "judge_local": false,
+            "judge_was_racer": false,
+            "ms": 0,
+            "batches": 1
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                "ms": 632,
+                "tokensIn": 163,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+                "ms": 654,
+                "tokensIn": 183,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 346,
+            "tokensOut": 3,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 654,
+            "verify": {
+              "abstained": true
+            },
+            "adopted": false
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.032,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": {
+              "delay_ms": 1100,
+              "skipped": 1,
+              "lanes_delayed": 1
+            },
+            "hedges_skipped": 1
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.04618,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Llama 3.2 1B (this device) · miss · $0.0000 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 69,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "latency_ms": 1243
+  },
+  {
+    "route": "meterless/auto",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-hw8x0uzxmvk7ovjj",
+      "object": "chat.completion",
+      "created": 1792714105,
+      "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 2,
+        "total_tokens": 33
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_cq3lf9q2",
+        "decision_id": "req_cq3lf9q2",
+        "requested_model": "meterless/auto",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          "label": "Llama 3.2 1B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "ms": 218,
+            "tokensIn": 31,
+            "tokensOut": 2,
+            "outputTps": 9.174311926605505,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 31,
+          "output_tokens": 2,
+          "total_tokens": 33,
+          "output_tps": 9.174311926605505,
+          "latency_ms": 218
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0,
+          "baseline": {
+            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "label": "Nemotron 3.5 Lightning 30B A3B",
+            "source": "mode-default-frontier"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0,
+          "currency": "USD",
+          "vs": "Nemotron 3.5 Lightning 30B A3B",
+          "baseline_source": "mode-default-frontier"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_cq3lf9q2",
+          "request_id": "req_cq3lf9q2",
+          "decision_id": "req_cq3lf9q2",
+          "created_at": 1792714105118,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "label": "Llama 3.2 1B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+              "ms": 218,
+              "tokensIn": 31,
+              "tokensOut": 2,
+              "outputTps": 9.174311926605505,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 31,
+            "output_tokens": 2,
+            "total_tokens": 33,
+            "output_tps": 9.174311926605505,
+            "latency_ms": 218
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0,
+            "baseline": {
+              "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+              "label": "Nemotron 3.5 Lightning 30B A3B",
+              "source": "mode-default-frontier"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0,
+            "currency": "USD",
+            "vs": "Nemotron 3.5 Lightning 30B A3B",
+            "baseline_source": "mode-default-frontier"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": false,
+            "error": "nvidia_not_a_chat_model: nvidia/nemotron-3-embed-1b is an embeddings endpoint — it serves /v1/embeddings, not chat completions",
+            "judge_model": "nvidia/nemotron-3-embed-1b",
+            "judge_local": false,
+            "judge_was_racer": false,
+            "ms": 1,
+            "batches": 1
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                "ms": 599,
+                "tokensIn": 163,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+                "ms": 616,
+                "tokensIn": 183,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 346,
+            "tokensOut": 3,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 616,
+            "verify": {
+              "abstained": true
+            },
+            "adopted": false
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "auto",
+            "routed_mode": "auto",
+            "mode_coerced": false
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.013,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": {
+              "delay_ms": 1100,
+              "skipped": 1,
+              "lanes_delayed": 1
+            },
+            "hedges_skipped": 1
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.04618,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Llama 3.2 1B (this device) · miss · $0.0000 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 70,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "latency_ms": 1152
+  },
+  {
+    "route": "meterless/fast",
+    "status": 200,
+    "headers": {
+      "access-control-allow-origin": "*",
+      "access-control-expose-headers": "content-type, content-disposition, x-meterless-request-id",
+      "cache-control": "no-store",
+      "connection": "close",
+      "content-type": "application/json",
+      "transfer-encoding": "chunked",
+      "vary": "Origin",
+      "x-content-type-options": "nosniff"
+    },
+    "body": {
+      "id": "chatcmpl-4yi1p340mvk7owfl",
+      "object": "chat.completion",
+      "created": 1792714106,
+      "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "OK."
+          },
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 31,
+        "completion_tokens": 2,
+        "total_tokens": 33
+      },
+      "meterless": {
+        "schema": "meterless.compute_receipt.v1",
+        "receipt_id": "rcpt_req_fsf39yfj",
+        "decision_id": "req_fsf39yfj",
+        "requested_model": "meterless/fast",
+        "provider_model": "meterless/auto",
+        "routed_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+        "winning_route": {
+          "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+          "label": "Llama 3.2 1B (this device)",
+          "provider": "webllm",
+          "kind": "local",
+          "tier": "A"
+        },
+        "requires_review": false,
+        "phases": [
+          {
+            "phase": "final_synthesis",
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "ms": 192,
+            "tokensIn": 31,
+            "tokensOut": 2,
+            "outputTps": 10.416666666666666,
+            "coherence": 0,
+            "tier": "B",
+            "reflex_decided_in_ms": 0
+          }
+        ],
+        "usage": {
+          "input_tokens": 31,
+          "output_tokens": 2,
+          "total_tokens": 33,
+          "output_tps": 10.416666666666666,
+          "latency_ms": 192
+        },
+        "cost": {
+          "actual_usd": 0,
+          "naive_usd": 0,
+          "baseline": {
+            "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+            "label": "Nemotron 3.5 Lightning 30B A3B",
+            "source": "mode-default-frontier"
+          },
+          "verifier_usd": 0,
+          "race_overhead_usd": 0
+        },
+        "savings": {
+          "amount": 0,
+          "currency": "USD",
+          "vs": "Nemotron 3.5 Lightning 30B A3B",
+          "baseline_source": "mode-default-frontier"
+        },
+        "cache": {
+          "status": "miss",
+          "losers_reclaimed": 1,
+          "partials_reclaimed": 0
+        },
+        "privacy": {
+          "path": "local-only",
+          "redaction": {
+            "applied": false,
+            "spans": 0
+          }
+        },
+        "from_cache": false,
+        "losers_reclaimed": 1,
+        "receipt": {
+          "schema": "meterless.compute_receipt.v1",
+          "receipt_id": "rcpt_req_fsf39yfj",
+          "request_id": "req_fsf39yfj",
+          "decision_id": "req_fsf39yfj",
+          "created_at": 1792714106286,
+          "status": "ok",
+          "app": "jedi-pack-inbox",
+          "requested_mode": "meterless/auto",
+          "prompt_preview": "Reply with the single word OK.",
+          "winning_route": {
+            "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "label": "Llama 3.2 1B (this device)",
+            "provider": "webllm",
+            "kind": "local",
+            "tier": "A"
+          },
+          "phases": [
+            {
+              "phase": "final_synthesis",
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+              "ms": 192,
+              "tokensIn": 31,
+              "tokensOut": 2,
+              "outputTps": 10.416666666666666,
+              "coherence": 0,
+              "tier": "B",
+              "reflex_decided_in_ms": 0
+            }
+          ],
+          "usage": {
+            "input_tokens": 31,
+            "output_tokens": 2,
+            "total_tokens": 33,
+            "output_tps": 10.416666666666666,
+            "latency_ms": 192
+          },
+          "cost": {
+            "actual_usd": 0,
+            "naive_usd": 0,
+            "baseline": {
+              "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+              "label": "Nemotron 3.5 Lightning 30B A3B",
+              "source": "mode-default-frontier"
+            },
+            "verifier_usd": 0,
+            "race_overhead_usd": 0
+          },
+          "savings": {
+            "amount": 0,
+            "currency": "USD",
+            "vs": "Nemotron 3.5 Lightning 30B A3B",
+            "baseline_source": "mode-default-frontier"
+          },
+          "cache": {
+            "status": "miss",
+            "losers_reclaimed": 1,
+            "partials_reclaimed": 0
+          },
+          "privacy": {
+            "path": "local-only",
+            "redaction": {
+              "applied": false,
+              "spans": 0
+            }
+          },
+          "cross_check": {
+            "status": "passed",
+            "risk_level": "low",
+            "raw_risk": "low",
+            "verifier": "deterministic/schema+regex",
+            "reflex_ms": 0,
+            "verifier_ms": 0,
+            "verifier_ran": false,
+            "verifier_model": null,
+            "verifier_verdict": null,
+            "verifier_error": null,
+            "verifier_tokens": null,
+            "checks": [
+              {
+                "type": "destructive_action",
+                "status": "passed",
+                "message": "No destructive ops detected."
+              },
+              {
+                "type": "pii_guard",
+                "status": "passed",
+                "message": "No PII/credential detected in response."
+              },
+              {
+                "type": "schema_validity",
+                "status": "skipped",
+                "message": "Not a tool call."
+              }
+            ],
+            "recommended_action": "allow",
+            "blocking": false,
+            "app": "jedi-pack-inbox",
+            "destructive": false,
+            "requires_review": false
+          },
+          "consensus": {
+            "level": "diverged",
+            "tone": "red",
+            "label": "models diverged",
+            "detail": "2 models disagreed — treat with caution",
+            "raced": 2,
+            "agree": 1,
+            "coherence": 0,
+            "verified": null
+          },
+          "consensus_escalation": null,
+          "fusion": null,
+          "synthesis": null,
+          "gen_verifier": {
+            "ran": false,
+            "error": "nvidia_not_a_chat_model: nvidia/nemotron-3-embed-1b is an embeddings endpoint — it serves /v1/embeddings, not chat completions",
+            "judge_model": "nvidia/nemotron-3-embed-1b",
+            "judge_local": false,
+            "judge_was_racer": false,
+            "ms": 0,
+            "batches": 1
+          },
+          "debate": {
+            "ran": true,
+            "rounds": 1,
+            "revised": [
+              {
+                "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+                "ms": 645,
+                "tokensIn": 163,
+                "tokensOut": 1,
+                "local": true
+              },
+              {
+                "model": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+                "ms": 655,
+                "tokensIn": 183,
+                "tokensOut": 2,
+                "local": true
+              }
+            ],
+            "winner": {
+              "model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC"
+            },
+            "tokensIn": 346,
+            "tokensOut": 3,
+            "cloudTokens": 0,
+            "cloud_usd": 0,
+            "ms": 655,
+            "verify": {
+              "abstained": true
+            },
+            "adopted": false
+          },
+          "quality_race": null,
+          "reasoning_scaffold": null,
+          "app_policy": {
+            "app": "jedi-pack-inbox",
+            "has_rule": true,
+            "privacy": "cloud-ok",
+            "cross_check": "auto",
+            "race_width": 6,
+            "premium_budget": null,
+            "lanes": null,
+            "requested_mode": "fast",
+            "routed_mode": "auto",
+            "mode_coerced": true,
+            "bound_mode": "auto"
+          },
+          "budget_degrade": null,
+          "refine": null,
+          "test_time_compute": null,
+          "hmem": null,
+          "tool_degraded": null,
+          "mcp": null,
+          "job": null,
+          "method": null,
+          "deliberation": null,
+          "egress": {
+            "destination": "none",
+            "coverage": "pattern_floor",
+            "sent": {
+              "prompt_chars": 30,
+              "context_sources": [
+                "messages"
+              ],
+              "redacted": []
+            },
+            "withheld": [],
+            "never_eligible": []
+          },
+          "verification": null,
+          "verdict": null,
+          "bar": null,
+          "score": null,
+          "graded_weight": null,
+          "eligible": null,
+          "scorecard": null,
+          "unmet": null,
+          "optimistic": null,
+          "routing": {
+            "policy": "learned-router",
+            "width": 6,
+            "of": 6,
+            "confidence": 0.005,
+            "reason": "uncertain-explore",
+            "predicted": "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC",
+            "escalated": null,
+            "winner": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+            "escalated_on_divergence": false,
+            "hedge": {
+              "delay_ms": 341,
+              "skipped": 1,
+              "lanes_delayed": 1
+            },
+            "hedges_skipped": 1
+          },
+          "host_pressure": {
+            "thermal": "nominal",
+            "battery": null,
+            "pressure": {
+              "battery": {
+                "score": 0,
+                "soft": 0.3,
+                "hard": 0.5,
+                "label": "nominal",
+                "sensor": "battery%, charging"
+              },
+              "thermal": {
+                "score": 0.15,
+                "soft": 0.55,
+                "hard": 0.8,
+                "label": "nominal",
+                "sensor": "thermal API"
+              },
+              "memory": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "committed/swap"
+              },
+              "cpu": {
+                "score": 0,
+                "soft": 0.7,
+                "hard": 0.9,
+                "label": "nominal",
+                "sensor": "30s load avg"
+              },
+              "gpu": {
+                "score": 0,
+                "soft": 0.75,
+                "hard": 0.92,
+                "label": "nominal",
+                "sensor": "GPU + VRAM"
+              },
+              "network": {
+                "score": 0.1,
+                "soft": 0.5,
+                "hard": 0.85,
+                "label": "nominal",
+                "sensor": "RTT to providers"
+              },
+              "quota": {
+                "score": 0.04618,
+                "soft": 0.8,
+                "hard": 0.95,
+                "label": "nominal",
+                "sensor": "per-key window"
+              }
+            }
+          },
+          "error": "",
+          "summary": "ok · Llama 3.2 1B (this device) · miss · $0.0000 saved"
+        },
+        "receipt_envelope": null,
+        "served": "in-tab",
+        "mcp": null,
+        "job": {
+          "id": "job_mvk5uti501",
+          "kind": "app_stream",
+          "lane": "auto",
+          "turn": 71,
+          "cluster": 0
+        },
+        "egress": {
+          "destination": "none",
+          "coverage": "pattern_floor",
+          "sent": {
+            "prompt_chars": 30,
+            "context_sources": [
+              "messages"
+            ],
+            "redacted": []
+          },
+          "withheld": [],
+          "never_eligible": []
+        },
+        "consensus": {
+          "level": "diverged",
+          "raced": 2,
+          "agreed": null,
+          "coherence": 0,
+          "label": "models diverged",
+          "basis": "lexical"
+        },
+        "lineage": {
+          "families": [
+            "unknown"
+          ],
+          "distinct": 1,
+          "note": "all 2 panelists share the unknown family"
+        },
+        "app": "jedi-pack-inbox",
+        "mode": "auto",
+        "scope": "user"
+      },
+      "meterless_cross_check": {
+        "status": "passed",
+        "risk_level": "low",
+        "raw_risk": "low",
+        "verifier": "deterministic/schema+regex",
+        "reflex_ms": 0,
+        "verifier_ms": 0,
+        "verifier_ran": false,
+        "verifier_model": null,
+        "verifier_verdict": null,
+        "verifier_error": null,
+        "verifier_tokens": null,
+        "checks": [
+          {
+            "type": "destructive_action",
+            "status": "passed",
+            "message": "No destructive ops detected."
+          },
+          {
+            "type": "pii_guard",
+            "status": "passed",
+            "message": "No PII/credential detected in response."
+          },
+          {
+            "type": "schema_validity",
+            "status": "skipped",
+            "message": "Not a tool call."
+          }
+        ],
+        "recommended_action": "allow",
+        "blocking": false,
+        "app": "jedi-pack-inbox",
+        "destructive": false,
+        "requires_review": false
+      }
+    },
+    "handled_model": "webllm/Llama-3.2-1B-Instruct-q4f16_1-MLC",
+    "latency_ms": 1168
+  }
+]

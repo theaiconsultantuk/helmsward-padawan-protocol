@@ -1,0 +1,116 @@
+[
+  {
+    "params": {
+      "topic": "appreciation"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "billing"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "billing",
+          "3",
+          "4"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "complaint"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "complaint",
+          "5",
+          "6"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "question"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "question",
+          "1",
+          "2"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "refund"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "refund",
+          "15",
+          "16"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "replacement"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "replacement",
+          "8",
+          "9"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]

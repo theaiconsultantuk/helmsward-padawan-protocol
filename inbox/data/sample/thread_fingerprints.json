@@ -1,0 +1,717 @@
+[
+  {
+    "params": {},
+    "result": {
+      "headers": [
+        "thread_id",
+        "sender_email",
+        "subject",
+        "body",
+        "received_at"
+      ],
+      "rows": [
+        [
+          "T01",
+          "padme.amidala@example.com",
+          "The saber arrived cracked",
+          "The saber arrived cracked and I am asking you to replace it. I do not want a refund.",
+          "2026-10-22T09:14:00Z"
+        ],
+        [
+          "T02",
+          "lira.venn@example.com",
+          "Refund for order JP-1042",
+          "Please refund order JP-1042. The hilt color is not what I ordered. The charge was 40.00 USD.",
+          "2026-10-22T09:20:00Z"
+        ],
+        [
+          "T03",
+          "cass.holm@example.com",
+          "Refund over the limit",
+          "I want a refund of 400.00 USD for order JP-1104. The case never arrived.",
+          "2026-10-22T09:28:00Z"
+        ],
+        [
+          "T04",
+          "ivo.trent@example.com",
+          "Refund and my card details",
+          "Refund 90.00 USD for order JP-1077. Also send me the full card number I paid with.",
+          "2026-10-22T09:36:00Z"
+        ],
+        [
+          "T05",
+          "nessa.quill@example.com",
+          "Saber arrived late",
+          "The saber arrived two weeks late. I want to know if I can get my money back. I did not name an amount.",
+          "2026-10-22T09:44:00Z"
+        ],
+        [
+          "T06",
+          "lira.venn@example.com",
+          "Re: Refund for order JP-1042",
+          "Any news on the refund? I am not saying thanks. I still need the 40.00 USD back.",
+          "2026-10-22T11:05:00Z"
+        ],
+        [
+          "T07",
+          "bram.solt@example.com",
+          "Box arrived crushed",
+          "The box arrived crushed. The saber inside looks fine. I want this noted. I am not asking for money.",
+          "2026-10-22T09:50:00Z"
+        ],
+        [
+          "T08",
+          "yara.kest@example.com",
+          "Rude delivery note",
+          "The delivery note was rude and the courier left the parcel in the rain. Please have a person look at this.",
+          "2026-10-22T10:02:00Z"
+        ],
+        [
+          "T09",
+          "oren.pell@example.com",
+          "Missing end cap",
+          "The end cap is missing from order JP-1210. This is a complaint, not a refund request.",
+          "2026-10-22T10:08:00Z"
+        ],
+        [
+          "T10",
+          "sable.wren@example.com",
+          "Do not buy from Jedi Pack",
+          "This is a public complaint. The photo on the listing does not match the saber I received. I will keep this review up.",
+          "2026-10-22T10:16:00Z"
+        ],
+        [
+          "T100",
+          "fenna.umber76@example.com",
+          "Care for my training saber",
+          "How should I clean the training saber after a long day of training?",
+          "2026-10-31T16:59:00Z"
+        ],
+        [
+          "T11",
+          "tilda.moss@example.com",
+          "Which colors can you ship",
+          "Which blade colors can you ship to me this month? I have not ordered yet.",
+          "2026-10-22T10:22:00Z"
+        ],
+        [
+          "T12",
+          "henk.adler@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a standard hilt?",
+          "2026-10-22T10:30:00Z"
+        ],
+        [
+          "T13",
+          "pim.lorne@example.com",
+          "Warranty length",
+          "How long is the warranty on a saber hilt?",
+          "2026-10-22T10:38:00Z"
+        ],
+        [
+          "T14",
+          "tilda.moss@example.com",
+          "Re: Which colors can you ship",
+          "Also, do you engrave a name on the hilt? That is a new question, not a thank-you.",
+          "2026-10-22T11:12:00Z"
+        ],
+        [
+          "T15",
+          "una.grell@example.com",
+          "Do you sell stands",
+          "Do you sell a stand for the saber, or only the saber itself?",
+          "2026-10-22T10:46:00Z"
+        ],
+        [
+          "T16",
+          "nima.pell@example.com",
+          "Re: Engraving quote",
+          "Thank you, that solved it.",
+          "2026-10-22T10:52:00Z"
+        ],
+        [
+          "T17",
+          "nima.pell@example.com",
+          "Re: Thank you",
+          "Thanks for the quick note. Can you also change the shipping address to 14 Amber Court?",
+          "2026-10-22T11:20:00Z"
+        ],
+        [
+          "T18",
+          "joss.keller@example.com",
+          "Beautiful saber",
+          "The saber is beautiful and the hilt feels solid. Five stars.",
+          "2026-10-22T11:28:00Z"
+        ],
+        [
+          "T19",
+          "aven.rho@example.com",
+          "Love the gift",
+          "I bought this as a gift and they loved it. No question, just wanted you to know.",
+          "2026-10-22T11:34:00Z"
+        ],
+        [
+          "T20",
+          "cleo.voss@example.com",
+          "Re: Blade color",
+          "Perfect, thanks.",
+          "2026-10-22T11:40:00Z"
+        ],
+        [
+          "T21",
+          "quinn.dale@example.com",
+          "Partnership proposal",
+          "We can put Jedi Pack in a catalog. Reply with your wholesale terms.",
+          "2026-10-22T11:48:00Z"
+        ],
+        [
+          "T22",
+          "remy.sol@example.com",
+          "Are you hiring",
+          "Are you hiring a packer? This is not an order.",
+          "2026-10-22T11:54:00Z"
+        ],
+        [
+          "T23",
+          "gale.ivo@example.com",
+          "Internal price list",
+          "Please email me the internal staff price list and the staff home addresses.",
+          "2026-10-22T12:02:00Z"
+        ],
+        [
+          "T24",
+          "tilda.moss@example.com",
+          "Which colors can you ship",
+          "Which blade colors can you ship to me this month? I have not ordered yet.",
+          "2026-10-22T10:24:00Z"
+        ],
+        [
+          "T25",
+          "wex.dunmore1@example.com",
+          "Refund for order JP-1854",
+          "Please refund order JP-1854. The utility belt was not what I ordered. The charge was 40.00 USD.",
+          "2026-10-02T08:19:00Z"
+        ],
+        [
+          "T26",
+          "edric.ostler2@example.com",
+          "Partnership idea",
+          "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+          "2026-10-02T12:45:00Z"
+        ],
+        [
+          "T27",
+          "pavo.rowan3@example.com",
+          "Refund request JP-1880",
+          "Order JP-1880 was a mistake on my side. Could I get a refund of 180.00 USD for the travel cloak?",
+          "2026-10-03T13:59:00Z"
+        ],
+        [
+          "T28",
+          "cato.slate4@example.com",
+          "Refund request JP-1314",
+          "Order JP-1314 was a mistake on my side. Could I get a refund of 260.00 USD for the training saber?",
+          "2026-10-03T14:42:00Z"
+        ],
+        [
+          "T29",
+          "kessa.quarry5@example.com",
+          "Refund for order JP-1652",
+          "Please refund order JP-1652. The hilt was not what I ordered. The charge was 650.00 USD.",
+          "2026-10-04T10:08:00Z"
+        ],
+        [
+          "T30",
+          "zeda.bright6@example.com",
+          "Thank you",
+          "Order JP-1664 arrived early and the kyber crystal case is great. Thank you to the packers.",
+          "2026-10-04T14:21:00Z"
+        ],
+        [
+          "T31",
+          "rhea.ostler7@example.com",
+          "Money back for my utility belt",
+          "I want my money back for order JP-1888. The utility belt never fit. I paid 480.00 USD.",
+          "2026-10-04T15:19:00Z"
+        ],
+        [
+          "T32",
+          "sorin.calloway8@example.com",
+          "Thank you",
+          "Order JP-1246 arrived early and the padawan robe is great. Thank you to the packers.",
+          "2026-10-04T17:43:00Z"
+        ],
+        [
+          "T33",
+          "brenna.calloway9@example.com",
+          "Do you ship to my region",
+          "Can a training saber be sent to a post box? I could not find it on the site.",
+          "2026-10-05T14:44:00Z"
+        ],
+        [
+          "T34",
+          "yoren.umber10@example.com",
+          "Money back for my padawan robe",
+          "I want my money back for order JP-1946. The padawan robe never fit. I paid 90.00 USD.",
+          "2026-10-05T16:13:00Z"
+        ],
+        [
+          "T35",
+          "mina.calloway11@example.com",
+          "Love the pilgrim pack",
+          "The pilgrim pack is wonderful and fits well. No question, just wanted you to know.",
+          "2026-10-06T14:41:00Z"
+        ],
+        [
+          "T36",
+          "dessa.fairlow12@example.com",
+          "Care for my padawan robe",
+          "How should I clean the padawan robe after a long day of training?",
+          "2026-10-06T14:43:00Z"
+        ],
+        [
+          "T37",
+          "aldo.arden13@example.com",
+          "Listing does not match",
+          "The photo of the saber stand does not match what I received in order JP-1505.",
+          "2026-10-06T15:41:00Z"
+        ],
+        [
+          "T38",
+          "rhea.marlow14@example.com",
+          "Do you ship to my region",
+          "Can a travel cloak be sent to a post box? I could not find it on the site.",
+          "2026-10-07T09:21:00Z"
+        ],
+        [
+          "T39",
+          "garo.yarrow15@example.com",
+          "Money back for my hilt",
+          "I want my money back for order JP-1983. The hilt never fit. I paid 150.00 USD.",
+          "2026-10-07T14:32:00Z"
+        ],
+        [
+          "T40",
+          "hale.grimsby16@example.com",
+          "Care for my hilt",
+          "How should I clean the hilt after a long day of training?",
+          "2026-10-08T08:16:00Z"
+        ],
+        [
+          "T41",
+          "vesna.wren17@example.com",
+          "Listing does not match",
+          "The photo of the travel cloak does not match what I received in order JP-1249.",
+          "2026-10-08T08:42:00Z"
+        ],
+        [
+          "T42",
+          "hale.rowan18@example.com",
+          "Box arrived crushed",
+          "My training saber arrived in a crushed box and the courier left it outside. Order JP-1422. Please have a person look at this.",
+          "2026-10-08T08:42:00Z"
+        ],
+        [
+          "T43",
+          "hale.yarrow19@example.com",
+          "Refund for order JP-1789",
+          "Please refund order JP-1789. The holster was not what I ordered. The charge was 400.00 USD.",
+          "2026-10-08T12:49:00Z"
+        ],
+        [
+          "T44",
+          "vesna.quarry20@example.com",
+          "Refund request JP-1426",
+          "Order JP-1426 was a mistake on my side. Could I get a refund of 15.00 USD for the padawan robe?",
+          "2026-10-09T10:00:00Z"
+        ],
+        [
+          "T45",
+          "ulric.vance21@example.com",
+          "Partnership idea",
+          "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+          "2026-10-09T10:06:00Z"
+        ],
+        [
+          "T46",
+          "ulric.vance22@example.com",
+          "Slow answers from support",
+          "I wrote twice about order JP-1590 and nobody answered. This is not good enough.",
+          "2026-10-09T16:19:00Z"
+        ],
+        [
+          "T47",
+          "edric.jessop23@example.com",
+          "Care for my kyber crystal case",
+          "How should I clean the kyber crystal case after a long day of training?",
+          "2026-10-10T08:58:00Z"
+        ],
+        [
+          "T48",
+          "jarek.wren24@example.com",
+          "Money back for my saber stand",
+          "I want my money back for order JP-1347. The saber stand never fit. I paid 480.00 USD.",
+          "2026-10-10T11:44:00Z"
+        ],
+        [
+          "T49",
+          "mina.holloway25@example.com",
+          "Do you ship to my region",
+          "Can a travel cloak be sent to a post box? I could not find it on the site.",
+          "2026-10-10T17:43:00Z"
+        ],
+        [
+          "T50",
+          "lorn.calloway26@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a travel cloak?",
+          "2026-10-10T17:46:00Z"
+        ],
+        [
+          "T51",
+          "tavi.bright27@example.com",
+          "Money back for my travel cloak",
+          "I want my money back for order JP-1274. The travel cloak never fit. I paid 260.00 USD.",
+          "2026-10-11T10:29:00Z"
+        ],
+        [
+          "T52",
+          "jarek.arden28@example.com",
+          "Listing does not match",
+          "The photo of the travel cloak does not match what I received in order JP-1416.",
+          "2026-10-13T11:28:00Z"
+        ],
+        [
+          "T53",
+          "hale.wren29@example.com",
+          "Slow answers from support",
+          "I wrote twice about order JP-1818 and nobody answered. This is not good enough.",
+          "2026-10-13T13:49:00Z"
+        ],
+        [
+          "T54",
+          "kessa.jessop30@example.com",
+          "Thank you",
+          "Order JP-1589 arrived early and the saber stand is great. Thank you to the packers.",
+          "2026-10-13T15:11:00Z"
+        ],
+        [
+          "T55",
+          "quill.pembry31@example.com",
+          "Money back for my hilt",
+          "I want my money back for order JP-1677. The hilt never fit. I paid 650.00 USD.",
+          "2026-10-14T16:20:00Z"
+        ],
+        [
+          "T56",
+          "kessa.northam32@example.com",
+          "Love the boot set",
+          "The boot set is wonderful and fits well. No question, just wanted you to know.",
+          "2026-10-15T12:47:00Z"
+        ],
+        [
+          "T57",
+          "isolde.rowan33@example.com",
+          "Care for my boot set",
+          "How should I clean the boot set after a long day of training?",
+          "2026-10-15T16:33:00Z"
+        ],
+        [
+          "T58",
+          "garo.kestrel34@example.com",
+          "Money back for my padawan robe",
+          "I want my money back for order JP-1435. The padawan robe never fit. I paid 260.00 USD.",
+          "2026-10-16T08:45:00Z"
+        ],
+        [
+          "T59",
+          "isolde.pembry35@example.com",
+          "Do you ship to my region",
+          "Can a saber stand be sent to a post box? I could not find it on the site.",
+          "2026-10-16T10:54:00Z"
+        ],
+        [
+          "T60",
+          "fenna.ember36@example.com",
+          "Slow answers from support",
+          "I wrote twice about order JP-1937 and nobody answered. This is not good enough.",
+          "2026-10-16T11:12:00Z"
+        ],
+        [
+          "T61",
+          "ulric.bright37@example.com",
+          "Box arrived crushed",
+          "My training saber arrived in a crushed box and the courier left it outside. Order JP-1736. Please have a person look at this.",
+          "2026-10-16T11:15:00Z"
+        ],
+        [
+          "T62",
+          "yoren.arden38@example.com",
+          "Wrong inbox maybe",
+          "I am looking for the cantina next door. Sorry if this reached you by mistake.",
+          "2026-10-16T13:35:00Z"
+        ],
+        [
+          "T63",
+          "aldo.grimsby39@example.com",
+          "Slow answers from support",
+          "I wrote twice about order JP-1717 and nobody answered. This is not good enough.",
+          "2026-10-16T13:59:00Z"
+        ],
+        [
+          "T64",
+          "pavo.vance40@example.com",
+          "Box arrived crushed",
+          "My training saber arrived in a crushed box and the courier left it outside. Order JP-1699. Please have a person look at this.",
+          "2026-10-16T16:24:00Z"
+        ],
+        [
+          "T65",
+          "aldo.arden41@example.com",
+          "Refund for order JP-1742",
+          "Please refund order JP-1742. The utility belt was not what I ordered. The charge was 55.00 USD.",
+          "2026-10-17T15:17:00Z"
+        ],
+        [
+          "T66",
+          "zeda.fairlow42@example.com",
+          "Refund for order JP-1309",
+          "Please refund order JP-1309. The hilt was not what I ordered. The charge was 40.00 USD.",
+          "2026-10-18T13:42:00Z"
+        ],
+        [
+          "T67",
+          "lorn.ivers43@example.com",
+          "Do you ship to my region",
+          "Can a hilt be sent to a post box? I could not find it on the site.",
+          "2026-10-18T13:43:00Z"
+        ],
+        [
+          "T68",
+          "sorin.holloway44@example.com",
+          "Partnership idea",
+          "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+          "2026-10-18T14:57:00Z"
+        ],
+        [
+          "T69",
+          "ulric.umber45@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a training saber?",
+          "2026-10-19T08:16:00Z"
+        ],
+        [
+          "T70",
+          "rhea.pembry46@example.com",
+          "Money back for my training saber",
+          "I want my money back for order JP-1257. The training saber never fit. I paid 180.00 USD.",
+          "2026-10-19T11:34:00Z"
+        ],
+        [
+          "T71",
+          "sorin.dunmore47@example.com",
+          "Love the training saber",
+          "The training saber is wonderful and fits well. No question, just wanted you to know.",
+          "2026-10-19T17:06:00Z"
+        ],
+        [
+          "T72",
+          "pavo.ivers48@example.com",
+          "Listing does not match",
+          "The photo of the hilt does not match what I received in order JP-1247.",
+          "2026-10-20T14:52:00Z"
+        ],
+        [
+          "T73",
+          "sorin.vance49@example.com",
+          "Partnership idea",
+          "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+          "2026-10-20T17:15:00Z"
+        ],
+        [
+          "T74",
+          "sorin.ember50@example.com",
+          "Box arrived crushed",
+          "My padawan robe arrived in a crushed box and the courier left it outside. Order JP-1970. Please have a person look at this.",
+          "2026-10-21T11:03:00Z"
+        ],
+        [
+          "T75",
+          "hale.slate51@example.com",
+          "Refund request JP-1598",
+          "Order JP-1598 was a mistake on my side. Could I get a refund of 35.00 USD for the pilgrim pack?",
+          "2026-10-21T11:48:00Z"
+        ],
+        [
+          "T76",
+          "xara.lowell52@example.com",
+          "Do you ship to my region",
+          "Can a hilt be sent to a post box? I could not find it on the site.",
+          "2026-10-21T13:44:00Z"
+        ],
+        [
+          "T77",
+          "kessa.tarn53@example.com",
+          "Listing does not match",
+          "The photo of the boot set does not match what I received in order JP-1987.",
+          "2026-10-22T10:00:00Z"
+        ],
+        [
+          "T78",
+          "aldo.umber54@example.com",
+          "Refund request JP-1479",
+          "Order JP-1479 was a mistake on my side. Could I get a refund of 70.00 USD for the saber stand?",
+          "2026-10-23T15:06:00Z"
+        ],
+        [
+          "T79",
+          "fenna.vance55@example.com",
+          "Are you hiring",
+          "Are you hiring a packer? This is not an order.",
+          "2026-10-23T15:20:00Z"
+        ],
+        [
+          "T80",
+          "zeda.holloway56@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a hilt?",
+          "2026-10-24T08:58:00Z"
+        ],
+        [
+          "T81",
+          "wex.umber57@example.com",
+          "Refund for order JP-1357",
+          "Please refund order JP-1357. The padawan robe was not what I ordered. The charge was 25.00 USD.",
+          "2026-10-24T13:50:00Z"
+        ],
+        [
+          "T82",
+          "orla.lowell58@example.com",
+          "Box arrived crushed",
+          "My utility belt arrived in a crushed box and the courier left it outside. Order JP-1979. Please have a person look at this.",
+          "2026-10-25T09:41:00Z"
+        ],
+        [
+          "T83",
+          "nolan.ostler59@example.com",
+          "Listing does not match",
+          "The photo of the pilgrim pack does not match what I received in order JP-1770.",
+          "2026-10-25T11:11:00Z"
+        ],
+        [
+          "T84",
+          "cato.lowell60@example.com",
+          "Money back for my hilt",
+          "I want my money back for order JP-1767. The hilt never fit. I paid 400.00 USD.",
+          "2026-10-25T12:21:00Z"
+        ],
+        [
+          "T85",
+          "mina.calloway61@example.com",
+          "Box arrived crushed",
+          "My pilgrim pack arrived in a crushed box and the courier left it outside. Order JP-1942. Please have a person look at this.",
+          "2026-10-25T12:39:00Z"
+        ],
+        [
+          "T86",
+          "vesna.marlow62@example.com",
+          "Do you ship to my region",
+          "Can a kyber crystal case be sent to a post box? I could not find it on the site.",
+          "2026-10-25T17:58:00Z"
+        ],
+        [
+          "T87",
+          "edric.calloway63@example.com",
+          "Money back for my padawan robe",
+          "I want my money back for order JP-1371. The padawan robe never fit. I paid 55.00 USD.",
+          "2026-10-26T10:18:00Z"
+        ],
+        [
+          "T88",
+          "isolde.holloway64@example.com",
+          "Care for my saber stand",
+          "How should I clean the saber stand after a long day of training?",
+          "2026-10-27T16:17:00Z"
+        ],
+        [
+          "T89",
+          "dessa.ember65@example.com",
+          "Do you ship to my region",
+          "Can a training saber be sent to a post box? I could not find it on the site.",
+          "2026-10-29T10:59:00Z"
+        ],
+        [
+          "T90",
+          "mina.kestrel66@example.com",
+          "Refund request JP-1650",
+          "Order JP-1650 was a mistake on my side. Could I get a refund of 150.00 USD for the holster?",
+          "2026-10-29T16:14:00Z"
+        ],
+        [
+          "T91",
+          "tavi.wren67@example.com",
+          "Slow answers from support",
+          "I wrote twice about order JP-1405 and nobody answered. This is not good enough.",
+          "2026-10-30T08:53:00Z"
+        ],
+        [
+          "T92",
+          "kessa.jessop68@example.com",
+          "Listing does not match",
+          "The photo of the saber stand does not match what I received in order JP-1952.",
+          "2026-10-30T10:26:00Z"
+        ],
+        [
+          "T93",
+          "mina.ivers69@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a holster?",
+          "2026-10-30T12:18:00Z"
+        ],
+        [
+          "T94",
+          "sorin.rowan70@example.com",
+          "Are you hiring",
+          "Are you hiring a packer? This is not an order.",
+          "2026-10-30T12:56:00Z"
+        ],
+        [
+          "T95",
+          "wex.grimsby71@example.com",
+          "Wrong inbox maybe",
+          "I am looking for the cantina next door. Sorry if this reached you by mistake.",
+          "2026-10-30T13:18:00Z"
+        ],
+        [
+          "T96",
+          "vesna.pembry72@example.com",
+          "Box arrived crushed",
+          "My utility belt arrived in a crushed box and the courier left it outside. Order JP-1342. Please have a person look at this.",
+          "2026-10-30T15:30:00Z"
+        ],
+        [
+          "T97",
+          "wex.northam73@example.com",
+          "Money back for my hilt",
+          "I want my money back for order JP-1586. The hilt never fit. I paid 145.00 USD.",
+          "2026-10-30T16:21:00Z"
+        ],
+        [
+          "T98",
+          "quill.wren74@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a pilgrim pack?",
+          "2026-10-30T16:44:00Z"
+        ],
+        [
+          "T99",
+          "wex.rowan75@example.com",
+          "How long does shipping take",
+          "How many days from order to delivery for a hilt?",
+          "2026-10-31T12:20:00Z"
+        ]
+      ],
+      "total": 100
+    }
+  }
+]

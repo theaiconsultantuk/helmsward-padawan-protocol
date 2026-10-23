@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "note": "Jedi Pack inbox intent registry. Examples are paraphrased from the authored synthetic threads.",
+  "intents": [
+    {
+      "id": "GENERAL",
+      "category": "general",
+      "description": "Safe fallback when no registered intent clears the reject band. Asks a clarifying question, never guesses.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts"],
+      "riskClass": "low",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": ["hello there", "what can you help me with", "partnership proposal wholesale catalog", "are you hiring a packer"],
+      "version": 1
+    },
+    {
+      "id": "refund.request",
+      "category": "refund",
+      "description": "Customer wants money back for an order: a refund of a charge, or a return of payment.",
+      "parameters": { "type": "object", "properties": { "amount": { "type": "number" }, "currency": { "type": "string" }, "id": { "type": "string" } } },
+      "capabilities": ["zetaris.facts", "policy.lookup", "reply.draft", "queue.human"],
+      "riskClass": "high",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "Please refund order JP-1042, the hilt color is not what I ordered",
+        "I want a refund of 400.00 USD for order JP-1104",
+        "Refund 90.00 USD for order JP-1077",
+        "I want to know if I can get my money back",
+        "I still need the 40.00 USD back",
+        "Any news on the refund, I still need the money back",
+        "The charge was 40.00 USD, refund the charge",
+        "Refund and my card details, send the card number I paid with"
+      ],
+      "version": 1
+    },
+    {
+      "id": "replacement.request",
+      "category": "replacement",
+      "description": "Customer received a damaged or wrong item and wants a replacement sent.",
+      "parameters": { "type": "object", "properties": { "id": { "type": "string" } } },
+      "capabilities": ["zetaris.facts", "policy.lookup", "reply.draft"],
+      "riskClass": "medium",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "The saber arrived cracked and I am asking you to replace it",
+        "Please replace the cracked hilt, send a replacement",
+        "I do not want a refund, I want a replacement saber",
+        "The blade arrived broken, ship me a new one",
+        "The saber arrived damaged, replace it"
+      ],
+      "version": 1
+    },
+    {
+      "id": "order.question",
+      "category": "question",
+      "description": "Customer asks a question about products, shipping, warranty or availability.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts", "reply.draft"],
+      "riskClass": "low",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "Which blade colors can you ship to me this month",
+        "How many days from order to delivery for a standard hilt",
+        "How long is the warranty on a saber hilt",
+        "Do you engrave a name on the hilt",
+        "Do you sell a stand for the saber, or only the saber itself",
+        "I have not ordered yet, which colors do you ship",
+        "What does shipping cost and how long does delivery take"
+      ],
+      "version": 1
+    },
+    {
+      "id": "complaint",
+      "category": "complaint",
+      "description": "Customer complains about condition, service or listing and wants it noted, not money.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts", "reply.draft", "queue.human"],
+      "riskClass": "medium",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "The box arrived crushed, I want this noted, I am not asking for money",
+        "The delivery note was rude and the courier left the parcel in the rain",
+        "Please have a person look at this complaint",
+        "The end cap is missing, this is a complaint not a refund request",
+        "This is a public complaint, the photo on the listing does not match",
+        "I will keep this review up, do not buy from this shop"
+      ],
+      "version": 1
+    },
+    {
+      "id": "appreciation",
+      "category": "appreciation",
+      "description": "Customer says thanks or praises the product, no request.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts", "reply.draft"],
+      "riskClass": "low",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "Thank you, that solved it",
+        "Thanks for the quick note",
+        "The saber is beautiful and the hilt feels solid, five stars",
+        "I bought this as a gift and they loved it",
+        "Perfect, thanks",
+        "No question, just wanted you to know we love it"
+      ],
+      "version": 1
+    },
+    {
+      "id": "follow_up",
+      "category": "follow_up",
+      "description": "Customer follows up on an earlier reply, disputes or corrects what was said.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts", "policy.lookup", "queue.human"],
+      "riskClass": "medium",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "You misunderstood me, that is not what I asked",
+        "Your earlier reply is wrong, you said a refund is on the way",
+        "I asked for a replacement, not a refund",
+        "I did not ask for my money back, do not send a refund",
+        "Your reply says something I never asked, that is wrong",
+        "You said you would, any update on your earlier reply",
+        "As I said before, you misunderstood"
+      ],
+      "version": 1
+    }
+  ]
+}

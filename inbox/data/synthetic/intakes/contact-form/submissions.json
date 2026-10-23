@@ -1,0 +1,412 @@
+[
+  {
+    "submission_id": "CF-T03",
+    "thread_id": "T03",
+    "received_at": "2026-10-22T09:28:00Z",
+    "name": "Cass Holm",
+    "email": "cass.holm@example.com",
+    "subject": "Refund over the limit",
+    "message": "I want a refund of 400.00 USD for order JP-1104. The case never arrived.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T08",
+    "thread_id": "T08",
+    "received_at": "2026-10-22T10:02:00Z",
+    "name": "Yara Kest",
+    "email": "yara.kest@example.com",
+    "subject": "Rude delivery note",
+    "message": "The delivery note was rude and the courier left the parcel in the rain. Please have a person look at this.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T12",
+    "thread_id": "T12",
+    "received_at": "2026-10-22T10:30:00Z",
+    "name": "Henk Adler",
+    "email": "henk.adler@example.com",
+    "subject": "How long does shipping take",
+    "message": "How many days from order to delivery for a standard hilt?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T19",
+    "thread_id": "T19",
+    "received_at": "2026-10-22T11:34:00Z",
+    "name": "Aven Rho",
+    "email": "aven.rho@example.com",
+    "subject": "Love the gift",
+    "message": "I bought this as a gift and they loved it. No question, just wanted you to know.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T22",
+    "thread_id": "T22",
+    "received_at": "2026-10-22T11:54:00Z",
+    "name": "Remy Sol",
+    "email": "remy.sol@example.com",
+    "subject": "Are you hiring",
+    "message": "Are you hiring a packer? This is not an order.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T25",
+    "thread_id": "T25",
+    "received_at": "2026-10-02T08:19:00Z",
+    "name": "Wex Dunmore",
+    "email": "wex.dunmore1@example.com",
+    "subject": "Refund for order JP-1854",
+    "message": "Please refund order JP-1854. The utility belt was not what I ordered. The charge was 40.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T28",
+    "thread_id": "T28",
+    "received_at": "2026-10-03T14:42:00Z",
+    "name": "Cato Slate",
+    "email": "cato.slate4@example.com",
+    "subject": "Refund request JP-1314",
+    "message": "Order JP-1314 was a mistake on my side. Could I get a refund of 260.00 USD for the training saber?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T30",
+    "thread_id": "T30",
+    "received_at": "2026-10-04T14:21:00Z",
+    "name": "Zeda Bright",
+    "email": "zeda.bright6@example.com",
+    "subject": "Thank you",
+    "message": "Order JP-1664 arrived early and the kyber crystal case is great. Thank you to the packers.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T35",
+    "thread_id": "T35",
+    "received_at": "2026-10-06T14:41:00Z",
+    "name": "Mina Calloway",
+    "email": "mina.calloway11@example.com",
+    "subject": "Love the pilgrim pack",
+    "message": "The pilgrim pack is wonderful and fits well. No question, just wanted you to know.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T36",
+    "thread_id": "T36",
+    "received_at": "2026-10-06T14:43:00Z",
+    "name": "Dessa Fairlow",
+    "email": "dessa.fairlow12@example.com",
+    "subject": "Care for my padawan robe",
+    "message": "How should I clean the padawan robe after a long day of training?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T38",
+    "thread_id": "T38",
+    "received_at": "2026-10-07T09:21:00Z",
+    "name": "Rhea Marlow",
+    "email": "rhea.marlow14@example.com",
+    "subject": "Do you ship to my region",
+    "message": "Can a travel cloak be sent to a post box? I could not find it on the site.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T42",
+    "thread_id": "T42",
+    "received_at": "2026-10-08T08:42:00Z",
+    "name": "Hale Rowan",
+    "email": "hale.rowan18@example.com",
+    "subject": "Box arrived crushed",
+    "message": "My training saber arrived in a crushed box and the courier left it outside. Order JP-1422. Please have a person look at this.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T43",
+    "thread_id": "T43",
+    "received_at": "2026-10-08T12:49:00Z",
+    "name": "Hale Yarrow",
+    "email": "hale.yarrow19@example.com",
+    "subject": "Refund for order JP-1789",
+    "message": "Please refund order JP-1789. The holster was not what I ordered. The charge was 400.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T46",
+    "thread_id": "T46",
+    "received_at": "2026-10-09T16:19:00Z",
+    "name": "Ulric Vance",
+    "email": "ulric.vance22@example.com",
+    "subject": "Slow answers from support",
+    "message": "I wrote twice about order JP-1590 and nobody answered. This is not good enough.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T47",
+    "thread_id": "T47",
+    "received_at": "2026-10-10T08:58:00Z",
+    "name": "Edric Jessop",
+    "email": "edric.jessop23@example.com",
+    "subject": "Care for my kyber crystal case",
+    "message": "How should I clean the kyber crystal case after a long day of training?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T50",
+    "thread_id": "T50",
+    "received_at": "2026-10-10T17:46:00Z",
+    "name": "Lorn Calloway",
+    "email": "lorn.calloway26@example.com",
+    "subject": "How long does shipping take",
+    "message": "How many days from order to delivery for a travel cloak?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T52",
+    "thread_id": "T52",
+    "received_at": "2026-10-13T11:28:00Z",
+    "name": "Jarek Arden",
+    "email": "jarek.arden28@example.com",
+    "subject": "Listing does not match",
+    "message": "The photo of the travel cloak does not match what I received in order JP-1416.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T55",
+    "thread_id": "T55",
+    "received_at": "2026-10-14T16:20:00Z",
+    "name": "Quill Pembry",
+    "email": "quill.pembry31@example.com",
+    "subject": "Money back for my hilt",
+    "message": "I want my money back for order JP-1677. The hilt never fit. I paid 650.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T56",
+    "thread_id": "T56",
+    "received_at": "2026-10-15T12:47:00Z",
+    "name": "Kessa Northam",
+    "email": "kessa.northam32@example.com",
+    "subject": "Love the boot set",
+    "message": "The boot set is wonderful and fits well. No question, just wanted you to know.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T59",
+    "thread_id": "T59",
+    "received_at": "2026-10-16T10:54:00Z",
+    "name": "Isolde Pembry",
+    "email": "isolde.pembry35@example.com",
+    "subject": "Do you ship to my region",
+    "message": "Can a saber stand be sent to a post box? I could not find it on the site.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T60",
+    "thread_id": "T60",
+    "received_at": "2026-10-16T11:12:00Z",
+    "name": "Fenna Ember",
+    "email": "fenna.ember36@example.com",
+    "subject": "Slow answers from support",
+    "message": "I wrote twice about order JP-1937 and nobody answered. This is not good enough.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T65",
+    "thread_id": "T65",
+    "received_at": "2026-10-17T15:17:00Z",
+    "name": "Aldo Arden",
+    "email": "aldo.arden41@example.com",
+    "subject": "Refund for order JP-1742",
+    "message": "Please refund order JP-1742. The utility belt was not what I ordered. The charge was 55.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T66",
+    "thread_id": "T66",
+    "received_at": "2026-10-18T13:42:00Z",
+    "name": "Zeda Fairlow",
+    "email": "zeda.fairlow42@example.com",
+    "subject": "Refund for order JP-1309",
+    "message": "Please refund order JP-1309. The hilt was not what I ordered. The charge was 40.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T68",
+    "thread_id": "T68",
+    "received_at": "2026-10-18T14:57:00Z",
+    "name": "Sorin Holloway",
+    "email": "sorin.holloway44@example.com",
+    "subject": "Partnership idea",
+    "message": "I run a small fan club and would like to talk about a bulk visit. This is not an order.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T70",
+    "thread_id": "T70",
+    "received_at": "2026-10-19T11:34:00Z",
+    "name": "Rhea Pembry",
+    "email": "rhea.pembry46@example.com",
+    "subject": "Money back for my training saber",
+    "message": "I want my money back for order JP-1257. The training saber never fit. I paid 180.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T71",
+    "thread_id": "T71",
+    "received_at": "2026-10-19T17:06:00Z",
+    "name": "Sorin Dunmore",
+    "email": "sorin.dunmore47@example.com",
+    "subject": "Love the training saber",
+    "message": "The training saber is wonderful and fits well. No question, just wanted you to know.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T78",
+    "thread_id": "T78",
+    "received_at": "2026-10-23T15:06:00Z",
+    "name": "Aldo Umber",
+    "email": "aldo.umber54@example.com",
+    "subject": "Refund request JP-1479",
+    "message": "Order JP-1479 was a mistake on my side. Could I get a refund of 70.00 USD for the saber stand?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T79",
+    "thread_id": "T79",
+    "received_at": "2026-10-23T15:20:00Z",
+    "name": "Fenna Vance",
+    "email": "fenna.vance55@example.com",
+    "subject": "Are you hiring",
+    "message": "Are you hiring a packer? This is not an order.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T80",
+    "thread_id": "T80",
+    "received_at": "2026-10-24T08:58:00Z",
+    "name": "Zeda Holloway",
+    "email": "zeda.holloway56@example.com",
+    "subject": "How long does shipping take",
+    "message": "How many days from order to delivery for a hilt?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T81",
+    "thread_id": "T81",
+    "received_at": "2026-10-24T13:50:00Z",
+    "name": "Wex Umber",
+    "email": "wex.umber57@example.com",
+    "subject": "Refund for order JP-1357",
+    "message": "Please refund order JP-1357. The padawan robe was not what I ordered. The charge was 25.00 USD.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T82",
+    "thread_id": "T82",
+    "received_at": "2026-10-25T09:41:00Z",
+    "name": "Orla Lowell",
+    "email": "orla.lowell58@example.com",
+    "subject": "Box arrived crushed",
+    "message": "My utility belt arrived in a crushed box and the courier left it outside. Order JP-1979. Please have a person look at this.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T85",
+    "thread_id": "T85",
+    "received_at": "2026-10-25T12:39:00Z",
+    "name": "Mina Calloway",
+    "email": "mina.calloway61@example.com",
+    "subject": "Box arrived crushed",
+    "message": "My pilgrim pack arrived in a crushed box and the courier left it outside. Order JP-1942. Please have a person look at this.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T88",
+    "thread_id": "T88",
+    "received_at": "2026-10-27T16:17:00Z",
+    "name": "Isolde Holloway",
+    "email": "isolde.holloway64@example.com",
+    "subject": "Care for my saber stand",
+    "message": "How should I clean the saber stand after a long day of training?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T89",
+    "thread_id": "T89",
+    "received_at": "2026-10-29T10:59:00Z",
+    "name": "Dessa Ember",
+    "email": "dessa.ember65@example.com",
+    "subject": "Do you ship to my region",
+    "message": "Can a training saber be sent to a post box? I could not find it on the site.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T91",
+    "thread_id": "T91",
+    "received_at": "2026-10-30T08:53:00Z",
+    "name": "Tavi Wren",
+    "email": "tavi.wren67@example.com",
+    "subject": "Slow answers from support",
+    "message": "I wrote twice about order JP-1405 and nobody answered. This is not good enough.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T92",
+    "thread_id": "T92",
+    "received_at": "2026-10-30T10:26:00Z",
+    "name": "Kessa Jessop",
+    "email": "kessa.jessop68@example.com",
+    "subject": "Listing does not match",
+    "message": "The photo of the saber stand does not match what I received in order JP-1952.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T93",
+    "thread_id": "T93",
+    "received_at": "2026-10-30T12:18:00Z",
+    "name": "Mina Ivers",
+    "email": "mina.ivers69@example.com",
+    "subject": "How long does shipping take",
+    "message": "How many days from order to delivery for a holster?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T95",
+    "thread_id": "T95",
+    "received_at": "2026-10-30T13:18:00Z",
+    "name": "Wex Grimsby",
+    "email": "wex.grimsby71@example.com",
+    "subject": "Wrong inbox maybe",
+    "message": "I am looking for the cantina next door. Sorry if this reached you by mistake.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T96",
+    "thread_id": "T96",
+    "received_at": "2026-10-30T15:30:00Z",
+    "name": "Vesna Pembry",
+    "email": "vesna.pembry72@example.com",
+    "subject": "Box arrived crushed",
+    "message": "My utility belt arrived in a crushed box and the courier left it outside. Order JP-1342. Please have a person look at this.",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T99",
+    "thread_id": "T99",
+    "received_at": "2026-10-31T12:20:00Z",
+    "name": "Wex Rowan",
+    "email": "wex.rowan75@example.com",
+    "subject": "How long does shipping take",
+    "message": "How many days from order to delivery for a hilt?",
+    "fictional": true
+  },
+  {
+    "submission_id": "CF-T100",
+    "thread_id": "T100",
+    "received_at": "2026-10-31T16:59:00Z",
+    "name": "Fenna Umber",
+    "email": "fenna.umber76@example.com",
+    "subject": "Care for my training saber",
+    "message": "How should I clean the training saber after a long day of training?",
+    "fictional": true
+  }
+]

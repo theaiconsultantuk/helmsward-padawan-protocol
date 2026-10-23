@@ -1,0 +1,17 @@
+{
+  "name": "scout-evals-harness",
+  "private": true,
+  "type": "module",
+  "description": "Meterless Scout Intent eval harness (Apache-2.0), run against our own Scout implementation via SCOUT_IMPL.",
+  "scripts": {
+    "evals": "tsx runner/index.ts",
+    "evals:intent": "tsx runner/index.ts intent",
+    "evals:injection": "tsx runner/index.ts injection",
+    "evals:multi-intent": "tsx runner/index.ts multi-intent",
+    "evals:report": "tsx runner/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "yaml": "^2.5.0"
+  }
+}

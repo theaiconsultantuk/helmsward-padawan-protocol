@@ -1,0 +1,21 @@
+Jedi Pack Inc escalation notes (synthetic, fictional company)
+1. These notes are a synthetic runbook. Nothing here describes a real business.
+2. Refunds at or under 150.00 USD go to employee 15, backup employee 16.
+3. Refunds above 150.00 USD go to employee 3, backup employee 4.
+4. Replacements go to employee 8, backup employee 9.
+5. Complaints go to employee 5, backup employee 6.
+6. Questions go to employee 1, backup employee 2.
+7. Check who is out on the day the message was received, not on the day you read it.
+8. If the owner is out and the backup is in, hold the draft for the backup.
+9. If both are out, escalate to the manager, employee 3.
+10. Never promise a refund the customer did not ask for.
+11. A replacement is not a refund.
+12. Appreciation messages may be answered without a person once trust passes the floor of 0.80.
+13. Order numbers and customer names may stay in the reply to that customer only.
+14. Internal employee ids and trust weights never leave the company.
+15. If a customer says you misread them, withdraw the earlier promise and escalate.
+16. Public reviews get a calm reply or a hold, never an argument.
+17. Log every decision with its reason so the next person can follow it.
+18. When unsure, hold and ask a person.
+19. Update the wiki pages when a rule changes.
+20. End of notes.

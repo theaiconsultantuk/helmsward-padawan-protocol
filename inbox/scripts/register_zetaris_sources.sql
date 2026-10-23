@@ -1,0 +1,17 @@
+CREATE LIGHTNING DATABASE JEDI_PACK DESCRIBE BY "Jedi Pack Inc synthetic company data";
+CREATE LIGHTNING FILESTORE TABLE employees FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/employees.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE holiday_2026 FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/holiday-2026.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE responsibility FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/responsibility.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE policy FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/policy.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE categories FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/categories.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE trust_ledger FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/trust-ledger.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE automation_matrix FROM JEDI_PACK FORMAT XML OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/automation-matrix.xml", rowTag "category");
+CREATE LIGHTNING FILESTORE TABLE wiki_refund_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/refund-policy.md");
+CREATE LIGHTNING FILESTORE TABLE wiki_replacement_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/replacement-policy.md");
+CREATE LIGHTNING FILESTORE TABLE wiki_what_may_leave FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/wiki/what-may-leave.md");
+CREATE LIGHTNING FILESTORE TABLE threads_json FROM JEDI_PACK FORMAT JSON OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.json", multiLine "true");
+CREATE LIGHTNING FILESTORE TABLE threads_parquet FROM JEDI_PACK FORMAT PARQUET OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.parquet");
+CREATE LIGHTNING FILESTORE TABLE contact_form_submissions FROM JEDI_PACK FORMAT JSON OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/intakes/contact-form/submissions.json", multiLine "true");
+CREATE LIGHTNING FILESTORE TABLE trustpilot_reviews FROM JEDI_PACK FORMAT JSON OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/intakes/trustpilot/reviews.json", multiLine "true");
+CREATE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK FORMAT TEXT OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/notes/escalation-notes.txt");
+CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv", header "true");
