@@ -21,7 +21,7 @@
     return (p.name || "?") + (p.employee_id != null ? " (id " + p.employee_id + ")" : "");
   }
   // A shared instance may need a token on POST: take ?token=... once, remember it, send it as a bearer header.
-  var token = (function () { try { var q = new URLSearchParams(location.search).get("token"); if (q) localStorage.setItem("jp_token", q); return localStorage.getItem("jp_token") || ""; } catch (e) { return ""; } })();
+  var token = (function () { try { var q = new URLSearchParams(location.search).get("token"); if (q) { localStorage.setItem("jp_token", q); try { var u = new URL(location.href); u.searchParams.delete("token"); history.replaceState(null, "", u.pathname + u.search + u.hash); } catch (e) {} } return localStorage.getItem("jp_token") || ""; } catch (e) { return ""; } })();
   function withAuth(opts) { opts = opts || {}; if (token) opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token }); return opts; }
   function api(path, opts) {
     return fetch(base + path, withAuth(opts)).then(function (r) {

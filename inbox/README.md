@@ -45,7 +45,7 @@ The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everyw
 
 **Base URL.** `http://127.0.0.1:8000` by default; `PORT` moves it (`8810` on the dev VM) and `HOST` defaults to `127.0.0.1`. Start it with `node src/server.mjs`. `SAMPLE_MODE=true` answers from cached rows with no network (counters then come from the local decisions file); `"options": {"sample_mode": true}` on a `/run` forces it for one call.
 
-**Reaching a shared instance.** When a teammate's instance runs with `API_TOKEN` set, the three POST routes (`/run`, `/ask`, `/feedback`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
+**Reaching a shared instance.** The team's live instance is https://jedi.blastworks.ai (until 29 Oct 2026). When an instance runs with `API_TOKEN` set, the three POST routes (`/run`, `/ask`, `/feedback`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
 
 ```bash
 B=http://127.0.0.1:8810

@@ -15,10 +15,24 @@ All examples below come from sample-mode runs (see [example 4](../output_example
 
 A customer-support inbox agent: one ticket in, a decision out (`send`, `hold`, `escalate` or `close`), every step traced.
 It runs on loopback by default: `http://127.0.0.1:8000`; `PORT` moves it (8810 on the dev VM), `HOST` defaults to `127.0.0.1`.
-CORS is open (`Access-Control-Allow-Origin: *`) and there is no auth and no credential: this is a reference service, not a hardened one.
+CORS is open (`Access-Control-Allow-Origin: *`) and a shared instance may set `API_TOKEN`; then `POST /run`, `/ask` and `/feedback` need `Authorization: Bearer <token>`, while every GET, the pages and `/health` stay open.
 JSON everywhere.
 The reference pages read their API base from `<meta name="api-base" content="">`; an empty value means the same origin.
 Your page should do the same: `fetch(base + "/run", ...)`.
+
+## 1b. The hosted instance: https://jedi.blastworks.ai
+
+The team shares one hosted instance at https://jedi.blastworks.ai. It is live from 23 Oct 2026 and goes down on 29 Oct 2026.
+The pages are static files served from netcup (`X-Served-By: prodsites-netcup`). The API runs on the dev VM. Both answer on the same origin, so keep the `api-base` meta empty.
+The pages are whatever `inbox/public/` holds on `main`. They follow `main` within about a minute of a merge, once the deploy key is in place; until then a seed of the 23 Oct `main` is served.
+The API follows `main` within about two minutes. It has its own release timer and rolls back if the health check fails.
+Static files only: there is no build step on the server. Commit the built output if you use a bundler.
+`/static/<name>` maps to `public/<name>`, and `/dashboard` maps to `public/dashboard.html`. The hosted instance serves any file under `inbox/public/`. The reference server in a clean clone serves only its closed list (`app.js`, `dashboard.js`, `style.css`, `demo-scenarios.json`).
+Hidden files (any path segment starting with `.`) are 404 on the hosted instance.
+A new API route needs its line in the netcup proxy list. Ask Kristof.
+The write calls need the bearer token (section 1). It is handed over directly, never committed. A page takes `?token=` once and then strips it from the address bar after reading it.
+Cloudflare's edge returns a gateway error after about 100 s with no response, while the run completes server-side. Generate your own `run_id` before `POST /run` (section 2 allows it) and, after any gateway error, poll `GET /runs/{id}` with that id.
+On your own machine, run `SAMPLE_MODE=true npm start`, or point the `api-base` meta at the hosted host.
 
 ## 2. The endpoints the front end uses
 
@@ -232,7 +246,7 @@ Generate the `run_id` yourself if you want to poll `GET /runs/{id}/trace` for pr
 
 ## 9. The reference pages and what a replacement must keep
 
-The service serves two reference pages, landing in the next checkpoint:
+The service serves two reference pages, which have landed:
 
 `GET /`
 
@@ -257,3 +271,4 @@ A replacement must keep:
 - Model text (drafts, recommendations, reasons) rendered as text, never as HTML.
 - The two-view layout and the title "How a person sees it".
 - One in-flight `/run` at a time, with the run id and elapsed seconds shown.
+- Static files only (no build step on the server; commit built output if you use a bundler).

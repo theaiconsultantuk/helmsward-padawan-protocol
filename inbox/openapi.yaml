@@ -4,13 +4,15 @@ info:
   version: 0.1.0
   description: |
     The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
-    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and there are no credentials.
+    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the three POST routes (`/run`, `/ask`, `/feedback`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
     Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
     Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
     The examples below come from a sample-mode run of thread T02.
 servers:
   - url: http://127.0.0.1:8000
     description: Default. Set PORT to move it (8810 on the dev VM); HOST defaults to 127.0.0.1.
+  - url: https://jedi.blastworks.ai
+    description: "Team instance for the hackathon (until 29 Oct 2026): pages and API on one origin; POST routes need the bearer token"
 paths:
   /health:
     get:

@@ -25,3 +25,10 @@ Owns: (to confirm)
 - CORS allows any origin plus that header, so a front end on your machine can call the tunnel directly. Contract: `inbox/openapi.yaml` + `inbox/docs/FRONTEND-SPEC.md` (bearer declared as optional).
 - **Go easy on live runs.** Every live `POST /run` spends NVIDIA free-tier tokens through Nightshift and takes 10 to 120 s. For building and testing, add `"options": {"sample_mode": true}` to the body (instant, bundled data, same shapes), or run your own copy: `cd inbox && npm ci && SAMPLE_MODE=true npm start` (no keys).
 - Opt-in token in code: `API_TOKEN` unset keeps the loopback default, so the judges' clean clone is untouched. Merged in PR #7.
+
+## 2026-10-23 evening · live instance moved to jedi.blastworks.ai (Kristof)
+- The live instance is now https://jedi.blastworks.ai (pages on netcup, API on the dev VM, one origin). It follows main within a minute of a merge. The trycloudflare URL in the 16:30 entry above is retired; use this one.
+- The token is unchanged and handed over directly, never in the repo (rule 7). Reads stay open; the three POST routes need the bearer token.
+- Sample mode is still preferred for development: live runs spend real tokens (`"options": {"sample_mode": true}`).
+- Jocke: your front end is `inbox/public/` on main, static files only, see FRONTEND-SPEC §1b.
+- The instance comes down on 29 Oct 2026.
