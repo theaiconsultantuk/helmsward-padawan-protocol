@@ -131,7 +131,7 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
       return { text: out.trim(), model: (typeof body.model === "string" && body.model) || id, route: `local-lane:${id}`, latencyMs: Date.now() - t0, raw: { status: res.status, headers, body }, lane: "local-lane" };
     } catch (e) {
       last = e;
-      trace?.line?.({ step: "retry", agent_name: "Provider", action: "local_lane_next_model", input_summary: id, output_summary: `local lane ${id} failed (${e.name ?? "Error"}); trying next model`, status: "retrying", sponsor: null });
+      trace?.line?.({ step: "retry", agent_name: "Provider", action: "local_lane_next_model", input_summary: id, output_summary: `local lane ${id} failed (${e.name ?? "Error"}); trying next model`, status: "retrying" });
     }
   }
   throw last;
@@ -165,7 +165,7 @@ export async function draft(messages, { cfg = config(), trace = null, purpose = 
   trace?.line({
     step: "retry", agent_name: "Provider", action: "fallback_local_lane", input_summary: purpose,
     output_summary: `Nightshift unreachable (${second.name}); trying local lane ${ids[0]}`,
-    status: "retrying", retry_count: 2, sponsor: null,
+    status: "retrying", retry_count: 2,
   });
   const r = await localLane(messages, { cfg, trace, fetchImpl });
   return { ...r, sponsor: null };

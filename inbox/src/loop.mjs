@@ -109,6 +109,10 @@ export function decideBranch(facts, gates, memory, extra = {}) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}` : `owner ${facts.owner_id} in`;
     return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount_usd == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
   }
+  const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
+  if (unavailable.length) {
+    return { branch_id: "data-block", checks_unavailable: unavailable, why: `${unavailable.join(" and ")} unavailable: a reply cannot be cleared to send, held for a person` };
+  }
   return { branch_id: "send-ok", why: `weight ${tf.weight} meets the floor ${tf.floor}, within the limit, someone is available` };
 }
 
@@ -177,20 +181,22 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const f = S.facts;
     const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}) };
     let memId = null;
+    let queueFailed = false;
     try {
       memId = hmem.queueForHuman(ticketObj, critiques);
     } catch (e) {
+      queueFailed = true;
       soft("escalate_or_fallback", e, "queue write failed; ticket left with the logged critiques for a human");
     }
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
     S.decision = "escalate";
-    S.queued = { owner_id: f?.owner_id ?? null, backup_id: f?.backup_id ?? null, queue_file };
+    S.queued = { owner_id: f?.owner_id ?? null, backup_id: f?.backup_id ?? null, queue_file: queueFailed ? null : queue_file };
     if (memId) S.memWritten.push(memId);
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
-      input_summary: one(reason), output_summary: `escalated to owner ${f?.owner_id ?? "?"} / backup ${f?.backup_id ?? "?"}; both critiques stored in ${queue_file}`,
-      status: "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
+      input_summary: one(reason), output_summary: `escalated to owner ${f?.owner_id ?? "?"} / backup ${f?.backup_id ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
+      status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
     S.reasons.push(reason);
   };
@@ -208,6 +214,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const ticket = f?.ticket ?? { thread_id };
     let dup = null;
     let ledger = { affirmed: 0, rejected: 0 };
+    const unavailable = [];
     // Their zetaris.query lines join the buffered facts lines; a failure not already traced gets its own error line.
     const guarded = async (action, input, fn) => {
       let traced = false;
@@ -216,14 +223,22 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
         return { value: await fn(t) };
       } catch (e) {
         if (!traced) buf.push({ step: "zetaris.query", agent_name: "Executor", action, input_summary: input, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error", sponsor: "zetaris" });
+        buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: `after ${action} error`,
+          output_summary: `${action === "sql:ledger_adjust" ? "trust ledger" : "duplicate check"} unavailable: no send without it, the ticket is held for a person`, status: "success" });
         return { error: e };
       }
     };
+    if (f?.disclosure_unknown === true) {
+      buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after the what-may-leave wiki read",
+        output_summary: "disclosure policy unavailable: no send without it, the ticket is held for a person", status: "success" });
+    }
     if (f) {
       const r = await guarded("sql:thread_fingerprints", `duplicate check for ${thread_id}`, (t) => findDup({ ...(f.ticket ?? {}), thread_id, sender_email: f.sender_email, subject: f.subject, body: f.body, received_at: f.received_at }, { trace: t }));
       dup = r.error ? null : r.value ?? null;
+      if (r.error) unavailable.push("duplicate check");
       if (CATEGORIES.includes(f.category)) {
         const l = await guarded("sql:ledger_adjust", `trust ledger for ${f.category}`, (t) => ledgerFn(f.category, { trace: t }));
+        if (l.error) unavailable.push("trust ledger");
         if (!l.error && l.value) ledger = { affirmed: Number(l.value.affirmed) || 0, rejected: Number(l.value.rejected) || 0 };
       }
     }
@@ -251,12 +266,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger }) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
-        + (known ? `. Memory ${known.memory.id} holds this customer's facts from an earlier run: skipped the facts chunk, re-checked the amount only (${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"})` : ""),
+        + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"})` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -319,7 +334,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger });
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable });
     const B = S.branch.branch_id;
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
@@ -336,7 +351,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       return;
     }
     if (["data-block", "follow-up", "duplicate", "public-channel"].includes(B)) {
-      const refusal = B === "data-block" ? "fact may not leave" : B === "public-channel" ? "public image risk: no autonomous reply" : null;
+      const refusal = B === "data-block" ? (S.branch.checks_unavailable ? `${S.branch.checks_unavailable.join(" and ")} unavailable` : "fact may not leave") : B === "public-channel" ? "public image risk: no autonomous reply" : null;
       skipped("nvidia.model", `${B}: no draft`);
       skipped("critique", `${B}: no draft to critique`);
       if (refusal) {

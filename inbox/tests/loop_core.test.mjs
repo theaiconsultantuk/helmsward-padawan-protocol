@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
@@ -87,7 +87,8 @@ test("T02: hold on under-floor, all 15 steps, then a second run reads the first 
   assertWholeTrace(b);
   assert.deepEqual(b.result.memory.read, a.result.memory.written);
   const plan = b.lines.find((l) => l.step === "planner.plan");
-  assert.match(plan.output_summary, /skipped the facts chunk, re-checked the amount only/);
+  assert.match(plan.output_summary, /recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris \(amount /);
+  assert.doesNotMatch(plan.output_summary, /skipped the facts chunk/);
   assert.match(plan.output_summary, new RegExp(a.result.memory.written[0]));
   assert.equal(b.result.output.decision, "hold");
 });
@@ -225,4 +226,40 @@ test("the whole run is capped at runTimeoutMs", async () => {
   assert.equal(t.result.output.decision, "escalate");
   assert.ok(t.lines.some((l) => l.step === "recovery" && l.status === "success"));
   assert.equal(t.lines.at(-1).step, "synthesis");
+});
+
+test("H4: an always-negative critic stops at exactly two rounds, then escalates; no third draft", async () => {
+  const live = config({ SAMPLE_MODE: "false" });
+  let drafts = 0;
+  const drafter = async () => { drafts += 1; return { text: JSON.stringify({ reply_text: "Thanks, Employee 4 will follow up.", promises: { refund_amount: null, replacement: false, other: null } }), model: "nvidia/nemotron-test" }; };
+  const critic = async () => ({ pass: false, reason: "still not right", model: "nvidia/nemotron-test" });
+  const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
+  const t = await run("T18", { cfg: live, extra: { drafter, critic, gates } });
+  const n = (step) => t.lines.filter((l) => l.step === step);
+  assert.equal(drafts, 2, "exactly two draft calls");
+  assert.equal(n("critique").length, 2);
+  assert.equal(n("risk.signoff").length, 2);
+  assert.equal(n("retry").length, 1);
+  assert.equal(t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action)).length, 2);
+  assert.equal(n("escalate_or_fallback").length, 1);
+  assert.equal(n("escalate_or_fallback")[0].status, "success");
+  assert.equal(t.result.output.decision, "escalate");
+  assert.equal(t.result.rounds.length, 2);
+});
+
+test("H2: a failed queue write is said plainly: incomplete line, error then recovery, queue_file null, decision still escalate", async () => {
+  const d = dirs();
+  const memoryDir = join(d.memoryDir, "not-a-dir");
+  writeFileSync(memoryDir, "i am a file");
+  const hmem = { query: () => ({ memories: [], context: "" }), add: () => ({ id: "mem-x" }), queueForHuman: () => { throw new Error("ENOTDIR: queue write"); } };
+  const t = await run("T01", { d: { ...d, memoryDir }, extra: { hmem } });
+  const esc = t.lines.filter((l) => l.step === "escalate_or_fallback");
+  const last = esc.at(-1);
+  assert.equal(t.result.output.decision, "escalate");
+  assert.equal(last.status, "incomplete");
+  assert.match(last.output_summary, /queue write failed, both critiques are in this trace/);
+  assert.doesNotMatch(last.output_summary, /stored in/);
+  assert.equal(t.result.output.queued_for.queue_file, null);
+  const i = t.lines.findIndex((l) => l.step === "escalate_or_fallback" && l.status === "error");
+  assert.ok(i > -1 && t.lines[i + 1].step === "recovery" && t.lines[i + 1].status === "success", "error then recovery");
 });

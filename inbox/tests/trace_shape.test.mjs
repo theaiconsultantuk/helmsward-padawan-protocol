@@ -99,3 +99,23 @@ test("stdout form", () => {
   const out = captureStdout(() => t.line(base));
   assert.equal(out, "[INFO] run_id=demo-001 Executor read_rows: out");
 });
+
+test("F1: lower/upper-case bearer tokens are masked", () => {
+  for (const w of ["bearer", "BEARER", "Bearer"]) {
+    const s = mask(`auth: ${w} abcdef.ghijkl-123`);
+    assert.ok(!s.includes("abcdef.ghijkl-123"), s);
+    assert.match(s, /Bearer \[masked\]/);
+  }
+});
+
+test("F2: console line masks a run_id that carries a secret or Bearer token", () => {
+  const logsDir = mkdtempSync(join(tmpdir(), "trace-test-"));
+  const t1 = Trace.open("topsecretvalue1", { logsDir, secrets: ["topsecretvalue1"], stdout: true });
+  const out1 = captureStdout(() => t1.line(base));
+  assert.ok(!out1.includes("topsecretvalue1"), out1);
+  assert.ok(out1.includes("[masked]"), out1);
+  const t2 = Trace.open("run-Bearer abcdefghijkl", { logsDir, secrets: [], stdout: true });
+  const out2 = captureStdout(() => t2.line(base));
+  assert.ok(!out2.includes("abcdefghijkl"), out2);
+  assert.ok(out2.includes("[masked]"), out2);
+});

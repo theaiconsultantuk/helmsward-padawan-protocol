@@ -235,3 +235,37 @@ test("local lane: Unauthorized from Nightshift never retries and never reaches t
     assert.equal(calls.length, 1);
   });
 }));
+
+test("F3: local lane fallback with a real Trace -> draft resolves, retry line has no sponsor key", () => withoutLaneEnv(async () => {
+  const { Trace } = await import("../src/trace.mjs");
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const logsDir = mkdtempSync(`${tmpdir()}/ns-trace-`);
+  const tr = Trace.open("f3-run", { logsDir, secrets: [], stdout: false });
+  const routes = [
+    { match: (u) => !isLane(u), reply: () => { throw mockRefused(); } },
+    { match: isLane, reply: () => chatOk("meta/muse-glimmer") },
+  ];
+  await withMockFetch(routes, async () => {
+    const r = await nightshift.draft([{ role: "user", content: "hi" }], { cfg: laneCfg, trace: tr });
+    assert.equal(r.route, "local-lane:meta/muse-glimmer");
+  });
+  const lines = readFileSync(tr.path, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const lane = lines.find((l) => l.action === "fallback_local_lane");
+  assert.ok(lane);
+  assert.ok(!("sponsor" in lane));
+}));
+
+test("F3b: local lane next-model retry with a real Trace does not throw and carries no sponsor key", () => withoutLaneEnv(async () => {
+  const { Trace } = await import("../src/trace.mjs");
+  const { mkdtempSync, readFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const tr = Trace.open("f3b-run", { logsDir: mkdtempSync(`${tmpdir()}/ns-trace-`), secrets: [], stdout: false });
+  let n = 0;
+  await withMockFetch([{ match: isLane, reply: () => (n++ === 0 ? { status: 503, body: {} } : chatOk("ternary-bonsai-2-27b-mlx")) }], async () => {
+    const r = await nightshift.localLane([{ role: "user", content: "hi" }], { cfg: laneCfg, trace: tr });
+    assert.equal(r.model, "ternary-bonsai-2-27b-mlx");
+  });
+  const l = readFileSync(tr.path, "utf8").split("\n").filter(Boolean).map((x) => JSON.parse(x)).find((x) => x.action === "local_lane_next_model");
+  assert.ok(l && !("sponsor" in l));
+}));

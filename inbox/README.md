@@ -61,7 +61,7 @@ curl -s $B/openapi.yaml
 
 Every result carries a `trace_id` and a `log_file`; `GET /runs/<run_id>/trace` returns that file as a JSON array (works for `/ask` run ids too). Results are kept for the last 200 runs, so a restart forgets them.
 
-**Feedback and the trust ledger.** Every completed `/run` writes a row to `data/runtime/decisions.csv`, which is copied into Zetaris and read as `JEDI_PACK.decisions`; `POST /feedback` sets that row's verdict and delta (affirm +0.05, reject -0.05) and refreshes the table, so `/counters` is a live Zetaris `GROUP BY`. Each affirm or reject for a category moves that category's trust weight by the same 0.05 when the loop reads it (`trustFloor`'s `ledgerAdjust`).
+**Feedback and the trust ledger.** Every completed `/run` writes a row to `data/runtime/decisions.csv`, which is copied into Zetaris and read as `JEDI_PACK.decisions`; `POST /feedback` sets that row's verdict and delta (affirm +0.05, reject -0.05) and refreshes the table, so `/counters` is a live Zetaris `GROUP BY`. Each affirm or reject for a category moves that category's trust weight by the same 0.05 when the loop reads it (`trustFloor`'s `ledgerAdjust`). A sample-mode run on a live server (`options.sample_mode: true`) is not counted: it writes no row and triggers no publish.
 
 ## Architecture
 
@@ -309,6 +309,8 @@ Sample mode:
 - The API is unauthenticated, CORS is open, and it binds to loopback by default. Do not expose it as is.
 - Results of the last 200 runs are kept in memory; a restart forgets them.
 - There is no dashboard UI in `inbox/`.
+- Publishing decisions to Zetaris needs the `docker` CLI on the host where the service runs, because it shells out to `docker exec zetaris-driver-1`; inside the shipped container there is no docker, so feedback is recorded in the container's `data/runtime/decisions.csv` and `/feedback` answers `published: false`.
+- `/counters` on a live server always queries Zetaris and has no local fallback: when the table has not been published, or Zetaris answers the query with a BadResponse (HTTP 4xx or 5xx), it answers zeros; other failures surface as an error response. Only a sample-mode server counts from the local file.
 
 ## Disclosures
 

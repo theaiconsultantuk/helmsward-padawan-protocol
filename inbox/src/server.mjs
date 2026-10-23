@@ -189,7 +189,9 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         ...(result.error ? { error: result.error } : {}),
       };
       remember(run_id, out);
-      if (out.status === "success" && out.output?.decision) {
+      // a sample-forced run on a LIVE server is not counted: it writes no row and triggers no publish
+      const forcedSampleOnLive = sampleMode(runCfg) && !sampleMode(cfg);
+      if (out.status === "success" && out.output?.decision && !forcedSampleOnLive) {
         await decisions.appendDecision({ run_id, thread_id: input.thread_id, category: threadIndex().get(input.thread_id) ?? "", decision: out.output.decision }, { dir });
         publishLater();
       }

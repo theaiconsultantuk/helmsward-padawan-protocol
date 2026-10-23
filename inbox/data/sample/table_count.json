@@ -145,6 +145,22 @@
   },
   {
     "params": {
+      "table": "threads_json"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "100"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "threads_parquet"
     },
     "result": {

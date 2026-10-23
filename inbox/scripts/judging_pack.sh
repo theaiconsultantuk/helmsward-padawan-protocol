@@ -44,10 +44,9 @@ mkdir -p "$J" "$T"
 # ------------------------------------------------------------------------------------------------
 # 1. sample-mode traces from a clean container with no network
 # ------------------------------------------------------------------------------------------------
-if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
-  note "image $IMAGE missing: building it"
-  docker build -q -t "$IMAGE" "$INBOX" >/dev/null || problem "docker build -t $IMAGE failed"
-fi
+# always rebuild so the sample evidence comes from the code in this tree (an unchanged rebuild is a cache hit)
+note "building image $IMAGE from $INBOX"
+docker build -q -t "$IMAGE" "$INBOX" >/dev/null || problem "docker build -t $IMAGE failed"
 IMAGE_ID="$(docker image inspect "$IMAGE" --format '{{.Id}}' 2>/dev/null | cut -c8-19)"
 
 note "sample-mode examples 1..3 in a --network none container"
@@ -381,13 +380,15 @@ fi
 # ------------------------------------------------------------------------------------------------
 # 5a. secrets checks, first pass (the checklist tick reads this; secrets-scan.md is written from the final pass below)
 # ------------------------------------------------------------------------------------------------
-cat > "$WORK/gitleaks.toml" <<'TOML'
+# gitleaks reports paths as <--source>/<file>, and INBOX is absolute, so the allowlist is anchored to exactly $INBOX/.env
+INBOX_RE="$(printf '%s' "$INBOX" | sed 's/[][\.*^$+?(){}|]/\\&/g')"
+cat > "$WORK/gitleaks.toml" <<TOML
 [extend]
 useDefault = true
 
 [allowlist]
 description = "inbox/.env is the local, gitignored secrets file; it is never committed, never in the image, never shipped"
-paths = ['''(^|/)\.env$''']
+paths = ['''^${INBOX_RE}/\\.env$''']
 TOML
 scan() { # sets GL_RC GL_COUNT NS_RC NS_SUMMARY; output saved under $WORK/scan-$1.*
   local tag="$1"

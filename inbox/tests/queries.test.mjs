@@ -124,3 +124,49 @@ test("factsForTicket: an appreciation thread with no owner resolves without thro
   assert.equal(g.owner_out, false);
   assert.deepEqual(g.notes, ["owner: none (no responsibility row)"]);
 });
+
+// ---- code-review findings G1-G3 ----
+const factsStub = (failWiki) => async (sql, o) => {
+  if (failWiki && o?.name === "wiki") throw new Error("wiki down");
+  if (sql.includes("threads_parquet")) return { headers: ["thread_id", "category", "amount_usd", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "15", "16", "2026-10-01T09:00:00", "true"]] };
+  if (o?.name === "wiki") return { headers: ["preview"], rows: [["A reply may not include a stored card number."]] };
+  if (o?.name === "employee") return { headers: ["employee_id", "given_name", "family_name"], rows: [["15", "A", "B"]] };
+  return { headers: ["x"], rows: [] };
+};
+
+test("G1: a failed what-may-leave read sets disclosure_unknown and traces the error; facts stay intact", async () => {
+  const lines = [];
+  const f = await factsForTicket("T18", { cfg: live, trace: { line: (l) => lines.push(l) }, sqlRunImpl: factsStub(true) });
+  assert.equal(f.disclosure_unknown, true);
+  assert.deepEqual(f.restricted_terms, []);
+  assert.equal(f.owner_id, 15);
+  assert.equal(f.category, "appreciation");
+  assert.ok(lines.some((l) => l.step === "zetaris.query" && l.action === "sql:wiki" && l.status === "error"));
+});
+
+test("G1: a successful wiki read leaves disclosure_unknown false", async () => {
+  const f = await factsForTicket("T18", { cfg: live, sqlRunImpl: factsStub(false) });
+  assert.equal(f.disclosure_unknown, false);
+  assert.ok(f.restricted_terms.length >= 1);
+  // a wiki read that lists nothing is still known
+  const empty = async (sql, o) => (o?.name === "wiki" ? { headers: ["preview"], rows: [["nothing here"]] } : factsStub(false)(sql, o));
+  assert.equal((await factsForTicket("T18", { cfg: live, sqlRunImpl: empty })).disclosure_unknown, false);
+});
+
+test("G2: run() forwards the trace to sqlRunImpl and writes one line of its own on a throw", async () => {
+  const trace = { line: () => {} };
+  let got;
+  await run("thread", { thread_id: "T1" }, { trace, cfg: live, sqlRunImpl: async (sql, o) => { got = o.trace; return { headers: ["thread_id"], rows: [["T1"]] }; } });
+  assert.equal(got, trace);
+  const lines = [];
+  await assert.rejects(run("thread", { thread_id: "T1" }, { trace: { line: (l) => lines.push(l) }, cfg: live, sqlRunImpl: async () => { throw new Error("boom"); } }), /boom/);
+  assert.equal(lines.filter((l) => l.status === "error").length, 1);
+});
+
+test("G3: TABLES lists every non-REST source table in data/sources.json", async () => {
+  const { TABLES } = await import("../src/queries.mjs");
+  const { readFileSync } = await import("node:fs");
+  const src = JSON.parse(readFileSync(new URL("../data/sources.json", import.meta.url), "utf8"));
+  for (const s of src.sources) if (s.format !== "REST") assert.ok(TABLES.includes(s.table), `TABLES lacks ${s.table}`);
+  assert.ok(TABLES.includes("threads_json"));
+});

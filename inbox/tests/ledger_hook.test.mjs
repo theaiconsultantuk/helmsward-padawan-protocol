@@ -45,13 +45,50 @@ test("(a) loop: a stubbed ledger of 2 rejects on refund moves the branch from se
   assert.deepEqual(seen, ["refund"]);
 });
 
-test("(b) a failing ledger query falls back to zeros, is traced, and the run completes", async () => {
-  const r = await runLoop({ ledgerAdjust: async () => { throw Object.assign(new Error("zetaris down"), { name: "UpstreamRefused" }); } });
-  assert.equal(r.lines.find((l) => l.step === "branch").branch_id, "send-ok", "zeros: nothing changes");
+const afterError = (lines, pred) => {
+  const i = lines.findIndex(pred);
+  assert.ok(i > -1, "error line present");
+  assert.equal(lines[i + 1].step, "recovery");
+  assert.equal(lines[i + 1].status, "success");
+  return lines[i + 1];
+};
+const held = (r, what) => {
+  assert.equal(r.result.output.decision, "hold");
+  assert.equal(r.result.branch_id, "data-block");
+  const b = r.lines.find((l) => l.step === "branch");
+  assert.equal(b.branch_id, "data-block");
+  assert.match(b.output_summary, new RegExp(`${what} unavailable`));
   assert.equal(r.lines.at(-1).step, "synthesis");
-  const err = r.lines.find((l) => l.step === "zetaris.query" && l.action === "sql:ledger_adjust" && l.status === "error");
-  assert.ok(err, "the failure is logged");
-  assert.match(err.output_summary, /zetaris down/);
+};
+
+test("(b) a failing ledger query holds the ticket (data-block), error line then recovery line", async () => {
+  const r = await runLoop({ ledgerAdjust: async () => { throw Object.assign(new Error("zetaris down"), { name: "UpstreamRefused" }); } });
+  held(r, "trust ledger");
+  const rec = afterError(r.lines, (l) => l.step === "zetaris.query" && l.action === "sql:ledger_adjust" && l.status === "error");
+  assert.match(rec.output_summary, /trust ledger unavailable/);
+  assert.match(r.lines.find((l) => l.action === "sql:ledger_adjust").output_summary, /zetaris down/);
+});
+
+test("(b) a failing duplicate check holds the ticket (data-block), error line then recovery line", async () => {
+  const r = await runLoop({ findDuplicate: async () => { throw Object.assign(new Error("dup lookup down"), { name: "UpstreamRefused" }); } });
+  held(r, "duplicate check");
+  const rec = afterError(r.lines, (l) => l.step === "zetaris.query" && l.action === "sql:thread_fingerprints" && l.status === "error");
+  assert.match(rec.output_summary, /duplicate check unavailable/);
+});
+
+test("(b) disclosure_unknown holds the ticket (data-block) with a recovery line", async () => {
+  const r = await runLoop({ facts: async (id, { trace }) => {
+    trace.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:wiki", input_summary: "what may leave", output_summary: "UpstreamRefused: wiki down", status: "error", sponsor: "zetaris" });
+    return { ...facts(), disclosure_unknown: true };
+  } });
+  held(r, "disclosure policy");
+  const rec = afterError(r.lines, (l) => l.action === "sql:wiki" && l.status === "error");
+  assert.match(rec.output_summary, /disclosure policy unavailable/);
+});
+
+test("(b) with both checks fine the ticket still sends", async () => {
+  const r = await runLoop({ ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) });
+  assert.equal(r.result.branch_id, "send-ok");
 });
 
 test("ledger_adjust template: whitelisted category only, counts mapped, empty table gives zeros", async () => {

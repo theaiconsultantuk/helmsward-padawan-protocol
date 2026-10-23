@@ -97,22 +97,23 @@ const sh = (cmd, args, { input, cwd } = {}) => new Promise((resolve, reject) => 
 });
 
 // Stream the CSV into the container as uid 1001 (the zetaris_drop.sh route), then UNCACHE the table.
-export async function publish({ dir = RUNTIME_DIR, cfg = config(), runSql = zetaris.sqlRun } = {}) {
+export async function publish({ dir = RUNTIME_DIR, cfg = config(), runSql = zetaris.sqlRun, run = sh, spawnImpl = spawn } = {}) {
   if (sampleMode(cfg)) return { published: false, reason: "sample mode: nothing leaves this machine" };
   if (!existsSync(file(dir))) writeAll([], dir);
-  await sh("docker", ["exec", "-u", "1001", CONTAINER, "mkdir", "-p", REMOTE_DIR]);
-  const tar = spawn("tar", ["-C", dir, "-cf", "-", "decisions.csv"], { stdio: ["ignore", "pipe", "pipe"] });
+  await run("docker", ["exec", "-u", "1001", CONTAINER, "mkdir", "-p", REMOTE_DIR]);
+  const tar = spawnImpl("tar", ["-C", dir, "-cf", "-", "decisions.csv"], { stdio: ["ignore", "pipe", "pipe"] });
   const tarDone = new Promise((res, rej) => { tar.on("error", rej); tar.on("close", (c) => (c === 0 ? res() : rej(new Error(`tar exited ${c}`)))); });
   await Promise.all([
     tarDone,
-    sh("docker", ["exec", "-i", "-u", "1001", CONTAINER, "tar", "-xf", "-", "-C", REMOTE_DIR], { input: (stdin) => tar.stdout.pipe(stdin) }),
+    run("docker", ["exec", "-i", "-u", "1001", CONTAINER, "tar", "-xf", "-", "-C", REMOTE_DIR], { input: (stdin) => tar.stdout.pipe(stdin) }),
   ]);
   let uncached = true;
   try { await runSql(UNCACHE_SQL, { cfg, timeoutMs: 60000 }); }
   catch (e) {
-    // first publish: the table is not registered yet, nothing to uncache
-    if (/not found|does not exist|no such table|cannot find|BadResponse/i.test(`${e?.name} ${e?.message}`)) uncached = false;
-    else throw e;
+    // first publish: the table is not registered yet, nothing to uncache. Only a positively identified
+    // missing-table message counts; any other failure (HTTP 500, timeout...) is reported, not hidden.
+    if (/not found|does not exist|no such table|cannot find/i.test(String(e?.message))) return { published: true, uncached: false };
+    return { published: true, uncached: false, error: `${e?.name ?? "Error"}: ${String(e?.message ?? e).slice(0, 200)}` };
   }
   return { published: true, uncached };
 }

@@ -10,7 +10,7 @@ export const INTENTS = ["refund.request", "replacement.request", "question", "co
 export const TOPICS = [...CATEGORIES, "billing"];
 export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
-  "threads_parquet", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
+  "threads_parquet", "threads_json", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
 ];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
@@ -113,7 +113,7 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
   const q = `${t.question} ${JSON.stringify(params)}`;
   let r;
   try {
-    r = await sqlRunImpl(sql, { name, params, limit, cfg });
+    r = await sqlRunImpl(sql, { name, params, limit, cfg, trace });
   } catch (e) {
     trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
       output_summary: `${e.name}: ${e.message}`, status: "error", sponsor: "zetaris" });
@@ -292,17 +292,18 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   }
 
   let restricted = [];
+  let disclosure_unknown = false;
   try {
     const w = (await run("wiki", { wiki: "leave" }, o)).objects[0];
     restricted = parseRestricted(w?.preview);
     if (restricted.length) cited.push("wiki_what_may_leave");
-  } catch { restricted = []; }
+  } catch { restricted = []; disclosure_unknown = true; } // run() already traced the error line
 
   return {
     thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
     owner_out: ownerAv.out, backup_out: backupAv.out, may_leave: ticket.may_leave === true || ticket.may_leave === "true",
-    restricted_terms: restricted, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
+    restricted_terms: restricted, disclosure_unknown, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
     subject: ticket.subject, body: ticket.body, sender_name: ticket.sender_name, sender_email: ticket.sender_email,
     channel: ticket.channel, follow_up_kind: ticket.follow_up_kind || null, follow_up_body: ticket.follow_up_body || null,
     parent_thread_id: ticket.parent_thread_id || null, ticket,

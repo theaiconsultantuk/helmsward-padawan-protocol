@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config } from "../src/config.mjs";
 import { createServer } from "../src/server.mjs";
-import { parseCsv, setVerdict, appendDecision, localCounters, ledgerAdjust } from "../src/decisions.mjs";
+import { publish, parseCsv, readDecisions, setVerdict, appendDecision, localCounters, ledgerAdjust } from "../src/decisions.mjs";
 
 const dir = mkdtempSync(join(tmpdir(), "api-runtime-"));
 const logsDir = mkdtempSync(join(tmpdir(), "api-logs-"));
@@ -148,4 +148,46 @@ test("decisions file: header, upsert by run_id, atomic rewrite, quoted fields", 
   assert.equal(await setVerdict("zzz", "affirm", null, { dir: d }), null);
   await assert.rejects(setVerdict("a", "meh", null, { dir: d }), TypeError);
   assert.equal(localCounters({ dir: d }).queued, 1);
+});
+
+test("a sample-forced /run on a LIVE server records no decision and publishes nothing", async () => {
+  const ldir = mkdtempSync(join(tmpdir(), "api-live-runtime-"));
+  const livePublishes = [];
+  const live = createServer({
+    cfg: config({ SAMPLE_MODE: "false" }),
+    deps: { dir: ldir, logsDir, memoryDir, quiet: true, publish: async () => { livePublishes.push(1); return { published: true, uncached: true }; } },
+  });
+  await new Promise((r) => live.listen(0, "127.0.0.1", r));
+  try {
+    const lb = `http://127.0.0.1:${live.address().port}`;
+    const r = await fetch(lb + "/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: "api-live-sample", input: { thread_id: "T02" }, options: { sample_mode: true } }) });
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).status, "success");
+    await new Promise((r2) => setTimeout(r2, 100));
+    assert.deepEqual(readDecisions({ dir: ldir }), []);
+    assert.equal(livePublishes.length, 0);
+  } finally { live.close(); }
+});
+
+// publish() with docker and tar stubbed: only the UNCACHE failure kind varies
+const fakeTar = () => ({ stdout: {}, on(ev, cb) { if (ev === "close") setImmediate(() => cb(0)); } });
+const publishWith = (err) => publish({
+  dir, cfg: config({ SAMPLE_MODE: "false" }), run: async () => {}, spawnImpl: fakeTar,
+  runSql: async () => { if (err) throw err; },
+});
+
+test("publish: a missing-table UNCACHE failure is the quiet first publish", async () => {
+  const r = await publishWith(Object.assign(new Error("Table decisions not found"), { name: "BadResponse" }));
+  assert.deepEqual(r, { published: true, uncached: false });
+});
+
+test("publish: an HTTP 500 on UNCACHE is reported, not swallowed", async () => {
+  const r = await publishWith(Object.assign(new Error("zetaris: HTTP 500"), { name: "BadResponse" }));
+  assert.equal(r.published, true);
+  assert.equal(r.uncached, false);
+  assert.match(r.error, /^BadResponse: zetaris: HTTP 500/);
+});
+
+test("publish: a clean UNCACHE reports uncached true and no error", async () => {
+  assert.deepEqual(await publishWith(null), { published: true, uncached: true });
 });

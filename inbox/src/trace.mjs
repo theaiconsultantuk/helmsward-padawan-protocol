@@ -37,7 +37,7 @@ export function mask(value, secrets = []) {
   for (const sec of secrets) {
     if (typeof sec === "string" && sec.length > 0) s = s.split(sec).join(MASK);
   }
-  s = s.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/g, "Bearer [masked]");
+  s = s.replace(/bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [masked]");
   s = s.replace(/sk-[A-Za-z0-9_-]{8,}/g, MASK);
   s = s.replace(/[A-Za-z0-9+/=_-]{40,}/g, (run, offset, whole) => {
     if (run.includes("/")) return run;
@@ -90,7 +90,7 @@ export class Trace {
     mkdirSync(this.logsDir, { recursive: true });
     appendFileSync(this.path, JSON.stringify(out) + "\n");
     this._lines.push(out);
-    if (this.stdout) console.log(`[INFO] run_id=${this.run_id} ${out.agent_name} ${out.action}: ${out.output_summary}`);
+    if (this.stdout) console.log(`[INFO] run_id=${out.run_id} ${out.agent_name} ${out.action}: ${out.output_summary}`);
     return out;
   }
 
