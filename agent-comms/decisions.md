@@ -12,3 +12,4 @@
 - 2026-10-23: The Zetaris database is `JEDI_PACK`, loaded from `inbox/data/synthetic/` through the driver's shared file root.
 - 2026-10-23: Provider order: Nightshift on Thor is primary (pinned Nemotron route), `meterless/local` is the fallback, sample rules come last.
 - 2026-10-23: The front end's contract is inbox/openapi.yaml plus inbox/docs/FRONTEND-SPEC.md; the service serves reference pages at GET / and GET /dashboard, driven only by the API, which the team's own front end may replace.
+- 2026-10-23: The live instance on Kristof's VM is reachable for the team through a Cloudflare tunnel until after the hackathon; POST routes need a bearer token handed over directly (never in the repo); live runs spend NVIDIA free-tier tokens, so develop against sample mode. Details: members/kristof.md.
