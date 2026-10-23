@@ -59,6 +59,12 @@ curl -s $B/counters                     # {send, hold, escalate, close, queued, 
 curl -s $B/openapi.yaml
 ```
 
+**The message road.** `POST /run` also takes a free-text message: `{"input": {"message": "How long does shipping take?", "from": "a@example.com", "channel": "chat", "scenario": "question", "as_of": "2026-10-20"}}`. `scenario` is `refund | question | rfq | complaint | free_text` (absent means `free_text`, and the loop resolves it from the message). `as_of` pins the date the facts are read as of, which is how the demos stay repeatable. The message becomes a ticket `F<n>` that Zetaris can read.
+
+**Runs, journeys and the queue.** `GET /runs?limit=50` lists the stored runs newest first; `GET /runs/<run_id>/journey` returns how the information travelled (one node per trace step, what each step consulted and what the reply kept, and what reached a human); `GET /queue` lists what is waiting for a person.
+
+**For the front end.** `docs/FRONTEND-SPEC.md` ([docs/FRONTEND-SPEC.md](docs/FRONTEND-SPEC.md)) says what each endpoint returns, how the journey is derived and what a replacement page must keep; `openapi.yaml` is the contract.
+
 Every result carries a `trace_id` and a `log_file`; `GET /runs/<run_id>/trace` returns that file as a JSON array (works for `/ask` run ids too). Results are kept for the last 200 runs, so a restart forgets them.
 
 **Feedback and the trust ledger.** Every completed `/run` writes a row to `data/runtime/decisions.csv`, which is copied into Zetaris and read as `JEDI_PACK.decisions`; `POST /feedback` sets that row's verdict and delta (affirm +0.05, reject -0.05) and refreshes the table, so `/counters` is a live Zetaris `GROUP BY`. Each affirm or reject for a category moves that category's trust weight by the same 0.05 when the loop reads it (`trustFloor`'s `ledgerAdjust`). A sample-mode run on a live server (`options.sample_mode: true`) is not counted: it writes no row and triggers no publish.
