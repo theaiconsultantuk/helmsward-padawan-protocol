@@ -35,6 +35,7 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [nightshift-models.json](nightshift-models.json) | The routes Nightshift offered | Nightshift connection; where NVIDIA contributes |
 | [nightshift-first-call.json](nightshift-first-call.json) | The first probe call to Nightshift and its receipt | Nightshift connection; which model handled the request |
 | [padme-chain.md](padme-chain.md) | Padme's email chain processed one step after the other, live | Errors and recovery; misread disclosure |
+| [trust-floor.md](trust-floor.md) | Why a within-limit refund is still held: the category trust weight, the floor, the affirm and reject deltas, the branch order, with the numbers and the evidence | Shared memory and feedback; Technical: the decision rule a judge can verify |
 | [refund-chain.md](refund-chain.md) | One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first | Shared memory (H-MEM); holiday calendar; limit approval |
 | [refund-chain-sample.md](refund-chain-sample.md) | The refund chain's deterministic twin (no model call) | Sample mode; the chain logic alone |
 | [pre-existing.md](pre-existing.md) | Declaration of pre-existing components | Submission form: pre-existing work |

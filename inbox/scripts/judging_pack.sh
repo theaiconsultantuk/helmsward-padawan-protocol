@@ -544,6 +544,7 @@ engine-hmem-two-run.md	H-MEM two-run proof: a second run reads what the first wr
 nightshift-models.json	The routes Nightshift offered	Nightshift connection; where NVIDIA contributes
 nightshift-first-call.json	The first probe call to Nightshift and its receipt	Nightshift connection; which model handled the request
 padme-chain.md	Padme's email chain processed one step after the other, live	Errors and recovery; misread disclosure
+trust-floor.md	Why a within-limit refund is still held: the category trust weight, the floor, the affirm and reject deltas, the branch order, with the numbers and the evidence	Shared memory and feedback; Technical: the decision rule a judge can verify
 refund-chain.md	One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first	Shared memory (H-MEM); holiday calendar; limit approval
 refund-chain-sample.md	The refund chain's deterministic twin (no model call)	Sample mode; the chain logic alone
 pre-existing.md	Declaration of pre-existing components	Submission form: pre-existing work
@@ -674,7 +675,7 @@ FINAL_CLEAN=0; [ "$GL_RC" = 0 ] && [ "$GL_COUNT" = 0 ] && [ "$NS_RC" = 0 ] && FI
 # 8. existence check of everything the pack is supposed to hold
 # ------------------------------------------------------------------------------------------------
 for f in README.md rules-checklist.md sources.json sample-mode-run.md secrets-scan.md clean-clone-run.md engine-scout-evals.md engine-hmem-two-run.md \
-         padme-chain.md refund-chain.md refund-chain-sample.md zetaris-register.md zetaris-usl.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
+         padme-chain.md refund-chain.md refund-chain-sample.md trust-floor.md zetaris-register.md zetaris-usl.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
          scenarios.md engine-world-model.md engine-world-model-conformance.md screenshots/README.md; do
   [ -s "$J/$f" ] || problem "missing or empty: judging/$f"
 done

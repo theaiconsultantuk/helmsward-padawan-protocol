@@ -126,7 +126,7 @@ export function renderReport(c) {
     "",
     "## What a judge sees here",
     "",
-    "- A refund never goes out on its own: the refund category's trust weight (0.55) is under the floor (0.8), so step 1 is held for a person even though 40 USD is under the limit.",
+    "- A refund never goes out on its own: the refund category's trust weight (0.55) is under the floor (0.8), so step 1 is held for a person even though 40 USD is under the limit. The weight is not the amount: it is the category's earned trust, +0.05 per affirmed decision and -0.05 per rejected one; five affirms take refund to the floor. The rule, the branch order and the numbers: [trust-floor.md](trust-floor.md).",
     "- The holiday calendar is read from Zetaris for the day of the message: on 22 Oct the under-limit owner is out and the backup is in; the branch line names both.",
     "- Over the limit, the draft is refused by Risk and the ticket goes to the policy's over-limit approver with the draft attached; nothing is sent.",
     "- The second step reads the first step's H-MEM memory before planning, so the approver's context names the earlier request. The memory carries the loop's decision, not a human verdict: a human affirms or rejects a decision through `POST /feedback`, which moves the category's trust weight in the Zetaris decisions table.",
