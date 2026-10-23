@@ -74,12 +74,29 @@ function faultingSqlRun(cfg, trace) {
 
 const BRANCH_RE = /^amount .* over the policy limit/;
 
+// What a structured draft committed us to: "refund", "replacement" or null. Reads the promises fields first, then the reply text.
+export function promisedKind(d) {
+  const p = d?.promises ?? {};
+  const text = String(d?.text ?? d?.reply_text ?? "");
+  if (p.refund_amount != null || /refund/i.test(String(p.other ?? ""))) return "refund";
+  if (p.replacement === true) return "replacement";
+  if (/refund|money back/i.test(text)) return "refund";
+  return null;
+}
+
 // Pure. gates and memory may be null (the planner calls it before the gates have run).
 export function decideBranch(facts, gates, memory, extra = {}) {
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
   const followUp = Number(g.is_follow_up ?? 0);
-  if (facts.follow_up_kind === "misread" || (followUp >= 0.5 && ticket.agent_category && ticket.agent_category !== facts.category)) {
+  if (extra.prior_draft) {
+    // The chain path (deps.priorDraft): the misread is decided by comparing what the earlier reply PROMISED with what was asked,
+    // not by the authored follow_up_kind. A correct earlier draft is not a misread.
+    const promised = promisedKind(extra.prior_draft);
+    if ((facts.follow_up_kind || followUp >= 0.5) && promised && promised !== facts.category) {
+      return { branch_id: "misread", why: `the customer says the earlier reply misread the ask (our earlier draft promised "${promised}", they asked for "${facts.category}")` };
+    }
+  } else if (facts.follow_up_kind === "misread" || (followUp >= 0.5 && ticket.agent_category && ticket.agent_category !== facts.category)) {
     return { branch_id: "misread", why: `the customer says the earlier reply misread the ask (we answered "${ticket.agent_category || "?"}", they asked for "${facts.category}")` };
   }
   if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you") {
@@ -233,7 +250,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup }) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
@@ -301,7 +318,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup });
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft });
     const B = S.branch.branch_id;
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
@@ -336,7 +353,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     if (B === "misread") {
       skipped("nvidia.model", "misread: no new draft, a human takes it");
-      const reason = `the customer says the reply "${ticket.agent_category || "earlier"}" misread the ask; ${one(inputText, 140)}`;
+      const reason = `the customer says the reply "${(deps.priorDraft && promisedKind(deps.priorDraft)) || ticket.agent_category || "earlier"}" misread the ask; ${one(inputText, 140)}`;
       L({ step: "critique", agent_name: "Evaluator", action: "critique_draft", target_agent: "Planner", branch_id: B, retry_count: 0, input_summary: "earlier reply vs the customer's follow-up", output_summary: `Fail. ${reason}`, status: "needs_revision" });
       L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: 0, input_summary: "earlier promise", output_summary: "Refused. The earlier reply promised something the customer did not ask for; no autonomous reply.", status: "refused" });
       skipped("retry", "misread: a rewrite cannot undo the earlier promise");
@@ -416,6 +433,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     };
 
     let draft = await makeDraft("correct", [], 1);
+    if (!draft.failed) S.draft = { text: draft.text, promises: draft.promises, model: draft.model }; // kept even if a later gate dies, so a chain can hand it on
     let round = 1;
     let retried = false;
     let crit, risk;

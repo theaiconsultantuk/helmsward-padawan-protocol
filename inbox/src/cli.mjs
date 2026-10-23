@@ -179,7 +179,7 @@ async function sqlName(args) {
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: {
   apply: { type: "boolean", default: false }, thread: { type: "string" }, "as-of": { type: "string" },
-  "run-id": { type: "string" }, example: { type: "string" },
+  "run-id": { type: "string" }, example: { type: "string" }, customer: { type: "string" },
 } });
 
 async function runCmd(v) {
@@ -204,6 +204,14 @@ async function runCmd(v) {
   console.log(JSON.stringify(mask(out, secrets()), null, 2));
   return result.status === "success" ? 0 : 1;
 }
+async function askCmd(args, v) {
+  const question = args.join(" ").trim();
+  if (!question) { console.error('usage: ask "<question>" [--customer <email>]'); return 64; }
+  const { askQuestion } = await import("./ask.mjs");
+  const out = await askQuestion(question, { customer: v.customer ?? null, cfg: config(), deps: { quiet: true } });
+  console.log(JSON.stringify(mask(out, secrets()), null, 2));
+  return 0;
+}
 const [cmd, ...rest] = positionals;
 let code = 64;
 try {
@@ -213,7 +221,8 @@ try {
   else if (cmd === "gates") code = await gatesCmd(rest);
   else if (cmd === "run") code = await runCmd(values);
   else if (cmd === "sql-name") code = await sqlName(rest);
-  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...] | run --thread <id>|--example N");
+  else if (cmd === "ask") code = await askCmd(rest, values);
+  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...] | ask \"<question>\" [--customer <email>] | run --thread <id>|--example N");
 } catch (e) {
   console.error(`${e.name}: ${mask(String(e.message), secrets())}`);
   code = 1;
