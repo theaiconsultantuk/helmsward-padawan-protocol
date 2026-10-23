@@ -7,10 +7,10 @@ tags: [judging, docker, clean-clone, sample-mode]
 
 # Clean-clone run
 
-Result: **PASS** (2026-10-23 07:54 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
+Result: **PASS** (2026-10-23 08:05 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
 
 - Source: git clone --branch task/scenarios /opt/glitch/workspaces/open-agent-hackathon-2026--scenarios (fresh clone, committed files only)
-- Commit: e46d5c8
+- Commit: 95a9c08
 - Build: `docker build -t oah-inbox <context>/inbox` (Dockerfile: node:22-slim, no npm step)
 - Image `.env` check: `docker run --rm --entrypoint ls oah-inbox -la /app | grep -c '\.env$'` printed **0** (`.env.example` may be present)
 
