@@ -205,7 +205,7 @@ Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformanc
 
 **Fallback order for a draft:**
 
-1. The Nemotron lane through Nightshift (`NIGHTSHIFT_ROUTE_PRIMARY`).
+1. The Nemotron lane through Nightshift (`NIGHTSHIFT_ROUTE_PRIMARY`). A call that hangs past `NIGHTSHIFT_TIMEOUT_MS` (120 s) or comes back 5xx is tried once more on the same lane (a `retry` line, action `retry_primary`); measured 23 Oct, the example 8 critique answers in 40 to 80 s on some tries and hangs on others. An unknown model or a refused connection is not retried there.
 2. Nightshift `meterless/local` (`NIGHTSHIFT_ROUTE_FALLBACK`), tried when the primary fails with a recoverable error. A `retry` line records it.
 3. The direct local lane (`LOCAL_LANE_*`): einh's Bionic server on Thor, reached through LM Link. It does not go through Nightshift. It fires only when Nightshift itself is unreachable (connection refused or timeout), never on a Nightshift HTTP error. A draft served there is neither NVIDIA nor Meterless, and its trace line carries no sponsor tag. An empty `LOCAL_LANE_BASE_URL` disables it.
 4. Sample rules (`SAMPLE_MODE=true`): no model call.

@@ -152,32 +152,52 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
 const NIGHTSHIFT_DOWN = new Set(["UpstreamRefused", "UpstreamTimeout"]);
 const nightshiftUnreachable = (e) => isAdapterError(e) && e.service === "nightshift" && NIGHTSHIFT_DOWN.has(e.name);
 
+// A hung or 5xx primary call is tried once more before the fallback route: measured 23 Oct on the example 8 critique,
+// the same Nemotron call answered in 40 to 80 s on some tries and hung past 90, 150 and 180 s on others (Nightshift then
+// answered 5xx). Unknown-model and refused-connection errors are not retried on the primary; they go straight to the fallback.
+const PRIMARY_ATTEMPTS = 2;
+const retryPrimary = (e) => e.name === "UpstreamTimeout" || (e.name === "BadResponse" && Number(e.status) >= 500);
+
 export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs, signal } = {}) {
   if (sampleMode(cfg)) return { text: null, model: "sample/rules", route: "sample", latencyMs: 0, sample: true };
   const primary = cfg.NIGHTSHIFT_ROUTE_PRIMARY;
   const fallback = cfg.NIGHTSHIFT_ROUTE_FALLBACK;
-  let second;
-  try {
-    return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl, signal });
-  } catch (e) {
-    if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable || signal?.aborted) throw e;
-    trace?.line({
-      step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
-      output_summary: `${primary} failed (${e.name}); trying ${fallback}`,
-      status: "retrying", retry_count: 1, sponsor: "meterless",
-    });
+  let retries = 0, first, second;
+  for (let attempt = 1; attempt <= PRIMARY_ATTEMPTS; attempt++) {
     try {
-      return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
-    } catch (e2) {
-      second = e2;
+      return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl, signal });
+    } catch (e) {
+      if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable || signal?.aborted) throw e;
+      first = e;
+      if (attempt < PRIMARY_ATTEMPTS && retryPrimary(e)) {
+        retries += 1;
+        trace?.line({
+          step: "retry", agent_name: "Provider", action: "retry_primary", input_summary: purpose,
+          output_summary: `${primary} failed (${e.name}); trying ${primary} once more (attempt ${attempt + 1} of ${PRIMARY_ATTEMPTS})`,
+          status: "retrying", retry_count: retries, sponsor: "meterless",
+        });
+        continue;
+      }
+      break;
     }
+  }
+  retries += 1;
+  trace?.line({
+    step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
+    output_summary: `${primary} failed (${first.name}); trying ${fallback}`,
+    status: "retrying", retry_count: retries, sponsor: "meterless",
+  });
+  try {
+    return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
+  } catch (e2) {
+    second = e2;
   }
   const ids = laneModels(cfg);
   if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second) || signal?.aborted) throw second;
   trace?.line({
     step: "retry", agent_name: "Provider", action: "fallback_local_lane", input_summary: purpose,
     output_summary: `Nightshift unreachable (${second.name}); trying local lane ${ids[0]}`,
-    status: "retrying", retry_count: 2,
+    status: "retrying", retry_count: retries + 1,
   });
   const r = await localLane(messages, { cfg, trace, fetchImpl, signal });
   return { ...r, sponsor: null };
