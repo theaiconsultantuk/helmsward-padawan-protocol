@@ -9,6 +9,7 @@ import { createServer } from "../src/server.mjs";
 import { publish, parseCsv, readDecisions, setVerdict, appendDecision, localCounters, ledgerAdjust } from "../src/decisions.mjs";
 
 const dir = mkdtempSync(join(tmpdir(), "api-runtime-"));
+const runtimeDir = mkdtempSync(join(tmpdir(), "api-intake-"));
 const logsDir = mkdtempSync(join(tmpdir(), "api-logs-"));
 const memoryDir = mkdtempSync(join(tmpdir(), "api-mem-"));
 const publishes = [];
@@ -17,7 +18,7 @@ let server, base;
 before(async () => {
   server = createServer({
     cfg: config({ SAMPLE_MODE: "true" }),
-    deps: { dir, logsDir, memoryDir, quiet: true, publish: async (o) => { publishes.push(o.dir); return { published: true, uncached: true }; } },
+    deps: { dir, runtimeDir, logsDir, memoryDir, quiet: true, publish: async (o) => { publishes.push(o.dir); return { published: true, uncached: true }; } },
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${server.address().port}`;
@@ -190,4 +191,82 @@ test("publish: an HTTP 500 on UNCACHE is reported, not swallowed", async () => {
 
 test("publish: a clean UNCACHE reports uncached true and no error", async () => {
   assert.deepEqual(await publishWith(null), { published: true, uncached: true });
+});
+
+const MSG = { from: "a@example.com", channel: "chat", as_of: "2026-10-20" };
+
+test("POST /run takes a free-text FAQ question: scenario, branch, send, the FAQ answer", async () => {
+  const r = await post("/run", { run_id: "msg-faq", input: { ...MSG, message: "How long does shipping take?" } });
+  assert.equal(r.status, 200);
+  const run = await r.json();
+  assert.equal(run.status, "success");
+  assert.equal(run.scenario, "question");
+  assert.equal(run.branch_id, "faq-hit");
+  assert.equal(run.output.decision, "send");
+  assert.match(run.output.draft.text, /Shipping time depends/);
+  assert.equal(run.input.kind, "message");
+  assert.match(run.input.thread_id, /^F\d+$/);
+  const stored = await (await get("/runs/msg-faq")).json();
+  assert.deepEqual(stored, run);
+  assert.equal(stored.scenario, "question");
+  assert.ok(stored.resolved_how);
+});
+
+test("POST /run free-text RFQ escalates to the sales owner with cited product rows", async () => {
+  const r = await post("/run", { run_id: "msg-rfq", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: "Incoming RFQ for price difference between ordering 100000 training sabers and 100" } });
+  assert.equal(r.status, 200);
+  const run = await r.json();
+  assert.equal(run.scenario, "rfq");
+  assert.equal(run.output.decision, "escalate");
+  assert.equal(run.output.queued_for.owner_id, 6);
+  const att = run.output.queued_for.attachments;
+  assert.ok(att.prices.length <= 1);
+  assert.ok(att.cited.includes("products:P01"), JSON.stringify(att.cited));
+});
+
+test("POST /run 400 names the bad message field", async () => {
+  const bad = async (patch, re) => {
+    const r = await post("/run", { input: { ...MSG, message: "How long does shipping take?", ...patch } });
+    assert.equal(r.status, 400, JSON.stringify(patch).slice(0, 80));
+    const b = await r.json();
+    assert.equal(b.error.type, "BadRequest");
+    assert.match(b.error.message, re);
+  };
+  await bad({ channel: "sms" }, /channel/);
+  await bad({ message: "x".repeat(4001) }, /message/);
+  await bad({ message: "   " }, /message/);
+  await bad({ as_of: "yesterday" }, /as_of/);
+  await bad({ scenario: "quote" }, /scenario/);
+  await bad({ from: "" }, /from/);
+  await bad({ subject: 5 }, /subject/);
+});
+
+test("POST /run 409 on a reused run_id, both roads", async () => {
+  const body = { run_id: "msg-dup", input: { ...MSG, message: "How long does shipping take?" } };
+  assert.equal((await post("/run", body)).status, 200);
+  const again = await post("/run", body);
+  assert.equal(again.status, 409);
+  assert.equal((await again.json()).error.type, "Conflict");
+  assert.equal((await post("/run", { run_id: "api-t1", input: { thread_id: "T02" } })).status, 409);
+});
+
+test("free-text run gets a decision row with its F id and takes /feedback", async () => {
+  const run = await (await get("/runs/msg-faq")).json();
+  const f = await post("/feedback", { run_id: "msg-faq", verdict: "affirm" });
+  assert.equal(f.status, 200);
+  const row = rows().find((x) => x.run_id === "msg-faq");
+  assert.equal(row.thread_id, run.input.thread_id);
+  assert.match(row.thread_id, /^F\d+$/);
+  assert.equal(row.verdict, "affirm");
+});
+
+test("a token in a message never comes back from /runs/:id or its trace", async () => {
+  const token = "sk-test-" + "x".repeat(40);
+  const r = await post("/run", { run_id: "msg-secret", input: { ...MSG, message: `How long does shipping take? my key is ${token}` } });
+  assert.equal(r.status, 200);
+  await r.text();
+  const a = await (await get("/runs/msg-secret")).text();
+  const t = await (await get("/runs/msg-secret/trace")).text();
+  assert.ok(!a.includes(token), "run body masked");
+  assert.ok(!t.includes(token), "trace body masked");
 });

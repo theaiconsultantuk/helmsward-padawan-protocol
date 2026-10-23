@@ -10,6 +10,7 @@ import { runTicket } from "./loop.mjs";
 import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
+import { SCENARIOS } from "./scenarios.mjs";
 
 export const VERSION = "0.1.0";
 export const BODY_LIMIT = 256 * 1024;
@@ -63,11 +64,30 @@ function readBody(req) {
 }
 
 const ASOF = /^\d{4}-\d{2}-\d{2}$/;
+export const CHANNELS = ["email", "contact-form", "chat", "trustpilot"];
+
+// validates the free-text message input; returns the clean object the loop takes, or throws the 400
+function validateMessage(input) {
+  const bad = (m) => { throw new HttpError(400, "BadRequest", m); };
+  if (typeof input.message !== "string") bad("message must be a string");
+  const message = input.message.trim();
+  if (message.length < 1 || message.length > 4000) bad("message must be 1 to 4000 characters");
+  if (typeof input.from !== "string" || !input.from.trim() || input.from.length > 200) bad("from must be a non-empty string of at most 200 characters (an email or a name)");
+  if (typeof input.channel !== "string" || !CHANNELS.includes(input.channel)) bad(`channel must be one of ${CHANNELS.join(", ")}`);
+  if (input.scenario !== undefined && (typeof input.scenario !== "string" || !SCENARIOS.includes(input.scenario))) bad(`scenario must be one of ${SCENARIOS.join(", ")} or absent`);
+  for (const k of ["name", "subject"]) {
+    if (input[k] !== undefined && input[k] !== null && (typeof input[k] !== "string" || input[k].length > 200)) bad(`${k} must be a string of at most 200 characters`);
+  }
+  if (input.as_of !== undefined && (typeof input.as_of !== "string" || !ASOF.test(input.as_of))) bad("as_of must be YYYY-MM-DD");
+  return { message, from: input.from.trim(), channel: input.channel, ...(input.scenario ? { scenario: input.scenario } : {}),
+    ...(input.name ? { name: input.name } : {}), ...(input.subject ? { subject: input.subject } : {}), ...(input.as_of ? { as_of: input.as_of } : {}) };
+}
 
 export function createServer({ cfg = config(), deps = {} } = {}) {
   const started = Date.now();
   const sec = secrets();
   const dir = deps.dir ?? decisions.RUNTIME_DIR;
+  const runtimeDir = deps.runtimeDir ?? dir; // intake.csv lives beside decisions.csv (data/runtime by default)
   // publishes are serialised; /run fires one and moves on, /feedback and /counters wait for the queue
   let pending = Promise.resolve();
   const queue = () => {
@@ -166,33 +186,38 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         throw new HttpError(400, "BadRequest", "options.sample_mode must be a boolean");
       }
 
-      if (input.thread_id === undefined) {
-        if (typeof input.message === "string" && typeof input.from === "string" && typeof input.channel === "string") {
-          send(200, errBody(run_id, "NotImplemented", "free-text intake lands in CP4's /intake; use {thread_id} for now", false, t0));
+      const isMsg = input.thread_id === undefined;
+      let msgInput = null;
+      if (isMsg) {
+        if (input.message === undefined) throw new HttpError(400, "BadRequest", "input needs thread_id, or message + from + channel");
+        msgInput = validateMessage(input);
+      } else {
+        if (typeof input.thread_id !== "string" || !/^[A-Za-z0-9_-]{1,40}$/.test(input.thread_id)) throw new HttpError(400, "BadRequest", "thread_id must be a short id string");
+        if (input.as_of !== undefined && (typeof input.as_of !== "string" || !ASOF.test(input.as_of))) throw new HttpError(400, "BadRequest", "as_of must be YYYY-MM-DD");
+        if (!threadIds().has(input.thread_id)) {
+          send(404, errBody(run_id, "NotFound", `unknown thread ${input.thread_id}`, false, t0));
           return;
         }
-        throw new HttpError(400, "BadRequest", "input needs thread_id, or message + from + channel");
       }
-      if (typeof input.thread_id !== "string" || !/^[A-Za-z0-9_-]{1,40}$/.test(input.thread_id)) throw new HttpError(400, "BadRequest", "thread_id must be a short id string");
-      if (input.as_of !== undefined && (typeof input.as_of !== "string" || !ASOF.test(input.as_of))) throw new HttpError(400, "BadRequest", "as_of must be YYYY-MM-DD");
-      if (!threadIds().has(input.thread_id)) {
-        send(404, errBody(run_id, "NotFound", `unknown thread ${input.thread_id}`, false, t0));
-        return;
-      }
+      if (runs.has(run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
 
       // options.sample_mode:true forces sample mode; false never turns a sample-mode server live.
       const runCfg = opts.sample_mode === true ? { ...cfg, SAMPLE_MODE: "true" } : cfg;
-      const result = await runTicket(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+      const result = isMsg
+        ? await runTicket(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
+        : await runTicket(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
       const out = {
         run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
         trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
+        ...(result.scenario !== undefined ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
+        ...(result.input ? { input: result.input } : {}),
         ...(result.error ? { error: result.error } : {}),
       };
       remember(run_id, out);
       // a sample-forced run on a LIVE server is not counted: it writes no row and triggers no publish
       const forcedSampleOnLive = sampleMode(runCfg) && !sampleMode(cfg);
-      if (out.status === "success" && out.output?.decision && !forcedSampleOnLive) {
-        await decisions.appendDecision({ run_id, thread_id: input.thread_id, category: threadIndex().get(input.thread_id) ?? "", decision: out.output.decision }, { dir });
+      if (out.status === "success" && out.output?.decision && !forcedSampleOnLive && (!isMsg || out.input?.thread_id)) {
+        await decisions.appendDecision({ run_id, thread_id: isMsg ? (result.input?.thread_id ?? "") : input.thread_id, category: isMsg ? (result.scenario ?? "") : (threadIndex().get(input.thread_id) ?? ""), decision: out.output.decision }, { dir });
         publishLater();
       }
       send(200, out);

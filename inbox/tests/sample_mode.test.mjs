@@ -13,7 +13,7 @@ let server, base;
 
 before(async () => {
   const cfg = { ...config(), SAMPLE_MODE: "true" };
-  server = createServer({ cfg, deps: { memoryDir: mkdtempSync(join(tmpdir(), "sm-mem-")), quiet: true } });
+  server = createServer({ cfg, deps: { memoryDir: mkdtempSync(join(tmpdir(), "sm-mem-")), runtimeDir: mkdtempSync(join(tmpdir(), "sm-rt-")), dir: mkdtempSync(join(tmpdir(), "sm-dec-")), quiet: true } });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -86,8 +86,14 @@ test("unknown thread: 404 with a structured error", async () => {
   assert.equal(json.error.type, "NotFound");
 });
 
-test("free-text input answers NotImplemented", async () => {
-  const { status, json } = await post({ input: { message: "hi", from: "a@b.c", channel: "email" } });
+test("free-text input runs in sample mode with no network: scenario question, send, intake publish not reached", async () => {
+  const { status, json } = await post({ run_id: "smtest-msg", input: { message: "How long does shipping take?", from: "a@example.com", channel: "chat", as_of: "2026-10-20" } });
   assert.equal(status, 200);
-  assert.equal(json.error.type, "NotImplemented");
+  assert.equal(json.status, "success");
+  assert.equal(json.scenario, "question");
+  assert.equal(json.output.decision, "send");
+  const lines = readFileSync(join(INBOX_ROOT, json.log_file), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const pub = lines.find((l) => l.action === "intake_publish");
+  assert.ok(pub, "trace has an intake_publish line");
+  assert.match(pub.output_summary, /published: false/);
 });
