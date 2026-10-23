@@ -70,7 +70,7 @@ curl -s $B/openapi.yaml
 
 Every result carries a `trace_id` and a `log_file`; `GET /runs/<run_id>/trace` returns that file as a JSON array (works for `/ask` run ids too). Results are kept for the last 200 runs, so a restart forgets them.
 
-**Feedback and the trust ledger.** Every completed `/run` writes a row to `data/runtime/decisions.csv`, which is copied into Zetaris and read as `JEDI_PACK.decisions`; `POST /feedback` sets that row's verdict and delta (affirm +0.05, reject -0.05) and refreshes the table, so `/counters` is a live Zetaris `GROUP BY`. Each affirm or reject for a category moves that category's trust weight by the same 0.05 when the loop reads it (`trustFloor`'s `ledgerAdjust`). A sample-mode run on a live server (`options.sample_mode: true`) is not counted: it writes no row and triggers no publish.
+**Feedback and the trust ledger** (the full rule, with the numbers, is [judging/trust-floor.md](judging/trust-floor.md)). Every completed `/run` writes a row to `data/runtime/decisions.csv`, which is copied into Zetaris and read as `JEDI_PACK.decisions`; `POST /feedback` sets that row's verdict and delta (affirm +0.05, reject -0.05) and refreshes the table, so `/counters` is a live Zetaris `GROUP BY`. Each affirm or reject for a category moves that category's trust weight by the same 0.05 when the loop reads it (`trustFloor`'s `ledgerAdjust`). A sample-mode run on a live server (`options.sample_mode: true`) is not counted: it writes no row and triggers no publish.
 
 ## Architecture
 
