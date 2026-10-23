@@ -137,3 +137,41 @@ export function parseComplaintReadJson(text) {
 
 export const SEVERITY_LEVELS = ["1 nothing to handle", "2", "3", "4", "5", "6", "7", "8", "9 public damage or a broken promise", "10 legal or safety"];
 export const SEVERITY_QUESTION = { type: "score", instructions: "How severe is this complaint for the company (1 nothing to handle, 10 legal or safety)?", criteria: SEVERITY_LEVELS };
+
+// Customer-service handler (S3.1): a recommendation for the support lead and a draft with [[blank: …]] markers.
+export const RECOMMENDATION_SYSTEM = [
+  "You help the Jedi Pack support lead with a customer message that matched no known request type and no FAQ answer.",
+  "Write a short recommendation for the support lead (what the customer seems to want, what the records say, what to do next) and a draft reply the lead can finish.",
+  "Use only the records you are given. Never invent an order number, a date, an amount, an address or a name: wherever the reply needs one you do not have, write [[blank: <what is needed>]].",
+  "Promise no refund, replacement or date, and never mention a stored card number, an internal price list or a staff address.",
+  'Return strict JSON and nothing else, in exactly this shape: {"recommendation": string, "draft": string, "blanks": [{"id": string, "what": string}]}',
+  "blanks lists every [[blank: …]] marker you put in the draft, with the same words in what.",
+].join("\n");
+
+export function recommendationMessages({ ticket, facts, candidates = [], gates = null, rows = {}, worldText = "", memories = "", critiques = [] } = {}) {
+  const t = ticket ?? facts?.ticket ?? {};
+  const cand = candidates.map((c) => `${c.intent} (${Number(c.score).toFixed(2)})`).join(", ");
+  const g = gates?.answers ?? {};
+  const parts = [
+    line("Customer", facts?.sender_name ?? t.sender_name),
+    line("Channel", facts?.channel ?? t.channel),
+    `Customer message:\n${t.body ?? facts?.body ?? ""}`,
+    cand ? `Closest request types the router found, none clear enough: ${cand}` : null,
+    g.category ? `Typed gates: category ${g.category.choice} (${g.category.confidence})` : null,
+    `Records (the only facts you may use):\n${JSON.stringify(rows)}`,
+    worldText ? `Company record of this customer (World Model):\n${worldText}` : null,
+    memories ? `Memory from earlier runs:\n${memories}` : null,
+    critiques.length ? `Your previous draft was rejected:\n${critiques.map((c, i) => `${i + 1}. ${c}`).join("\n")}\nWrite a revised draft that fixes every point.` : null,
+    "Return the JSON object now.",
+  ];
+  return [{ role: "system", content: RECOMMENDATION_SYSTEM }, { role: "user", content: parts.filter(Boolean).join("\n\n") }];
+}
+
+export function parseRecommendationJson(text) {
+  const j = extractJson(text);
+  if (!j || typeof j.recommendation !== "string" || !j.recommendation.trim() || typeof j.draft !== "string" || !j.draft.trim()) {
+    throw Object.assign(new Error("recommendation: recommendation or draft missing"), { name: "BadResponse" });
+  }
+  const blanks = (Array.isArray(j.blanks) ? j.blanks : []).map((b, i) => (typeof b === "string" ? { id: `blank-${i + 1}`, what: b } : { id: String(b?.id ?? `blank-${i + 1}`), what: String(b?.what ?? "") })).filter((b) => b.what);
+  return { recommendation: j.recommendation.trim(), draft: j.draft.trim(), blanks };
+}

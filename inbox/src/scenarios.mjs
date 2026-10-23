@@ -5,7 +5,7 @@
 // tb is the loop's toolbox ({ f, ticket, inputText, L, skipped, escalate, replyLoop, hardRisk, queries, o, cfg, decided, ... }).
 import { tokens, extractParams } from "./engines/scout/index.mjs";
 import { rowsForIntent } from "./ask.mjs";
-import { draftMessages, complaintReadMessages, parseComplaintReadJson } from "./prompts.mjs";
+import { draftMessages, complaintReadMessages, parseComplaintReadJson, recommendationMessages, parseRecommendationJson, NUDGE } from "./prompts.mjs";
 import { severityGate } from "./gates.mjs";
 import { getWorld, toObjects, complaintContext, worldLine, mentionedProducts } from "./engines/world-model/world.mjs";
 import * as sample from "./adapters/sample.mjs";
@@ -103,6 +103,24 @@ const skipLine = (tb, step, text) => tb.skipped(step, text, { output_summary: te
 
 const sentences = (s) => one(s, 400);
 
+// The records quote for the sample draft: the page that shares the most words with the question, at most two of its sentences
+// (the ones that share words), never a sentence with a restricted term and never a prohibition list ("may not include …").
+export function quoteFromRecords(wiki, question, restricted = []) {
+  const qt = new Set(tokens(question));
+  const overlap = (s) => tokens(s).filter((w) => qt.has(w)).length;
+  const bad = (s) => /\b(may not|must not|cannot|never)\b/i.test(s) || restricted.some((t) => t && s.toLowerCase().includes(String(t).toLowerCase()));
+  let best = null;
+  for (const w of wiki ?? []) {
+    const sents = String(w.text ?? "").split(/(?<=[.!?])\s+/).map((x) => x.trim()).filter(Boolean);
+    const kept = sents.map((t, i) => ({ t, i, n: overlap(t) })).filter((x) => x.n > 0 && !bad(x.t));
+    const total = kept.reduce((a, x) => a + x.n, 0);
+    if (kept.length && (!best || total > best.total)) best = { page: w.page, kept, total };
+  }
+  if (!best) return null;
+  const pick = [...best.kept].sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i);
+  return { page: best.page, text: pick.map((x) => x.t).join(" ") };
+}
+
 async function probeQuestion(tb) {
   const text = tb.inputText ?? "";
   const { lines: ro, o } = buffer(tb, null);
@@ -123,6 +141,15 @@ async function probeQuestion(tb) {
     ...(rows.policy ?? []).map((p) => `${p.topic ?? ""} ${p.limit_amount ?? ""}`),
     ...(rows.ticket ? [`${rows.ticket.subject ?? ""} ${rows.ticket.category ?? ""}`] : []),
   ];
+  // a question about refunds or replacements also reads that topic's policy and wiki rows (the limit lives there)
+  const topic = /refund|money back/i.test(text) ? "refund.request" : /replac/i.test(text) ? "replacement.request" : null;
+  if (topic) {
+    // owner names are a nicety rowsForIntent reads and tolerates missing: their error lines are not this branch's failures
+    const quiet = { line: (x) => (x.status === "error" && /employee/.test(String(x.action)) ? x : rtrace.line(x)) };
+    const more = await rowsForIntent(topic, null, { ...o, trace: quiet });
+    rows.policy = more.rows.policy ?? rows.policy; rows.category = more.rows.category ?? rows.category;
+    rows.wiki = [...(more.rows.wiki ?? []), ...(rows.wiki ?? [])];
+  }
   const cited = [...new Set(idsIn(collected))];
   const checked = `the FAQ (${faqRows.length} rows), ${rows.wiki?.length ?? 0} wiki page(s)${rows.policy?.length ? ", the policy rows" : ""}${rows.ticket ? ", the customer's ticket" : ""}`;
   const answerable = candidates.some(shares2);
@@ -158,9 +185,9 @@ async function actQuestion(tb, p) {
       m[last] = { ...m[last], content: m[last].content.replace(/Return the JSON object now\.$/, `Records (the only facts you may use):\n${JSON.stringify(rows)}\n\nReturn the JSON object now.`) };
       return m;
     };
-    const first = (rows.wiki ?? [])[0];
+    const quote = quoteFromRecords(rows.wiki, tb.inputText ?? "", tb.f?.restricted_terms ?? []);
     const sampleDraftFn = () => ({
-      text: sample.frame(tb.ticket ?? tb.f, `From our records${first?.page ? ` ("${first.page}")` : ""}: ${first ? sentences(first.text) : "see the cited rows"}`),
+      text: sample.frame(tb.ticket ?? tb.f, `From our records${quote?.page ? ` ("${quote.page}")` : ""}: ${quote ? sentences(quote.text) : "see the cited rows"}`),
       promises: NO_PROMISES(), model: "sample/rules",
     });
     const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B });
@@ -173,7 +200,8 @@ async function actQuestion(tb, p) {
       return { decision: "escalate", reasons: [reason], draft, cited: p.cited };
     }
     tb.skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
-    return { decision: "hold", reasons: [`${p.why}. Both critics passed; the reply waits for the question owner with the draft attached`], draft, cited: p.cited };
+    const owner = await ownerOf(tb, "question", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+    return { decision: "hold", reasons: [`${p.why}. Both critics passed; the reply waits for the question owner with the draft attached`], draft, queued: owner, cited: p.cited };
   }
   // question-unanswered
   skipLine(tb, "nvidia.model", "question-unanswered: no draft");
@@ -326,9 +354,136 @@ async function actComplaint(tb, p) {
   return { decision: "hold", reasons: [`${p.why}. Both critics passed; the reply waits for the complaint owner with the draft attached`], draft, queued: owner, recommendation, cited: p.cited };
 }
 
+// ---- customer service (the default when nothing else fits; a person gets a head start) ----
+
+// every amount the text names (a currency sign or code beside a number)
+const amountsIn = (text) => [...String(text ?? "").matchAll(/(?:[$€£]\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:usd|eur|dollars?|euros?|[$€£]))/gi)]
+  .map((m) => Number(String(m[1] ?? m[2]).replace(/,(?=\d{3}\b)/g, "").replace(/[.,]$/, ""))).filter(Number.isFinite);
+
+// the draft's blanks, completed: every marker in the text is in the list (missing ones are added, not failed)
+function completeBlanks(text, listed = []) {
+  const out = listed.map((b, i) => ({ id: b.id ?? `blank-${i + 1}`, what: b.what }));
+  for (const w of blanks(text)) if (!out.some((b) => b.what.toLowerCase() === w.toLowerCase())) out.push({ id: `blank-${out.length + 1}`, what: w });
+  return out;
+}
+
+async function probeCustomerService(tb) {
+  const f = tb.f ?? {};
+  const text = tb.inputText ?? "";
+  const { lines, o } = buffer(tb, "customer-service");
+  const collected = [];
+  const rtrace = { line: (x) => { collected.push(x); return x; } };
+  const cand = (tb.decided?.candidates ?? []).filter((c) => c.intent !== "GENERAL").slice(0, 3);
+  const conf = tb.decided?.intent?.confidence ?? 0;
+  const faqRows = (await tb.queries.run("faq", {}, o)).objects;
+  const top = cand[0]?.intent ?? "GENERAL";
+  const email = String(f.sender_email ?? "").trim();
+  const { rows } = await rowsForIntent(top, email || null, { ...o, trace: rtrace });
+  lines.push(...collected.map((x) => ({ ...x, branch_id: "customer-service" })));
+  const cited = [...new Set(idsIn(collected))];
+  // the world context, when we know who is writing
+  let worldText = "", wline = "sender unknown: no world context";
+  if (email) {
+    const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? "", body: text, channel: f.channel, thread_id: f.thread_id, sender_email: email };
+    try {
+      const wrows = {};
+      for (const k of ["world_threads", "products", "reviews"]) wrows[k] = (await tb.queries.run(k, {}, o)).objects;
+      const dir = process.env.WORLD_MODEL_DIR;
+      const world = await getWorld({ rows: wrows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
+      const mentioned = mentionedProducts(text, toObjects(wrows.products)).map((p) => (typeof p === "object" ? p.product_id : p));
+      const ctx = complaintContext(world, { sender_email: email, product_ids: mentioned, thread_id: f.thread_id, channel: f.channel });
+      worldText = ctx.text; wline = worldLine(world, ctx);
+      lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless", branch_id: "customer-service",
+        input_summary: `history of ${email}`, output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
+    } catch (e) {
+      lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", input_summary: "meterless.engine failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error", branch_id: "customer-service" },
+        { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after meterless.engine error", output_summary: "world context unavailable, read by text alone", status: "success", branch_id: "customer-service" });
+    }
+  }
+  const owner = await ownerOf(tb, "customer_service", o);
+  const pages = (rows.wiki ?? []).map((w) => w.page).filter(Boolean);
+  const topText = cand.slice(0, 2).map((c) => `${c.intent} ${Number(c.score).toFixed(1)}`).join(", ") || "none";
+  return { branch_id: "customer-service",
+    why: `no intent cleared the band (confidence ${Number(conf).toFixed(2)}; top ${topText}); the FAQ (${faqRows.length} rows) was searched, no match`,
+    cited: [...cited, ...(owner.looked_up ? ["responsibility:customer_service"] : [])],
+    data: { candidates: cand, rows, worldText, pages, faqRows: faqRows.length, owner }, lines };
+}
+
+async function actCustomerService(tb, p) {
+  const B = p.branch_id;
+  const f = tb.f ?? {};
+  const { candidates, rows, worldText, pages, faqRows, owner } = p.data;
+  const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? tb.ticket?.subject ?? "", body: tb.inputText ?? f.body ?? "", sender_name: f.sender_name ?? tb.ticket?.sender_name };
+  const limit = f.policy_limit_usd ?? (rows.policy?.[0]?.limit_amount != null ? Number(rows.policy[0].limit_amount) : null);
+  const twin = () => sample.recommendation(ticket, { candidates, pages, faqRows });
+  const callLine = (model, rec, extra = {}) => tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", sponsor: "nvidia", model, branch_id: B,
+    input_summary: `recommendation and draft for ${f.thread_id ?? "ticket"}`, output_summary: `recommendation ${rec.recommendation.length} chars; draft ${rec.draft.length} chars; ${rec.blanks.length} blank(s)`, status: "success", ...extra });
+  const recommend = async (critiques) => {
+    const messages = recommendationMessages({ ticket, facts: f, candidates, gates: tb.gates, rows, worldText, memories: tb.memCtx, critiques });
+    try {
+      let res = await tb.io.drafter(messages, { purpose: "recommendation", trace: tb.io.adapterTrace });
+      if (res.sample || res.text == null) { const r = twin(); callLine(r.model, r, { status: "skipped", output_summary: "sample mode: rules recommender, no model call" }); return { ...r, model: r.model }; }
+      let rec;
+      try { rec = parseRecommendationJson(res.text); } catch {
+        res = await tb.io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "recommendation", trace: tb.io.adapterTrace });
+        rec = parseRecommendationJson(res.text);
+      }
+      callLine(res.model, rec);
+      return { ...rec, model: res.model };
+    } catch (e) {
+      tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", sponsor: "nvidia", branch_id: B, input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" });
+      tb.L({ step: "recovery", agent_name: "Planner", action: "recover", branch_id: B, input_summary: "after nvidia.model error", output_summary: "rules recommendation used", status: "success" });
+      const r = twin(); callLine(r.model, r, { input_summary: "rules recommendation after the model failed" }); return r;
+    }
+  };
+  const build = (rec) => ({ text: rec.draft, promises: NO_PROMISES(), model: rec.model, blanks: completeBlanks(rec.draft, rec.blanks) });
+  const check = (draft) => {
+    const hr = tb.hardRisk(f, draft);
+    const reasons = [...hr.reasons];
+    const bad = amountsIn(draft.text).filter((a) => limit == null || a > limit);
+    if (bad.length) reasons.push(`draft names an amount (${bad.join(", ")}) ${limit == null ? "with no limit to support it" : `over the ${limit} USD limit`}`);
+    return reasons;
+  };
+  const max = tb.maxRounds ?? 2;
+  let rec = await recommend([]);
+  let draft = build(rec);
+  let n = 1, crit, riskReasons;
+  for (;;) {
+    try {
+      crit = tb.sampleOn ? tb.io.sampleCritic(draft, f) : await tb.io.critic({ draft, facts: f, ticket, trace: tb.io.adapterTrace });
+    } catch (e) {
+      crit = { pass: false, reason: `evaluator unavailable: ${one(e?.message, 120)}`, model: "none" };
+    }
+    tb.S.models.evaluator = crit.model;
+    tb.L({ step: "critique", agent_name: "Evaluator", action: "critique_draft", target_agent: "Planner", model: crit.model, branch_id: B, retry_count: n - 1,
+      input_summary: `round ${n} draft, ${draft.text.length} chars`, output_summary: `${crit.pass ? "Pass" : "Fail"}. ${one(crit.reason)}`, status: crit.pass ? "success" : "needs_revision", memory_ids: tb.S.memRead });
+    riskReasons = check(draft);
+    const rpass = riskReasons.length === 0;
+    tb.L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: n - 1,
+      input_summary: `round ${n} draft vs facts`, output_summary: rpass ? "Signed off." : `Refused: ${riskReasons.join("; ")}`, status: rpass ? "success" : "refused" });
+    tb.S.rounds.push({ n, critique: crit, risk: { pass: rpass, reasons: riskReasons, hard: !rpass } });
+    if ((crit.pass && rpass) || n >= max) break;
+    const both = [`Evaluator: ${crit.reason}`, `Risk: ${riskReasons.join("; ") || "signed off"}`];
+    tb.L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Recommender", branch_id: B, retry_count: n, input_summary: `round ${n} negative`,
+      output_summary: `${both.join(" | ")}. Next draft must fix both`, status: "retrying", memory_ids: tb.S.memRead });
+    rec = await recommend(both);
+    draft = build(rec);
+    n += 1;
+  }
+  if (n === 1) skipLine(tb, "retry", "round 1 passed");
+  tb.S.models.drafter = rec.model;
+  const withheld = riskReasons.length > 0;
+  tb.skipped("escalate_or_fallback", "customer service holds with the recommendation; nothing is escalated");
+  const reasons = withheld
+    ? [`draft withheld: ${one(riskReasons.join("; "), 140)}; customer service holds with the recommendation. ${p.why}`]
+    : [`${p.why}. ${crit.pass ? "Both critics passed" : `Evaluator not convinced (${one(crit.reason, 80)})`}; customer service holds with the draft attached`];
+  return { decision: "hold", reasons, ...(withheld ? {} : { draft }), queued: owner, recommendation: rec.recommendation, cited: p.cited };
+}
+
+export const handleCustomerService = { probe: probeCustomerService, act: actCustomerService };
+
 export const handleComplaint = { probe: probeComplaint, act: actComplaint };
 
 export const handleQuestion = { probe: probeQuestion, act: actQuestion };
 export const handleRfq = { probe: probeRfq, act: actRfq };
-// customer_service is absent until S3.1: a scenario with no handler dispatches to legacy.
-export const HANDLERS = { question: handleQuestion, rfq: handleRfq, complaint: handleComplaint };
+export const HANDLERS = { question: handleQuestion, rfq: handleRfq, complaint: handleComplaint, customer_service: handleCustomerService };

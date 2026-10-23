@@ -128,3 +128,19 @@ export function severity(ticket, { kind = "vent", repeat = false, publicChannel 
   score = Math.max(1, Math.min(10, score));
   return { score, legend: SEVERITY_LEVELS[score - 1] };
 }
+
+// Customer-service twin (S3.1): a rules recommendation and a draft with two [[blank: …]] markers. No model call.
+export function recommendation(ticket, { candidates = [], pages = [], faqRows = 0 } = {}) {
+  const top = candidates.slice(0, 3).map((c) => `${c.intent} (${Number(c.score).toFixed(1)})`).join(", ") || "none";
+  const seen = pages.length ? `see the wiki page${pages.length === 1 ? "" : "s"} ${pages.map((p) => `"${p}"`).join(", ")}` : "no wiki page applies";
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const address = /address/i.test(text);
+  const body = address
+    ? "Thank you for getting in touch. A colleague will look at your order [[blank: order number]] and, once it is checked, update the delivery address to [[blank: new delivery address]]."
+    : "Thank you for getting in touch. A colleague will look at your order [[blank: order number]] and come back to you about [[blank: what the customer wants changed]].";
+  const ds = [...body.matchAll(/\[\[blank:\s*([^\]]*?)\s*\]\]/g)].map((m, i) => ({ id: `blank-${i + 1}`, what: m[1] }));
+  return {
+    recommendation: `no clear intent; top candidates ${top}; nothing in the FAQ${faqRows ? ` (${faqRows} rows searched)` : ""}; ${seen}. A person confirms the order and what the customer wants changed, then finishes the draft.`,
+    draft: frame(ticket, body), blanks: ds, model: "sample-rules",
+  };
+}
