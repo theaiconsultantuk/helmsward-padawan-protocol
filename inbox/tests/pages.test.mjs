@@ -16,7 +16,7 @@ let server, base;
 
 before(async () => {
   server = createServer({
-    cfg: config({ SAMPLE_MODE: "true" }),
+    cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "true" }),
     deps: { dir, runtimeDir: dir, logsDir, memoryDir, quiet: true, publish: async () => ({ published: true, uncached: true }) },
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));

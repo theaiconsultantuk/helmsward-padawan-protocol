@@ -19,7 +19,7 @@ const KNOWN_KEYS = [
 const DEFAULTS = {
   HOST: "127.0.0.1",
   PORT: "8000",
-  NIGHTSHIFT_TIMEOUT_MS: "120000", // 23 Oct: a Nemotron critique answers in 40 to 80 s when it answers; two attempts plus the fallback fit the 300 s run cap
+  NIGHTSHIFT_TIMEOUT_MS: "120000", // 23 Oct: a Nemotron critique answers in 40 to 80 s when it answers. Two primary attempts plus the fallback route can take up to 360 s, so the whole-run cap (300 s, loop.mjs) may cut the sequence short: the run then ends as a capped escalation, never a silent wait
   NIGHTSHIFT_ROUTE_FALLBACK: "meterless/local",
   SAMPLE_MODE: "false",
   FAULT_ZETARIS_REFUSE_ONCE: "false",

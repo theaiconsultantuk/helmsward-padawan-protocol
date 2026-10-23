@@ -318,6 +318,22 @@ test("(b) draft() forwards the run's AbortSignal to fetch: a hanging call is abo
   assert.equal(fetchSignal.aborted, true);
 });
 
+test("(b) first attempt times out, the run aborts during the second attempt: exactly two primary calls, no fallback call", async () => {
+  let n = 0;
+  const ac = new AbortController();
+  const fetchImpl = (url, init) => {
+    n += 1;
+    if (n === 1) return Promise.reject(mockTimeout());
+    return new Promise((_, rej) => init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" }))));
+  };
+  const tr = fakeTrace();
+  const p = nightshift.draft([{ role: "user", content: "hi" }], { cfg, fetchImpl, trace: tr, signal: ac.signal });
+  setTimeout(() => ac.abort(), 30);
+  await assert.rejects(p, (e) => e.name === "UpstreamTimeout");
+  assert.equal(n, 2);
+  assert.deepEqual(tr.lines.filter((l) => l.step === "retry").map((l) => l.action), ["retry_primary"]);
+});
+
 test("(b) openjev systemone() forwards the AbortSignal to fetch", async () => {
   const { systemone } = await import("../src/adapters/openjev.mjs");
   let fetchSignal = null;

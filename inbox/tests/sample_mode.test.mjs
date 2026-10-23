@@ -12,7 +12,7 @@ const EXPECT = { 1: "hold", 2: "send", 3: "escalate" };
 let server, base, logsDir;
 
 before(async () => {
-  const cfg = { ...config(), SAMPLE_MODE: "true" };
+  const cfg = { ...config(), SAMPLE_MODE: "true", API_TOKEN: "" };
   server = createServer({ cfg, deps: { logsDir: (logsDir = mkdtempSync(join(tmpdir(), "sm-logs-"))), memoryDir: mkdtempSync(join(tmpdir(), "sm-mem-")), runtimeDir: mkdtempSync(join(tmpdir(), "sm-rt-")), dir: mkdtempSync(join(tmpdir(), "sm-dec-")), quiet: true } });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${server.address().port}`;
