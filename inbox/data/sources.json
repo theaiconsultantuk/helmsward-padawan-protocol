@@ -179,7 +179,9 @@
       "table": "decisions",
       "database": "JEDI_PACK",
       "options": {
-        "header": "true"
+        "header": "true",
+        "escape": "\"",
+        "multiLine": "true"
       },
       "licence": "runtime, written by the service",
       "runtime": true,
@@ -229,10 +231,13 @@
       "table": "intake_runtime",
       "database": "JEDI_PACK",
       "options": {
-        "header": "true"
+        "header": "true",
+        "escape": "\"",
+        "multiLine": "true"
       },
-      "licence": "synthetic, CC0",
-      "rows": 0
+      "licence": "runtime, written by the service",
+      "rows": 0,
+      "runtime": true
     }
   ]
 }

@@ -252,9 +252,13 @@ def gen_only(out, a):
     def ent(name, path, table, rows):
         return {"name": name, "path": path, "format": "CSV", "table": table, "database": "JEDI_PACK",
                 "options": {"header": "true"}, "licence": "synthetic, CC0", "rows": rows}
+    # The intake table is written by the service with doubled quotes and embedded newlines (decisions.q):
+    # Spark's CSV reader escapes with a backslash by default, so the table says escape + multiLine.
+    runtime_opts = {"header": "true", "escape": "\"", "multiLine": "true"}
     new = {"products": ent("products", "products.csv", "products", counts.get("products", 0)),
            "faq": ent("faq", "faq.csv", "faq", counts.get("faq", 0)),
-           "intake_runtime": ent("intake_runtime", "runtime/intake.csv", "intake_runtime", 0)}
+           "intake_runtime": {**ent("intake_runtime", "runtime/intake.csv", "intake_runtime", 0),
+                              "options": runtime_opts, "licence": "runtime, written by the service", "runtime": True}}
     for k, e in new.items():
         if k == "intake_runtime" or k in only:
             if k in by:
