@@ -61,6 +61,7 @@ paths:
                   fictional: true
   /run:
     post:
+      security: [{}, {bearer: []}]
       summary: Run the loop on one ticket
       description: Returns the decision with its cited rows and a `trace_id`. A successful run also writes a row into the decisions table, so it can be given feedback.
       requestBody:
@@ -119,6 +120,7 @@ paths:
         "409": { $ref: "#/components/responses/Conflict" }
   /ask:
     post:
+      security: [{}, {bearer: []}]
       summary: Ask a question about policy, owners or a customer
       description: Scout guards the question first (a blocked one is refused with no model call), then Zetaris rows are read and the answer is phrased only from them.
       requestBody:
@@ -249,6 +251,7 @@ paths:
         "404": { $ref: "#/components/responses/NotFound" }
   /feedback:
     post:
+      security: [{}, {bearer: []}]
       summary: Affirm or reject a decision
       description: Sets the decision row's verdict and delta (affirm +0.05, reject -0.05), then refreshes the Zetaris decisions table so `/counters` and the trust floor see it.
       requestBody:
@@ -330,6 +333,11 @@ paths:
               schema: { type: object }
         "404": { $ref: "#/components/responses/NotFound" }
 components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: Only when the instance runs with API_TOKEN set (a shared instance); the default loopback instance needs no token. Applies to POST /run, /ask and /feedback; reads and pages stay open.
   responses:
     BadRequest:
       description: The body or a field is invalid.

@@ -27,9 +27,12 @@
     if (body && body.error) return (body.error.type || "Error") + ": " + (body.error.message || "failed");
     return "HTTP " + code;
   }
+  // A shared instance may need a token on POST: take ?token=... once, remember it, send it as a bearer header.
+  var token = (function () { try { var q = new URLSearchParams(location.search).get("token"); if (q) localStorage.setItem("jp_token", q); return localStorage.getItem("jp_token") || ""; } catch (e) { return ""; } })();
+  function withAuth(opts) { opts = opts || {}; if (token) opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token }); return opts; }
   function getJson(path, opts) {
     // No client timeout: a live run can take minutes.
-    return fetch(base + path, opts).then(function (r) {
+    return fetch(base + path, withAuth(opts)).then(function (r) {
       return r.json().catch(function () { return null; }).then(function (body) { return { ok: r.ok, code: r.status, body: body }; });
     });
   }
