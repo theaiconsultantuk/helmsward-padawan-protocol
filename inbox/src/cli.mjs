@@ -64,7 +64,7 @@ async function doctor() {
         const res = await fetch(`${cfg.METERLESS_BASE_URL}/chat/completions`, {
           method: "POST", signal: AbortSignal.timeout(60000),
           headers: { Authorization: `Bearer ${cfg.METERLESS_RUNTIME_TOKEN}`, "meterless-app": "jedi-pack-inbox", "meterless-scope": "user", "Content-Type": "application/json" },
-          body: JSON.stringify({ model: primary, messages: PROMPT, temperature: 0.2, max_tokens: 16 }),
+          body: JSON.stringify({ model: primary, messages: PROMPT, temperature: 0.2, max_tokens: 300 }), // 16 made Lightning answer empty (provider 502, seen 23 Oct)
         });
         const text = await res.text();
         let body; try { body = JSON.parse(text); } catch { body = text; }
@@ -80,7 +80,8 @@ async function doctor() {
           for (const [k, v] of res.headers.entries()) headers[k.toLowerCase()] = v;
           const model = nightshift.handledModel({ headers, body });
           const { kind, egress } = receiptOf(body);
-          console.log(`primary route ${primary} → ${model ?? "no model id"} (${kind}, egress ${egress})`);
+          const phases = Array.isArray(body?.meterless?.phases) ? body.meterless.phases.map((p) => `${p.phase}:${p.model}`).join(", ") : "";
+          console.log(`primary route ${primary} → ${model ?? "no model id"} (${kind}, egress ${egress})${phases ? `; receipt phases ${phases}` : ""}`);
           if (isNemotron(model)) { ok++; console.log("ok"); }
           else if (kind === "local") { warn++; console.log("warn: Nightshift answered from its local lane; the Nemotron evidence is in judging/traces/"); }
           else { warn++; console.log(`warn: handled model is not nvidia/nemotron (${model ?? "no model id"})`); }
