@@ -64,8 +64,8 @@ if [ "$up" != "1" ]; then echo "live container never served /health" >&2; docker
 for n in 1 2 3; do
   want="$(expected_decision "$n")"
   body="$TMP/live_body_$n.json"; resp="$TMP/live_resp_$n.json"
-  # the shipped examples carry options.sample_mode:true; the live leg drops options and renames the run
-  node -e 'const b=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); delete b.options; b.run_id="clean-live-"+process.argv[2]; console.log(JSON.stringify(b))' "$INBOX/input_examples/example_$n.json" "$n" >"$body"
+  # the shipped examples carry no mode, so posted to a live service they run live; only the run id is renamed
+  node -e 'const b=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); b.run_id="clean-live-"+process.argv[2]; console.log(JSON.stringify(b))' "$INBOX/input_examples/example_$n.json" "$n" >"$body"
   code=000
   if [ "$up" = "1" ]; then
     code="$(curl -s --max-time 300 -o "$resp" -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data @"$body" "http://127.0.0.1:$PORT/run" || echo 000)"
@@ -126,7 +126,7 @@ Result: **$VERDICT** ($STAMP). Script: \`inbox/scripts/clean_clone_test.sh\`.
 ## Live leg
 
 Command: \`$LIVE_CMD\` (host networking because Zetaris, the Nightshift tunnel and OpenJev listen on the VM's loopback and LAN; the .env comes from the working copy, never from the clone).
-Each \`input_examples/example_N.json\` is POSTed to \`/run\` without its \`options.sample_mode\` flag; the model is the \`nvidia.model\` line of \`GET /runs/<id>/trace\`.
+Each \`input_examples/example_N.json\` is POSTed to \`/run\` as shipped (only the run id is renamed); the model is the \`nvidia.model\` line of \`GET /runs/<id>/trace\`.
 
 | Example | run_id | HTTP | status | decision | expected | model | result |
 |---|---|---|---|---|---|---|---|

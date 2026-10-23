@@ -225,6 +225,8 @@ All SQL comes from named templates in `src/queries.mjs` with whitelisted paramet
 
 The sample path decides all 24 authored threads to their authored outcome (`tests/loop_grid.test.mjs`).
 
+The three `input_examples/` carry no mode. Posted to a live service they run live (Zetaris, Nightshift, OpenJev); with `SAMPLE_MODE=true` the same files run on the cache. `output_examples/` were produced with `SAMPLE_MODE=true`, so they are exact for a sample run; a live run gives the same decision and cited rows with a model-written draft.
+
 ## Logs and traces
 
 Every event is one JSON line in `logs/trace-<run_id>.jsonl` and the same event on stdout as `[INFO] run_id=<run_id> <agent_name> <action>: <output_summary>`.
