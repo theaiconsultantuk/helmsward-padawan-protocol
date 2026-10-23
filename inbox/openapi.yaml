@@ -143,6 +143,80 @@ paths:
                 trace_id: ask_mvk7ru456hv
                 log_file: logs/trace-ask_mvk7ru456hv.jsonl
         "400": { $ref: "#/components/responses/BadRequest" }
+  /runs:
+    get:
+      summary: The stored runs and asks, newest first
+      description: Reads the in-memory store (the last 200, so a restart forgets them). `kind` is `ask` for `POST /ask` results and `run` otherwise. `at` is the time the run finished.
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 }, example: 20 }
+      responses:
+        "200":
+          description: The runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RunListItem" }
+              example:
+                - { run_id: ex-rfq, kind: run, scenario: rfq, decision: escalate, thread_id: F2, branch_id: rfq, execution_time_seconds: 0.013, at: "2026-10-23T05:17:41.691Z" }
+                - { run_id: ex-faq, kind: run, scenario: question, decision: send, thread_id: F1, branch_id: faq-hit, execution_time_seconds: 0.015, at: "2026-10-23T05:17:41.671Z" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /runs/{id}/journey:
+    get:
+      summary: The run as a journey a person can read
+      description: Derived from the stored result and the run's trace file, so it is 404 when either is gone. One node per trace line, with what each step consulted and what the reply kept.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: ex-rfq }
+      responses:
+        "200":
+          description: The journey.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Journey" }
+              example:
+                run_id: ex-rfq
+                scenario: rfq
+                resolved_how: declared
+                decision: escalate
+                input: { kind: message, thread_id: F2, text: Incoming RFQ for price difference between ordering 100000 training sabers and 100, from: buyer@example.com, name: null, channel: chat, received_at: "2026-10-23T05:17:41.678Z", as_of: "2026-10-20" }
+                nodes:
+                  - { n: 1, step: memory.read, agent: Memory, label: Memory read, route: empty (cold first run), consulted: [], retained: [], reached_human: false, status: success, model: null, timestamp: "2026-10-23T05:17:41Z" }
+                human:
+                  input: Incoming RFQ for price difference between ordering 100000 training sabers and 100
+                  path: [Memory read, Plan, "Branch: rfq", Hand-off, Reply]
+                  reply:
+                    kind: escalation
+                    text: "Hello,\n\nThank you, your request for a quote is with our sales team."
+                    to: { employee_id: 6, name: Tomas Keller, role: rfq owner }
+                    attachments: ["products:P01"]
+                    blanks: []
+                    recommendation: The records hold one unit price; sales to quote.
+                reached_human:
+                  who: { employee_id: 6, name: Tomas Keller }
+                  what: [the draft, both critiques, "products:P01"]
+                  queue_file: data/memory/queue/F2.json
+        "404": { $ref: "#/components/responses/NotFound" }
+  /queue:
+    get:
+      summary: What is waiting for a human
+      description: Every file under `data/memory/queue/` (read on each call, `[]` when the folder is absent) plus the runs that ended on `hold` with a draft. Newest first. A queue file row names `approver` when the ticket needed an approval, otherwise `owner`.
+      responses:
+        "200":
+          description: The waiting items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/QueueItem" }
+              example:
+                - ticket_id: F2
+                  file: F2.json
+                  category: rfq
+                  decision_reason: "rfq: one unit price (189 USD), no volume tiers. Sales to quote."
+                  owner: { employee_id: 6, name: Tomas Keller }
+                  has_draft: true
+                  critiques: []
+                  mtime: "2026-10-23T05:17:41.690Z"
   /runs/{id}:
     get:
       summary: A stored run or ask result
@@ -352,6 +426,97 @@ components:
     Counters:
       type: object
       properties: { send: { type: integer }, hold: { type: integer }, escalate: { type: integer }, close: { type: integer }, queued: { type: integer }, affirmed: { type: integer }, rejected: { type: integer } }
+    RunListItem:
+      type: object
+      required: [run_id, kind, at]
+      properties:
+        run_id: { type: string }
+        kind: { type: string, enum: [run, ask] }
+        scenario: { type: string, nullable: true }
+        decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        thread_id: { type: string, nullable: true }
+        branch_id: { type: string, nullable: true }
+        execution_time_seconds: { type: number, nullable: true }
+        at: { type: string, format: date-time, nullable: true }
+    Person:
+      type: object
+      properties:
+        employee_id: { type: integer, nullable: true }
+        name: { type: string, nullable: true }
+    QueueItem:
+      type: object
+      description: A queue file row has `file`, `category`, `decision_reason`, `critiques`, `mtime` and `approver` or `owner`. A held row has `kind` held, `run_id`, `recommendation` and `at`.
+      required: [ticket_id, has_draft]
+      properties:
+        ticket_id: { type: string, nullable: true }
+        file: { type: string }
+        category: { type: string, nullable: true }
+        decision_reason: { type: string, nullable: true }
+        approver: { $ref: "#/components/schemas/Person" }
+        owner: { $ref: "#/components/schemas/Person" }
+        has_draft: { type: boolean }
+        critiques: { type: array, items: {} }
+        mtime: { type: string, format: date-time }
+        run_id: { type: string }
+        kind: { type: string, enum: [held] }
+        scenario: { type: string, nullable: true }
+        recommendation: { type: string, nullable: true }
+        at: { type: string, format: date-time, nullable: true }
+    JourneyNode:
+      type: object
+      properties:
+        n: { type: integer }
+        step: { type: string, nullable: true }
+        agent: { type: string, nullable: true }
+        label: { type: string }
+        route: { type: string, nullable: true }
+        consulted: { type: array, items: { type: string } }
+        retained: { type: array, description: Always a subset of consulted., items: { type: string } }
+        reached_human: { type: boolean }
+        status: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        timestamp: { type: string, nullable: true }
+    Journey:
+      type: object
+      required: [run_id, nodes, human, reached_human]
+      properties:
+        run_id: { type: string, nullable: true }
+        scenario: { type: string, nullable: true }
+        resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, null] }
+        decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        input:
+          type: object
+          properties:
+            kind: { type: string, nullable: true, enum: [message, thread, ask, null] }
+            thread_id: { type: string, nullable: true }
+            text: { type: string, nullable: true }
+            from: { type: string, nullable: true }
+            name: { type: string, nullable: true }
+            channel: { type: string, nullable: true }
+            received_at: { type: string, nullable: true }
+            as_of: { type: string, nullable: true }
+        nodes: { type: array, description: One per trace line., items: { $ref: "#/components/schemas/JourneyNode" } }
+        human:
+          type: object
+          properties:
+            input: { type: string, nullable: true }
+            path: { type: array, items: { type: string } }
+            reply:
+              type: object
+              properties:
+                kind: { type: string, enum: [auto_reply, draft_for_human, escalation, answer, none] }
+                text: { type: string, nullable: true }
+                to: { type: object, nullable: true }
+                attachments: { type: array, items: { type: string } }
+                blanks: { type: array, items: { type: string } }
+                recommendation: { type: string, nullable: true }
+        reached_human:
+          type: object
+          nullable: true
+          properties:
+            who: { $ref: "#/components/schemas/Person" }
+            what: { type: array, items: { type: string } }
+            queue_file: { type: string, nullable: true }
     TraceLine:
       type: object
       properties: { timestamp: { type: string }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }

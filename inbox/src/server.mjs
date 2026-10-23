@@ -1,7 +1,7 @@
-// Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /runs/:id[/trace] /openapi.yaml.
+// Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /runs /runs/:id[/trace|/journey] /queue /openapi.yaml.
 // JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
@@ -11,6 +11,7 @@ import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
+import { deriveJourney } from "./journey.mjs";
 
 export const VERSION = "0.1.0";
 export const BODY_LIMIT = 256 * 1024;
@@ -18,10 +19,64 @@ export const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
 export const RUN_CAP = 200;
 // run_id -> result, for CP4's GET /runs/:id. Insertion order; oldest dropped past the cap.
 export const runs = new Map();
+// run_id -> finish time (ISO), kept beside the result so GET /runs/:id still returns the result unchanged
+const runAt = new Map();
 function remember(run_id, result) {
   runs.delete(run_id);
   runs.set(run_id, result);
+  runAt.set(run_id, new Date().toISOString());
   while (runs.size > RUN_CAP) runs.delete(runs.keys().next().value);
+  for (const k of runAt.keys()) if (!runs.has(k)) runAt.delete(k);
+}
+const atOf = (id) => runAt.get(id) ?? null;
+const personOf = (id, name) => ({ employee_id: id ?? null, name: name ?? null });
+
+// GET /runs rows, newest first
+function runList(limit) {
+  return [...runs.entries()].reverse().slice(0, limit).map(([id, r]) => {
+    const isAsk = id.startsWith("ask_") || (r.intent !== undefined && r.output === undefined);
+    return {
+      run_id: id, kind: isAsk ? "ask" : "run", scenario: r.scenario ?? null, decision: r.output?.decision ?? null,
+      thread_id: r.input?.thread_id ?? null, branch_id: r.branch_id ?? null,
+      execution_time_seconds: r.execution_time_seconds ?? null, at: atOf(id),
+    };
+  });
+}
+
+// GET /queue rows: every queue file under memoryDir/queue plus held results from the runs map, newest first
+function queueList(memoryDir) {
+  const out = [];
+  const qdir = join(memoryDir, "queue");
+  let files = [];
+  try { files = readdirSync(qdir).filter((f) => f.endsWith(".json")); } catch { files = []; }
+  for (const f of files) {
+    try {
+      const full = join(qdir, f);
+      const q = JSON.parse(readFileSync(full, "utf8"));
+      const t = q.ticket ?? {};
+      const mtime = statSync(full).mtime.toISOString();
+      const row = { ticket_id: t.thread_id ?? t.id ?? f.replace(/\.json$/, ""), file: f, category: t.category ?? null, decision_reason: t.decision_reason ?? null };
+      if (t.approval) row.approver = personOf(t.approval.approver_id, t.approval.approver_name);
+      else {
+        const hit = [...runs.values()].find((r) => (r.input?.thread_id ?? null) === row.ticket_id || r.output?.queued_for?.queue_file?.endsWith(`/${f}`));
+        const qf = hit?.output?.queued_for;
+        row.owner = personOf(qf?.owner_id ?? t.owner_id, qf?.owner_name ?? t.owner_name);
+      }
+      row.has_draft = Boolean(t.draft?.text);
+      row.critiques = Array.isArray(q.critiques) ? q.critiques : (q.critiques ? [q.critiques] : []);
+      row.mtime = mtime;
+      out.push(row);
+    } catch { /* an unreadable queue file is skipped */ }
+  }
+  for (const [id, r] of runs) {
+    if (r.output?.decision !== "hold" || !r.output?.draft) continue;
+    const qf = r.output.queued_for;
+    out.push({ run_id: id, ticket_id: r.input?.thread_id ?? null, kind: "held", scenario: r.scenario ?? null,
+      owner: personOf(qf?.owner_id, qf?.owner_name), has_draft: true,
+      recommendation: qf?.recommendation ?? r.output.recommendation ?? null, at: atOf(id) });
+  }
+  const when = (x) => Date.parse(x.mtime ?? x.at ?? "") || 0;
+  return out.sort((a, b) => when(b) - when(a));
 }
 
 const CORS = {
@@ -87,6 +142,8 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   const started = Date.now();
   const sec = secrets();
   const dir = deps.dir ?? decisions.RUNTIME_DIR;
+  const memoryDir = deps.memoryDir ?? join(INBOX_ROOT, "data", "memory");
+  const logsDir = deps.logsDir ?? join(INBOX_ROOT, "logs");
   const runtimeDir = deps.runtimeDir ?? dir; // intake.csv lives beside decisions.csv (data/runtime by default)
   // publishes are serialised; /run fires one and moves on, /feedback and /counters wait for the queue
   let pending = Promise.resolve();
@@ -119,8 +176,8 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         return;
       }
       const GET_ONLY = ["/sources", "/intake", "/counters", "/openapi.yaml"];
-      const runsM = /^\/runs\/([^/]+)(\/trace)?$/.exec(path);
-      if (GET_ONLY.includes(path) || runsM) {
+      const runsM = /^\/runs\/([^/]+)(\/trace|\/journey)?$/.exec(path);
+      if (GET_ONLY.includes(path) || path === "/runs" || path === "/queue" || runsM) {
         if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
         if (path === "/sources") { send(200, await (deps.sources ?? queries.sources)({ cfg })); return; }
         if (path === "/intake") { send(200, JSON.parse(readFileSync(join(INBOX_ROOT, "data", "synthetic", "intakes", "contact-form", "submissions.json"), "utf8"))); return; }
@@ -131,16 +188,25 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
           send(200, await queries.counters({ cfg }));
           return;
         }
+        if (path === "/runs") {
+          const raw = new URL(req.url, "http://localhost").searchParams.get("limit");
+          const limit = raw === null ? 50 : (/^\d+$/.test(raw) ? Number(raw) : NaN);
+          if (!(limit >= 1 && limit <= 200)) throw new HttpError(400, "BadRequest", "limit must be an integer from 1 to 200");
+          send(200, runList(limit));
+          return;
+        }
+        if (path === "/queue") { send(200, queueList(memoryDir)); return; }
         if (path === "/openapi.yaml") { sendText(200, "application/yaml; charset=utf-8", readFileSync(join(INBOX_ROOT, "openapi.yaml"), "utf8")); return; }
         let id;
         try { id = decodeURIComponent(runsM[1]); } catch { id = ""; }
         const stored = runs.get(id);
         if (!stored) { send(404, errBody(id, "NotFound", `no stored run ${id}`, false, t0)); return; }
         if (!runsM[2]) { send(200, stored); return; }
-        const tracePath = join(deps.logsDir ?? join(INBOX_ROOT, "logs"), basename(String(stored.log_file ?? "")));
+        const tracePath = join(logsDir, basename(String(stored.log_file ?? `trace-${id}.jsonl`)));
         let text;
         try { text = readFileSync(tracePath, "utf8"); } catch { send(404, errBody(id, "NotFound", `trace file for ${id} is gone`, false, t0)); return; }
-        send(200, text.split("\n").filter(Boolean).map((l) => JSON.parse(l)));
+        const traceLines = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
+        send(200, runsM[2] === "/journey" ? deriveJourney(stored, traceLines) : traceLines);
         return;
       }
       if (!["/run", "/ask", "/feedback"].includes(path)) { send(404, errBody(null, "NotFound", `no route ${req.method} ${path}`, false, t0)); return; }

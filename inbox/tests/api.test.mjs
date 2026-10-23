@@ -270,3 +270,105 @@ test("a token in a message never comes back from /runs/:id or its trace", async 
   assert.ok(!a.includes(token), "run body masked");
   assert.ok(!t.includes(token), "trace body masked");
 });
+
+// ---- GET /runs, /runs/:id/journey, /queue ----
+const TOKEN = "sk-test-" + "x".repeat(40);
+
+test("GET /runs lists runs newest first with the list fields, and honours limit", async () => {
+  const r = await get("/runs");
+  assert.equal(r.status, 200);
+  const list = await r.json();
+  const iFaq = list.findIndex((x) => x.run_id === "msg-faq");
+  const iRfq = list.findIndex((x) => x.run_id === "msg-rfq");
+  assert.ok(iFaq >= 0 && iRfq >= 0 && iRfq < iFaq, "rfq ran after faq, so it is listed first");
+  for (const x of list) {
+    assert.deepEqual(Object.keys(x).sort(), ["at", "branch_id", "decision", "execution_time_seconds", "kind", "run_id", "scenario", "thread_id"]);
+    assert.ok(["run", "ask"].includes(x.kind));
+    assert.ok(Number.isFinite(Date.parse(x.at)), x.at);
+  }
+  for (let i = 1; i < list.length; i++) assert.ok(Date.parse(list[i - 1].at) >= Date.parse(list[i].at), "newest first");
+  assert.equal(list[iRfq].scenario, "rfq");
+  assert.equal(list[iRfq].decision, "escalate");
+  assert.equal(list[iFaq].decision, "send");
+  assert.ok(list.some((x) => x.kind === "ask"), "the earlier /ask is listed as kind ask");
+  const one = await (await get("/runs?limit=1")).json();
+  assert.equal(one.length, 1);
+  assert.equal(one[0].run_id, list[0].run_id);
+});
+
+test("GET /runs rejects a limit outside 1 to 200", async () => {
+  for (const q of ["0", "201", "-1", "abc", "1.5"]) {
+    const r = await get(`/runs?limit=${q}`);
+    assert.equal(r.status, 400, q);
+    assert.equal((await r.json()).error.type, "BadRequest");
+  }
+  assert.equal((await get("/runs?limit=200")).status, 200);
+});
+
+test("the three /runs routes stay apart: list, one run, its journey", async () => {
+  const list = await (await get("/runs")).json();
+  assert.ok(Array.isArray(list));
+  const one = await (await get("/runs/msg-faq")).json();
+  assert.equal(one.run_id, "msg-faq");
+  assert.ok(!Array.isArray(one) && one.output);
+  const j = await (await get("/runs/msg-faq/journey")).json();
+  assert.ok(Array.isArray(j.nodes) && j.human);
+  assert.equal((await get("/runs/msg-faq/other")).status, 404);
+  assert.equal((await post("/runs", {})).status, 405);
+  assert.equal((await post("/queue", {})).status, 405);
+});
+
+test("GET /runs/:id/journey derives the journey from the stored result and its trace", async () => {
+  for (const [id, kind] of [["msg-faq", "auto_reply"], ["msg-rfq", "escalation"]]) {
+    const r = await get(`/runs/${id}/journey`);
+    assert.equal(r.status, 200, id);
+    const j = await r.json();
+    const trace = await (await get(`/runs/${id}/trace`)).json();
+    assert.equal(j.nodes.length, trace.length, id);
+    assert.equal(j.human.reply.kind, kind, id);
+    for (const n of j.nodes) for (const c of n.retained) assert.ok(n.consulted.includes(c), `${id} node ${n.n}: ${c}`);
+    if (id === "msg-rfq") {
+      assert.equal(j.reached_human.who.employee_id, 6);
+      assert.ok(j.nodes.some((n) => n.reached_human));
+    }
+  }
+  const gone = await get("/runs/nope/journey");
+  assert.equal(gone.status, 404);
+  assert.equal((await gone.json()).error.type, "NotFound");
+});
+
+test("GET /queue lists the escalated RFQ with its owner, draft flag and critiques", async () => {
+  const r = await get("/queue");
+  assert.equal(r.status, 200);
+  const q = await r.json();
+  assert.ok(Array.isArray(q) && q.length >= 1);
+  const rfq = await (await get("/runs/msg-rfq")).json();
+  const row = q.find((x) => x.ticket_id === rfq.input.thread_id);
+  assert.ok(row, JSON.stringify(q).slice(0, 300));
+  const who = row.approver ?? row.owner;
+  assert.equal(who.employee_id, 6);
+  assert.ok(typeof who.name === "string" && who.name.length > 0, JSON.stringify(who));
+  assert.equal(row.has_draft, true);
+  assert.ok(Array.isArray(row.critiques));
+  assert.ok(row.file.endsWith(".json") && Number.isFinite(Date.parse(row.mtime)));
+});
+
+test("GET /queue is [] when the queue directory is absent", async () => {
+  const empty = createServer({ cfg: config({ SAMPLE_MODE: "true" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-emptymem-")), quiet: true, publish: async () => ({ published: true }) } });
+  await new Promise((res) => empty.listen(0, "127.0.0.1", res));
+  try {
+    const q = await (await fetch(`http://127.0.0.1:${empty.address().port}/queue`)).json();
+    // held runs from the shared runs map may be listed; no queue-file rows may be
+    assert.ok(q.every((x) => x.kind === "held"), JSON.stringify(q).slice(0, 200));
+  } finally { empty.close(); }
+});
+
+test("a token in a message is absent from /runs, the journey and /queue", async () => {
+  const r = await post("/run", { run_id: "msg-secret2", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: `Incoming RFQ for price difference between ordering 100000 training sabers and 100, key ${TOKEN}` } });
+  assert.equal(r.status, 200);
+  await r.text();
+  for (const p of ["/runs", "/runs/msg-secret2/journey", "/queue"]) {
+    const body = await (await get(p)).text();
+    assert.ok(!body.includes(TOKEN), `${p} masked`);
+  }
+});
