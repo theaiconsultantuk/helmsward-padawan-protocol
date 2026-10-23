@@ -110,3 +110,30 @@ export function parseCriticJson(text) {
 
 // The RFQ acknowledgement (S1.2): code, no model call. Quantities may appear; a price never does.
 export const ACKNOWLEDGEMENT_TEMPLATE = "Thank you, your request for a quote is with our sales team, who will come back to you with the price for {quantities}.";
+
+// Complaint handler (S2.2): the Nemotron read and the OpenJev severity question.
+export const COMPLAINT_READ_SYSTEM = "You read one customer complaint for the Jedi Pack support team with the company's record of this customer and product. Decide whether the customer is venting (angry, wants to be heard, no concrete harm to repair) or has a genuine complaint the company must handle to keep face (a concrete failure, a public audience, a repeat problem, a promise broken). Return strict JSON: {\"kind\":\"vent\"|\"genuine\",\"face_risk\":boolean,\"reasoning\":string,\"handle\":string}";
+
+export function complaintReadMessages({ ticket, worldText = "", provenanceIds = [] } = {}) {
+  const t = ticket ?? {};
+  const parts = [
+    line("Subject", t.subject),
+    `Customer message:\n${t.body ?? ""}`,
+    line("Channel", t.channel),
+    `Company record (World Model):\n${worldText || "no history"}`,
+    provenanceIds.length ? `Provenance ids: ${provenanceIds.join(", ")}` : null,
+    "Return the JSON object now.",
+  ];
+  return [{ role: "system", content: `${COMPLAINT_READ_SYSTEM}\n\nReturn the JSON object now.` }, { role: "user", content: parts.filter(Boolean).join("\n\n") }];
+}
+
+export function parseComplaintReadJson(text) {
+  const j = extractJson(text);
+  if (!j || (j.kind !== "vent" && j.kind !== "genuine")) {
+    throw Object.assign(new Error("complaint read: kind missing or not vent|genuine"), { name: "BadResponse" });
+  }
+  return { kind: j.kind, face_risk: j.face_risk === true, reasoning: typeof j.reasoning === "string" ? j.reasoning.trim() : "", handle: typeof j.handle === "string" ? j.handle.trim() : "" };
+}
+
+export const SEVERITY_LEVELS = ["1 nothing to handle", "2", "3", "4", "5", "6", "7", "8", "9 public damage or a broken promise", "10 legal or safety"];
+export const SEVERITY_QUESTION = { type: "score", instructions: "How severe is this complaint for the company (1 nothing to handle, 10 legal or safety)?", criteria: SEVERITY_LEVELS };

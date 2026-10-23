@@ -1,7 +1,7 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
 import { readFileSync } from "node:fs";
 import { config, INBOX_ROOT } from "../config.mjs";
-import { ACKNOWLEDGEMENT_TEMPLATE } from "../prompts.mjs";
+import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
 
@@ -92,7 +92,7 @@ export function gates(ticket) {
 
 // The greeting and sign-off every sample reply wears (same two lines as draft()).
 export function frame(ticket, body) {
-  return `Hello ${ticket?.sender_name ?? "there"},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
+  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
 }
 
 // The RFQ acknowledgement: ACKNOWLEDGEMENT_TEMPLATE filled with the quantities. Code, no model call; never a price.
@@ -100,4 +100,31 @@ export function acknowledgement(ticket, { quantities = [] } = {}) {
   const q = quantities.map(String);
   const said = q.length === 0 ? "the quantity you asked about" : q.length === 1 ? q[0] : `${q.slice(0, -1).join(", ")} and ${q.at(-1)}`;
   return { text: frame(ticket, ACKNOWLEDGEMENT_TEMPLATE.replace("{quantities}", said)), model: "template/acknowledgement", route: "template", promises: { refund_amount: null, replacement: false, other: null } };
+}
+
+// Complaint handler twins (S2.2): deterministic keyword reads.
+export function complaintRead(ticket, { worldText = "" } = {}) {
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const genuine = /unacceptable|never again|lawyer|review|public|twice|again|everyone/i.test(text);
+  return {
+    kind: genuine ? "genuine" : "vent",
+    face_risk: genuine,
+    reasoning: genuine ? "The message names a concrete failure, a repeat or a public audience." : "The customer is upset but names no concrete harm to repair.",
+    handle: genuine ? "A person should own this, repair the failure and answer the customer directly." : "A calm acknowledgement is enough; there is nothing to repair.",
+    model: "sample-rules",
+  };
+}
+
+export function severity(ticket, { kind = "vent", repeat = false, publicChannel = false } = {}) {
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  let score;
+  if (/lawyer|unsafe|injur/i.test(text)) score = 10;
+  else if (/never again|everyone/i.test(text)) score = 9;
+  else {
+    score = /furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
+    if (publicChannel) score += 4;
+    if (repeat) score += 2;
+  }
+  score = Math.max(1, Math.min(10, score));
+  return { score, legend: SEVERITY_LEVELS[score - 1] };
 }

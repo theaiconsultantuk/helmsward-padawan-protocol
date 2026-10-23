@@ -10,7 +10,7 @@ import { mask } from "./trace.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as openjev from "./adapters/openjev.mjs";
-import { typedGates, trustFloor, hardRisk } from "./gates.mjs";
+import { typedGates, severityGate, trustFloor, hardRisk } from "./gates.mjs";
 
 const PROMPT = [{ role: "user", content: "Reply with the single word OK." }];
 const CANDIDATES = [
@@ -226,7 +226,7 @@ async function sqlName(args) {
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: {
   apply: { type: "boolean", default: false }, thread: { type: "string" }, "as-of": { type: "string" },
-  "run-id": { type: "string" }, example: { type: "string" }, customer: { type: "string" },
+  "run-id": { type: "string" }, example: { type: "string" }, customer: { type: "string" }, kind: { type: "string" },
 } });
 
 async function runCmd(v) {
@@ -259,6 +259,16 @@ async function askCmd(args, v) {
   console.log(JSON.stringify(mask(out, secrets()), null, 2));
   return 0;
 }
+async function gatesSeverityCmd(args, v) {
+  const text = args.join(" ").trim();
+  const kind = v.kind ?? "vent";
+  if (!text || !["vent", "genuine"].includes(kind)) { console.error('usage: gates-severity "<text>" [--kind vent|genuine]'); return 64; }
+  const ticket = { subject: text.slice(0, 60), body: text, channel: "chat" };
+  const noop = { line() {} };
+  const r = await severityGate(ticket, {}, "", { trace: noop, cfg: config(), sampleMode: false, kind });
+  console.log(JSON.stringify(mask(r, secrets()), null, 2));
+  return 0;
+}
 const [cmd, ...rest] = positionals;
 let code = 64;
 try {
@@ -266,10 +276,11 @@ try {
   else if (cmd === "pin-primary") code = await pinPrimary();
   else if (cmd === "sql") code = await sql(rest, values.apply);
   else if (cmd === "gates") code = await gatesCmd(rest);
+  else if (cmd === "gates-severity") code = await gatesSeverityCmd(rest, values);
   else if (cmd === "run") code = await runCmd(values);
   else if (cmd === "sql-name") code = await sqlName(rest);
   else if (cmd === "ask") code = await askCmd(rest, values);
-  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...] | ask \"<question>\" [--customer <email>] | run --thread <id>|--example N");
+  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | gates-severity \"<text>\" [--kind vent|genuine] | sql-name <template> [k=v ...] | ask \"<question>\" [--customer <email>] | run --thread <id>|--example N");
 } catch (e) {
   console.error(`${e.name}: ${mask(String(e.message), secrets())}`);
   code = 1;
