@@ -50,7 +50,7 @@ test("a draft naming an amount above the limit is withheld: Risk refuses, the ti
   const risks = lines.filter((l) => l.step === "risk.signoff");
   assert.equal(risks.at(-1).status, "refused");
   assert.match(risks.at(-1).output_summary, /400/);
-  assert.equal(lines.filter((l) => l.step === "nvidia.model" && l.action === "recommend").length, 2, "one rewrite only");
+  assert.equal(lines.filter((l) => l.step === "nvidia.model" && l.action === "recommend").length, 1, "a Risk refusal stops at once: no second draft is requested");
 });
 
 test("blanks the model forgot to list are added, not failed", async () => {

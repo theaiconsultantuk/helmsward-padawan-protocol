@@ -108,5 +108,18 @@ test("severityGate: a 500 falls back to rules at 0.5 with an error line then a s
   const g = await withMockFetch([{ match: isOj, reply: () => ({ status: 500, body: { error: "boom" } }) }],
     () => severityGate(SEV, {}, "", { trace: t, cfg, kind: "genuine" }));
   assert.equal(g.gate_source, "rules"); assert.equal(g.confidence, 0.5); assert.equal(g.model, "rules"); assert.equal(g.score, 9);
-  assert.deepEqual(t.lines.map((l) => l.status), ["error", "success"]);
+  assert.deepEqual(t.lines.map((l) => l.step + ":" + l.status), ["nvidia.model:error", "recovery:success", "nvidia.model:success"]);
+  assert.match(t.lines[1].output_summary, /severity by rules at confidence 0\.5/);
+});
+
+test("S5.3-7: an aborted signal stops severityGate fast, with one fetch and no fallback call", async () => {
+  const ac = new AbortController();
+  let calls = 0;
+  const fetchImpl = (u, init) => { calls += 1; return new Promise((_, rej) => init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })))); };
+  const p = severityGate(SEV, {}, "", { trace: trace(), cfg, kind: "genuine", fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(new Error("RunTimeout")), 10);
+  const t0 = Date.now();
+  await assert.rejects(p);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(calls, 1);
 });

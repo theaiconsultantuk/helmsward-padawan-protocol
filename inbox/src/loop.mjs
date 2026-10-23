@@ -342,7 +342,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     try {
       memId = hmem.queueForHuman(ticketObj, critiques, {
         owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? null },
-        scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null,
+        scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null, attachments: attachments ?? null, escalation: escalation ?? null,
       });
     } catch (e) {
       queueFailed = true;
@@ -401,12 +401,21 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       } catch (e) {
         preErr = e;
       }
-      try {
-        preGates = await gatesFn(rowTicket, {}, { trace: { line: (x) => preGbuf.push(x) }, cfg, sampleMode: sampleOn });
-      } catch (e) {
-        soft("nvidia.model", e, "typed gates failed, used code rules");
-        const g = sample.gates(rowTicket);
-        preGates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+      // Scout's contract and risk block are checked BEFORE any model call: a refused message never reaches the gates.
+      let scoutRefused = preErr != null || !preDecided;
+      if (!scoutRefused) {
+        try {
+          scoutRefused = !verifyContract(preDecided.executionContract, { secret: scout.secret ?? secret }).ok || preDecided.risk?.level === "block";
+        } catch { scoutRefused = true; }
+      }
+      if (!scoutRefused) {
+        try {
+          preGates = await gatesFn(rowTicket, {}, { trace: { line: (x) => preGbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
+        } catch (e) {
+          soft("nvidia.model", e, "typed gates failed, used code rules");
+          const g = sample.gates(rowTicket);
+          preGates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+        }
       }
       let faqHit = null;
       try {
@@ -542,7 +551,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let gates = preGates;
     if (!gates) {
       try {
-        gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn });
+        gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
       } catch (e) {
         soft("nvidia.model", e, "typed gates failed, used code rules");
         const g = sample.gates(ticket);
@@ -563,7 +572,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // A scenario with a handler takes over only where the legacy branch would have drafted (under-floor or send-ok); the pre-empting branches stand.
     const handler = HANDLERS[S.scenario.scenario];
     let probe = null;
+    let notDispatched = null;
     if (handler && (B0 === "under-floor" || B0 === "send-ok")) {
+      const missing = [...unavailable, ...(f.disclosure_unknown === true ? ["disclosure policy"] : [])];
+      if (missing.length) notDispatched = `scenario ${S.scenario.scenario} (${S.scenario.how}) not dispatched: ${missing.join(" and ")} unavailable, held for a person`;
+    }
+    if (handler && !notDispatched && (B0 === "under-floor" || B0 === "send-ok")) {
       try {
         probe = await handler.probe(tb);
       } catch (e) {
@@ -579,6 +593,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     for (const g of gbuf) L({ ...g, branch_id: B });
     if (!gbuf.length) L({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model: gates.model, gate_source: gates.gate_source, input_summary: `typed gates for ${thread_id}`, output_summary: "gates supplied by caller", status: "success", branch_id: B });
 
+    if (notDispatched) L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`, output_summary: notDispatched, status: "success", memory_ids: S.memRead });
     if (probe) {
       for (const x of probe.lines ?? []) L(x);
       L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`,

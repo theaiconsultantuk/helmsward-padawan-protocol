@@ -146,7 +146,7 @@ export class HMEM {
     fs.mkdirSync(qdir, { recursive: true });
     const now = this.#clock();
     const tid = String(ticket.thread_id ?? ticket.id).replace(/[^A-Za-z0-9._-]/g, "_");
-    atomicWrite(path.join(qdir, `${tid}.json`), JSON.stringify({ ticket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}) }, null, 2) + "\n");
+    atomicWrite(path.join(qdir, `${tid}.json`), JSON.stringify({ ticket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}), ...(extra?.attachments != null ? { attachments: extra.attachments } : {}), ...(extra?.escalation != null ? { escalation: extra.escalation } : {}) }, null, 2) + "\n");
     const reason = (Array.isArray(critiques) ? critiques : [critiques])
       .map((c) => (typeof c === "string" ? c : c?.reason)).filter(Boolean).join("; ");
     const rec = this.add({

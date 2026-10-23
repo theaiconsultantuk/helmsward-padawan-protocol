@@ -129,10 +129,12 @@ export function complaintReadMessages({ ticket, worldText = "", provenanceIds = 
 
 export function parseComplaintReadJson(text) {
   const j = extractJson(text);
-  if (!j || (j.kind !== "vent" && j.kind !== "genuine")) {
-    throw Object.assign(new Error("complaint read: kind missing or not vent|genuine"), { name: "BadResponse" });
-  }
-  return { kind: j.kind, face_risk: j.face_risk === true, reasoning: typeof j.reasoning === "string" ? j.reasoning.trim() : "", handle: typeof j.handle === "string" ? j.handle.trim() : "" };
+  const bad = (why) => Object.assign(new Error(`complaint read: ${why}`), { name: "BadResponse" });
+  if (!j || (j.kind !== "vent" && j.kind !== "genuine")) throw bad("kind missing or not vent|genuine");
+  if (typeof j.face_risk !== "boolean") throw bad("face_risk missing or not a boolean");
+  if (typeof j.reasoning !== "string" || !j.reasoning.trim()) throw bad("reasoning missing");
+  if (typeof j.handle !== "string" || !j.handle.trim()) throw bad("handle missing");
+  return { kind: j.kind, face_risk: j.face_risk, reasoning: j.reasoning.trim(), handle: j.handle.trim() };
 }
 
 export const SEVERITY_LEVELS = ["1 nothing to handle", "2", "3", "4", "5", "6", "7", "8", "9 public damage or a broken promise", "10 legal or safety"];

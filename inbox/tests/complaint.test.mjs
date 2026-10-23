@@ -42,3 +42,10 @@ test("sample.complaintRead and severity", () => {
   assert.equal(sample.severity({ body: "furious terrible" }, { publicChannel: true, repeat: true }).score, 10);
   assert.equal(sample.severity({ body: "my lawyer" }).legend, "10 legal or safety");
 });
+
+test("S5.3-12: parseComplaintReadJson validates the full schema", () => {
+  assert.throws(() => parseComplaintReadJson('{"kind":"genuine"}'), /face_risk/);
+  assert.throws(() => parseComplaintReadJson('{"kind":"genuine","face_risk":"yes","reasoning":"r","handle":"h"}'), /face_risk/);
+  assert.throws(() => parseComplaintReadJson('{"kind":"vent","face_risk":false,"reasoning":"","handle":"h"}'), /reasoning/);
+  assert.throws(() => parseComplaintReadJson('{"kind":"vent","face_risk":false,"reasoning":"r","handle":" "}'), /handle/);
+});

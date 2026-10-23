@@ -10,8 +10,8 @@ import { runTicket } from "../src/loop.mjs";
 const CELLS = JSON.parse(readFileSync(join(INBOX_ROOT, "tests", "fixtures", "scenario_shapes.json"), "utf8")).cells;
 const cfg = () => ({ ...config(), SAMPLE_MODE: "true" });
 const dirs = (runtimeDir = mkdtempSync(join(tmpdir(), "sgrid-rt-"))) => ({ logsDir: mkdtempSync(join(tmpdir(), "sgrid-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "sgrid-mem-")), runtimeDir, quiet: true });
-async function go({ thread = null, input, as_of }, { d = dirs(), run_id = "sg" } = {}) {
-  const result = await runTicket(thread, { run_id, cfg: cfg(), as_of, input, deps: d });
+async function go({ thread = null, input, as_of }, { d = dirs(), run_id = "sg", extra = {} } = {}) {
+  const result = await runTicket(thread, { run_id, cfg: cfg(), as_of, input, deps: { ...d, ...extra } });
   const lines = readFileSync(join(d.logsDir, `trace-${run_id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   return { result, lines, d };
 }
@@ -26,7 +26,12 @@ const oneOf = (want, got, label) => Array.isArray(want) ? assert.ok(want.include
 
 test("the scenario grid: every cell decides to its expected branch, decision and order", async () => {
   for (const c of CELLS) {
-    const { result, lines } = await go({ thread: c.thread ?? null, input: c.input, as_of: c.as_of });
+    // provider spies: a Scout-refused cell must reach neither the gates nor the drafter
+    const spy = { gates: 0, drafter: 0 };
+    const extra = c.expect.scout_refused ? {
+      gates: async () => { spy.gates += 1; return { answers: {}, model: "spy", gate_source: "rules", confidence: 0.5 }; },
+      drafter: async () => { spy.drafter += 1; return { model: "spy", text: "{}" }; } } : {};
+    const { result, lines } = await go({ thread: c.thread ?? null, input: c.input, as_of: c.as_of }, { extra });
     const e = c.expect, o = result.output;
     assert.equal(result.status, "success", c.id);
     assert.equal(result.scenario, e.scenario, `${c.id} scenario`);
@@ -42,6 +47,7 @@ test("the scenario grid: every cell decides to its expected branch, decision and
     if (e.scout_refused) {
       assert.ok(lines.some((l) => l.step === "meterless.engine" && l.status === "refused"), `${c.id} Scout refused`);
       assert.ok(!lines.some((l) => l.step === "nvidia.model" && l.status === "success"), `${c.id} no model call`);
+      assert.deepEqual(spy, { gates: 0, drafter: 0 }, `${c.id} provider spies saw no call`);
       assert.ok(lines.some((l) => l.step === "zetaris.query" && l.action === "intake_publish"), `${c.id} row appended first`);
     }
     assertSubsequence(tokens(lines), c.sequence, c.id);

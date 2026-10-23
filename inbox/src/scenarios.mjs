@@ -264,8 +264,8 @@ const NO_HISTORY = () => ({ text: "no earlier threads for this sender", provenan
 
 async function probeComplaint(tb) {
   const f = tb.f ?? {};
-  const lines = [];
-  const { o } = buffer(tb, null);
+  // one buffer: the world_threads / products / reviews / owner query lines (and their adapter recoveries) join the probe's own lines in order
+  const { lines, o } = buffer(tb, null);
   const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? tb.ticket?.subject ?? "", body: tb.inputText ?? f.body ?? "", channel: f.channel ?? tb.ticket?.channel,
     thread_id: f.thread_id, sender_name: f.sender_name ?? tb.ticket?.sender_name, sender_email: f.sender_email };
   const rows = {};
@@ -288,18 +288,32 @@ async function probeComplaint(tb) {
       { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after meterless.engine error", output_summary: "world context unavailable, read by text alone", status: "success" });
   }
   // the Nemotron read
-  const readLine = (model, read, extra = {}) => lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", sponsor: "nvidia", model,
-    input_summary: `complaint read for ${f.thread_id ?? "ticket"}`, output_summary: `kind ${read.kind}, face_risk ${read.face_risk}: ${one(read.reasoning, 120)}`, status: "success", ...extra });
+  const readLine = (model, read, extra = {}) => {
+    const { local, ...rest } = extra;
+    lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", ...(local ? {} : { sponsor: "nvidia" }), model,
+      input_summary: `complaint read for ${f.thread_id ?? "ticket"}`, output_summary: `kind ${read.kind}, face_risk ${read.face_risk}: ${one(read.reasoning, 120)}`, status: "success", ...rest });
+  };
   let read;
   const twin = () => sample.complaintRead(ticket, { worldText: ctx.text });
+  const sampleLine = (r, extra = {}) => readLine(r.model ?? "sample-rules", r, { status: "skipped", output_summary: `sample mode: rules read (${r.model ?? "sample-rules"}), no model call; kind ${r.kind}, face_risk ${r.face_risk}: ${one(r.reasoning, 100)}`, ...extra });
   if (tb.sampleOn) {
     read = twin();
-    readLine(read.model ?? "sample-rules", read);
+    sampleLine(read);
   } else {
     try {
-      const res = await tb.io.drafter(complaintReadMessages({ ticket, worldText: ctx.text, provenanceIds: ctx.provenance.map((p) => p.id) }), { purpose: "complaint_read", trace: tb.io.adapterTrace });
-      if (res.sample || res.text == null) { read = twin(); readLine(read.model ?? "sample-rules", read); }
-      else { read = parseComplaintReadJson(res.text); readLine(res.model, read); }
+      const messages = complaintReadMessages({ ticket, worldText: ctx.text, provenanceIds: ctx.provenance.map((p) => p.id) });
+      let res = await tb.io.drafter(messages, { purpose: "complaint_read", trace: tb.io.adapterTrace, signal: tb.io.signal });
+      if (res.sample || res.text == null) { read = twin(); sampleLine(read); }
+      else {
+        let models = null;
+        try { read = parseComplaintReadJson(res.text); } catch {
+          const first = res.model;
+          res = await tb.io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "complaint_read", trace: tb.io.adapterTrace, signal: tb.io.signal });
+          models = `models: ${first}, then ${res.model}`;
+          read = parseComplaintReadJson(res.text);
+        }
+        readLine(res.model, read, { local: res.lane === "local-lane", ...(models ? { output_summary: `kind ${read.kind}, face_risk ${read.face_risk}: ${one(read.reasoning, 100)} (${models})` } : {}) });
+      }
     } catch (e) {
       lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", sponsor: "nvidia", input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" },
         { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after nvidia.model error", output_summary: "complaint read unavailable, rules read used", status: "success" });
@@ -309,7 +323,7 @@ async function probeComplaint(tb) {
   }
   // severity (the gate logs its own line through the shim)
   const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel === "trustpilot" }, wline,
-    { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind });
+    { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
   const sevCls = sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
   const owner = await ownerOf(tb, "complaint", o);
   const cited = ["world_threads", ...ctx.product_ids.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
@@ -416,22 +430,29 @@ async function actCustomerService(tb, p) {
   const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? tb.ticket?.subject ?? "", body: tb.inputText ?? f.body ?? "", sender_name: f.sender_name ?? tb.ticket?.sender_name };
   const limit = f.policy_limit_usd ?? (rows.policy?.[0]?.limit_amount != null ? Number(rows.policy[0].limit_amount) : null);
   const twin = () => sample.recommendation(ticket, { candidates, pages, faqRows });
-  const callLine = (model, rec, extra = {}) => tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", sponsor: "nvidia", model, branch_id: B,
-    input_summary: `recommendation and draft for ${f.thread_id ?? "ticket"}`, output_summary: `recommendation ${rec.recommendation.length} chars; draft ${rec.draft.length} chars; ${rec.blanks.length} blank(s)`, status: "success", ...extra });
+  const callLine = (model, rec, extra = {}) => {
+    const { local, ...rest } = extra;
+    tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", ...(local ? {} : { sponsor: "nvidia" }), model, branch_id: B,
+      input_summary: `recommendation and draft for ${f.thread_id ?? "ticket"}`, output_summary: `recommendation ${rec.recommendation.length} chars; draft ${rec.draft.length} chars; ${rec.blanks.length} blank(s)`, status: "success", ...rest });
+  };
   const recommend = async (critiques) => {
     const messages = recommendationMessages({ ticket, facts: f, candidates, gates: tb.gates, rows, worldText, memories: tb.memCtx, critiques });
+    let firstModel = null;
     try {
-      let res = await tb.io.drafter(messages, { purpose: "recommendation", trace: tb.io.adapterTrace });
-      if (res.sample || res.text == null) { const r = twin(); callLine(r.model, r, { status: "skipped", output_summary: "sample mode: rules recommender, no model call" }); return { ...r, model: r.model }; }
+      let res = await tb.io.drafter(messages, { purpose: "recommendation", trace: tb.io.adapterTrace, signal: tb.io.signal });
+      if (res.sample || res.text == null) { const r = twin(); callLine(r.model, r, { status: "skipped", output_summary: `sample mode: rules recommender (${r.model}), no model call` }); return { ...r, model: r.model }; }
       let rec;
+      let models = null;
       try { rec = parseRecommendationJson(res.text); } catch {
-        res = await tb.io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "recommendation", trace: tb.io.adapterTrace });
+        firstModel = res.model;
+        res = await tb.io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "recommendation", trace: tb.io.adapterTrace, signal: tb.io.signal });
+        models = `models: ${firstModel}, then ${res.model}`;
         rec = parseRecommendationJson(res.text);
       }
-      callLine(res.model, rec);
+      callLine(res.model, rec, { local: res.lane === "local-lane", ...(models ? { output_summary: `recommendation ${rec.recommendation.length} chars; draft ${rec.draft.length} chars; ${rec.blanks.length} blank(s); ${models}` } : {}) });
       return { ...rec, model: res.model };
     } catch (e) {
-      tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", sponsor: "nvidia", branch_id: B, input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" });
+      tb.L({ step: "nvidia.model", agent_name: "Recommender", action: "recommend", sponsor: "nvidia", branch_id: B, input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}${firstModel ? ` (first model ${firstModel}, nudge failed)` : ""}`, status: "error" });
       tb.L({ step: "recovery", agent_name: "Planner", action: "recover", branch_id: B, input_summary: "after nvidia.model error", output_summary: "rules recommendation used", status: "success" });
       const r = twin(); callLine(r.model, r, { input_summary: "rules recommendation after the model failed" }); return r;
     }
@@ -462,7 +483,7 @@ async function actCustomerService(tb, p) {
     tb.L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: n - 1,
       input_summary: `round ${n} draft vs facts`, output_summary: rpass ? "Signed off." : `Refused: ${riskReasons.join("; ")}`, status: rpass ? "success" : "refused" });
     tb.S.rounds.push({ n, critique: crit, risk: { pass: rpass, reasons: riskReasons, hard: !rpass } });
-    if ((crit.pass && rpass) || n >= max) break;
+    if ((crit.pass && rpass) || !rpass || n >= max) break;   // a Risk refusal is hard: no second draft, the first is withheld
     const both = [`Evaluator: ${crit.reason}`, `Risk: ${riskReasons.join("; ") || "signed off"}`];
     tb.L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Recommender", branch_id: B, retry_count: n, input_summary: `round ${n} negative`,
       output_summary: `${both.join(" | ")}. Next draft must fix both`, status: "retrying", memory_ids: tb.S.memRead });
