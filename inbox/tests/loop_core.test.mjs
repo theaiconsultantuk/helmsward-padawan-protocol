@@ -213,7 +213,8 @@ test("a drafter failure logs error then recovery and the run still ends with a r
   const live = config({ SAMPLE_MODE: "false" });
   const drafter = async () => { throw Object.assign(new Error("upstream down"), { name: "UpstreamTimeout" }); };
   const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
-  const t = await run("T18", { cfg: live, extra: { drafter, gates } });
+  // live cfg: the duplicate check and the trust ledger would read Zetaris; stubbed so the test runs without .env
+  const t = await run("T18", { cfg: live, extra: { drafter, gates, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
   const seq = pairs(t.lines);
   assert.ok(seq.indexOf("nvidia.model:error") > -1);
   assert.equal(seq[seq.indexOf("nvidia.model:error") + 1], "recovery:success");
@@ -239,7 +240,7 @@ test("H4: an always-negative critic stops at exactly two rounds, then escalates;
   const drafter = async () => { drafts += 1; return { text: JSON.stringify({ reply_text: "Thanks, Employee 4 will follow up.", promises: { refund_amount: null, replacement: false, other: null } }), model: "nvidia/nemotron-test" }; };
   const critic = async () => ({ pass: false, reason: "still not right", model: "nvidia/nemotron-test" });
   const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
-  const t = await run("T18", { cfg: live, extra: { drafter, critic, gates } });
+  const t = await run("T18", { cfg: live, extra: { drafter, critic, gates, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
   const n = (step) => t.lines.filter((l) => l.step === step);
   assert.equal(drafts, 2, "exactly two draft calls");
   assert.equal(n("critique").length, 2);
