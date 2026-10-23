@@ -569,6 +569,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       if (a.reasons?.length) S.reasons = [...a.reasons];
       if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model };
       if (a.recommendation !== undefined) S.recommendation = a.recommendation;
+      // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
+      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
       return;
     }

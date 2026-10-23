@@ -5,7 +5,9 @@
 // tb is the loop's toolbox ({ f, ticket, inputText, L, skipped, escalate, replyLoop, hardRisk, queries, o, cfg, decided, ... }).
 import { tokens, extractParams } from "./engines/scout/index.mjs";
 import { rowsForIntent } from "./ask.mjs";
-import { draftMessages } from "./prompts.mjs";
+import { draftMessages, complaintReadMessages, parseComplaintReadJson } from "./prompts.mjs";
+import { severityGate } from "./gates.mjs";
+import { getWorld, toObjects, complaintContext, worldLine, mentionedProducts } from "./engines/world-model/world.mjs";
 import * as sample from "./adapters/sample.mjs";
 
 export const SCENARIOS = ["refund", "question", "rfq", "complaint", "free_text"];
@@ -228,7 +230,105 @@ async function actRfq(tb, p) {
   return { decision: "escalate", reasons: [reason], draft: sig.pass ? draft : undefined, queued: owner, recommendation, attachments, cited: p.cited };
 }
 
+// ---- complaint ----
+
+const NO_HISTORY = () => ({ text: "no earlier threads for this sender", provenance: [], summary: { earlier_threads: 0, complaints: 0, public_before: false, product_complaints: {} }, customer_id: null, product_ids: [] });
+
+async function probeComplaint(tb) {
+  const f = tb.f ?? {};
+  const lines = [];
+  const { o } = buffer(tb, null);
+  const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? tb.ticket?.subject ?? "", body: tb.inputText ?? f.body ?? "", channel: f.channel ?? tb.ticket?.channel,
+    thread_id: f.thread_id, sender_name: f.sender_name ?? tb.ticket?.sender_name, sender_email: f.sender_email };
+  const rows = {};
+  let products = [];
+  let ctx = NO_HISTORY();
+  let wline = "no world context";
+  try {
+    for (const k of ["world_threads", "products", "reviews"]) rows[k] = (await tb.queries.run(k, {}, o)).objects;
+    products = toObjects(rows.products);
+    const dir = process.env.WORLD_MODEL_DIR;
+    const world = await getWorld({ rows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
+    const mentioned = mentionedProducts(`${ticket.subject} ${ticket.body}`, products).map((p) => (typeof p === "object" ? p.product_id : p));
+    ctx = complaintContext(world, { sender_email: f.sender_email, product_ids: mentioned, thread_id: f.thread_id, channel: f.channel });
+    wline = worldLine(world, ctx);
+    lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless",
+      input_summary: `history of ${f.sender_email ?? "the sender"} and ${ctx.product_ids.length ? ctx.product_ids.join(", ") : "no product"}`,
+      output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
+  } catch (e) {
+    lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", input_summary: "meterless.engine failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" },
+      { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after meterless.engine error", output_summary: "world context unavailable, read by text alone", status: "success" });
+  }
+  // the Nemotron read
+  const readLine = (model, read, extra = {}) => lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", sponsor: "nvidia", model,
+    input_summary: `complaint read for ${f.thread_id ?? "ticket"}`, output_summary: `kind ${read.kind}, face_risk ${read.face_risk}: ${one(read.reasoning, 120)}`, status: "success", ...extra });
+  let read;
+  const twin = () => sample.complaintRead(ticket, { worldText: ctx.text });
+  if (tb.sampleOn) {
+    read = twin();
+    readLine(read.model ?? "sample-rules", read);
+  } else {
+    try {
+      const res = await tb.io.drafter(complaintReadMessages({ ticket, worldText: ctx.text, provenanceIds: ctx.provenance.map((p) => p.id) }), { purpose: "complaint_read", trace: tb.io.adapterTrace });
+      if (res.sample || res.text == null) { read = twin(); readLine(read.model ?? "sample-rules", read); }
+      else { read = parseComplaintReadJson(res.text); readLine(res.model, read); }
+    } catch (e) {
+      lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", sponsor: "nvidia", input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" },
+        { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after nvidia.model error", output_summary: "complaint read unavailable, rules read used", status: "success" });
+      read = twin();
+      readLine(read.model ?? "sample-rules", read, { input_summary: "rules read after the model failed" });
+    }
+  }
+  // severity (the gate logs its own line through the shim)
+  const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel === "trustpilot" }, wline,
+    { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind });
+  const sevCls = sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
+  const owner = await ownerOf(tb, "complaint", o);
+  const cited = ["world_threads", ...ctx.product_ids.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
+  const hist = ctx.summary.earlier_threads ? `${ctx.summary.earlier_threads} earlier thread${ctx.summary.earlier_threads === 1 ? "" : "s"} on record` : "no earlier threads";
+  return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? "the owner gets the draft and the handling note" : "a calm acknowledgement closes it"}`,
+    cited, data: { ctx, read, severity: sev, owner }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
+}
+
+async function actComplaint(tb, p) {
+  const B = p.branch_id;
+  const { ctx, read, severity: sev, owner } = p.data;
+  const severe = B === "complaint-severe";
+  const messagesFn = ({ critiques }) => {
+    const m = draftMessages({ ticket: tb.ticket, facts: tb.f, memoryContext: tb.memCtx, critiques });
+    const last = m.length - 1;
+    const extra = [`How to handle it: ${read.handle || "acknowledge and pass to the owner"}`, `The company's record of this customer: ${ctx.text}`,
+      B === "complaint-vent" ? "The customer is venting: write a calm acknowledgement, promise nothing." : "Acknowledge the problem and say a person will follow up; promise no refund, replacement or date."].join("\n");
+    m[last] = { ...m[last], content: m[last].content.replace(/Return the JSON object now\.$/, `${extra}\n\nReturn the JSON object now.`) };
+    return m;
+  };
+  const sampleDraftFn = () => ({
+    text: sample.frame(tb.ticket ?? tb.f, B === "complaint-vent"
+      ? "Thank you for letting us know. We are sorry the order did not arrive as you hoped, and we have noted it."
+      : "Thank you for telling us, and we are sorry. This matters to us, and a colleague will look at it personally and come back to you."),
+    promises: NO_PROMISES(), model: "sample/rules" });
+  const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B, hardRefusal: severe ? () => `severity ${sev.score}: a person handles it` : undefined });
+  const draft = { text: r.draft.text, promises: r.draft.promises, model: r.draft.model };
+  const critiques = (tb.S.rounds ?? []).flatMap((x) => [{ round: x.n, source: "Evaluator", pass: x.critique.pass, reason: x.critique.reason }, { round: x.n, source: "Risk", pass: x.risk.pass, reason: x.risk.reasons.join("; ") || "signed off" }]);
+  const escalation = { severity: sev.score, kind: read.kind, reasoning: read.reasoning, handle: read.handle, world: ctx.provenance.map((x) => x.id) };
+  if (severe) {
+    const reason = `${p.why}; Risk refused the draft on round 1, escalated with the draft attached`;
+    tb.escalate(critiques, reason, {}, { owner, draft, recommendation: read.handle, escalation });
+    return { decision: "escalate", reasons: [reason], draft, queued: owner, recommendation: read.handle, cited: p.cited };
+  }
+  if (!r.ok) {
+    const reason = r.risk.hard ? `hard fact Risk cannot rewrite: ${r.risk.reasons.join("; ")}` : `two negative rounds: ${one(r.crit.reason)} | ${r.risk.reasons.join("; ")}`;
+    tb.escalate(critiques, reason, {}, { owner, draft, escalation });
+    return { decision: "escalate", reasons: [reason], draft, queued: owner, cited: p.cited };
+  }
+  tb.skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
+  const recommendation = B === "complaint-vent" ? "vent: a calm reply closes it; no action" : read.handle || "a person owns this and repairs it";
+  return { decision: "hold", reasons: [`${p.why}. Both critics passed; the reply waits for the complaint owner with the draft attached`], draft, queued: owner, recommendation, cited: p.cited };
+}
+
+export const handleComplaint = { probe: probeComplaint, act: actComplaint };
+
 export const handleQuestion = { probe: probeQuestion, act: actQuestion };
 export const handleRfq = { probe: probeRfq, act: actRfq };
-// complaint and customer_service are absent until S2.3 and S3.1: a scenario with no handler dispatches to legacy.
-export const HANDLERS = { question: handleQuestion, rfq: handleRfq };
+// customer_service is absent until S3.1: a scenario with no handler dispatches to legacy.
+export const HANDLERS = { question: handleQuestion, rfq: handleRfq, complaint: handleComplaint };

@@ -34,7 +34,7 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
   const cat = facts.category ?? ticket.category;
   const rows = (facts.cited_rows ?? []).join(", ");
   const cite = rows ? ` (policy rows: ${rows})` : "";
-  const hi = `Hello ${ticket.sender_name},`;
+  const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   const ask = `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;

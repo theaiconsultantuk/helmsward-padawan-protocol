@@ -242,9 +242,11 @@ async function runCmd(v) {
   let cfg = config();
   if (body.options?.sample_mode === true) cfg = { ...cfg, SAMPLE_MODE: "true" };
   const { runTicket } = await import("./loop.mjs");
-  const result = await runTicket(body.input.thread_id, { run_id: body.run_id, as_of: body.input.as_of, cfg, deps: { quiet: true } });
+  const result = await runTicket(body.input.thread_id ?? null, { run_id: body.run_id, as_of: body.input.as_of, cfg, deps: { quiet: true }, input: body.input });
   const out = {
     run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
+    ...(result.scenario ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
+    ...(result.input ? { input: result.input } : {}),
     trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
     ...(result.error ? { error: result.error } : {}),
   };

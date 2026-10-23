@@ -1,0 +1,91 @@
+{
+  "run_id": "example-7",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "reasons": [
+      "severity 4 (4), the customer reads as vent (no earlier threads); a calm acknowledgement closes it. Both critics passed; the reply waits for the complaint owner with the draft attached"
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:complaint",
+      "holiday_2026:5@2026-10-20",
+      "holiday_2026:6@2026-10-20",
+      "employees:5",
+      "employees:6",
+      "trust_ledger:complaint",
+      "wiki_what_may_leave",
+      "world_threads"
+    ],
+    "recommendation": "vent: a calm reply closes it; no action",
+    "draft": {
+      "text": "Hello Rey Kanata,\n\nThank you for letting us know. We are sorry the order did not arrive as you hoped, and we have noted it.\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    },
+    "queued_for": {
+      "owner_id": 5,
+      "backup_id": 6,
+      "owner_name": "Priya Raman",
+      "backup_name": "Tomas Keller",
+      "role": "complaint owner"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    },
+    {
+      "name": "WorldModel",
+      "role": "customer and product history"
+    },
+    {
+      "name": "Severity",
+      "role": "severity gate"
+    }
+  ],
+  "scenario": "complaint",
+  "resolved_how": "declared",
+  "branch_id": "complaint-vent",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "the box was dented, I am annoyed, just so you know",
+    "from": "new.customer@example.com",
+    "name": "Rey Kanata",
+    "channel": "chat",
+    "received_at": "2026-10-23T05:18:00.115Z",
+    "as_of": "2026-10-20"
+  },
+  "trace_id": "example-7",
+  "log_file": "logs/trace-example-7.jsonl",
+  "execution_time_seconds": 0.051
+}

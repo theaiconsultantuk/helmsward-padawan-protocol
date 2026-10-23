@@ -1,0 +1,113 @@
+{
+  "run_id": "example-8",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "reasons": [
+      "severity 10 (10 legal or safety), the customer reads as genuine (3 earlier threads on record); a person handles it; Risk refused the draft on round 1, escalated with the draft attached"
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:complaint",
+      "holiday_2026:5@2026-10-20",
+      "holiday_2026:6@2026-10-20",
+      "employees:5",
+      "employees:6",
+      "trust_ledger:complaint",
+      "wiki_what_may_leave",
+      "world_threads",
+      "products:P01",
+      "products:P02"
+    ],
+    "recommendation": "A person should own this, repair the failure and answer the customer directly.",
+    "draft": {
+      "text": "Hello Tilda Moss,\n\nThank you for telling us, and we are sorry. This matters to us, and a colleague will look at it personally and come back to you.\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    },
+    "queued_for": {
+      "owner_id": 5,
+      "backup_id": 6,
+      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--scenarios/inbox/data/memory/queue/F1.json",
+      "recommendation": "A person should own this, repair the failure and answer the customer directly.",
+      "escalation": {
+        "severity": 10,
+        "kind": "genuine",
+        "reasoning": "The message names a concrete failure, a repeat or a public audience.",
+        "handle": "A person should own this, repair the failure and answer the customer directly.",
+        "world": [
+          "customer:email:tilda.moss@example.com",
+          "thread:jedi:T11",
+          "thread:jedi:T24",
+          "thread:jedi:T14",
+          "fact_7f40a4af1de84630",
+          "fact_5cd1152f7c761dab",
+          "product:jedi:P01",
+          "fact_e1ebf87d9f9ca986",
+          "product:jedi:P02",
+          "fact_c65a7d3bad61b045"
+        ]
+      },
+      "owner_name": "Priya Raman",
+      "backup_name": "Tomas Keller",
+      "role": "complaint owner"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    },
+    {
+      "name": "WorldModel",
+      "role": "customer and product history"
+    },
+    {
+      "name": "Severity",
+      "role": "severity gate"
+    }
+  ],
+  "scenario": "complaint",
+  "resolved_how": "declared",
+  "branch_id": "complaint-severe",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "This is the second training saber from you whose hilt split open in my son's hands and cut him. I will post this review everywhere and I am talking to a lawyer. Never again. I want this fixed today.",
+    "from": "tilda.moss@example.com",
+    "name": "Tilda Moss",
+    "channel": "chat",
+    "received_at": "2026-10-23T05:18:00.224Z",
+    "as_of": "2026-10-20"
+  },
+  "trace_id": "example-8",
+  "log_file": "logs/trace-example-8.jsonl",
+  "execution_time_seconds": 0.052
+}
