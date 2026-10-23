@@ -15,7 +15,7 @@ Regenerate the whole pack, from the repository root:
 bash inbox/scripts/judging_pack.sh
 ```
 
-The script reruns the sample-mode examples in a `--network none` container, runs the hero thread live, regenerates `../result.md` from that trace, reads `GET /sources` from a server it starts, runs `scripts/scenario_proofs.mjs` (examples 4 to 8 live and in sample mode, which rewrites `scenarios.md`, `engine-world-model.md` and the ten scenario traces), scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
+The script reruns the sample-mode examples in a `--network none` container, runs the hero thread live, regenerates `../result.md` from that trace, reads `GET /sources` from a server it starts, runs `scripts/scenario_proofs.mjs` (examples 4 to 8 live and in sample mode, which writes `scenarios.md`, `engine-world-model.md` and the ten scenario traces), scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
 
 Start with [../result.md](../result.md), then [rules-checklist.md](rules-checklist.md).
 
