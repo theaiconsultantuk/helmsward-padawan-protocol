@@ -27,7 +27,7 @@ node --test inbox/tests/no_secrets.test.mjs
 ```
 
 - Exit code: **0**
-- no_secrets: swept 111 file(s) against 7 secret value(s)
+- no_secrets: swept 124 file(s) against 7 secret value(s)
 - What it checks: no configured secret value and no `Bearer <token>` in `logs/`, `output_examples/`, `judging/` (this directory, traces included) and `data/sample/`.
 
 ## Verdict

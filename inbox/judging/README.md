@@ -35,6 +35,8 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [nightshift-models.json](nightshift-models.json) | The routes Nightshift offered | Nightshift connection; where NVIDIA contributes |
 | [nightshift-first-call.json](nightshift-first-call.json) | The first probe call to Nightshift and its receipt | Nightshift connection; which model handled the request |
 | [padme-chain.md](padme-chain.md) | Padme's email chain processed one step after the other, live | Errors and recovery; misread disclosure |
+| [refund-chain.md](refund-chain.md) | One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first | Shared memory (H-MEM); holiday calendar; limit approval |
+| [refund-chain-sample.md](refund-chain-sample.md) | The refund chain's deterministic twin (no model call) | Sample mode; the chain logic alone |
 | [pre-existing.md](pre-existing.md) | Declaration of pre-existing components | Submission form: pre-existing work |
 | [sponsor-explanation.md](sponsor-explanation.md) | The five sponsor paragraphs: Zetaris, engines and tests, Nightshift, NVIDIA, what was unique | Sponsor integration explanation |
 | [ai-usage.md](ai-usage.md) | AI and Model Usage declaration | AI usage policy |
@@ -47,6 +49,10 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [traces/trace-recovery.jsonl](traces/trace-recovery.jsonl) | Sample run with Zetaris refusing once: an error line, then recovery | Errors and recovery |
 | [traces/trace-padme-live_1.jsonl](traces/trace-padme-live_1.jsonl) | Padme chain step 1, live | Handoff; misread chain |
 | [traces/trace-padme-live_2.jsonl](traces/trace-padme-live_2.jsonl) | Padme chain step 2, live | Handoff; misread chain |
+| [traces/trace-refund-live_1.jsonl](traces/trace-refund-live_1.jsonl) | Refund chain step 1, live (40 USD, held; owner out, backup in) | Holiday calendar; trust floor |
+| [traces/trace-refund-live_2.jsonl](traces/trace-refund-live_2.jsonl) | Refund chain step 2, live (400 USD, over the limit, escalated; reads step 1's memory) | Shared memory; limit approval |
+| [traces/trace-refund-sample_1.jsonl](traces/trace-refund-sample_1.jsonl) | Refund chain step 1, sample mode | Sample mode |
+| [traces/trace-refund-sample_2.jsonl](traces/trace-refund-sample_2.jsonl) | Refund chain step 2, sample mode | Sample mode |
 | [traces/trace-two-run-A.jsonl](traces/trace-two-run-A.jsonl) | Two-run proof, run A (writes memory) | Shared memory |
 | [traces/trace-two-run-B.jsonl](traces/trace-two-run-B.jsonl) | Two-run proof, run B (reads run A's memory id, skips a chunk) | Shared memory |
 | [traces/trace-ask-mvk7jd5c.jsonl](traces/trace-ask-mvk7jd5c.jsonl) | A free-form question answered through /ask | Dynamic delegation |
@@ -65,7 +71,7 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [traces/trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl) | Example 8 live: a severe complaint, World Model history, severity 10, escalated with the draft | Meterless Engine (World Model); typed gates (OpenJev); Escalation |
 | [traces/trace-scenario-8-sample.jsonl](traces/trace-scenario-8-sample.jsonl) | Example 8 in sample mode | Sample mode; full step list |
 
-42 files listed, 0 missing.
+49 files listed, 0 missing.
 
 ## Two runs of the script
 

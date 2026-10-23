@@ -7,10 +7,10 @@ tags: [judging, docker, clean-clone, sample-mode]
 
 # Clean-clone run
 
-Result: **PASS** (2026-10-23 08:05 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
+Result: **FAIL** (2026-10-23 13:15 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
 
 - Source: git clone --branch task/scenarios /opt/glitch/workspaces/open-agent-hackathon-2026--scenarios (fresh clone, committed files only)
-- Commit: 95a9c08
+- Commit: a710cdb
 - Build: `docker build -t oah-inbox <context>/inbox` (Dockerfile: node:22-slim, no npm step)
 - Image `.env` check: `docker run --rm --entrypoint ls oah-inbox -la /app | grep -c '\.env$'` printed **0** (`.env.example` may be present)
 
@@ -21,7 +21,7 @@ Each `input_examples/example_N.json` is POSTed to `/run` as shipped (only the ru
 
 | Example | run_id | HTTP | status | decision | expected | model | result |
 |---|---|---|---|---|---|---|---|
-| 1 | clean-live-1 | 200 | success | hold | hold | openjev-0.1 (openjev-0.1), nvidia/nemotron-3.5-lightning-30b-a3b | ok |
+| 1 | - | 000000 | - | - | hold | - | FAIL |
 | 2 | clean-live-2 | 200 | success | send | send | openjev-0.1 (openjev-0.1), nvidia/nemotron-3.5-lightning-30b-a3b | ok |
 | 3 | clean-live-3 | 200 | success | escalate | escalate | openjev-0.1 (openjev-0.1) | ok |
 | 4 | clean-live-4 | 200 | success | send | send | openjev-0.1 (openjev-0.1) | ok |
@@ -47,4 +47,4 @@ Command: `docker run -d --network none -e SAMPLE_MODE=true oah-inbox`, then `doc
 | 8 | example-8 | 0 | success | escalate | escalate | sample/rules | ok |
 | 9 | example-9 | 0 | success | hold | hold | sample-rules | ok |
 
-Both containers are removed on exit and the temp directory is deleted. Failures counted: 0.
+Both containers are removed on exit and the temp directory is deleted. Failures counted: 1.
