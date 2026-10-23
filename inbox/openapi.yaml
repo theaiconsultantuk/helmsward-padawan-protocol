@@ -4,13 +4,15 @@ info:
   version: 0.1.0
   description: |
     The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
-    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and there are no credentials.
+    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the three POST routes (`/run`, `/ask`, `/feedback`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
     Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
     Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
     The examples below come from a sample-mode run of thread T02.
 servers:
   - url: http://127.0.0.1:8000
     description: Default. Set PORT to move it (8810 on the dev VM); HOST defaults to 127.0.0.1.
+  - url: https://jedi.blastworks.ai
+    description: "Team instance for the hackathon (until 29 Oct 2026): pages and API on one origin; POST routes need the bearer token"
 paths:
   /health:
     get:
@@ -315,7 +317,7 @@ paths:
   /static/{name}:
     get:
       summary: A page asset from a closed list
-      description: "Serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
+      description: "Reference server: serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. Hosted instance (https://jedi.blastworks.ai): the pages are served by a static file server, so ANY file under `inbox/public/` on main is reachable as `/static/<name>`, hidden paths (a segment starting with `.`) are 404, and a traversal never leaves the release. The four names here are the ones both servers agree on. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
       parameters:
         - name: name
           in: path
