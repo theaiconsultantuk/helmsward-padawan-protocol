@@ -252,6 +252,7 @@ ${ch5.length ? ch5.join("\n") : "NONE: no \`synthesis\` line."}
 - Recovery pair (an \`error\` line, then the \`recovery\` line that follows it), from the sample-mode run with \`FAULT_ZETARIS_REFUSE_ONCE=true\`, [${REC}](${REC}):
 ${pair.length ? pair.map((l) => q(REC, l)).join("\n") : "  NONE: no error then recovery pair in the recovery trace."}
 - The misread pair (Padmé's reply, the ticket reopens, \`queueForHuman\` fires) is [judging/padme-chain.md](judging/padme-chain.md) with its traces beside it.
+- The refund chain (one customer twice: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first) is [judging/refund-chain.md](judging/refund-chain.md) with its traces beside it.
 
 ## Readiness
 
@@ -543,6 +544,8 @@ engine-hmem-two-run.md	H-MEM two-run proof: a second run reads what the first wr
 nightshift-models.json	The routes Nightshift offered	Nightshift connection; where NVIDIA contributes
 nightshift-first-call.json	The first probe call to Nightshift and its receipt	Nightshift connection; which model handled the request
 padme-chain.md	Padme's email chain processed one step after the other, live	Errors and recovery; misread disclosure
+refund-chain.md	One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first	Shared memory (H-MEM); holiday calendar; limit approval
+refund-chain-sample.md	The refund chain's deterministic twin (no model call)	Sample mode; the chain logic alone
 pre-existing.md	Declaration of pre-existing components	Submission form: pre-existing work
 sponsor-explanation.md	The five sponsor paragraphs: Zetaris, engines and tests, Nightshift, NVIDIA, what was unique	Sponsor integration explanation
 ai-usage.md	AI and Model Usage declaration	AI usage policy
@@ -555,6 +558,10 @@ traces/trace-example-3.jsonl	Sample-mode example 3 (escalate, the misread)	Escal
 traces/trace-recovery.jsonl	Sample run with Zetaris refusing once: an error line, then recovery	Errors and recovery
 traces/trace-padme-live_1.jsonl	Padme chain step 1, live	Handoff; misread chain
 traces/trace-padme-live_2.jsonl	Padme chain step 2, live	Handoff; misread chain
+traces/trace-refund-live_1.jsonl	Refund chain step 1, live (40 USD, held; owner out, backup in)	Holiday calendar; trust floor
+traces/trace-refund-live_2.jsonl	Refund chain step 2, live (400 USD, over the limit, escalated; reads step 1's memory)	Shared memory; limit approval
+traces/trace-refund-sample_1.jsonl	Refund chain step 1, sample mode	Sample mode
+traces/trace-refund-sample_2.jsonl	Refund chain step 2, sample mode	Sample mode
 traces/trace-two-run-A.jsonl	Two-run proof, run A (writes memory)	Shared memory
 traces/trace-two-run-B.jsonl	Two-run proof, run B (reads run A's memory id, skips a chunk)	Shared memory
 traces/trace-ask-mvk7jd5c.jsonl	A free-form question answered through /ask	Dynamic delegation
@@ -667,12 +674,12 @@ FINAL_CLEAN=0; [ "$GL_RC" = 0 ] && [ "$GL_COUNT" = 0 ] && [ "$NS_RC" = 0 ] && FI
 # 8. existence check of everything the pack is supposed to hold
 # ------------------------------------------------------------------------------------------------
 for f in README.md rules-checklist.md sources.json sample-mode-run.md secrets-scan.md clean-clone-run.md engine-scout-evals.md engine-hmem-two-run.md \
-         padme-chain.md zetaris-register.md zetaris-usl.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
+         padme-chain.md refund-chain.md refund-chain-sample.md zetaris-register.md zetaris-usl.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
          scenarios.md engine-world-model.md engine-world-model-conformance.md screenshots/README.md; do
   [ -s "$J/$f" ] || problem "missing or empty: judging/$f"
 done
 [ -s "$INBOX/result.md" ] || problem "missing or empty: result.md"
-for f in trace-hero-live trace-example-1 trace-example-2 trace-example-3 trace-recovery trace-padme-live_1 trace-padme-live_2 trace-two-run-A trace-two-run-B \
+for f in trace-hero-live trace-example-1 trace-example-2 trace-example-3 trace-recovery trace-padme-live_1 trace-padme-live_2 trace-refund-live_1 trace-refund-live_2 trace-refund-sample_1 trace-refund-sample_2 trace-two-run-A trace-two-run-B \
          trace-scenario-4-live trace-scenario-4-sample trace-scenario-5-live trace-scenario-5-sample trace-scenario-6-live trace-scenario-6-sample \
          trace-scenario-7-live trace-scenario-7-sample trace-scenario-8-live trace-scenario-8-sample; do
   [ -s "$T/$f.jsonl" ] || problem "missing or empty trace: judging/traces/$f.jsonl"

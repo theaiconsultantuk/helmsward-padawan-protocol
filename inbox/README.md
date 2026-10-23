@@ -396,6 +396,7 @@ The evidence files are indexed in [judging/README.md](judging/README.md), regene
 - [judging/engine-world-model.md](judging/engine-world-model.md) and [judging/engine-world-model-conformance.md](judging/engine-world-model-conformance.md): the World Model feature, its tests and the 8/8 scorecards.
 - [judging/scenarios.md](judging/scenarios.md): examples 4 to 8 run live and in sample mode, with their traces.
 - [judging/padme-chain.md](judging/padme-chain.md): the T01 chain, run live.
+- [judging/refund-chain.md](judging/refund-chain.md): one customer, two refund requests, run live (`node inbox/scripts/refund_chain.mjs`; `--sample` writes the deterministic twin): 40 USD held under the trust floor with the owner on holiday and the backup named, then 400 USD over the limit, escalated for approval after H-MEM read step 1's memory.
 - [judging/zetaris-register.md](judging/zetaris-register.md): every source registered, with row counts.
 - [judging/nightshift-models.json](judging/nightshift-models.json) and [judging/nightshift-first-call.json](judging/nightshift-first-call.json): Nightshift routes and the first probe.
 - [judging/traces/](judging/traces/trace-padme-live_1.jsonl): the five committed traces.

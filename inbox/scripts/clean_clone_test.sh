@@ -8,6 +8,8 @@
 #   CLONE_BRANCH=<branch>       branch to clone (default: the working copy's current branch)
 #   CLEAN_PORT=<port>           live-leg port (default 8811)
 #   SKIP_CLONE=1                no clone: build from the working copy's inbox/ (tests uncommitted files; the md says so)
+# The live-leg client waits 360 s per run: the loop's own whole-run cap is 300 s and a run that hits it still answers (an honest
+# capped escalation), so the client must outlive the cap or a slow Nemotron day shows as HTTP 000 (seen 23 Oct 13:15 on example 1).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -68,7 +70,7 @@ for n in 1 2 3 4 5 6 7 8 9; do
   node -e 'const b=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")); b.run_id="clean-live-"+process.argv[2]; console.log(JSON.stringify(b))' "$INBOX/input_examples/example_$n.json" "$n" >"$body"
   code=000
   if [ "$up" = "1" ]; then
-    code="$(curl -s --max-time 300 -o "$resp" -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data @"$body" "http://127.0.0.1:$PORT/run" || echo 000)"
+    code="$(curl -s --max-time 360 -o "$resp" -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data @"$body" "http://127.0.0.1:$PORT/run" || echo 000)"
   fi
   rid="-"; status="-"; decision="-"; model="-"
   if [ -s "$resp" ]; then
