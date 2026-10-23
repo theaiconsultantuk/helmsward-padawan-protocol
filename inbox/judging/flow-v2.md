@@ -18,7 +18,7 @@ The design is Kristof's flow ([../../kristof/flow.html](../../kristof/flow.html)
 | 5 | Close (pure thank-you) | `branch` `thank-you`, then `memory.write` and `synthesis`; no draft | `src/loop.mjs` |
 | 6 | H-MEM read | `memory.read`, and `planner.plan` / `delegate` using what it returned | `src/engines/hmem/index.mjs`, `src/loop.mjs` |
 | 7 | Scout contract | `meterless.engine` (contract verified before any model call) | `src/engines/scout/contract.mjs`, `src/loop.mjs` |
-| 8 | Zetaris (holiday, policy, backup) | `zetaris.query`, `executor.act` | `src/queries.mjs`, `src/adapters/zetaris.mjs` |
+| 8 | Zetaris (holiday, policy, backup) | `zetaris.query`, `executor.act` | `src/queries.mjs`, `src/adapters/zetaris.mjs`. Scenario-route and World Model reads (`faq`, `products`, `product_price`, `responsibility`, `holidays`, `world_threads`, `reviews`, `intake_thread`) go through the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` and their trace line says "via the USL"; the legacy thread road (`thread`, `policy`, `employee`, `holiday`, `trust`, `wiki`, `thread_fingerprints`, `ledger_adjust`) reads the raw `JEDI_PACK` tables. See [zetaris-usl.md](zetaris-usl.md). |
 | 9 | Trust floor | `branch` (id `under-floor` or `send-ok`) | `trustFloor` in `src/gates.mjs` |
 | 10 | Draft (NVIDIA through Nightshift) | `nvidia.model` (`draft_reply`, `draft_revised`) | `src/adapters/nightshift.mjs`, `src/prompts.mjs`, `src/loop.mjs` |
 | 11 | Evaluator | `critique` | `src/loop.mjs`, `src/prompts.mjs` |

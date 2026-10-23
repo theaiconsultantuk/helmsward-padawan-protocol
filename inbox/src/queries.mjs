@@ -14,6 +14,10 @@ export const TABLES = [
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
   "products", "faq", "intake_runtime",
 ];
+// The Unified Semantic Layer (USL) Zetaris compiles over JEDI_PACK: live views, same facts. Scenario routes and the World Model read it;
+// the legacy thread road keeps the raw JEDI_PACK tables.
+export const USL = "lightning.metastore.jedi_pack.jedi_pack";
+export const TABLES_USL = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
 
 const V = {
@@ -45,8 +49,8 @@ export const TEMPLATES = {
     cite: (p, o) => o.map((x) => `policy:${x.topic}`),
   },
   responsibility: {
-    params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
-    sql: (p) => `SELECT * FROM JEDI_PACK.responsibility WHERE topic = '${p.topic}'`,
+    layer: "usl", params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
+    sql: (p) => `SELECT * FROM ${USL}.responsibility WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `responsibility:${x.topic}`),
   },
   employee: {
@@ -87,38 +91,38 @@ export const TEMPLATES = {
   },
   // Scenario tables (S0.2): parameterless reads compared in JS, or one validated id. No customer text reaches SQL.
   faq: {
-    params: {}, cacheable: true, question: "every FAQ row, matched in JS",
-    sql: () => "SELECT faq_id, question, answer, keywords, source FROM JEDI_PACK.faq ORDER BY faq_id",
+    layer: "usl", params: {}, cacheable: true, question: "every FAQ row, matched in JS",
+    sql: () => `SELECT faq_id, question, answer, keywords, faq_source AS source FROM ${USL}.faq ORDER BY faq_id`,
     cite: (p, o) => o.map((x) => `faq:${x.faq_id}`),
   },
   products: {
-    params: {}, cacheable: true, question: "every product and its one unit price",
-    sql: () => "SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM JEDI_PACK.products ORDER BY product_id",
+    layer: "usl", params: {}, cacheable: true, question: "every product and its one unit price",
+    sql: () => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product ORDER BY product_id`,
     cite: (p, o) => o.map((x) => `products:${x.product_id}`),
   },
   product_price: {
-    params: { product_id: V.product_id }, cacheable: true, question: "the unit price of one product",
-    sql: (p) => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM JEDI_PACK.products WHERE product_id = '${p.product_id}'`,
+    layer: "usl", params: { product_id: V.product_id }, cacheable: true, question: "the unit price of one product",
+    sql: (p) => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product WHERE product_id = '${p.product_id}'`,
     cite: (p, o) => o.map((x) => `products:${x.product_id}`),
   },
   reviews: {
-    params: {}, cacheable: true, question: "the public review index",
-    sql: () => "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM JEDI_PACK.trustpilot_reviews ORDER BY review_id",
+    layer: "usl", params: {}, cacheable: true, question: "the public review index",
+    sql: () => `SELECT review_id, thread_id, reviewer_name, stars, created_at FROM ${USL}.review ORDER BY review_id`,
     cite: (p, o) => o.map((x) => `trustpilot_reviews:${x.review_id}`),
   },
   world_threads: {
-    params: {}, cacheable: true, minLimit: 1000, question: "every thread's sender, category, owner and outcome, for the world model",
-    sql: () => "SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM JEDI_PACK.threads_json ORDER BY thread_id",
+    layer: "usl", params: {}, cacheable: true, minLimit: 1000, question: "every thread's sender, category, owner and outcome, for the world model",
+    sql: () => `SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM ${USL}.ticket ORDER BY thread_id`,
     cite: () => ["threads_json"],
   },
   holidays: {
-    params: {}, cacheable: true, minLimit: 2000, question: "every holiday row, filtered by date in JS",
-    sql: () => "SELECT employee_id, date FROM JEDI_PACK.holiday_2026",
+    layer: "usl", params: {}, cacheable: true, minLimit: 2000, question: "every holiday row, filtered by date in JS",
+    sql: () => `SELECT employee_id, date FROM ${USL}.holiday`,
     cite: () => ["holiday_2026"],
   },
   intake_thread: {
-    params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
-    sql: (p) => `SELECT thread_id, received_at, channel, sender_name, sender_email, subject, body, scenario, category FROM JEDI_PACK.intake_runtime WHERE thread_id = '${p.thread_id}'`,
+    layer: "usl", params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
+    sql: (p) => `SELECT thread_id, received_at, channel, sender_name, sender_email, subject, body, scenario, category FROM ${USL}.intake WHERE thread_id = '${p.thread_id}'`,
     cite: (p, o) => o.map((x) => `intake_runtime:${x.thread_id}`),
   },
   // The trust ledger's feedback: affirm / reject counts for one category, read from the runtime decisions table.
@@ -149,7 +153,7 @@ export function validate(name, params = {}) {
 export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun } = {}) {
   const t = validate(name, params);
   const sql = t.sql(params);
-  const q = `${t.question} ${JSON.stringify(params)}`;
+  const q = `${t.question} ${JSON.stringify(params)}${t.layer === "usl" ? " via the USL" : ""}`;
   let r;
   try {
     r = await sqlRunImpl(sql, { name, params, limit: Math.max(limit, t.minLimit ?? 0), cfg, trace });

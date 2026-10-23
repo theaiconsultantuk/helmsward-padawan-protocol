@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { USL, TABLES_USL, TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
 import { config } from "../src/config.mjs";
 import { withMockFetch } from "./helpers/mock_fetch.mjs";
 
@@ -211,12 +211,12 @@ test("S0.2: a message-like string passed as any param of a new template throws b
 });
 
 test("S0.2: new templates render fixed SQL built only from whitelisted params", () => {
-  assert.equal(TEMPLATES.faq.sql({}), "SELECT faq_id, question, answer, keywords, source FROM JEDI_PACK.faq ORDER BY faq_id");
-  assert.match(TEMPLATES.product_price.sql({ product_id: "P03" }), /FROM JEDI_PACK\.products WHERE product_id = 'P03'$/);
-  assert.match(TEMPLATES.intake_thread.sql({ thread_id: "F12" }), /FROM JEDI_PACK\.intake_runtime WHERE thread_id = 'F12'$/);
-  assert.match(TEMPLATES.world_threads.sql({}), /FROM JEDI_PACK\.threads_json ORDER BY thread_id$/);
-  assert.equal(TEMPLATES.holidays.sql({}), "SELECT employee_id, date FROM JEDI_PACK.holiday_2026");
-  assert.equal(TEMPLATES.reviews.sql({}), "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM JEDI_PACK.trustpilot_reviews ORDER BY review_id");
+  assert.equal(TEMPLATES.faq.sql({}), "SELECT faq_id, question, answer, keywords, faq_source AS source FROM lightning.metastore.jedi_pack.jedi_pack.faq ORDER BY faq_id");
+  assert.match(TEMPLATES.product_price.sql({ product_id: "P03" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.product WHERE product_id = 'P03'$/);
+  assert.match(TEMPLATES.intake_thread.sql({ thread_id: "F12" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.intake WHERE thread_id = 'F12'$/);
+  assert.match(TEMPLATES.world_threads.sql({}), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.ticket ORDER BY thread_id$/);
+  assert.equal(TEMPLATES.holidays.sql({}), "SELECT employee_id, date FROM lightning.metastore.jedi_pack.jedi_pack.holiday");
+  assert.equal(TEMPLATES.reviews.sql({}), "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM lightning.metastore.jedi_pack.jedi_pack.review ORDER BY review_id");
   assert.deepEqual(TEMPLATES.faq.cite({}, [{ faq_id: "Q01" }]), ["faq:Q01"]);
   assert.deepEqual(TEMPLATES.product_price.cite({}, [{ product_id: "P03" }]), ["products:P03"]);
   assert.deepEqual(TEMPLATES.intake_thread.cite({}, [{ thread_id: "F1" }]), ["intake_runtime:F1"]);
@@ -336,4 +336,36 @@ test("(14) counters: a bare HTTP 400, or a 400 with another body, surfaces inste
   await assert.rejects(counters({ cfg: live, sqlRunImpl: bare }), /HTTP 400/);
   const other = async () => { throw Object.assign(new Error("zetaris: HTTP 400: syntax error near FROM"), { name: "BadResponse", status: 400, detail: "syntax error near FROM" }); };
   await assert.rejects(counters({ cfg: live, sqlRunImpl: other }), /syntax error/);
+});
+
+test("USL: the switched templates read the Unified Semantic Layer, the legacy ones the raw tables", async () => {
+  const switched = ["faq", "products", "product_price", "responsibility", "holidays", "world_threads", "reviews", "intake_thread"];
+  const args = { product_price: { product_id: "P01" }, responsibility: { topic: "rfq" }, intake_thread: { thread_id: "F1" } };
+  assert.equal(USL, "lightning.metastore.jedi_pack.jedi_pack");
+  assert.ok(TABLES_USL.includes("ticket") && TABLES_USL.includes("wiki_page"));
+  const legacyArgs = { thread: { thread_id: "T02" }, policy: { topic: "refund" }, employee: { employee_id: 15 }, holiday: { employee_id: 15, date: "2026-10-22" },
+    category: { category: "refund" }, trust: { category: "refund" }, wiki: { wiki: "refund" }, table_count: { table: "decisions" }, ledger_adjust: { category: "refund" } };
+  for (const [name, t] of Object.entries(TEMPLATES)) {
+    const sql = t.sql(args[name] ?? legacyArgs[name] ?? {});
+    if (switched.includes(name)) {
+      assert.ok(sql.includes("lightning.metastore.jedi_pack.jedi_pack."), name);
+      assert.equal(t.layer, "usl", name);
+    } else {
+      assert.ok(!sql.includes("lightning.metastore"), name);
+      assert.notEqual(t.layer, "usl", name);
+    }
+  }
+  assert.throws(() => validate("responsibility", { topic: "x'; DROP" }), TypeError);
+  assert.throws(() => validate("product_price", { product_id: "P01'" }), TypeError);
+});
+
+test("USL: the trace line of a switched read says it went via the USL; a legacy read does not", async () => {
+  const lines = [];
+  const trace = { line: (l) => lines.push(l) };
+  const sqlRunImpl = async () => ({ headers: ["faq_id"], rows: [["Q01"]] });
+  await run("faq", {}, { trace, cfg: live, sqlRunImpl });
+  await run("thread", { thread_id: "T02" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["thread_id"], rows: [["T02"]] }) });
+  assert.match(lines[0].input_summary, / via the USL$/);
+  assert.deepEqual(lines[0].output_summary, "1 rows: faq:Q01");
+  assert.doesNotMatch(lines[1].input_summary, /USL/);
 });
