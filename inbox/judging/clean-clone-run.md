@@ -7,17 +7,17 @@ tags: [judging, docker, clean-clone, sample-mode]
 
 # Clean-clone run
 
-Result: **PASS** (2026-10-23 02:37 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
+Result: **PASS** (2026-10-23 03:16 CEST). Script: `inbox/scripts/clean_clone_test.sh`.
 
 - Source: git clone --branch task/inbox-build /opt/glitch/workspaces/open-agent-hackathon-2026--inbox-build (fresh clone, committed files only)
-- Commit: 7fc476a
+- Commit: 86f25ba
 - Build: `docker build -t oah-inbox <context>/inbox` (Dockerfile: node:22-slim, no npm step)
 - Image `.env` check: `docker run --rm --entrypoint ls oah-inbox -la /app | grep -c '\.env$'` printed **0** (`.env.example` may be present)
 
 ## Live leg
 
 Command: `docker run -d --network host --env-file /opt/glitch/workspaces/open-agent-hackathon-2026--inbox-build/inbox/.env -e HOST=127.0.0.1 -e PORT=8811 oah-inbox` (host networking because Zetaris, the Nightshift tunnel and OpenJev listen on the VM's loopback and LAN; the .env comes from the working copy, never from the clone).
-Each `input_examples/example_N.json` is POSTed to `/run` without its `options.sample_mode` flag; the model is the `nvidia.model` line of `GET /runs/<id>/trace`.
+Each `input_examples/example_N.json` is POSTed to `/run` as shipped (only the run id is renamed); the model is the `nvidia.model` line of `GET /runs/<id>/trace`.
 
 | Example | run_id | HTTP | status | decision | expected | model | result |
 |---|---|---|---|---|---|---|---|
