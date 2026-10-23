@@ -26,6 +26,8 @@ for (const c of TOPICS) { want("policy", { topic: c }); want("responsibility", {
 for (const w of ["refund", "replacement", "leave"]) want("wiki", { wiki: w });
 for (const t of TABLES) want("table_count", { table: t });
 want("decision_counts", {});
+want("thread_fingerprints", {});
+for (const c of CATEGORIES) want("ledger_adjust", { category: c });
 const emps = new Set(Array.from({ length: 20 }, (_, i) => i + 1));
 for (const t of threads) for (const k of ["owner_id", "backup_id"]) if (t[k] !== "" && t[k] != null) emps.add(Number(t[k]));
 for (const e of emps) want("employee", { employee_id: e });
@@ -47,7 +49,7 @@ const skipped = [];
 for (const name of Object.keys(TEMPLATES)) {
   const entries = [];
   for (const [key, params] of [...(wanted.get(name) ?? new Map())].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
-    if (name === "decision_counts") { entries.push({ params, result: { headers: [], rows: [], total: 0 } }); continue; }
+    if (name === "decision_counts" || name === "ledger_adjust") { entries.push({ params, result: { headers: [], rows: [], total: 0 } }); continue; }
     try {
       const r = await run(name, params, { cfg, limit: 1000 });
       entries.push({ params, result: { headers: r.headers, rows: r.rows, total: r.total } });

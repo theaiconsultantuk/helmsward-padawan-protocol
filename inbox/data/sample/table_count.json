@@ -49,6 +49,22 @@
   },
   {
     "params": {
+      "table": "decisions"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "0"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "employees"
     },
     "result": {

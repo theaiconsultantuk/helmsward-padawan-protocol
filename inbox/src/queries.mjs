@@ -76,6 +76,18 @@ export const TEMPLATES = {
     sql: (p) => `SELECT COUNT(*) AS n FROM JEDI_PACK.${p.table}`,
     cite: (p) => [p.table],
   },
+  // The duplicate check reads every thread's fingerprint and compares in JS: customer text never reaches SQL.
+  thread_fingerprints: {
+    params: {}, cacheable: true, question: "every thread's sender, subject, body and time, for the duplicate check",
+    sql: () => "SELECT thread_id, sender_email, subject, body, received_at FROM JEDI_PACK.threads_json ORDER BY thread_id",
+    cite: () => ["threads_json"],
+  },
+  // The trust ledger's feedback: affirm / reject counts for one category, read from the runtime decisions table.
+  ledger_adjust: {
+    params: { category: V.category }, cacheable: false, question: "the affirm and reject verdicts for the category",
+    sql: (p) => `SELECT verdict, COUNT(*) AS n FROM JEDI_PACK.decisions WHERE category = '${p.category}' AND verdict IN ('affirm', 'reject') GROUP BY verdict`,
+    cite: () => ["decisions"],
+  },
   decision_counts: {
     params: {}, cacheable: false, question: "the decision counters",
     sql: () => "SELECT decision, verdict, COUNT(*) AS n FROM JEDI_PACK.decisions GROUP BY decision, verdict",
@@ -160,6 +172,34 @@ export async function counters(opts = {}) {
     if (verdict === "reject") out.rejected += n;
   }
   return out;
+}
+
+// {affirmed, rejected} for a category, the shape trustFloor's ledgerAdjust takes. No rows yet gives zeros; a failed query throws.
+export async function ledgerAdjustFor(category, opts = {}) {
+  const r = await run("ledger_adjust", { category }, opts);
+  const out = { affirmed: 0, rejected: 0 };
+  for (const o of r.objects) {
+    const n = Number(o.n ?? o["count(1)"] ?? o["count(*)"]) || 0;
+    if (o.verdict === "affirm") out.affirmed += n;
+    if (o.verdict === "reject") out.rejected += n;
+  }
+  return out;
+}
+
+// Pure: the earliest earlier thread with the same sender, subject and body, never the ticket itself; null if none.
+export function earliestDuplicate(ticket, rows) {
+  const key = (t) => [t.sender_email, t.subject, t.body].join("\u0000");
+  const mine = key(ticket);
+  const at = Date.parse(ticket.received_at);
+  const hits = rows.filter((t) => t.thread_id !== ticket.thread_id && key(t) === mine && Date.parse(t.received_at) < at)
+    .sort((a, b) => Date.parse(a.received_at) - Date.parse(b.received_at));
+  return hits.length ? { thread_id: hits[0].thread_id, received_at: hits[0].received_at } : null;
+}
+
+// The duplicate lookup through Zetaris (sample mode: the cached rows). A failed query throws.
+export async function findDuplicate(ticket, opts = {}) {
+  const r = await run("thread_fingerprints", {}, { limit: 1000, ...opts });
+  return earliestDuplicate(ticket, r.objects);
 }
 
 export async function sources(opts = {}) {

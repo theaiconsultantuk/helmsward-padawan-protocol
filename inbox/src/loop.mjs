@@ -1,12 +1,12 @@
 // The decision loop core: one ticket in, one decision (send, hold, escalate, close) out, every step traced.
 // Order follows methodology.md. Every step the run does not reach is still logged, status "skipped".
 import { join } from "node:path";
-import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
 import * as zetaris from "./adapters/zetaris.mjs";
 import { config, sampleMode as isSampleMode, INBOX_ROOT } from "./config.mjs";
 import { Trace, mask } from "./trace.mjs";
-import { factsForTicket } from "./queries.mjs";
+import { factsForTicket, findDuplicate as findDuplicateZetaris, ledgerAdjustFor, CATEGORIES } from "./queries.mjs";
+import { ledgerAdjust as localLedgerAdjust } from "./decisions.mjs";
 import { typedGates, trustFloor, hardRisk } from "./gates.mjs";
 import { HMEM } from "./engines/hmem/index.mjs";
 import { Scout } from "./engines/scout/index.mjs";
@@ -32,23 +32,7 @@ const WHO = {
 
 // Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's data-block,
 // follow-up, duplicate and public-channel.
-// The duplicate lookup reads the committed threads file (also the Zetaris source file).
-// A Zetaris template for it belongs in CP4.
-export function findDuplicateInFile(ticket, { file = join(INBOX_ROOT, "data", "synthetic", "threads", "threads.jsonl") } = {}) {
-  let rows;
-  try {
-    rows = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  } catch {
-    return null;
-  }
-  const key = (t) => [t.sender_email, t.subject, t.body].join("\u0000");
-  const mine = key(ticket);
-  const at = Date.parse(ticket.received_at);
-  const hits = rows.filter((t) => t.thread_id !== ticket.thread_id && key(t) === mine && Date.parse(t.received_at) < at)
-    .sort((a, b) => Date.parse(a.received_at) - Date.parse(b.received_at));
-  return hits.length ? { thread_id: hits[0].thread_id, received_at: hits[0].received_at } : null;
-}
-
+// The duplicate lookup is queries.findDuplicate (the thread_fingerprints template through Zetaris).
 // FAULT_ZETARIS_REFUSE_ONCE in sample mode: the first Zetaris call of the run goes through the real adapter with
 // sample mode off and a loopback port that was bound and released, so the refusal is a genuine ECONNREFUSED.
 // The adapter then answers from the cached rows (error line, then recovery line). Later calls stay in sample mode.
@@ -120,7 +104,7 @@ export function decideBranch(facts, gates, memory, extra = {}) {
   if (facts.owner_out && facts.backup_out) {
     return { branch_id: "owner-out", why: `owner ${facts.owner_id} and backup ${facts.backup_id} are both out on ${facts.as_of ?? "the day"}` };
   }
-  const tf = trustFloor(facts, gates ?? undefined);
+  const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}` : `owner ${facts.owner_id} in`;
     return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount_usd == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
@@ -162,6 +146,10 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const gatesFn = deps.gates ?? typedGates;
   const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
   const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
+  const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace }));
+  const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
+    ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
+    : ledgerAdjustFor(category, { cfg, trace: o.trace })));
   const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose }));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
@@ -219,11 +207,24 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const f = S.facts;
     const ticket = f?.ticket ?? { thread_id };
     let dup = null;
-    if (f) {
+    let ledger = { affirmed: 0, rejected: 0 };
+    // Their zetaris.query lines join the buffered facts lines; a failure not already traced gets its own error line.
+    const guarded = async (action, input, fn) => {
+      let traced = false;
+      const t = { line: (x) => { if (x.status === "error") traced = true; buf.push(x); } };
       try {
-        dup = await (deps.findDuplicate ?? findDuplicateInFile)({ ...(f.ticket ?? {}), thread_id, sender_email: f.sender_email, subject: f.subject, body: f.body, received_at: f.received_at });
-      } catch {
-        dup = null;
+        return { value: await fn(t) };
+      } catch (e) {
+        if (!traced) buf.push({ step: "zetaris.query", agent_name: "Executor", action, input_summary: input, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error", sponsor: "zetaris" });
+        return { error: e };
+      }
+    };
+    if (f) {
+      const r = await guarded("sql:thread_fingerprints", `duplicate check for ${thread_id}`, (t) => findDup({ ...(f.ticket ?? {}), thread_id, sender_email: f.sender_email, subject: f.subject, body: f.body, received_at: f.received_at }, { trace: t }));
+      dup = r.error ? null : r.value ?? null;
+      if (CATEGORIES.includes(f.category)) {
+        const l = await guarded("sql:ledger_adjust", `trust ledger for ${f.category}`, (t) => ledgerFn(f.category, { trace: t }));
+        if (!l.error && l.value) ledger = { affirmed: Number(l.value.affirmed) || 0, rejected: Number(l.value.rejected) || 0 };
       }
     }
     const inputText = f ? (f.follow_up_kind ? (f.follow_up_body || f.body) : f.body) : "";
@@ -250,7 +251,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft }) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
@@ -318,7 +319,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft });
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger });
     const B = S.branch.branch_id;
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
