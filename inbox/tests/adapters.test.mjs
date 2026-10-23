@@ -108,7 +108,7 @@ test("nightshift status: 401 unauthorized, meterless ids online, otherwise offli
   });
 });
 
-test("nightshift primary timeout then fallback 200: one retry line, route meterless/local, no /v1/v1", async () => {
+test("nightshift primary timeout twice then fallback 200: retry_primary then fallback_route, route meterless/local, no /v1/v1", async () => {
   const tr = fakeTrace();
   const routes = [
     { match: (u, i) => JSON.parse(i.body).model === "meterless/nemo", reply: () => { throw mockTimeout(); } },
@@ -119,15 +119,50 @@ test("nightshift primary timeout then fallback 200: one retry line, route meterl
     assert.equal(r.route, "meterless/local");
     assert.equal(r.model, "local-model");
     assert.equal(r.text, "hi");
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3);
+    assert.deepEqual(calls.map((c) => JSON.parse(c.init.body).model), ["meterless/nemo", "meterless/nemo", "meterless/local"]);
     for (const c of calls) { assert.equal(c.url, "http://ns.test/v1/chat/completions"); assert.ok(!c.url.includes("/v1/v1")); }
     const h = calls[0].init.headers;
     assert.equal(h["meterless-scope"], "user"); assert.equal(h.Authorization, "Bearer test-ns-token-0001");
   });
   const retries = tr.lines.filter((l) => l.step === "retry");
+  assert.equal(retries.length, 2);
+  assert.equal(retries[0].action, "retry_primary"); assert.equal(retries[0].retry_count, 1); assert.equal(retries[0].status, "retrying");
+  assert.match(retries[0].output_summary, /meterless\/nemo failed \(UpstreamTimeout\); trying meterless\/nemo once more/);
+  assert.equal(retries[1].action, "fallback_route"); assert.equal(retries[1].retry_count, 2); assert.equal(retries[1].status, "retrying");
+  assert.match(retries[1].output_summary, /meterless\/nemo.*UpstreamTimeout.*meterless\/local/);
+});
+
+test("nightshift primary timeout once then 200 on the second attempt: route stays primary, one retry_primary line, no fallback call", async () => {
+  const tr = fakeTrace();
+  let n = 0;
+  const routes = [
+    { match: (u, i) => JSON.parse(i.body).model === "meterless/nemo", reply: () => { n += 1; if (n === 1) throw mockTimeout(); return chatOk("nemo-model"); } },
+    { match: () => true, reply: () => chatOk("never") },
+  ];
+  await withMockFetch(routes, async (calls) => {
+    const r = await nightshift.draft([{ role: "user", content: "hi" }], { cfg, trace: tr });
+    assert.equal(r.route, "meterless/nemo");
+    assert.equal(r.model, "nemo-model");
+    assert.equal(calls.length, 2);
+    assert.ok(calls.every((c) => JSON.parse(c.init.body).model === "meterless/nemo"));
+  });
+  const retries = tr.lines.filter((l) => l.step === "retry");
   assert.equal(retries.length, 1);
-  assert.equal(retries[0].status, "retrying");
-  assert.match(retries[0].output_summary, /meterless\/nemo.*UpstreamTimeout.*meterless\/local/);
+  assert.equal(retries[0].action, "retry_primary"); assert.equal(retries[0].sponsor, "meterless");
+});
+
+test("nightshift primary 502 is retried once on the primary; 404 unknown model is not", async () => {
+  const tr = fakeTrace();
+  const routes = [
+    { match: (u, i) => JSON.parse(i.body).model === "meterless/nemo", reply: () => ({ status: 502, body: {} }) },
+    { match: () => true, reply: () => chatOk("local-model") },
+  ];
+  await withMockFetch(routes, async (calls) => {
+    assert.equal((await nightshift.draft([], { cfg, trace: tr })).route, "meterless/local");
+    assert.equal(calls.length, 3);
+  });
+  assert.deepEqual(tr.lines.filter((l) => l.step === "retry").map((l) => l.action), ["retry_primary", "fallback_route"]);
 });
 
 test("nightshift primary 404 model_not_found fires the fallback", async () => {
@@ -155,7 +190,7 @@ test("nightshift Unauthorized on primary is thrown with no fallback call; plain 
 test("nightshift fallback failure rethrows; sample mode makes no call", async () => {
   await withMockFetch([{ match: () => true, reply: () => ({ status: 503, body: {} }) }], async (calls) => {
     await assert.rejects(nightshift.draft([], { cfg }), (e) => e.status === 503);
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3); // primary, primary once more, fallback
   });
   await withMockFetch([], async (calls) => {
     const r = await nightshift.draft([], { cfg: { ...cfg, SAMPLE_MODE: "true" } });
@@ -199,7 +234,7 @@ test("local lane: both Nightshift routes refused -> lane serves, two retry lines
 test("local lane: Nightshift answered 503 twice (it is up) -> no lane call, the 503 is rethrown", () => withoutLaneEnv(async () => {
   await withMockFetch([{ match: () => true, reply: () => ({ status: 503, body: {} }) }], async (calls) => {
     await assert.rejects(nightshift.draft([], { cfg: laneCfg }), (e) => e.status === 503);
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 3); // primary, primary once more, fallback; never the lane
     assert.ok(!calls.some((c) => isLane(c.url)));
   });
 }));
@@ -269,3 +304,48 @@ test("F3b: local lane next-model retry with a real Trace does not throw and carr
   const l = readFileSync(tr.path, "utf8").split("\n").filter(Boolean).map((x) => JSON.parse(x)).find((x) => x.action === "local_lane_next_model");
   assert.ok(l && !("sponsor" in l));
 }));
+
+test("(b) draft() forwards the run's AbortSignal to fetch: a hanging call is aborted when the signal aborts", async () => {
+  let fetchSignal = null;
+  const fetchImpl = (url, init) => new Promise((_, rej) => {
+    fetchSignal = init.signal;
+    init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  const ac = new AbortController();
+  const p = nightshift.draft([{ role: "user", content: "hi" }], { cfg, fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(), 30);
+  await assert.rejects(p, (e) => e.name === "UpstreamTimeout" && e.cause?.name === "AbortError");
+  assert.equal(fetchSignal.aborted, true);
+});
+
+test("(b) openjev systemone() forwards the AbortSignal to fetch", async () => {
+  const { systemone } = await import("../src/adapters/openjev.mjs");
+  let fetchSignal = null;
+  const fetchImpl = (url, init) => new Promise((_, rej) => {
+    fetchSignal = init.signal;
+    init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })));
+  });
+  const ac = new AbortController();
+  const p = systemone("s", {}, { cfg, fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(), 30);
+  await assert.rejects(p, { name: "UpstreamTimeout" });
+  assert.equal(fetchSignal.aborted, true);
+});
+
+test("(14) zetaris keeps the first 300 chars of a non-ok body in message and detail", async () => {
+  const body = "[TABLE_OR_VIEW_NOT_FOUND] The table or view `JEDI_PACK`.`x` cannot be found. " + "y".repeat(500);
+  await withMockFetch([{ match: () => true, reply: () => ({ status: 400, body }) }], async () => {
+    await assert.rejects(zetaris.sqlRun("x", { cfg }), (e) =>
+      e.name === "BadResponse" && e.status === 400 && /TABLE_OR_VIEW_NOT_FOUND/.test(e.message) && e.detail.length <= 300 && e.detail.startsWith("[TABLE_OR_VIEW_NOT_FOUND]"));
+  });
+});
+
+test("nightshift: the receipt's routed_model wins over body.model, and the phases are kept", () => {
+  const raw = { body: { model: "nvidia/nemotron-3.5-lightning-30b-a3b", meterless: { schema: "meterless.compute_receipt.v1", receipt_id: "rcpt_x", requested_model: "nvidia/nemotron-3.5-lightning-30b-a3b", routed_model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", phases: [{ phase: "final_synthesis", model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", ms: 200 }] } }, headers: {} };
+  assert.equal(nightshift.handledModel(raw), "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", "the lane that served, not the echoed request");
+  const r = nightshift.receiptOf(raw);
+  assert.equal(r.requested_model, "nvidia/nemotron-3.5-lightning-30b-a3b");
+  assert.deepEqual(r.phases, [{ phase: "final_synthesis", model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC" }]);
+  assert.equal(nightshift.handledModel({ body: { model: "m-only" }, headers: {} }), "m-only", "no receipt: body.model as before");
+  assert.equal(nightshift.receiptOf({ body: { model: "m-only" } }), null);
+});

@@ -1,0 +1,10 @@
+{
+  "run_id": "example-6",
+  "input": {
+    "message": "Incoming RFQ for price difference between ordering 100000 items and 100 (we only have 1 price, so I would like to see how our flow responds",
+    "from": "einh@example.com",
+    "channel": "chat",
+    "scenario": "rfq",
+    "as_of": "2026-10-20"
+  }
+}

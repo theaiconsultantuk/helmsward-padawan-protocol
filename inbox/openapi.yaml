@@ -68,30 +68,55 @@ paths:
         content:
           application/json:
             schema: { $ref: "#/components/schemas/RunRequest" }
-            example: { run_id: demo-1, input: { thread_id: T02 } }
+            examples:
+              thread: { summary: A stored thread, value: { run_id: demo-1, input: { thread_id: T02 } } }
+              message: { summary: A free-text message, value: { run_id: demo-msg, input: { message: "How long does shipping take?", from: a@example.com, channel: chat, as_of: "2026-10-20" } } }
       responses:
         "200":
-          description: The run result (also kept for `GET /runs/{id}`).
+          description: The run result (also kept for `GET /runs/{id}`). A message run gets a ticket id `F<n>` in `input.thread_id`, is recorded in the decisions table under that id and takes `/feedback` like any other run.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RunResult" }
-              example:
-                run_id: demo-1
-                status: success
-                output:
-                  decision: hold
-                  reasons: ["refund weight 0.55 is under the floor 0.8; owner 15 out, backup 16 in. Both critics passed; the reply waits for backup 16 with the draft attached"]
-                  cited_rows: ["threads_parquet:T02", "policy:refund", "employees:15", "trust_ledger:refund"]
-                  draft:
-                    text: "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 USD.\n\nBest regards,\nJedi Pack Support"
-                    promises: { refund_amount: "40.0", replacement: false, other: null }
-                    model: sample/rules
-                agents: [{ name: Planner, role: plan and delegate }, { name: Executor, role: facts from Zetaris }]
-                trace_id: demo-1
-                log_file: logs/trace-demo-1.jsonl
-                execution_time_seconds: 0.011
+              examples:
+                message:
+                  summary: Sample-mode run of a free-text FAQ question (trimmed from a real run)
+                  value:
+                    run_id: demo-msg
+                    status: success
+                    output:
+                      decision: send
+                      reasons: ["FAQ Q01 answers it; FAQ Q01 matches (score 1.00, shared: long, shipping, take); FAQ text is canonical, the floor gates model drafts"]
+                      cited_rows: ["intake_runtime:F1 (local)", "responsibility:question", "employees:1", "employees:2", "trust_ledger:question", "faq:Q01"]
+                      draft:
+                        text: "Hello,\n\nShipping time depends on your region and the product. Your order confirmation shows the estimate for your address, and customer service can tell you where your order is.\n\nBest regards,\nJedi Pack Support"
+                        promises: { refund_amount: null, replacement: false, other: null }
+                        model: faq/canonical
+                    trace_id: demo-msg
+                    log_file: logs/trace-demo-msg.jsonl
+                    execution_time_seconds: 0.015
+                    scenario: question
+                    resolved_how: scout
+                    branch_id: faq-hit
+                    input: { kind: message, thread_id: F1, text: "How long does shipping take?", from: a@example.com, name: null, channel: chat, received_at: "2026-10-23T05:13:50.034Z", as_of: "2026-10-20" }
+                thread:
+                  value:
+                    run_id: demo-1
+                    status: success
+                    output:
+                      decision: hold
+                      reasons: ["refund weight 0.55 is under the floor 0.8; owner 15 out, backup 16 in. Both critics passed; the reply waits for backup 16 with the draft attached"]
+                      cited_rows: ["threads_parquet:T02", "policy:refund", "employees:15", "trust_ledger:refund"]
+                      draft:
+                        text: "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 USD.\n\nBest regards,\nJedi Pack Support"
+                        promises: { refund_amount: "40.0", replacement: false, other: null }
+                        model: sample/rules
+                    agents: [{ name: Planner, role: plan and delegate }, { name: Executor, role: facts from Zetaris }]
+                    trace_id: demo-1
+                    log_file: logs/trace-demo-1.jsonl
+                    execution_time_seconds: 0.011
         "400": { $ref: "#/components/responses/BadRequest" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   /ask:
     post:
       summary: Ask a question about policy, owners or a customer
@@ -118,6 +143,80 @@ paths:
                 trace_id: ask_mvk7ru456hv
                 log_file: logs/trace-ask_mvk7ru456hv.jsonl
         "400": { $ref: "#/components/responses/BadRequest" }
+  /runs:
+    get:
+      summary: The stored runs and asks, newest first
+      description: Reads the in-memory store (the last 200, so a restart forgets them). `kind` is `ask` for `POST /ask` results and `run` otherwise. `at` is the time the run finished.
+      parameters:
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 }, example: 20 }
+      responses:
+        "200":
+          description: The runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RunListItem" }
+              example:
+                - { run_id: ex-rfq, kind: run, scenario: rfq, decision: escalate, thread_id: F2, branch_id: rfq, execution_time_seconds: 0.013, at: "2026-10-23T05:17:41.691Z" }
+                - { run_id: ex-faq, kind: run, scenario: question, decision: send, thread_id: F1, branch_id: faq-hit, execution_time_seconds: 0.015, at: "2026-10-23T05:17:41.671Z" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /runs/{id}/journey:
+    get:
+      summary: The run as a journey a person can read
+      description: Derived from the stored result and the run's trace file, so it is 404 when either is gone. One node per trace line, with what each step consulted and what the reply kept.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: ex-rfq }
+      responses:
+        "200":
+          description: The journey.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Journey" }
+              example:
+                run_id: ex-rfq
+                scenario: rfq
+                resolved_how: declared
+                decision: escalate
+                input: { kind: message, thread_id: F2, text: Incoming RFQ for price difference between ordering 100000 training sabers and 100, from: buyer@example.com, name: null, channel: chat, received_at: "2026-10-23T05:17:41.678Z", as_of: "2026-10-20" }
+                nodes:
+                  - { n: 1, step: memory.read, agent: Memory, label: Memory read, route: empty (cold first run), consulted: [], retained: [], reached_human: false, status: success, model: null, timestamp: "2026-10-23T05:17:41Z" }
+                human:
+                  input: Incoming RFQ for price difference between ordering 100000 training sabers and 100
+                  path: [Memory read, Plan, "Branch: rfq", Hand-off, Reply]
+                  reply:
+                    kind: escalation
+                    text: "Hello,\n\nThank you, your request for a quote is with our sales team."
+                    to: { employee_id: 6, name: Tomas Keller, role: rfq owner }
+                    attachments: ["products:P01"]
+                    blanks: []
+                    recommendation: The records hold one unit price; sales to quote.
+                reached_human:
+                  who: { employee_id: 6, name: Tomas Keller }
+                  what: [the draft, both critiques, "products:P01"]
+                  queue_file: data/memory/queue/F2.json
+        "404": { $ref: "#/components/responses/NotFound" }
+  /queue:
+    get:
+      summary: What is waiting for a human
+      description: Every file under `data/memory/queue/` (read on each call, `[]` when the folder is absent) plus the runs that ended on `hold` with a draft. Newest first. A queue file row names `approver` when the ticket needed an approval, otherwise `owner`.
+      responses:
+        "200":
+          description: The waiting items.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/QueueItem" }
+              example:
+                - ticket_id: F2
+                  file: F2.json
+                  category: rfq
+                  decision_reason: "rfq: one unit price (189 USD), no volume tiers. Sales to quote."
+                  owner: { employee_id: 6, name: Tomas Keller }
+                  has_draft: true
+                  critiques: []
+                  mtime: "2026-10-23T05:17:41.690Z"
   /runs/{id}:
     get:
       summary: A stored run or ask result
@@ -188,6 +287,48 @@ paths:
             application/yaml:
               schema: { type: string }
               example: "openapi: 3.0.3"
+  /:
+    get:
+      summary: The front page
+      description: "Serves `public/index.html` (404 with the structured error until the page exists). The page only uses the API."
+      responses:
+        "200":
+          description: The unified front end.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /dashboard:
+    get:
+      summary: The internal dashboard
+      description: "Counters, the queue, recent runs and affirm/reject buttons. Served with `Cache-Control: no-store`."
+      responses:
+        "200":
+          description: The dashboard page.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /static/{name}:
+    get:
+      summary: A page asset from a closed list
+      description: "Serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string, enum: [app.js, dashboard.js, style.css, demo-scenarios.json] }
+      responses:
+        "200":
+          description: The file.
+          content:
+            application/javascript:
+              schema: { type: string }
+            text/css:
+              schema: { type: string }
+            application/json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/NotFound" }
 components:
   responses:
     BadRequest:
@@ -202,6 +343,12 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { run_id: nope, status: error, error: { type: NotFound, message: no stored run nope, recoverable: false }, trace_id: null, execution_time_seconds: 0 }
+    Conflict:
+      description: The `run_id` was already used by a stored run (thread or message).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { run_id: demo-1, status: error, error: { type: Conflict, message: run_id demo-1 was already used, recoverable: false }, trace_id: null, execution_time_seconds: 0 }
   schemas:
     Health:
       type: object
@@ -216,11 +363,32 @@ components:
       type: object
       required: [input]
       properties:
-        run_id: { type: string, pattern: "^[A-Za-z0-9._-]{1,80}$", description: Optional, generated when absent. }
+        run_id: { type: string, pattern: "^[A-Za-z0-9._-]{1,80}$", description: "Optional, generated when absent. A run_id already used answers 409." }
         input:
-          type: object
-          properties: { thread_id: { type: string, example: T02 }, as_of: { type: string, example: "2026-10-22" } }
+          oneOf:
+            - $ref: "#/components/schemas/ThreadInput"
+            - $ref: "#/components/schemas/MessageInput"
+          description: "A stored thread (`thread_id`) or a free-text message (`message`, `from`, `channel`); a body with neither is a 400."
         options: { type: object, properties: { sample_mode: { type: boolean } } }
+    ThreadInput:
+      type: object
+      required: [thread_id]
+      properties: { thread_id: { type: string, example: T02, description: "An id from the thread index; unknown ids answer 404." }, as_of: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$", example: "2026-10-22" } }
+    MessageInput:
+      type: object
+      required: [message, from, channel]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 4000, description: Trimmed before the length check. }
+        from: { type: string, minLength: 1, maxLength: 200, description: An email address or a name. }
+        channel: { type: string, enum: [email, contact-form, chat, trustpilot] }
+        scenario: { type: string, enum: [refund, question, rfq, complaint, free_text], description: "Declares the scenario. Absent means free_text: the loop resolves it from the message (see `resolved_how`)." }
+        name: { type: string, maxLength: 200 }
+        subject: { type: string, maxLength: 200, description: Defaults to the first 60 characters of the message. }
+        as_of: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$", example: "2026-10-20", description: "Date the facts are read as of (holidays, availability); today when absent." }
+    ResolvedScenario:
+      type: string
+      enum: [refund, question, rfq, complaint, free_text, legacy, customer_service]
+      description: "The scenario the loop resolved. Wider than the request's declared scenario: a thread ticket resolves to legacy, an unrouted free text to customer_service."
     RunResult:
       type: object
       properties:
@@ -233,7 +401,38 @@ components:
             reasons: { type: array, items: { type: string } }
             cited_rows: { type: array, items: { type: string } }
             draft: { type: object }
-            queued_for: { type: object }
+            recommendation: { type: string, description: Present when the run recommends an action to the person it queues for. }
+            queued_for:
+              type: object
+              properties:
+                owner_id: { type: integer }
+                owner_name: { type: string }
+                backup_id: { type: integer }
+                backup_name: { type: string }
+                role: { type: string }
+                attachments:
+                  type: object
+                  description: The rows the owner needs, attached to a queued item.
+                  properties:
+                    prices: { type: array, items: { type: object } }
+                    quantities: { type: array, items: { type: object } }
+                    products: { type: array, items: { type: object } }
+                    cited: { type: array, items: { type: string }, description: "Row ids, for example products:P01." }
+        scenario: { $ref: "#/components/schemas/ResolvedScenario" }
+        resolved_how: { type: string, enum: [declared, thread, scout, gates, faq, none, unrouted], description: How the scenario was decided. }
+        branch_id: { type: string, nullable: true, description: "The branch the loop took, for example faq-hit. Free text: the legacy ids (send-ok, thank-you, follow-up, duplicate, public-channel, owner-out, over-limit, under-floor, data-block, misread, unknown) and the scenario ids." }
+        input:
+          type: object
+          description: The ticket as the loop read it.
+          properties:
+            kind: { type: string, enum: [thread, message] }
+            thread_id: { type: string, description: "T<n> for a thread, F<n> for a message." }
+            text: { type: string }
+            from: { type: string }
+            name: { type: string, nullable: true }
+            channel: { type: string }
+            received_at: { type: string }
+            as_of: { type: string, nullable: true }
         agents: { type: array, items: { type: object } }
         trace_id: { type: string }
         log_file: { type: string }
@@ -273,6 +472,97 @@ components:
     Counters:
       type: object
       properties: { send: { type: integer }, hold: { type: integer }, escalate: { type: integer }, close: { type: integer }, queued: { type: integer }, affirmed: { type: integer }, rejected: { type: integer } }
+    RunListItem:
+      type: object
+      required: [run_id, kind, at]
+      properties:
+        run_id: { type: string }
+        kind: { type: string, enum: [run, ask] }
+        scenario: { type: string, nullable: true }
+        decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        thread_id: { type: string, nullable: true }
+        branch_id: { type: string, nullable: true }
+        execution_time_seconds: { type: number, nullable: true }
+        at: { type: string, format: date-time, nullable: true }
+    Person:
+      type: object
+      properties:
+        employee_id: { type: integer, nullable: true }
+        name: { type: string, nullable: true }
+    QueueItem:
+      type: object
+      description: A queue file row has `file`, `category`, `decision_reason`, `critiques`, `mtime` and `approver` or `owner`. A held row has `kind` held, `run_id`, `recommendation` and `at`.
+      required: [ticket_id, has_draft]
+      properties:
+        ticket_id: { type: string, nullable: true }
+        file: { type: string }
+        category: { type: string, nullable: true }
+        decision_reason: { type: string, nullable: true }
+        approver: { $ref: "#/components/schemas/Person" }
+        owner: { $ref: "#/components/schemas/Person" }
+        has_draft: { type: boolean }
+        critiques: { type: array, items: {} }
+        mtime: { type: string, format: date-time }
+        run_id: { type: string }
+        kind: { type: string, enum: [held] }
+        scenario: { type: string, nullable: true }
+        recommendation: { type: string, nullable: true }
+        at: { type: string, format: date-time, nullable: true }
+    JourneyNode:
+      type: object
+      properties:
+        n: { type: integer }
+        step: { type: string, nullable: true }
+        agent: { type: string, nullable: true }
+        label: { type: string }
+        route: { type: string, nullable: true }
+        consulted: { type: array, items: { type: string } }
+        retained: { type: array, description: Always a subset of consulted., items: { type: string } }
+        reached_human: { type: boolean }
+        status: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        timestamp: { type: string, nullable: true }
+    Journey:
+      type: object
+      required: [run_id, nodes, human, reached_human]
+      properties:
+        run_id: { type: string, nullable: true }
+        scenario: { type: string, nullable: true }
+        resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, null] }
+        decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        input:
+          type: object
+          properties:
+            kind: { type: string, nullable: true, enum: [message, thread, ask, null] }
+            thread_id: { type: string, nullable: true }
+            text: { type: string, nullable: true }
+            from: { type: string, nullable: true }
+            name: { type: string, nullable: true }
+            channel: { type: string, nullable: true }
+            received_at: { type: string, nullable: true }
+            as_of: { type: string, nullable: true }
+        nodes: { type: array, description: One per trace line., items: { $ref: "#/components/schemas/JourneyNode" } }
+        human:
+          type: object
+          properties:
+            input: { type: string, nullable: true }
+            path: { type: array, items: { type: string } }
+            reply:
+              type: object
+              properties:
+                kind: { type: string, enum: [auto_reply, draft_for_human, escalation, answer, none] }
+                text: { type: string, nullable: true }
+                to: { type: object, nullable: true }
+                attachments: { type: array, items: { type: string } }
+                blanks: { type: array, items: { type: string } }
+                recommendation: { type: string, nullable: true }
+        reached_human:
+          type: object
+          nullable: true
+          properties:
+            who: { $ref: "#/components/schemas/Person" }
+            what: { type: array, items: { type: string } }
+            queue_file: { type: string, nullable: true }
     TraceLine:
       type: object
       properties: { timestamp: { type: string }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }

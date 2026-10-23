@@ -1,0 +1,73 @@
+{
+  "run_id": "example-4",
+  "status": "success",
+  "output": {
+    "decision": "send",
+    "reasons": [
+      "FAQ Q01 answers it; FAQ Q01 matches (score 1.00, shared: long, shipping, take); FAQ text is canonical, the floor gates model drafts"
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:question",
+      "holiday_2026:1@2026-10-20",
+      "holiday_2026:2@2026-10-20",
+      "employees:1",
+      "employees:2",
+      "trust_ledger:question",
+      "wiki_what_may_leave",
+      "faq:Q01"
+    ],
+    "draft": {
+      "text": "Hello,\n\nShipping time depends on your region and the product. Your order confirmation shows the estimate for your address, and customer service can tell you where your order is.\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "faq/canonical"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "scenario": "question",
+  "resolved_how": "scout",
+  "branch_id": "faq-hit",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "How long does shipping take?",
+    "from": "a@example.com",
+    "name": null,
+    "channel": "chat",
+    "received_at": "2026-10-23T05:19:01.591Z",
+    "as_of": "2026-10-20"
+  },
+  "trace_id": "example-4",
+  "log_file": "logs/trace-example-4.jsonl",
+  "execution_time_seconds": 0.017
+}

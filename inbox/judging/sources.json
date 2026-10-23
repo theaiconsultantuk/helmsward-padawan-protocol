@@ -17,7 +17,7 @@
     "name": "responsibility",
     "format": "CSV",
     "table": "responsibility",
-    "rows": 5,
+    "rows": 7,
     "live": true
   },
   {
@@ -108,7 +108,7 @@
     "name": "decisions",
     "format": "CSV",
     "table": "decisions",
-    "rows": 0,
+    "rows": 68,
     "live": true
   },
   {
@@ -117,5 +117,26 @@
     "table": "intake_live",
     "rows": 41,
     "live": false
+  },
+  {
+    "name": "products",
+    "format": "CSV",
+    "table": "products",
+    "rows": 10,
+    "live": true
+  },
+  {
+    "name": "faq",
+    "format": "CSV",
+    "table": "faq",
+    "rows": 12,
+    "live": true
+  },
+  {
+    "name": "intake_runtime",
+    "format": "CSV",
+    "table": "intake_runtime",
+    "rows": 86,
+    "live": true
   }
 ]

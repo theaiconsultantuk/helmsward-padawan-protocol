@@ -11,9 +11,10 @@ export const VERDICTS = { affirm: 0.05, reject: -0.05 };
 export const RUNTIME_DIR = join(INBOX_ROOT, "data", "runtime");
 export const CONTAINER = "zetaris-driver-1";
 export const REMOTE_DIR = "/home/zetaris/customer-data/shared/jedi-pack/runtime";
-export const UNCACHE_SQL = "UNCACHE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK";
+export const uncacheSql = (table) => `UNCACHE LIGHTNING FILESTORE TABLE ${table} FROM JEDI_PACK`;
+export const UNCACHE_SQL = uncacheSql("decisions");
 
-const q = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+export const q = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 const line = (r) => HEADER.map((h) => q(r[h])).join(",");
 
 export function parseCsv(text) {
@@ -44,7 +45,7 @@ function writeAll(rows, dir) {
 
 // writes are serialised in-process; one row per run_id (a re-run replaces its own row)
 let chain = Promise.resolve();
-const serial = (fn) => { const p = chain.then(fn, fn); chain = p.catch(() => {}); return p; };
+export const serial = (fn) => { const p = chain.then(fn, fn); chain = p.catch(() => {}); return p; };
 
 export function appendDecision({ run_id, thread_id, category, decision }, { dir = RUNTIME_DIR, now = () => new Date() } = {}) {
   return serial(async () => {
@@ -96,24 +97,33 @@ const sh = (cmd, args, { input, cwd } = {}) => new Promise((resolve, reject) => 
   if (input) input(p.stdin);
 });
 
-// Stream the CSV into the container as uid 1001 (the zetaris_drop.sh route), then UNCACHE the table.
-export async function publish({ dir = RUNTIME_DIR, cfg = config(), runSql = zetaris.sqlRun, run = sh, spawnImpl = spawn } = {}) {
-  if (sampleMode(cfg)) return { published: false, reason: "sample mode: nothing leaves this machine" };
-  if (!existsSync(file(dir))) writeAll([], dir);
-  await run("docker", ["exec", "-u", "1001", CONTAINER, "mkdir", "-p", REMOTE_DIR]);
-  const tar = spawnImpl("tar", ["-C", dir, "-cf", "-", "decisions.csv"], { stdio: ["ignore", "pipe", "pipe"] });
-  const tarDone = new Promise((res, rej) => { tar.on("error", rej); tar.on("close", (c) => (c === 0 ? res() : rej(new Error(`tar exited ${c}`)))); });
-  await Promise.all([
-    tarDone,
-    run("docker", ["exec", "-i", "-u", "1001", CONTAINER, "tar", "-xf", "-", "-C", REMOTE_DIR], { input: (stdin) => tar.stdout.pipe(stdin) }),
-  ]);
-  let uncached = true;
-  try { await runSql(UNCACHE_SQL, { cfg, timeoutMs: 60000 }); }
-  catch (e) {
-    // first publish: the table is not registered yet, nothing to uncache. Only a positively identified
-    // missing-table message counts; any other failure (HTTP 500, timeout...) is reported, not hidden.
-    if (/not found|does not exist|no such table|cannot find/i.test(String(e?.message))) return { published: true, uncached: false };
-    return { published: true, uncached: false, error: `${e?.name ?? "Error"}: ${String(e?.message ?? e).slice(0, 200)}` };
-  }
-  return { published: true, uncached };
+// Stream one runtime CSV into the container as uid 1001 (the zetaris_drop.sh route), then UNCACHE its table.
+// Every publish (decisions and intake) runs on the one serial() chain, so two files are never streamed at once.
+// run / spawnImpl / runSql are the test seams (docker exec, tar, the UNCACHE statement).
+export function publishFile({ dir = RUNTIME_DIR, file: name, table, cfg = config(), runSql = zetaris.sqlRun, run = sh, spawnImpl = spawn } = {}) {
+  return serial(async () => {
+    if (sampleMode(cfg)) return { published: false, reason: "sample mode: nothing leaves this machine" };
+    if (!existsSync(join(dir, name))) {
+      if (name === "decisions.csv") writeAll([], dir);
+      else throw new Error(`${name} does not exist in ${dir}`);
+    }
+    await run("docker", ["exec", "-u", "1001", CONTAINER, "mkdir", "-p", REMOTE_DIR]);
+    const tar = spawnImpl("tar", ["-C", dir, "-cf", "-", name], { stdio: ["ignore", "pipe", "pipe"] });
+    const tarDone = new Promise((res, rej) => { tar.on("error", rej); tar.on("close", (c) => (c === 0 ? res() : rej(new Error(`tar exited ${c}`)))); });
+    await Promise.all([
+      tarDone,
+      run("docker", ["exec", "-i", "-u", "1001", CONTAINER, "tar", "-xf", "-", "-C", REMOTE_DIR], { input: (stdin) => tar.stdout.pipe(stdin) }),
+    ]);
+    let uncached = true;
+    try { await runSql(uncacheSql(table), { cfg, timeoutMs: 60000 }); }
+    catch (e) {
+      // first publish: the table is not registered yet, nothing to uncache. Only a positively identified
+      // missing-table message counts; any other failure (HTTP 500, timeout...) is reported, not hidden.
+      if (/not found|does not exist|no such table|cannot find/i.test(String(e?.message))) return { published: true, uncached: false };
+      return { published: true, uncached: false, error: `${e?.name ?? "Error"}: ${String(e?.message ?? e).slice(0, 200)}` };
+    }
+    return { published: true, uncached };
+  });
 }
+
+export const publish = (opts = {}) => publishFile({ ...opts, file: "decisions.csv", table: "decisions" });

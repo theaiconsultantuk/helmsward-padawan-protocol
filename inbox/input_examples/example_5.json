@@ -1,0 +1,10 @@
+{
+  "run_id": "example-5",
+  "input": {
+    "message": "Do you have a shop in Antwerp I can visit on Saturday?",
+    "from": "a@example.com",
+    "channel": "chat",
+    "scenario": "question",
+    "as_of": "2026-10-20"
+  }
+}

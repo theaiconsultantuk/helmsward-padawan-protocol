@@ -14,4 +14,7 @@ CREATE LIGHTNING FILESTORE TABLE threads_parquet FROM JEDI_PACK FORMAT PARQUET O
 CREATE LIGHTNING FILESTORE TABLE contact_form_submissions FROM JEDI_PACK FORMAT JSON OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/intakes/contact-form/submissions.json", multiLine "true");
 CREATE LIGHTNING FILESTORE TABLE trustpilot_reviews FROM JEDI_PACK FORMAT JSON OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/intakes/trustpilot/reviews.json", multiLine "true");
 CREATE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK FORMAT TEXT OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/notes/escalation-notes.txt");
-CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv", header "true", escape '"', multiLine "true");
+CREATE LIGHTNING FILESTORE TABLE products FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/products.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE faq FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/faq.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE intake_runtime FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/intake.csv", header "true", escape '"', multiLine "true");

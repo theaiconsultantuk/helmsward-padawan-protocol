@@ -1,6 +1,7 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
 import { readFileSync } from "node:fs";
 import { config, INBOX_ROOT } from "../config.mjs";
+import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
 
@@ -33,7 +34,7 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
   const cat = facts.category ?? ticket.category;
   const rows = (facts.cited_rows ?? []).join(", ");
   const cite = rows ? ` (policy rows: ${rows})` : "";
-  const hi = `Hello ${ticket.sender_name},`;
+  const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   const ask = `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
@@ -86,5 +87,60 @@ export function gates(ticket) {
       asks_for_money: money ? 0.9 : 0.1,
     },
     model: MODEL, gate_source: "rules", confidence: 0.5,
+  };
+}
+
+// The greeting and sign-off every sample reply wears (same two lines as draft()).
+export function frame(ticket, body) {
+  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
+}
+
+// The RFQ acknowledgement: ACKNOWLEDGEMENT_TEMPLATE filled with the quantities. Code, no model call; never a price.
+export function acknowledgement(ticket, { quantities = [] } = {}) {
+  const q = quantities.map(String);
+  const said = q.length === 0 ? "the quantity you asked about" : q.length === 1 ? q[0] : `${q.slice(0, -1).join(", ")} and ${q.at(-1)}`;
+  return { text: frame(ticket, ACKNOWLEDGEMENT_TEMPLATE.replace("{quantities}", said)), model: "template/acknowledgement", route: "template", promises: { refund_amount: null, replacement: false, other: null } };
+}
+
+// Complaint handler twins (S2.2): deterministic keyword reads.
+export function complaintRead(ticket, { worldText = "" } = {}) {
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const genuine = /unacceptable|never again|lawyer|review|public|twice|again|everyone/i.test(text);
+  return {
+    kind: genuine ? "genuine" : "vent",
+    face_risk: genuine,
+    reasoning: genuine ? "The message names a concrete failure, a repeat or a public audience." : "The customer is upset but names no concrete harm to repair.",
+    handle: genuine ? "A person should own this, repair the failure and answer the customer directly." : "A calm acknowledgement is enough; there is nothing to repair.",
+    model: "sample-rules",
+  };
+}
+
+export function severity(ticket, { kind = "vent", repeat = false, publicChannel = false } = {}) {
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  let score;
+  if (/lawyer|unsafe|injur/i.test(text)) score = 10;
+  else if (/never again|everyone/i.test(text)) score = 9;
+  else {
+    score = /furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
+    if (publicChannel) score += 4;
+    if (repeat) score += 2;
+  }
+  score = Math.max(1, Math.min(10, score));
+  return { score, legend: SEVERITY_LEVELS[score - 1] };
+}
+
+// Customer-service twin (S3.1): a rules recommendation and a draft with two [[blank: …]] markers. No model call.
+export function recommendation(ticket, { candidates = [], pages = [], faqRows = 0 } = {}) {
+  const top = candidates.slice(0, 3).map((c) => `${c.intent} (${Number(c.score).toFixed(1)})`).join(", ") || "none";
+  const seen = pages.length ? `see the wiki page${pages.length === 1 ? "" : "s"} ${pages.map((p) => `"${p}"`).join(", ")}` : "no wiki page applies";
+  const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const address = /address/i.test(text);
+  const body = address
+    ? "Thank you for getting in touch. A colleague will look at your order [[blank: order number]] and, once it is checked, update the delivery address to [[blank: new delivery address]]."
+    : "Thank you for getting in touch. A colleague will look at your order [[blank: order number]] and come back to you about [[blank: what the customer wants changed]].";
+  const ds = [...body.matchAll(/\[\[blank:\s*([^\]]*?)\s*\]\]/g)].map((m, i) => ({ id: `blank-${i + 1}`, what: m[1] }));
+  return {
+    recommendation: `no clear intent; top candidates ${top}; nothing in the FAQ${faqRows ? ` (${faqRows} rows searched)` : ""}; ${seen}. A person confirms the order and what the customer wants changed, then finishes the draft.`,
+    draft: frame(ticket, body), blanks: ds, model: "sample-rules",
   };
 }

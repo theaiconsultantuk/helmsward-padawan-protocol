@@ -2,6 +2,7 @@
 import { config, sampleMode as isSampleMode } from "./config.mjs";
 import { systemone } from "./adapters/openjev.mjs";
 import * as sample from "./adapters/sample.mjs";
+import { SEVERITY_QUESTION } from "./prompts.mjs";
 
 const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
 
@@ -61,7 +62,7 @@ function oneLine(a) {
   return `is_follow_up ${r2(a.is_follow_up)}; category ${a.category.choice} (${r2(a.category.confidence)}); urgency ${r2(a.urgency.score)}; tone ${r2(a.tone.score)}; asks_for_money ${r2(a.asks_for_money)}`;
 }
 
-export async function typedGates(ticket, facts = {}, { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl } = {}) {
+export async function typedGates(ticket, facts = {}, { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl, signal } = {}) {
   const log = (f) => trace?.line({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", input_summary: `typed gates for ${ticket.thread_id ?? "ticket"}`, ...f });
   const fallback = (status, why) => {
     const g = sample.gates(ticket);
@@ -72,7 +73,7 @@ export async function typedGates(ticket, facts = {}, { trace = null, cfg = confi
   try {
     const fs = factsSummary(facts);
     const state = `Subject: ${ticket.subject ?? ""}\n\n${ticket.follow_up_body || ticket.body || ""}${ticket.follow_up_body && ticket.body ? `\n\n(original message: ${ticket.body})` : ""}${fs ? `\n\nFacts: ${fs}` : ""}`;
-    const r = await systemone(state, GATE_QUESTIONS, { cfg, ...(fetchImpl ? { fetchImpl } : {}) });
+    const r = await systemone(state, GATE_QUESTIONS, { cfg, ...(fetchImpl ? { fetchImpl } : {}), ...(signal ? { signal } : {}) });
     const { answers, confidences } = normalize(r.answers);
     if (!CATEGORIES.includes(answers.category.choice)) throw Object.assign(new Error(`unknown category ${answers.category.choice}`), { name: "BadResponse" });
     const confidence = confidences.reduce((s, x) => s + x, 0) / confidences.length;
@@ -80,7 +81,37 @@ export async function typedGates(ticket, facts = {}, { trace = null, cfg = confi
     log({ status: "success", model, confidence, gate_source: "openjev", output_summary: oneLine(answers) });
     return { answers, model, gate_source: "openjev", confidence };
   } catch (e) {
+    if (signal?.aborted) throw e;
     return fallback("success", `OpenJev failed (${e.name ?? "Error"})`);
+  }
+}
+
+// Severity 0..10 (S2.2): one OpenJev score question; score = round(index into the 10 levels) + 1.
+export async function severityGate(ticket, facts = {}, worldLine = "", { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl, kind = "vent", signal } = {}) {
+  const log = (f) => trace?.line({ step: "nvidia.model", agent_name: "Severity", action: "severity_gate", sponsor: "nvidia", input_summary: `severity for ${ticket.thread_id ?? "ticket"}`, ...f });
+  const done = (r, skipped = false) => {
+    const body = `severity ${r.score} (${r.legend}), raw ${r.raw ?? "n/a"}, confidence ${r.confidence}, source ${r.gate_source}`;
+    log({ status: skipped ? "skipped" : "success", model: r.model, confidence: r.confidence, gate_source: r.gate_source, output_summary: skipped ? `sample mode, OpenJev not called; severity by code rules (sample.severity): ${body}` : body });
+    return r;
+  };
+  const fallback = (skipped = false) => {
+    const s = sample.severity(ticket, { kind, repeat: facts.repeat === true, publicChannel: facts.publicChannel === true || ticket.channel === "trustpilot" });
+    return done({ score: s.score, legend: s.legend, confidence: 0.5, model: "rules", gate_source: "rules" }, skipped);
+  };
+  if (sampleMode) return fallback(true);
+  try {
+    const state = `Subject: ${ticket.subject ?? ""}\n\n${ticket.body ?? ""}${worldLine ? `\n\nRecord: ${worldLine}` : ""}\n\nkind: ${kind}`;
+    const r = await systemone(state, { severity: SEVERITY_QUESTION }, { cfg, ...(fetchImpl ? { fetchImpl } : {}), ...(signal ? { signal } : {}) });
+    const a = r.answers?.severity;
+    if (!a || !Number.isFinite(a.score)) throw Object.assign(new Error("severity answer missing"), { name: "BadResponse" });
+    const score = Math.min(10, Math.max(1, Math.round(a.score) + 1));
+    const served = typeof r.model === "string" && r.model && r.model !== "openjev-latest" ? ` (${r.model})` : "";
+    return done({ score, raw: a.score, legend: SEVERITY_QUESTION.criteria[score - 1], confidence: Number.isFinite(a.confidence) ? a.confidence : 0.5, model: `openjev-0.1${served}`, gate_source: "openjev" });
+  } catch (e) {
+    if (signal?.aborted) throw e;
+    log({ status: "error", model: "openjev-0.1", gate_source: "openjev", output_summary: `OpenJev failed (${e.name ?? "Error"}): ${e.message}` });
+    trace?.line({ step: "recovery", agent_name: "Severity", action: "recover", input_summary: "after severity_gate error", output_summary: "severity by rules at confidence 0.5", status: "success" });
+    return fallback();
   }
 }
 

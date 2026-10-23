@@ -51,6 +51,7 @@ curl -s $B/health
 curl -s $B/sources                      # every source: name, format, table, rows, live
 curl -s $B/intake                       # the contact-form submissions (the REST source Zetaris reads)
 curl -s -X POST $B/run -H 'Content-Type: application/json' -d '{"run_id":"demo-1","input":{"thread_id":"T02"}}'
+curl -s -X POST $B/run -H 'Content-Type: application/json' -d '{"input":{"message":"How long does shipping take?","from":"a@example.com","channel":"chat","as_of":"2026-10-20"}}'
 curl -s -X POST $B/ask -H 'Content-Type: application/json' -d '{"question":"Can I get a refund on my lightsaber?"}'
 curl -s $B/runs/demo-1                  # the stored result
 curl -s $B/runs/demo-1/trace            # the trace link: one JSON object per step
@@ -58,6 +59,14 @@ curl -s -X POST $B/feedback -H 'Content-Type: application/json' -d '{"run_id":"d
 curl -s $B/counters                     # {send, hold, escalate, close, queued, affirmed, rejected}
 curl -s $B/openapi.yaml
 ```
+
+**The message road.** `POST /run` also takes a free-text message: `{"input": {"message": "How long does shipping take?", "from": "a@example.com", "channel": "chat", "scenario": "question", "as_of": "2026-10-20"}}`. `scenario` is `refund | question | rfq | complaint | free_text` (absent means `free_text`, and the loop resolves it from the message). `as_of` pins the date the facts are read as of, which is how the demos stay repeatable. The message becomes a ticket `F<n>` that Zetaris can read.
+
+**Runs, journeys and the queue.** `GET /runs?limit=50` lists the stored runs newest first; `GET /runs/<run_id>/journey` returns how the information travelled (one node per trace step, what each step consulted and what the reply kept, and what reached a human); `GET /queue` lists what is waiting for a person.
+
+**The two pages.** The service also serves two reference pages, driven only by the API above: `GET /` is the unified front end (the "Why are you contacting us?" picker, a free-text field and the demo buttons, with the person's view on the left and "Under the hood" on the right) and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject). Their script, stylesheet and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names. Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
+
+**For the front end.** `docs/FRONTEND-SPEC.md` ([docs/FRONTEND-SPEC.md](docs/FRONTEND-SPEC.md)) says what each endpoint returns, how the journey is derived and what a replacement page must keep; `openapi.yaml` is the contract.
 
 Every result carries a `trace_id` and a `log_file`; `GET /runs/<run_id>/trace` returns that file as a JSON array (works for `/ask` run ids too). Results are kept for the last 200 runs, so a restart forgets them.
 
@@ -69,7 +78,7 @@ The design is Kristof's 17-node flow ([kristof/flow.html](../kristof/flow.html))
 
 The 17 nodes, in flow order: Intake (email, form, Trustpilot) -> Scout guard -> Ticket -> Classify (thank-you or follow-up) -> Close (pure thank-you) -> H-MEM read -> Scout contract -> Zetaris (holiday, policy, backup) -> Trust floor -> Draft (NVIDIA through Nightshift) -> Evaluator -> Risk -> Send or hold -> Escalate gate -> Trace -> H-MEM write -> Dashboard.
 
-Not every node is a separate piece of code here. Intake is the `thread_id` the caller names; there is no dashboard page in `inbox/` (the API and the traces are the interface). The flow file is the design; the trace is what ran.
+Not every node is a separate piece of code here. Intake is the `thread_id` the caller names, or a free-text `message` that becomes a ticket row first; the dashboard node is the reference page at `GET /dashboard` (the API and the traces stay the interface). The flow file is the design; the trace is what ran.
 
 **Decision loop (`src/loop.mjs`).** One ticket in, one decision out:
 
@@ -85,6 +94,17 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 10. `memory.write` stores one factual memory; `synthesis` ends the trace. `recovery` lines follow any `error` line.
 
 Steps a branch does not reach are still logged with status `skipped`.
+
+**Scenario routes (`src/scenarios.mjs`).** After the typed gates, a reply branch can be taken over by a scenario handler, a `{probe, act}` pair that borrows the loop's toolbox. A resolver picks the scenario (a declared `scenario` wins; otherwise Scout, the FAQ and the gates decide) and the `branch` line then carries one of these ids:
+
+- `faq-hit`: the FAQ row text is the reply and sends automatically (the FAQ text is canonical; Risk still signs it).
+- `question-records`: no FAQ match, but the Zetaris records answer it; the answer is drafted and held for the question owner.
+- `question-unanswered`: neither; the ticket escalates to a person with a recommendation.
+- `rfq`: a request for quote escalates to sales with the product price rows attached and a short acknowledgement, written by a code template, for the person to send. No price is quoted to the customer.
+- `complaint-severe`, `complaint-genuine`, `complaint-vent`: the complaint route (see World Model below). Severity 9 or above escalates with the draft attached; genuine holds with the handling note; vent holds with a calm acknowledgement.
+- `customer-service`: free text that matches nothing defaults to Support with a recommendation and a draft with `[[blank: …]]` markers for the person to fill.
+
+**The free-text road.** `POST /run` with a `message` appends the ticket row (`F<n>`) to `data/runtime/intake.csv` first, publishes it to Zetaris as `JEDI_PACK.intake_runtime` (an `intake_publish` line), then runs Scout and the gates silently so the scenario is known before the facts are read; the canonical step order follows. The ticket's facts are therefore read back through Zetaris like any thread's. These pre-run reads are buffered and written at their usual positions, as the facts are.
 
 **The /ask loop (`src/ask.mjs`).** A plain-words question answered only from Zetaris rows: Scout guards first (an injection attempt is refused, with no query and no model call); the intent picks named query templates (never text-to-SQL); Nightshift phrases the answer from the rows only; in sample mode the answer is built from the rows by a template.
 
@@ -153,6 +173,16 @@ Choices to know about:
 
 Proof that a second run reads what the first wrote: [judging/engine-hmem-two-run.md](judging/engine-hmem-two-run.md) (ticket T02, runs `two-run-A` and `two-run-B`; B's `planner.plan` names the chunk it skipped). Its honest note applies: the facts rows are still re-read from Zetaris in one call; what the memory saves is the planner re-deriving them.
 
+### World Model (Meterless)
+
+What: the Meterless World Model engine, a store of entities, relationships and count facts with a provenance id on every write. The product builds one per process from Zetaris rows (`world_threads`, `products`, `reviews`), in memory unless `WORLD_MODEL_DIR` is set.
+
+Where: vendored verbatim from the Meterless repository at commit `1742dec` (Apache-2.0) into `engines/world-model/` ([engines/world-model/NOTICE-SOURCE.md](engines/world-model/NOTICE-SOURCE.md)), and bundled once with esbuild 0.28.2 into `src/engines/world-model/index.mjs`, because Node 22 cannot load the reference's TypeScript at run time. `tests/world_model_bundle.test.mjs` checks the committed bundle against a fresh build. There is no deviation in the engine; our domain layer is `src/engines/world-model/world.mjs` (ingest from Zetaris rows and the complaint context builder).
+
+The feature it powers: the complaint route. For a complaint, the loop asks the World Model for the history of the customer and the product, each statement carrying its provenance id (one `world_context` trace line, sponsor `meterless`, ids in `memory_ids`). That context feeds the Nemotron read (`read_complaint`: venting, or a genuine complaint that must be handled to save face) and the OpenJev severity (`severity_gate`).
+
+Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformance:reference` scores the vendored TypeScript 8/8. Scorecards: [judging/engine-world-model-conformance.md](judging/engine-world-model-conformance.md); the feature, its tests and a live trace: [judging/engine-world-model.md](judging/engine-world-model.md).
+
 ## Providers
 
 **Nightshift (Meterless) is the primary provider** for the draft, the critique and `/ask`. The app calls `POST {METERLESS_BASE_URL}/chat/completions` with the primary route `NIGHTSHIFT_ROUTE_PRIMARY`, pinned to `nvidia/nemotron-3.5-lightning-30b-a3b`. Nightshift lists NVIDIA Nemotron routes next to its own `meterless/*` routes ([judging/nightshift-models.json](judging/nightshift-models.json)).
@@ -171,24 +201,28 @@ Proof that a second run reads what the first wrote: [judging/engine-hmem-two-run
 
 **OpenJev (typed gates).** NVIDIA DiffusionGemma, served on Thor, answers five typed questions about each message (follow-up, category, urgency, tone, asks for money). It is called directly (`OPENJEV_BASE_URL`), beside Nightshift; it is not routed through Nightshift. When OpenJev is down or answers badly, the code gates take over with confidence 0.5 and the trace line says `gate_source: rules` instead of `openjev`. In the traces its model shows as `openjev-0.1 (openjev-0.1)`.
 
+**Severity (complaints).** The complaint route asks OpenJev one more typed question, the severity of the complaint. OpenJev accepts at most ten score levels, so the question has ten levels labelled 1 to 10 and severity = round(score) + 1; 9 or above escalates. When OpenJev is down, rules score it (`gate_source: rules`) and the branch still decides.
+
 **Fallback order for a draft:**
 
-1. The Nemotron lane through Nightshift (`NIGHTSHIFT_ROUTE_PRIMARY`).
+1. The Nemotron lane through Nightshift (`NIGHTSHIFT_ROUTE_PRIMARY`). A call that hangs past `NIGHTSHIFT_TIMEOUT_MS` (120 s) or comes back 5xx is tried once more on the same lane (a `retry` line, action `retry_primary`); measured 23 Oct, the example 8 critique answers in 40 to 80 s on some tries and hangs on others. An unknown model or a refused connection is not retried there.
 2. Nightshift `meterless/local` (`NIGHTSHIFT_ROUTE_FALLBACK`), tried when the primary fails with a recoverable error. A `retry` line records it.
 3. The direct local lane (`LOCAL_LANE_*`): einh's Bionic server on Thor, reached through LM Link. It does not go through Nightshift. It fires only when Nightshift itself is unreachable (connection refused or timeout), never on a Nightshift HTTP error. A draft served there is neither NVIDIA nor Meterless, and its trace line carries no sponsor tag. An empty `LOCAL_LANE_BASE_URL` disables it.
 4. Sample rules (`SAMPLE_MODE=true`): no model call.
 
 ## Data sources
 
+Zetaris holds two layers. `JEDI_PACK` is the raw layer: one Lightning database over every source the company has (20 sources, seven formats including REST), each registered as a filestore table in its own format, read through one SQL surface. On top of it the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` is compiled from typed DDL with primary and foreign keys and read as live views. The scenario routes, the free-text intake read-back and the World Model build read the USL tables (`employee`, `customer`, `ticket`, `product`, `policy`, `responsibility`, `faq`, `holiday`, `intake`, `review`, `decision` and `wiki_page`); the legacy thread facts still read the raw tables. We wrote no adapter, no ETL and no mapping layer; the service even writes two tables back into the raw layer at runtime (`decisions` and `intake_runtime`). See [judging/zetaris-usl.md](judging/zetaris-usl.md).
+
 All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic, CC0". Zetaris reads it as `JEDI_PACK.<table>`. The measured register is [judging/zetaris-register.md](judging/zetaris-register.md); the machine-readable list is [data/sources.json](data/sources.json).
 
-15 file sources in 6 formats, plus the runtime `decisions` table and the `intake_live` REST source: 17 entries in `data/sources.json`.
+17 file sources in 6 formats, plus the runtime `decisions` and `intake_runtime` tables and the `intake_live` REST source: 20 entries in `data/sources.json`.
 
 | name (Zetaris table) | format | live rows |
 |---|---|---|
 | employees | CSV | 200 |
 | holiday_2026 | CSV | 1251 |
-| responsibility | CSV | 5 |
+| responsibility | CSV | 7 |
 | policy | CSV | 1 |
 | categories | CSV | 5 |
 | trust_ledger | CSV | 5 |
@@ -203,6 +237,18 @@ All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic
 | escalation_notes | TEXT | 1 (one row per file) |
 | decisions (runtime) | CSV | 0 at registration; one row per completed `/run` |
 | intake_live (REST) | REST, JSON | 41 |
+| products | CSV | 10 (one `unit_price_usd` per product, no volume tiers) |
+| faq | CSV | 12 |
+| intake_runtime (runtime) | CSV | 0 at registration; one row per free-text message, written by the service |
+
+### Unified Semantic Layer
+
+- **Built by** `node scripts/register_usl.mjs --apply` (typed DDL with primary and foreign keys; the compile response records both, its data-quality annotation slots are empty in this build, compiled and activated in Zetaris).
+- **Contains** `employee`, `customer`, `ticket`, `product`, `policy`, `responsibility`, `faq`, `holiday`, `intake`, `review`, `decision` and `wiki_page`, all live views over the raw sources, so a change in a source shows at once.
+- **Read by** the query templates `faq`, `products`, `product_price`, `responsibility`, `holidays`, `world_threads`, `reviews` and `intake_thread` (their trace line says "via the USL"); `tests/usl_drift.test.mjs` asserts each returns the same rows as the raw table.
+- **Not read by** the legacy thread road (`thread`, `policy`, `employee`, `holiday`, `trust`, `wiki`, `thread_fingerprints`, `ledger_adjust`, `table_count`, the counters), which stays on the raw `JEDI_PACK` tables so the 24 authored threads behave exactly as before.
+
+`products` carries the price rows an RFQ attaches, and `faq` the answers a question is matched against (a hit cites `faq:Q01`). `intake_runtime` holds the free-text tickets the service writes; it is published into Zetaris on each run, registered with `escape` and `multiLine` so a message with quotes or line breaks round-trips.
 
 The register records `intake_live` as read at query time, not cached: with the service stopped or bound to `127.0.0.1`, a query on it fails (HTTP 400). Start the service with `HOST=0.0.0.0` for Zetaris to reach it.
 
@@ -211,7 +257,7 @@ Registering the sources:
 - `bash scripts/zetaris_drop.sh` copies `data/synthetic` into the Zetaris driver container.
 - `node scripts/register_sources.mjs --apply` creates the tables (options `--refresh` and `--only a,b` exist).
 - `scripts/register_zetaris_sources.sql` holds the same statements as SQL.
-- `src/decisions.mjs` publishes `data/runtime/decisions.csv` after each run and each feedback.
+- `src/decisions.mjs` publishes `data/runtime/decisions.csv` after each run and each feedback; `src/intake.mjs` publishes `data/runtime/intake.csv` the same way.
 
 All SQL comes from named templates in `src/queries.mjs` with whitelisted parameters (a thread id must match `T<n>`, a category must be one of five). Customer text never reaches SQL.
 
@@ -223,12 +269,14 @@ All SQL comes from named templates in `src/queries.mjs` with whitelisted paramet
 - The typed gates come from code rules (`gate_source: rules`).
 - The drafter and the critic are rules; their trace lines have model `sample/rules` and status `skipped`.
 - `/ask` builds its answer from the rows by template.
+- The scenario routes have rule twins in `src/adapters/sample.mjs`: `complaintRead` (venting or genuine), `severity` (a keyword and context score, 1 to 10), `recommendation` (the customer-service recommendation and its draft with blanks), `acknowledgement` (the RFQ template) and `frame` (the greeting and sign-off). They make no model call.
+- Routing in sample mode rests on Scout and the FAQ: the sample gates answer category at confidence 0.5, which is too low to route on, so a free-text message reaches its scenario through Scout's intent or an FAQ match, or falls to customer service. Severity in sample mode is rules.
 - `NO_NETWORK=1` makes every `fetch` fail; `tests/sample_mode.test.mjs` uses it to prove no call is made.
 - `FAULT_ZETARIS_REFUSE_ONCE=true` makes the first Zetaris call hit a real refused connection and shows the error line, then the recovery line, then the cached rows.
 
-The sample path decides all 24 authored threads to their authored outcome (`tests/loop_grid.test.mjs`).
+The sample path decides all 24 authored threads to their authored outcome (`tests/loop_grid.test.mjs`) and the scenario grid (`tests/scenarios_grid.test.mjs`).
 
-The three `input_examples/` carry no mode. Posted to a live service they run live (Zetaris, Nightshift, OpenJev); with `SAMPLE_MODE=true` the same files run on the cache. `output_examples/` were produced with `SAMPLE_MODE=true`, so they are exact for a sample run; a live run gives the same decision and cited rows with a model-written draft.
+The nine `input_examples/` carry no mode (examples 4 to 9 are the scenarios: FAQ hit, unanswered question, RFQ, vent, severe complaint, address change). Posted to a live service they run live (Zetaris, Nightshift, OpenJev); with `SAMPLE_MODE=true` the same files run on the cache. `output_examples/` were produced with `SAMPLE_MODE=true`, so they are exact for a sample run; a live run gives the same decision and cited rows with a model-written draft.
 
 ## Logs and traces
 
@@ -262,6 +310,9 @@ Committed traces for judges are in [judging/traces/](judging/traces/trace-two-ru
 - `ask`: refund question, injection refused, unknown topic.
 - `api`: the HTTP routes in sample mode.
 - `sample_mode`, `sample_cache`: no network, cached rows match live.
+- `world`, `world_model_bundle`, `world_model_conformance`, `complaint`, `complaint_route`: the World Model domain layer, the bundle against a fresh build, the conformance runner on our bundle, the complaint read, severity and branch.
+- `faq_match`, `rfq`, `customer_service`, `intake`, `scenarios_grid`, `reply_loop`: the FAQ match, the RFQ route, the customer-service default, the intake table, the scenario grid.
+- `journey`, `spec_endpoints`, `pages`: the journey derivation, the list and journey endpoints, the two pages.
 - `no_secrets`: no secret value or Bearer token in any shipped or log artefact.
 
 Other checks: `bash scripts/check.sh` (syntax check of every source file), `npm run evals` (Scout harness), `npm run doctor` (live providers), `node scripts/check_links.mjs README.md` (relative links in this file). Run `npm test` for the current count.
@@ -278,10 +329,10 @@ Agent frameworks: none. The service has zero runtime dependencies (Node standard
 
 Sponsor technology:
 
-- Zetaris: serves all company data (15 file sources, the runtime decisions table, the REST intake). The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
-- Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`. Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, and the Scout eval harness.
+- Zetaris: serves all company data (17 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
+- Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`, and the World Model, vendored and bundled (see Engines). Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, the Scout eval harness, `world` and the World Model conformance suite (8/8).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
-- NVIDIA: Nemotron lanes through Nightshift for drafting and critique; DiffusionGemma (OpenJev) for typed gates.
+- NVIDIA: Nemotron lanes through Nightshift for drafting, critique and the complaint read; DiffusionGemma (OpenJev) for typed gates and the complaint severity.
 
 Development tools:
 
@@ -295,8 +346,9 @@ Sample mode:
 ## Third-Party Code and Licences
 
 - Meterless Scout Intent eval harness, copied into `engines/scout-evals/`: Apache-2.0, from github.com/Meterless/Meterless at commit `1742dec`. See [engines/scout-evals/NOTICE-SOURCE.md](engines/scout-evals/NOTICE-SOURCE.md) and the `LICENSE` beside it.
+- Meterless World Model engine, copied into `engines/world-model/` and bundled into `src/engines/world-model/index.mjs`: Apache-2.0, from github.com/Meterless/Meterless at commit `1742dec`. See [engines/world-model/NOTICE-SOURCE.md](engines/world-model/NOTICE-SOURCE.md) and the `LICENSE` beside it. The bundle is the reference built with esbuild; nothing in the engine is changed.
 - Meterless Scout and H-MEM reference specs: our `src/engines/` code is our own implementation that follows them; it is not a copy.
-- tsx: MIT (dev dependency). yaml: ISC (dev dependency). esbuild: MIT (transitive, via tsx). Versions are in `package-lock.json`.
+- tsx: MIT (dev dependency). yaml: ISC (dev dependency). esbuild: MIT (a pinned dev dependency, 0.28.2, used once to bundle the World Model). Versions are in `package-lock.json`.
 - pyarrow: Apache-2.0, used only by `scripts/gen_company.py` to generate the Parquet file; not needed to run the service.
 - OpenJev: Apache-2.0 (its `LICENSE` file on the serving machine is the Apache License, Version 2.0, January 2004; the file is not copied into this repo).
 - The gates model, NVIDIA DiffusionGemma 26B A4B it NVFP4. Model card fetched 23 Oct 2026 from https://huggingface.co/nvidia/diffusiongemma-26B-A4B-it-NVFP4. The card's front matter reads `license: apache-2.0` (`license_link: https://ai.google.dev/gemma/apache_2`), its "License/Terms of Use" section reads `SPDX-License-Identifier: Apache-2.0`, and its governing-terms line reads, verbatim: "Governing Terms: Apache 2.0, Gemma Terms of Use and Gemma Prohibited Use Policy" (links: https://ai.google.dev/gemma/terms and https://ai.google.dev/gemma/prohibited_use_policy). So the weights are Apache-2.0 and the Gemma Terms of Use and Prohibited Use Policy also govern their use; the card wins over any shorter wording elsewhere in this repo.
@@ -311,7 +363,13 @@ Sample mode:
 - The model's text is judged by another model call and by code rules; there is no human grading in the loop.
 - The API is unauthenticated, CORS is open, and it binds to loopback by default. Do not expose it as is.
 - Results of the last 200 runs are kept in memory; a restart forgets them.
-- There is no dashboard UI in `inbox/`.
+- The two pages (`GET /` and `GET /dashboard`) are reference pages and, like the API, unauthenticated.
+- Severity is a model read on ten levels (OpenJev accepts at most ten score levels), mapped to 1 to 10; escalation is at 9 or above. A different cut-off is a one-line change.
+- The synthetic company has no purchasing team, so an RFQ goes to sales (employee 6, backup 14) and every surface says "sales quotes".
+- A free-text ticket carries no authored `may_leave` flag, so the intake facts set it true and Risk guards the draft through restricted terms and the amount limit only.
+- Intake publish needs the same `docker` CLI as the decisions publish; inside the shipped container it falls back to the local `data/runtime/intake.csv`, the citation says `(local)` and the `intake_publish` line says `published: false`.
+- A thread run on an arbitrary `as_of` has no per-employee holiday cache in sample mode; the demos pin `as_of: "2026-10-20"`.
+- The price list holds one price per product and no volume tiers, so the honest answer to "what is the difference between 100 and 100000" is one unit price and sales to quote.
 - Publishing decisions to Zetaris needs the `docker` CLI on the host where the service runs, because it shells out to `docker exec zetaris-driver-1`; inside the shipped container there is no docker, so feedback is recorded in the container's `data/runtime/decisions.csv` and `/feedback` answers `published: false`.
 - `/counters` on a live server always queries Zetaris and has no local fallback: when the table has not been published, or Zetaris answers the query with a BadResponse (HTTP 4xx or 5xx), it answers zeros; other failures surface as an error response. Only a sample-mode server counts from the local file.
 
@@ -320,6 +378,8 @@ Sample mode:
 The demo-misread sample starts from an authored earlier reply in the synthetic data (threads.jsonl, T01) that promised a refund the customer did not ask for; the agent's live work in the sample is reading her follow-up, detecting the misread, withdrawing the promise and escalating. The earlier reply was not generated by the agent.
 
 The same chain processed live, one step after the other, is in [judging/padme-chain.md](judging/padme-chain.md). In that live run the model's first draft promised the replacement she asked for, so there was no misread to detect.
+
+The demo scenarios (`input_examples/` 4 to 9 and the demo buttons on the front page) are authored inputs; their outcomes are the agent's. The RFQ acknowledgement and the FAQ answer are code templates and the trace says so (`template/acknowledgement`, and no model call on `faq-hit`).
 
 ## Pre-existing components
 
@@ -333,7 +393,10 @@ The evidence files are indexed in [judging/README.md](judging/README.md), regene
 
 - [judging/engine-scout-evals.md](judging/engine-scout-evals.md): Scout eval run.
 - [judging/engine-hmem-two-run.md](judging/engine-hmem-two-run.md): H-MEM two-run proof.
+- [judging/engine-world-model.md](judging/engine-world-model.md) and [judging/engine-world-model-conformance.md](judging/engine-world-model-conformance.md): the World Model feature, its tests and the 8/8 scorecards.
+- [judging/scenarios.md](judging/scenarios.md): examples 4 to 8 run live and in sample mode, with their traces.
 - [judging/padme-chain.md](judging/padme-chain.md): the T01 chain, run live.
+- [judging/refund-chain.md](judging/refund-chain.md): one customer, two refund requests, run live (`node inbox/scripts/refund_chain.mjs`; `--sample` writes the deterministic twin): 40 USD held under the trust floor with the owner on holiday and the backup named, then 400 USD over the limit, escalated for approval after H-MEM read step 1's memory.
 - [judging/zetaris-register.md](judging/zetaris-register.md): every source registered, with row counts.
 - [judging/nightshift-models.json](judging/nightshift-models.json) and [judging/nightshift-first-call.json](judging/nightshift-first-call.json): Nightshift routes and the first probe.
 - [judging/traces/](judging/traces/trace-padme-live_1.jsonl): the five committed traces.

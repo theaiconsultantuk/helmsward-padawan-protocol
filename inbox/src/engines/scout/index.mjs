@@ -38,6 +38,37 @@ function buildTerms(intent) {
   return { uni, bi };
 }
 
+const QTY_UNIT = "items?|units?|pcs|pieces?|x|sabers?|hilts?|belts?|holsters?|stands?|robes?";
+const QTY_CONNECT = "and|or|vs\\.?|versus|to";
+const QTY_NUM = /(?<![\w$€£.-])(?:\d{1,3}(?:[, .]\d{3})+|\d+)(?!(?!x\b)[\w-])(?![.,]\d)/g;
+const QTY_COUNTED = new RegExp(`^\\s+(?:[\\w-]+\\s+){0,2}?(?:${QTY_UNIT})\\b`, "i");
+const QTY_AFTER_UNIT = new RegExp(`^(?:\\s+(?:[\\w-]+\\s+){0,2}?(?:${QTY_UNIT}))?\\s+(?:${QTY_CONNECT})\\s+$`, "i");
+const QTY_BARE = new RegExp(`^\\s+(?:${QTY_CONNECT})\\s+$`, "i");
+
+// Quantities: integers counted by a unit or product word, plus bare integers joined to a counted one.
+// Money amounts ("100 USD", "$100") are not quantities.
+export function extractQuantities(s) {
+  const nums = [];
+  for (const m of s.matchAll(QTY_NUM)) {
+    const end = m.index + m[0].length;
+    if (/[$€£]\s*$/.test(s.slice(0, m.index))) continue;
+    if (/^\s?[kKmM]?\s?(?:USD|EUR|GBP|dollars?|euros?)\b/i.test(s.slice(end))) continue;
+    nums.push({ start: m.index, end, value: parseInt(m[0].replace(/[, .]/g, ""), 10), counted: QTY_COUNTED.test(s.slice(end)) });
+  }
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let i = 0; i < nums.length - 1; i++) {
+      const a = nums[i], b = nums[i + 1];
+      if (a.counted === b.counted) continue;
+      const gap = s.slice(a.end, b.start);
+      if (a.counted ? QTY_AFTER_UNIT.test(gap) : QTY_BARE.test(gap)) {
+        (a.counted ? b : a).counted = true; changed = true;
+      }
+    }
+  }
+  return [...new Set(nums.filter((n) => n.counted).map((n) => n.value))];
+}
+
 export function extractParams(prompt) {
   const p = {}, s = String(prompt ?? "");
   const money = s.match(/([$€£])\s?(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?|(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?\s?(USD|EUR|GBP|dollars?|euros?)\b/);
@@ -60,6 +91,7 @@ export function extractParams(prompt) {
   if (q) p.quoted = q[1] ?? q[2];
   const cnt = s.match(/\b(\d{1,3})\s+(?:[\w-]+\s+){0,2}?(deals?|renewals?|accounts?|emails?|contacts?|items?|leads?|databases?)\b/i);
   if (cnt) p.count = parseInt(cnt[1], 10);
+  p.quantities = extractQuantities(s);
   const acct = s.match(/\b(?:the\s+)?([A-Z][A-Za-z0-9]+)\s+(?:deal|renewal|account)\b/);
   if (acct && !/^(Show|Find|The|Give|Move|Pull|What|Draft|Send)$/.test(acct[1])) p.account = acct[1];
   const stage = s.match(/\b(negotiation|closed-won|closed-lost|prospecting|proposal|discovery|qualification)\b/i);

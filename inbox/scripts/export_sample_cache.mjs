@@ -26,6 +26,8 @@ for (const c of TOPICS) { want("policy", { topic: c }); want("responsibility", {
 for (const w of ["refund", "replacement", "leave"]) want("wiki", { wiki: w });
 for (const t of TABLES) want("table_count", { table: t });
 want("decision_counts", {});
+want("faq", {}); want("products", {}); want("reviews", {}); want("world_threads", {}); want("holidays", {});
+for (let i = 1; i <= 10; i++) want("product_price", { product_id: "P" + String(i).padStart(2, "0") });
 want("thread_fingerprints", {});
 for (const c of CATEGORIES) want("ledger_adjust", { category: c });
 const emps = new Set(Array.from({ length: 20 }, (_, i) => i + 1));
@@ -47,6 +49,7 @@ mkdirSync(OUT, { recursive: true });
 const summary = [];
 const skipped = [];
 for (const name of Object.keys(TEMPLATES)) {
+  if (name === "intake_thread") continue; // runtime rows only, never cached
   const entries = [];
   for (const [key, params] of [...(wanted.get(name) ?? new Map())].sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))) {
     if (name === "decision_counts" || name === "ledger_adjust") { entries.push({ params, result: { headers: [], rows: [], total: 0 } }); continue; }

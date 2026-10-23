@@ -55,6 +55,24 @@
   },
   {
     "params": {
+      "topic": "customer_service"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
       "topic": "question"
     },
     "result": {
@@ -102,6 +120,24 @@
   {
     "params": {
       "topic": "replacement"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "rfq"
     },
     "result": {
       "headers": [

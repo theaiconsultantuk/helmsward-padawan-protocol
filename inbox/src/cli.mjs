@@ -10,7 +10,7 @@ import { mask } from "./trace.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as openjev from "./adapters/openjev.mjs";
-import { typedGates, trustFloor, hardRisk } from "./gates.mjs";
+import { typedGates, severityGate, trustFloor, hardRisk } from "./gates.mjs";
 
 const PROMPT = [{ role: "user", content: "Reply with the single word OK." }];
 const CANDIDATES = [
@@ -36,6 +36,18 @@ async function doctor() {
   if (z.ok) { ok++; console.log(`zetaris: ok (SELECT 1 in ${z.ms} ms)`); }
   else { fail++; console.log(`zetaris: FAIL (${z.error})`); }
 
+  // Unified Semantic Layer: the tables SHOW TABLES lists, activated when a COUNT on the first one answers (informational, never a fail).
+  if (z.ok) {
+    try {
+      const NS = "lightning.metastore.jedi_pack";
+      const shown = await zetaris.sqlRun(`SHOW TABLES IN ${NS}`, { cfg });
+      const n = shown.rows.length;
+      let m = 0;
+      if (n > 0) { try { await zetaris.sqlRun(`SELECT COUNT(*) FROM ${shown.rows[0][0]}`, { cfg }); m = n; } catch { m = 0; } }
+      console.log(n > 0 ? `usl: ok (${n} tables, ${m} activated)` : "usl: missing");
+    } catch { console.log("usl: missing"); }
+  }
+
   const n = await nightshift.status({ cfg });
   if (n.state !== "online") {
     fail++; console.log(`nightshift: ${n.state}${n.error ? ` (${n.error})` : ""}`);
@@ -52,7 +64,7 @@ async function doctor() {
         const res = await fetch(`${cfg.METERLESS_BASE_URL}/chat/completions`, {
           method: "POST", signal: AbortSignal.timeout(60000),
           headers: { Authorization: `Bearer ${cfg.METERLESS_RUNTIME_TOKEN}`, "meterless-app": "jedi-pack-inbox", "meterless-scope": "user", "Content-Type": "application/json" },
-          body: JSON.stringify({ model: primary, messages: PROMPT, temperature: 0.2, max_tokens: 16 }),
+          body: JSON.stringify({ model: primary, messages: PROMPT, temperature: 0.2, max_tokens: 300 }), // 16 made Lightning answer empty (provider 502, seen 23 Oct)
         });
         const text = await res.text();
         let body; try { body = JSON.parse(text); } catch { body = text; }
@@ -68,7 +80,8 @@ async function doctor() {
           for (const [k, v] of res.headers.entries()) headers[k.toLowerCase()] = v;
           const model = nightshift.handledModel({ headers, body });
           const { kind, egress } = receiptOf(body);
-          console.log(`primary route ${primary} → ${model ?? "no model id"} (${kind}, egress ${egress})`);
+          const phases = Array.isArray(body?.meterless?.phases) ? body.meterless.phases.map((p) => `${p.phase}:${p.model}`).join(", ") : "";
+          console.log(`primary route ${primary} → ${model ?? "no model id"} (${kind}, egress ${egress})${phases ? `; receipt phases ${phases}` : ""}`);
           if (isNemotron(model)) { ok++; console.log("ok"); }
           else if (kind === "local") { warn++; console.log("warn: Nightshift answered from its local lane; the Nemotron evidence is in judging/traces/"); }
           else { warn++; console.log(`warn: handled model is not nvidia/nemotron (${model ?? "no model id"})`); }
@@ -226,7 +239,7 @@ async function sqlName(args) {
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: {
   apply: { type: "boolean", default: false }, thread: { type: "string" }, "as-of": { type: "string" },
-  "run-id": { type: "string" }, example: { type: "string" }, customer: { type: "string" },
+  "run-id": { type: "string" }, example: { type: "string" }, customer: { type: "string" }, kind: { type: "string" },
 } });
 
 async function runCmd(v) {
@@ -242,9 +255,11 @@ async function runCmd(v) {
   let cfg = config();
   if (body.options?.sample_mode === true) cfg = { ...cfg, SAMPLE_MODE: "true" };
   const { runTicket } = await import("./loop.mjs");
-  const result = await runTicket(body.input.thread_id, { run_id: body.run_id, as_of: body.input.as_of, cfg, deps: { quiet: true } });
+  const result = await runTicket(body.input.thread_id ?? null, { run_id: body.run_id, as_of: body.input.as_of, cfg, deps: { quiet: true }, input: body.input });
   const out = {
     run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
+    ...(result.scenario ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
+    ...(result.input ? { input: result.input } : {}),
     trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
     ...(result.error ? { error: result.error } : {}),
   };
@@ -259,6 +274,16 @@ async function askCmd(args, v) {
   console.log(JSON.stringify(mask(out, secrets()), null, 2));
   return 0;
 }
+async function gatesSeverityCmd(args, v) {
+  const text = args.join(" ").trim();
+  const kind = v.kind ?? "vent";
+  if (!text || !["vent", "genuine"].includes(kind)) { console.error('usage: gates-severity "<text>" [--kind vent|genuine]'); return 64; }
+  const ticket = { subject: text.slice(0, 60), body: text, channel: "chat" };
+  const noop = { line() {} };
+  const r = await severityGate(ticket, {}, "", { trace: noop, cfg: config(), sampleMode: false, kind });
+  console.log(JSON.stringify(mask(r, secrets()), null, 2));
+  return 0;
+}
 const [cmd, ...rest] = positionals;
 let code = 64;
 try {
@@ -266,10 +291,11 @@ try {
   else if (cmd === "pin-primary") code = await pinPrimary();
   else if (cmd === "sql") code = await sql(rest, values.apply);
   else if (cmd === "gates") code = await gatesCmd(rest);
+  else if (cmd === "gates-severity") code = await gatesSeverityCmd(rest, values);
   else if (cmd === "run") code = await runCmd(values);
   else if (cmd === "sql-name") code = await sqlName(rest);
   else if (cmd === "ask") code = await askCmd(rest, values);
-  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | sql-name <template> [k=v ...] | ask \"<question>\" [--customer <email>] | run --thread <id>|--example N");
+  else console.error("usage: cli.mjs doctor | pin-primary | sql \"<statement>\" [--apply] | gates <thread_id> | gates-severity \"<text>\" [--kind vent|genuine] | sql-name <template> [k=v ...] | ask \"<question>\" [--customer <email>] | run --thread <id>|--example N");
 } catch (e) {
   console.error(`${e.name}: ${mask(String(e.message), secrets())}`);
   code = 1;

@@ -3,15 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node src/server.mjs",
     "cli": "node src/cli.mjs",
     "test": "node --test tests/*.test.mjs",
     "evals": "SCOUT_IMPL=$PWD/src/engines/scout/index.mjs npm --prefix engines/scout-evals exec -- tsx engines/scout-evals/runner/index.ts",
-    "doctor": "node src/cli.mjs doctor"
+    "doctor": "node src/cli.mjs doctor",
+    "build:world-model": "node scripts/build_world_model.mjs",
+    "conformance": "WORLD_MODEL_IMPL=$PWD/src/engines/world-model/index.mjs npx tsx engines/world-model/conformance/runner.ts",
+    "conformance:reference": "npx tsx engines/world-model/conformance/runner.ts"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
     "tsx": "^4.19.0",
     "yaml": "^2.5.0"
   }

@@ -9,11 +9,11 @@ import { config, INBOX_ROOT } from "../src/config.mjs";
 import { createServer } from "../src/server.mjs";
 
 const EXPECT = { 1: "hold", 2: "send", 3: "escalate" };
-let server, base;
+let server, base, logsDir;
 
 before(async () => {
   const cfg = { ...config(), SAMPLE_MODE: "true" };
-  server = createServer({ cfg, deps: { memoryDir: mkdtempSync(join(tmpdir(), "sm-mem-")), quiet: true } });
+  server = createServer({ cfg, deps: { logsDir: (logsDir = mkdtempSync(join(tmpdir(), "sm-logs-"))), memoryDir: mkdtempSync(join(tmpdir(), "sm-mem-")), runtimeDir: mkdtempSync(join(tmpdir(), "sm-rt-")), dir: mkdtempSync(join(tmpdir(), "sm-dec-")), quiet: true } });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   base = `http://127.0.0.1:${server.address().port}`;
 });
@@ -53,7 +53,7 @@ for (const n of [1, 2, 3]) {
     assert.equal(json.output.decision, EXPECT[n]);
     assert.ok(Array.isArray(json.agents) && json.agents.length > 0);
     assert.ok(json.trace_id);
-    const file = join(INBOX_ROOT, json.log_file);
+    const file = join(logsDir, json.log_file.split("/").pop());
     assert.ok(existsSync(file), `log_file ${json.log_file} exists`);
     const lines = readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
     const nv = lines.filter((l) => l.step === "nvidia.model");
@@ -86,8 +86,14 @@ test("unknown thread: 404 with a structured error", async () => {
   assert.equal(json.error.type, "NotFound");
 });
 
-test("free-text input answers NotImplemented", async () => {
-  const { status, json } = await post({ input: { message: "hi", from: "a@b.c", channel: "email" } });
+test("free-text input runs in sample mode with no network: scenario question, send, intake publish not reached", async () => {
+  const { status, json } = await post({ run_id: "smtest-msg", input: { message: "How long does shipping take?", from: "a@example.com", channel: "chat", as_of: "2026-10-20" } });
   assert.equal(status, 200);
-  assert.equal(json.error.type, "NotImplemented");
+  assert.equal(json.status, "success");
+  assert.equal(json.scenario, "question");
+  assert.equal(json.output.decision, "send");
+  const lines = readFileSync(join(logsDir, json.log_file.split("/").pop()), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  const pub = lines.find((l) => l.action === "intake_publish");
+  assert.ok(pub, "trace has an intake_publish line");
+  assert.match(pub.output_summary, /published: false/);
 });

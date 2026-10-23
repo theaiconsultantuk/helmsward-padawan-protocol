@@ -17,7 +17,9 @@ const DB = "JEDI_PACK";
 const { values } = parseArgs({ options: { print: { type: "boolean" }, apply: { type: "boolean" }, refresh: { type: "boolean" }, only: { type: "string" } } });
 const manifest = JSON.parse(readFileSync(MANIFEST, "utf8"));
 
-const optStr = (o) => Object.entries(o).map(([k, v]) => `${k} "${v}"`).join(", ");
+// A value holding a double quote (the CSV escape character) is single-quoted; Zetaris accepts both quotings.
+const optVal = (v) => (String(v).includes('"') ? `'${v}'` : `"${v}"`);
+const optStr = (o) => Object.entries(o).map(([k, v]) => `${k} ${optVal(v)}`).join(", ");
 export const createDb = `CREATE LIGHTNING DATABASE ${DB} DESCRIBE BY "Jedi Pack Inc synthetic company data"`;
 export const createTable = (s, opts = s.options) =>
   `CREATE LIGHTNING FILESTORE TABLE ${s.table} FROM ${DB} FORMAT ${s.format} OPTIONS (${optStr({ path: `${ROOT}/${s.path}`, ...opts })})`;

@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config } from "../src/config.mjs";
-import { askQuestion } from "../src/ask.mjs";
+import { askQuestion, rowsForIntent } from "../src/ask.mjs";
 
 const cfg = () => config({ SAMPLE_MODE: "true" });
 const lines = (file, logsDir) => readFileSync(join(logsDir, file.replace(/^logs\//, "")), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
@@ -75,4 +75,13 @@ test("a stubbed drafter phrases the answer from the rows and its model id lands 
   const l = t.find((x) => x.step === "nvidia.model");
   assert.equal(l.model, "nvidia/nemotron-test");
   assert.equal(l.status, "success");
+});
+
+test("rowsForIntent returns the rows the ask path cites", async () => {
+  const { r } = await ask("Can I get a refund on my lightsaber?");
+  const ids = [];
+  const o = { cfg: cfg(), trace: { line: (f) => { const m = f.step === "zetaris.query" && f.status === "success" ? /rows: (.*)$/.exec(f.output_summary ?? "") : null; if (m && m[1] !== "none") for (const id of m[1].split(", ")) if (!ids.includes(id)) ids.push(id); } } };
+  const { data, rows } = await rowsForIntent("refund.request", null, o);
+  assert.deepEqual(ids, r.cited_rows);
+  assert.ok(rows.policy.length > 0 && rows.wiki.length > 0 && data.category === "refund");
 });

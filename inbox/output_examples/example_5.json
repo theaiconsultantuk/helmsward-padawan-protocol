@@ -1,0 +1,73 @@
+{
+  "run_id": "example-5",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "reasons": [
+      "not in the FAQ or the records; checked: the FAQ (12 rows), 1 wiki page(s)"
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:question",
+      "holiday_2026:1@2026-10-20",
+      "holiday_2026:2@2026-10-20",
+      "employees:1",
+      "employees:2",
+      "trust_ledger:question",
+      "wiki_what_may_leave"
+    ],
+    "recommendation": "not in the FAQ or the records; checked: the FAQ (12 rows), 1 wiki page(s)",
+    "queued_for": {
+      "owner_id": 1,
+      "backup_id": 2,
+      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--scenarios/inbox/data/memory/queue/F1.json",
+      "recommendation": "not in the FAQ or the records; checked: the FAQ (12 rows), 1 wiki page(s)",
+      "owner_name": "Mara Solen",
+      "backup_name": "Owen Briggs",
+      "role": "question owner"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "scenario": "question",
+  "resolved_how": "declared",
+  "branch_id": "question-unanswered",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "Do you have a shop in Antwerp I can visit on Saturday?",
+    "from": "a@example.com",
+    "name": null,
+    "channel": "chat",
+    "received_at": "2026-10-23T05:19:01.667Z",
+    "as_of": "2026-10-20"
+  },
+  "trace_id": "example-5",
+  "log_file": "logs/trace-example-5.jsonl",
+  "execution_time_seconds": 0.024
+}
