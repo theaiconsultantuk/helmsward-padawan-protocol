@@ -4,6 +4,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { config } from "../src/config.mjs";
 import { withMockFetch } from "./helpers/mock_fetch.mjs";
 
 const live = { SAMPLE_MODE: "false", ZETARIS_REST_URL: "http://zetaris.invalid", ZETARIS_API_KEY: "k", ZETARIS_ORG_ID: "1" };
@@ -257,4 +258,64 @@ test("S0.2: products have one price each and no tier columns", async () => {
   assert.equal(lines[0], "product_id,name,unit_price_usd,currency,min_order_qty,lead_days");
   assert.equal(lines.length, 11);
   assert.deepEqual(lines.slice(1).map((l) => Number(l.split(",")[2])).sort((a, b) => a - b), [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]);
+});
+
+// ---- S1.1: free-text (F) tickets ----
+const sampleCfg = config({ SAMPLE_MODE: "true" });
+const intakeRow = (over = {}) => ({ thread_id: "F1", received_at: "2026-10-20T09:00:00.000Z", channel: "chat", sender_name: "", sender_email: "a@example.com",
+  subject: "hello", body: "hello", scenario: "", category: "", ...over });
+const intakeFacts = (topic, extra = {}) => factsForTicket("F1", { ticketSource: "intake", intakeRow: intakeRow(), topic, as_of: "2026-10-20", cfg: sampleCfg, ...extra });
+
+test("F ticket, rfq: owner 6 / backup 14, both in, cited local", async () => {
+  const f = await intakeFacts("rfq");
+  assert.equal(f.category, "rfq");
+  assert.equal(f.owner_id, 6); assert.equal(f.backup_id, 14);
+  assert.equal(f.owner_out, false); assert.equal(f.backup_out, false);
+  assert.equal(f.category_weight, 0.4); assert.equal(f.floor, 0.8);
+  assert.ok(f.cited_rows.includes("intake_runtime:F1 (local)"));
+  assert.ok(f.cited_rows.includes("responsibility:rfq"));
+  assert.equal(f.as_of, "2026-10-20");
+});
+
+test("F ticket, refund with a typed amount over the limit goes to the over-limit owners", async () => {
+  const f = await intakeFacts("refund", { amount: 400 });
+  assert.equal(f.policy_limit_usd, 150);
+  assert.equal(f.amount_usd, 400);
+  assert.equal(f.owner_id, 3); assert.equal(f.backup_id, 4);
+  assert.ok(f.cited_rows.includes("amount from the message"));
+  const under = await intakeFacts("refund", { amount: 50 });
+  assert.equal(under.owner_id, 15);
+});
+
+test("F ticket, customer_service: 7 / 15; owner 7 is out on 2026-10-23", async () => {
+  const a = await intakeFacts("customer_service");
+  assert.equal(a.owner_id, 7); assert.equal(a.backup_id, 15);
+  assert.equal(a.owner_out, false);
+  const b = await intakeFacts("customer_service", { as_of: "2026-10-23" });
+  assert.equal(b.owner_out, true);
+  assert.equal(b.backup_out, false);
+  assert.ok(b.cited_rows.includes("holiday_2026:7@2026-10-23"));
+});
+
+test("F ticket read through intake_thread when published, cited without (local)", async () => {
+  const seen = [];
+  const sqlRunImpl = async (sql, opts) => {
+    seen.push(opts.name);
+    if (opts.name === "intake_thread") return { headers: Object.keys(intakeRow()), rows: [Object.values(intakeRow({ subject: "from zetaris" }))] };
+    const { queryByName } = await import("../src/adapters/sample.mjs");
+    return queryByName(opts.name, opts.params, { cfg: sampleCfg });
+  };
+  const f = await factsForTicket("F1", { ticketSource: "intake", intakeRow: intakeRow(), published: true, topic: "rfq", as_of: "2026-10-20", cfg: sampleCfg, sqlRunImpl });
+  assert.ok(seen.includes("intake_thread"));
+  assert.ok(seen.includes("holidays"));
+  assert.equal(f.subject, "from zetaris");
+  assert.ok(f.cited_rows.includes("intake_runtime:F1"));
+  assert.ok(!f.cited_rows.some((c) => c.includes("(local)")));
+});
+
+test("a thread ticket read is unchanged by the intake switch", async () => {
+  const f = await factsForTicket("T02", { cfg: sampleCfg });
+  assert.equal(f.thread_id, "T02");
+  assert.ok(f.cited_rows[0] === "threads_parquet:T02");
+  assert.ok(!f.cited_rows.some((c) => c.startsWith("intake_runtime")));
 });

@@ -263,12 +263,31 @@ export function parseRestricted(preview) {
   return m[1].split(/,\s*(?:or\s+)?|\s+or\s+/i).map((s) => s.trim().replace(/^(an?|the)\s+/i, "")).filter(Boolean);
 }
 
-export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl } = {}) {
+// Free-text (F) tickets: the same facts as a thread ticket, with the intake row as the ticket, an explicit topic
+// (never a fall-through to "question") and an amount typed in the message. Thread (T) tickets are unchanged.
+const todayLondon = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/London" });
+const OTHER_WEIGHT = 0.4, DEFAULT_FLOOR = 0.8; // rfq / customer_service / billing have no trust row: the "other" row's weight, the default floor
+
+export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published } = {}) {
   const o = { trace, cfg, ...(sqlRunImpl ? { sqlRunImpl } : {}) };
-  const ticket = await thread(thread_id, o);
-  if (!ticket) throw new Error(`no thread ${thread_id}`);
-  const cited = [`threads_parquet:${thread_id}`];
-  const amount = ticket.amount_usd === "" || ticket.amount_usd == null ? null : Number(ticket.amount_usd);
+  const intake = ticketSource === "intake";
+  let ticket, cited;
+  if (intake) {
+    const pub = published ?? intakeRow?.published === true;
+    let live = null;
+    if (pub) live = (await run("intake_thread", { thread_id }, o)).objects[0] ?? null;
+    ticket = live ?? (intakeRow ? { ...intakeRow } : null);
+    if (!ticket) throw new Error(`no intake row ${thread_id}`);
+    delete ticket.published;
+    cited = [live ? `intake_runtime:${thread_id}` : `intake_runtime:${thread_id} (local)`];
+    if (topicOpt) ticket.category = topicOpt;
+  } else {
+    ticket = await thread(thread_id, o);
+    if (!ticket) throw new Error(`no thread ${thread_id}`);
+    cited = [`threads_parquet:${thread_id}`];
+  }
+  let amount = ticket.amount_usd === "" || ticket.amount_usd == null ? null : Number(ticket.amount_usd);
+  if (intake && amountOpt != null && Number.isFinite(Number(amountOpt))) { amount = Number(amountOpt); cited.push("amount from the message"); }
   const topic = TOPICS.includes(ticket.category) ? ticket.category : "question";
 
   const pol = (await run("policy", { topic }, o)).objects[0];
@@ -314,17 +333,25 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   if (!valid(backup)) backup = null;
   if (owner == null && backup == null) notes.push("owner: none (no responsibility row)");
 
-  const day = as_of ?? String(ticket.received_at).slice(0, 10);
+  const day = as_of ?? (intake ? todayLondon() : String(ticket.received_at).slice(0, 10));
   const none = { out: false };
-  const ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
-  const backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+  let ownerAv, backupAv;
+  if (intake) {
+    // parameterless holidays read, filtered in JS on the date
+    const hol = (await run("holidays", {}, o)).objects.filter((h) => h.date === day);
+    const avail = (e) => (e == null ? none : { out: hol.some((h) => Number(h.employee_id) === e) });
+    ownerAv = avail(owner); backupAv = avail(backup);
+  } else {
+    ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
+    backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+  }
   if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
   if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
   const emps = await Promise.all([owner, backup].map((e) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, o))));
   for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 
-  let weight = 0, floor = 0.8;
+  let weight = intake ? OTHER_WEIGHT : 0, floor = intake ? DEFAULT_FLOOR : 0.8;
   if (CATEGORIES.includes(ticket.category)) {
     const led = (await run("trust", { category: ticket.category }, o)).objects[0];
     if (led) { weight = Number(led.weight); floor = Number(led.floor); cited.push(`trust_ledger:${ticket.category}`); }
