@@ -67,7 +67,7 @@ test("T05 holds with 'no amount stated'; T24 close names the earlier thread", as
   assert.match(t24.lines.find((l) => l.step === "executor.act").output_summary, /T11/);
 });
 
-test("T03 with the owner out and the backup in holds (the hero shape)", async () => {
+test("T03 with the owner out and the backup in escalates to the backup for approval (the hero shape)", async () => {
   const facts = async (id, { trace }) => {
     const { factsForTicket } = await import("../src/queries.mjs");
     const f = await factsForTicket(id, { trace, cfg: cfgOf() });
@@ -75,10 +75,11 @@ test("T03 with the owner out and the backup in holds (the hero shape)", async ()
   };
   const d = dirs();
   const result = await runTicket("T03", { run_id: "grid-T03-hero", cfg: cfgOf(), deps: { ...d, facts } });
-  assert.equal(result.output.decision, "hold");
+  assert.equal(result.output.decision, "escalate");
   assert.equal(result.branch_id, "over-limit");
+  assert.equal(result.output.queued_for.approval.approver_id, result.output.queued_for.backup_id);
   const lines = readFileSync(join(d.logsDir, "trace-grid-T03-hero.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
-  assert.ok(tokens(lines).includes("risk.signoff:needs_revision"), "round 1 needs_revision");
+  assert.ok(tokens(lines).includes("risk.signoff:refused"), "round 1 refused");
 });
 
 test("owner and backup both out escalates", async () => {

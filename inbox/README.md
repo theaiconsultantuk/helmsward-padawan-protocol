@@ -77,7 +77,7 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 2. `planner.plan` and `delegate`: choose reply-now or hold-or-escalate.
 3. `executor.act` and `zetaris.query`: read the facts (thread, policy, owner, holiday, trust weight) through named query templates.
 4. `meterless.engine`: Scout classifies the message and issues a signed execution contract. The contract is verified before any model call. A blocked message stops here and escalates.
-5. Typed gates (OpenJev) and `branch`: pick a branch (under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel).
+5. Typed gates (OpenJev) and `branch`: pick a branch (under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel). An amount over the policy limit (`over-limit`) is a hard fact: Risk refuses on round 1, there is no retry, and the ticket escalates to the policy's over-limit owner (the backup if the owner is out) for approval, with the draft and both critiques attached.
 6. `nvidia.model`: the drafter writes a reply as JSON.
 7. `critique` (a model) and `risk.signoff` (code) read the draft.
 8. If either fails on round 1: `retry`, a revised plan, one redraft with both critiques. That is the only retry.
@@ -103,6 +103,9 @@ typed gates (OpenJev, or code rules) -> branch
   +-- thank-you / follow-up / duplicate / data-block / misread --> close, hold or escalate, no draft
   |
   +-- public-channel ------------------------------------------> escalate
+  |
+  +-- over-limit: draft, critique, Risk REFUSES (amount needs approval), no retry
+  |       --> escalate to the policy's over-limit owner (backup if out) with the draft and both critiques attached
   |
   +-- reply branches:
         draft (Nemotron via Nightshift) -> critique + risk.signoff

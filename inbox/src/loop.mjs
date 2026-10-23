@@ -177,9 +177,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: `after ${step} error`, output_summary: recoveryText, status: "success" });
   };
 
-  const escalate = (critiques, reason, extra = {}) => {
+  // The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
+  const approverOf = (f) => (f?.owner_out && !f?.backup_out
+    ? { id: f.backup_id ?? null, name: f.backup_name ?? null }
+    : { id: f?.owner_id ?? null, name: f?.owner_name ?? null });
+  const overLimit = (f) => f?.amount_usd != null && f?.policy_limit_usd != null && f.amount_usd > f.policy_limit_usd;
+
+  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null } = {}) => {
     const f = S.facts;
-    const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}) };
+    const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}),
+      ...(approval ? { approval } : {}), ...(draft ? { draft: { text: draft.text, promises: draft.promises } } : {}) };
     let memId = null;
     let queueFailed = false;
     try {
@@ -191,11 +198,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
     S.decision = "escalate";
-    S.queued = { owner_id: f?.owner_id ?? null, backup_id: f?.backup_id ?? null, queue_file: queueFailed ? null : queue_file };
+    S.queued = { owner_id: f?.owner_id ?? null, backup_id: f?.backup_id ?? null, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}) };
     if (memId) S.memWritten.push(memId);
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
-      input_summary: one(reason), output_summary: `escalated to owner ${f?.owner_id ?? "?"} / backup ${f?.backup_id ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
+      input_summary: one(reason), output_summary: approval
+        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount_usd} USD over the ${approval.limit_usd} USD limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
+        : `escalated to owner ${f?.owner_id ?? "?"} / backup ${f?.backup_id ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
     S.reasons.push(reason);
@@ -437,10 +446,15 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     const doRisk = (draft, n) => {
       const hr = draft.failed ? { reasons: ["no usable draft"] } : hardRisk(f, draft);
-      const reasons = hr.reasons.filter((r) => !BRANCH_RE.test(r));
-      const hard = f.may_leave === false || Boolean(f.owner_out && f.backup_out);
+      // An amount over the policy limit is a hard fact on the round it appears: Risk refuses and the ticket goes to the approver.
+      const bothOut = Boolean(f.owner_out && f.backup_out);
+      const needsApproval = overLimit(f) && !bothOut;
+      const ap = approverOf(f);
+      const reasons = hr.reasons.filter((r) => !BRANCH_RE.test(r) && !(needsApproval && /^draft promises refund above/.test(r)));
+      if (needsApproval) reasons.unshift(`amount ${f.amount_usd} USD is over the ${f.policy_limit_usd} USD limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`);
+      const hard = f.may_leave === false || bothOut || needsApproval;
       const pass = reasons.length === 0;
-      const noted = !pass ? "" : f.amount_usd != null && f.amount_usd > f.policy_limit_usd ? ` Amount ${f.amount_usd} is over the limit ${f.policy_limit_usd} and is not promised.` : "";
+      const noted = "";
       L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: n - 1,
         input_summary: `round ${n} draft vs facts, Scout risk ${S.scoutRisk}`,
         output_summary: pass ? `Signed off.${noted}` : `${hard ? "Refused" : "Not signed"}: ${reasons.join("; ")}`,
@@ -470,22 +484,20 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       round += 1;
     }
     S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
-    if (!retried) skipped("retry", risk.hard && !(crit.pass && risk.pass) ? "hard fact: a rewrite cannot change it" : "round 1 passed");
+    const approvalNeeded = overLimit(f) && !(f.owner_out && f.backup_out);
+    if (!retried) skipped("retry", approvalNeeded ? "hard refusal: amount needs approval" : risk.hard && !(crit.pass && risk.pass) ? "hard fact: a rewrite cannot change it" : "round 1 passed");
 
     const critiques = S.rounds.flatMap((r) => [{ round: r.n, source: "Evaluator", pass: r.critique.pass, reason: r.critique.reason }, { round: r.n, source: "Risk", pass: r.risk.pass, reason: r.risk.reasons.join("; ") || "signed off" }]);
     const ok = crit.pass && risk.pass;
-    if (!ok) {
-      escalate(critiques, risk.hard ? `hard fact Risk cannot rewrite: ${risk.reasons.join("; ")}` : `two negative rounds: ${one(crit.reason)} | ${risk.reasons.join("; ")}`);
+    if (approvalNeeded) {
+      const ap = approverOf(f);
+      const approval = { kind: "amount", amount_usd: f.amount_usd, limit_usd: f.policy_limit_usd, approver_id: ap.id, approver_name: ap.name };
+      escalate([...critiques, { source: "Draft", reason: `proposed reply, attached for approval: ${draft.text}` }],
+        `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount`, {}, { approval, draft });
       return;
     }
-    if (B === "over-limit") {
-      if (f.owner_out && !f.backup_out) {
-        S.decision = "hold";
-        S.reasons.push(`over the limit: draft declines the amount and waits for backup ${f.backup_id} (owner ${f.owner_id} is out)`);
-        skipped("escalate_or_fallback", "both critics passed; a hold waits for the backup");
-      } else {
-        escalate(critiques, `${S.branch.why}; a person with authority must decide, both in`);
-      }
+    if (!ok) {
+      escalate(critiques, risk.hard ? `hard fact Risk cannot rewrite: ${risk.reasons.join("; ")}` : `two negative rounds: ${one(crit.reason)} | ${risk.reasons.join("; ")}`);
       return;
     }
     if (B === "under-floor") {

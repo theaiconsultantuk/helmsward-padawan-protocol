@@ -105,43 +105,47 @@ test("T18: send, both critics pass on round 1, no retry", async () => {
   assert.equal(t.lines.find((l) => l.step === "risk.signoff").status, "success");
 });
 
-test("T03: round 1 fails risk.signoff by construction, retry, revised draft, escalate (over the limit, both in)", async () => {
+test("T03: over the limit, Risk refuses on round 1 (approval), no retry, escalate to the approver with the draft attached", async () => {
   const t = await run("T03");
   assertWholeTrace(t);
   assert.equal(THREADS.T03.outcome, "escalate");
   assert.equal(t.result.output.decision, "escalate");
   assert.equal(t.result.branch_id, "over-limit");
   const seq = pairs(t.lines);
-  const at = (s) => seq.indexOf(s);
-  assert.ok(at("risk.signoff:needs_revision") > -1, "round 1 risk.signoff needs_revision");
-  assert.ok(at("critique:needs_revision") > -1);
   const order = ["memory.read:success", "planner.plan:success", "delegate:success", "zetaris.query:success", "executor.act:success",
-    "meterless.engine:success", "branch:success", "nvidia.model:skipped", "critique:needs_revision", "risk.signoff:needs_revision", "retry:retrying"];
+    "meterless.engine:success", "branch:success", "nvidia.model:skipped", "critique:needs_revision", "risk.signoff:refused", "retry:skipped", "escalate_or_fallback:success"];
   let pos = -1;
   for (const o of order) { const i = seq.indexOf(o, pos + 1); assert.ok(i > pos, `${o} after position ${pos}: ${seq.join(" ")}`); pos = i; }
-  assert.equal(seq.filter((s) => s.startsWith("planner.plan")).length, 2, "second planner.plan before the revised draft");
-  const secondPlan = t.lines.map((l, i) => [l, i]).filter(([l]) => l.step === "planner.plan")[1][1];
-  const retryAt = t.lines.findIndex((l) => l.step === "retry");
-  const drafts = t.lines.map((l, i) => [l, i]).filter(([l]) => l.step === "nvidia.model" && /^draft/.test(l.action));
-  assert.equal(drafts.length, 2);
-  assert.ok(retryAt < secondPlan && secondPlan < drafts[1][1]);
-  assert.equal(t.lines.find((l) => l.step === "retry").retry_count, 1);
-  assert.equal(t.result.rounds.length, 2);
+  assert.equal(seq.filter((s) => s.startsWith("planner.plan")).length, 1, "no second plan: no retry");
+  assert.equal(t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action)).length, 1, "one draft only");
+  const risk = t.lines.find((l) => l.step === "risk.signoff");
+  assert.match(risk.output_summary, /needs approval by .* \(policy over-limit owner\)/);
+  assert.match(t.lines.find((l) => l.step === "retry").input_summary, /hard refusal: amount needs approval/);
+  assert.equal(t.result.rounds.length, 1);
   assert.equal(t.result.rounds[0].risk.pass, false);
-  assert.equal(t.result.rounds[1].risk.pass, true);
+  assert.equal(t.result.rounds[0].risk.hard, true);
   const esc = t.lines.find((l) => l.step === "escalate_or_fallback");
   assert.equal(esc.status, "success");
-  assert.ok(existsSync(t.result.output.queued_for.queue_file));
+  const qf = t.result.output.queued_for;
+  assert.ok(existsSync(qf.queue_file));
+  assert.equal(qf.approval.kind, "amount");
+  assert.equal(qf.approval.amount_usd, 400);
+  assert.equal(qf.approval.limit_usd, 150);
+  assert.ok([3, 4].includes(qf.approval.approver_id));
+  assert.match(esc.output_summary, /draft is attached for approval/);
   assert.match(esc.output_summary, /T03\.json/);
+  const q = JSON.parse(readFileSync(qf.queue_file, "utf8"));
+  assert.ok(q.ticket.draft.text.length > 0, "the queue file carries the draft");
+  assert.ok(q.critiques.some((c) => c.source === "Evaluator") && q.critiques.some((c) => c.source === "Risk"), "both critiques stored");
 });
 
-test("hero shape: over the limit, owner out, backup in: round 1 needs_revision, round 2 holds for the backup", async () => {
+test("hero shape: over the limit, owner out, backup in: the backup approves (escalate to the backup)", async () => {
   const t = await run("T03", { patch: { T03: { owner_out: true } } });
   assertWholeTrace(t);
-  assert.equal(t.result.output.decision, "hold");
-  assert.ok(t.lines.some((l) => l.step === "risk.signoff" && l.status === "needs_revision"));
-  assert.equal(t.lines.find((l) => l.step === "escalate_or_fallback").status, "skipped");
-  assert.match(t.result.output.draft.text, /not promising it/);
+  assert.equal(t.result.output.decision, "escalate");
+  assert.ok(t.lines.some((l) => l.step === "risk.signoff" && l.status === "refused"));
+  assert.equal(t.lines.find((l) => l.step === "escalate_or_fallback").status, "success");
+  assert.equal(t.result.output.queued_for.approval.approver_id, t.result.output.queued_for.backup_id);
 });
 
 test("T01: misread escalates, queue file written, queueForHuman memory id in memory.write", async () => {
@@ -188,7 +192,8 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
     return { answers: { is_follow_up: 0.1, category: { choice: "refund", confidence: 0.9 } }, model: "openjev-test", gate_source: "openjev", confidence: 0.9 };
   };
   const critic = async ({ draft }) => (draft.promises.refund_amount > 150 ? { pass: false, reason: "refund above the limit", model: "nvidia/nemotron-test" } : { pass: true, reason: "ok", model: "nvidia/nemotron-test" });
-  const t = await run("T03", { cfg: live, extra: { drafter, gates, critic } });
+  // 140 USD is under the 150 limit, so the bad first draft is a retryable round, not the over-limit approval refusal
+  const t = await run("T03", { cfg: live, patch: { T03: { amount_usd: 140 } }, extra: { drafter, gates, critic } });
   assertWholeTrace(t);
   const drafts = t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action));
   assert.equal(drafts.length, 2);
@@ -200,7 +205,7 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   assert.doesNotMatch(seen[0][1].content, /150/);
   assert.match(seen[1][1].content, /rejected/);
   assert.match(seen[2].at(-1).content, /valid JSON/); // the nudge is the revised round's second call
-  assert.equal(t.result.output.decision, "escalate");
+  assert.equal(t.result.output.decision, "hold");
   assert.equal(t.result.agents.find((a) => a.name === "Drafter").model, "nvidia/nemotron-test");
 });
 

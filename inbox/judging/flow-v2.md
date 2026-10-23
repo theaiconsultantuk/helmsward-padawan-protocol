@@ -24,7 +24,7 @@ The design is Kristof's flow ([../../kristof/flow.html](../../kristof/flow.html)
 | 11 | Evaluator | `critique` | `src/loop.mjs`, `src/prompts.mjs` |
 | 12 | Risk | `risk.signoff` | `hardRisk` in `src/gates.mjs`, `src/loop.mjs` |
 | 13 | Send or hold | `branch`; `risk.signoff` and `synthesis` carry the outcome. The service does not send mail. | `src/loop.mjs` |
-| 14 | Escalate gate | `escalate_or_fallback`; `retry` before it on round 1 | `src/loop.mjs`, `src/engines/hmem/index.mjs` (queue file) |
+| 14 | Escalate gate | `escalate_or_fallback`; `retry` before it on round 1, except an amount over the policy limit: Risk refuses on round 1, `retry` is skipped, and the ticket escalates to the policy's over-limit owner for approval with the draft attached | `src/loop.mjs`, `src/engines/hmem/index.mjs` (queue file) |
 | 15 | Trace | every step; the file `logs/trace-<run_id>.jsonl` | `src/trace.mjs` |
 | 16 | H-MEM write | `memory.write` | `src/engines/hmem/index.mjs`, `src/loop.mjs` |
 | 17 | Dashboard | none in `inbox/`. The API is the interface: `GET /counters` (a live Zetaris `GROUP BY`), `GET /runs/<id>/trace`. The page is the team's. | `src/server.mjs`, `src/decisions.mjs` |

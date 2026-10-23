@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Task 4.3: the H-MEM two-run proof. Run A (cold) then run B on the same memory dir, both on T02.
-// Verifies in code that B reads an id A wrote, B's plan names the skipped chunk, B's lines cite A's id, both decide hold.
+// Verifies in code that B reads an id A wrote, B's plan says it reused the recalled context, B's lines cite A's id, both decide hold.
 // Copies both traces to judging/traces/ and writes judging/engine-hmem-two-run.md. Exit 1 if any check fails.
 import { readFileSync, writeFileSync, mkdirSync, rmSync, copyFileSync } from "node:fs";
 import { join } from "node:path";
@@ -48,7 +48,7 @@ const check = (name, ok, detail = "") => {
 check("A memory.read is cold", aRead && /empty|cold/i.test(aRead.l.output_summary), aRead?.l.output_summary);
 check("A memory.write wrote an id", aWrite && aWrite.l.status === "success" && aId, `id ${aId}`);
 check("B memory.read lists an id from A's memory.write", bRead && aId && (bRead.l.memory_ids ?? []).includes(aId) && bRead.l.output_summary.includes(aId), `ids ${(bRead?.l.memory_ids ?? []).join(",")}`);
-check("B planner.plan names the skipped chunk", bPlan && /skipped the facts chunk/.test(bPlan.l.output_summary));
+check("B planner.plan says it reused the recalled context", bPlan && /recalls this customer from an earlier run: the planner reused its decision context/.test(bPlan.l.output_summary));
 const bCites = B.lines.filter((l) => (l.memory_ids ?? []).includes(aId));
 check("B lines carry memory_ids citing A's id", bCites.length > 0 && (bPlan?.l.memory_ids ?? []).includes(aId), `${bCites.length} lines`);
 check("both decisions are hold", A.result.output.decision === "hold" && B.result.output.decision === "hold", `A=${A.result.output.decision} B=${B.result.output.decision}`);
@@ -67,7 +67,7 @@ const q = (r, x) => x ? [
 
 const md = `---
 title: H-MEM two-run proof
-description: Two runs of ticket T02 on one empty memory folder; the second run reads the memory the first wrote and its plan says which chunk it skipped.
+description: Two runs of ticket T02 on one empty memory folder; the second run reads the memory the first wrote and its plan says it reused that context.
 date: 2026-10-23
 tags: [judging, meterless, hmem]
 ---
@@ -97,13 +97,13 @@ ${q(A, aWrite)}
 
 ${q(B, bRead)}
 
-### B planner.plan (names the skipped chunk)
+### B planner.plan (reuses the recalled context)
 
 ${q(B, bPlan)}
 
 ## What it shows
 
-Run B read memory \`${aId}\`, which run A wrote, and its plan skipped the facts chunk and re-checked the amount only.
+Run B read memory \`${aId}\`, which run A wrote, and its plan says it reused that context; the rows were re-read through Zetaris and the amount re-checked, which is what the code does.
 
 Honest note: H-MEM here uses lexical retrieval (no embedder). The facts rows are still re-read from Zetaris in one call; what the memory saves is the planner re-deriving them.
 `;
