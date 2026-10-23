@@ -484,6 +484,7 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 ## Data
 
 - $(tk "$(ok '[ "${SRC_COUNT:-0}" -ge 10 ] && [ -s "$J/zetaris-register.md" ]')" "Zetaris data layer") Zetaris is the data layer, with sources documented. Pointer: [sources.json](sources.json) (live \`GET /sources\`: ${SRC_COUNT:-0} sources, ${SRC_LIVE:-0} live in Zetaris), the registration statements in [zetaris-register.md](zetaris-register.md), and $SPONSOR_ZET \`zetaris.query\` lines in the hero trace.
+- $(tk "$(ok '[ -s "$J/zetaris-usl.md" ] && grep -q "tables compiled and activated" "$J/zetaris-usl.md"')" "Unified Semantic Layer") A Unified Semantic Layer compiled and activated over the raw sources. Pointer: [zetaris-usl.md](zetaris-usl.md) (12 keyed tables with foreign keys over CSV, JSON, Parquet, Markdown and the runtime CSVs, a cross-source join and a live-view proof), built by the scripted [../scripts/register_usl.mjs](../scripts/register_usl.mjs) with [../scripts/zetaris_usl.sql](../scripts/zetaris_usl.sql).
 - $(tk "$(ok '[ "${SIZE_KB:-99999}" -lt 20000 ]')" "repository small") Repository is small. Pointer: \`inbox/\` without node_modules, logs and runtime data is ${SIZE_KB} KB (\`du -sk\`, measured by the script).
 - $(tk "$(ok 'has data/sources.json && [ -s "$J/pre-existing.md" ] && grep -qi licen "$INBOX/README.md"')" "sources and licences") Sources and licences documented. Pointer: the data sources table and the Third-Party Code and Licences section of [../README.md](../README.md), [../data/sources.json](../data/sources.json), [pre-existing.md](pre-existing.md).
 - $(tk "$(ok 'has data/synthetic/threads/threads.jsonl && has scripts/register_zetaris_sources.sql')" "no manual data setup") No manual data setup. Pointer: the synthetic data is committed under \`data/synthetic/\`; registration is the scripted [../scripts/register_sources.mjs](../scripts/register_sources.mjs) with [../scripts/register_zetaris_sources.sql](../scripts/register_zetaris_sources.sql) with the statements in [zetaris-register.md](zetaris-register.md). Zetaris itself is the sponsor's installed service.
@@ -535,6 +536,7 @@ sample-mode-run.md	The three examples and the recovery pair run with no network 
 clean-clone-run.md	Clone, build and run from a clean checkout, live and sample legs	Section 13 Running (clean clone) and Build (Docker)
 secrets-scan.md	gitleaks and the no-secrets sweep, exit codes and finding counts	Section 13 Secrets; Logs contain no secrets
 sources.json	The live GET /sources body: every Zetaris source, format, table and row count	Zetaris is the data layer, sources documented
+zetaris-usl.md	The Unified Semantic Layer compiled and activated over the raw sources: keys, foreign keys, live views, join and liveness proof	Sponsor call a judge can see (Zetaris)
 zetaris-register.md	Every statement that registered the sources in Zetaris, with live row counts	Sponsor call a judge can see (Zetaris)
 engine-scout-evals.md	Meterless Scout eval run and the command	Meterless Engine really used (Scout)
 engine-hmem-two-run.md	H-MEM two-run proof: a second run reads what the first wrote	Shared memory (H-MEM)
@@ -665,7 +667,7 @@ FINAL_CLEAN=0; [ "$GL_RC" = 0 ] && [ "$GL_COUNT" = 0 ] && [ "$NS_RC" = 0 ] && FI
 # 8. existence check of everything the pack is supposed to hold
 # ------------------------------------------------------------------------------------------------
 for f in README.md rules-checklist.md sources.json sample-mode-run.md secrets-scan.md clean-clone-run.md engine-scout-evals.md engine-hmem-two-run.md \
-         padme-chain.md zetaris-register.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
+         padme-chain.md zetaris-register.md zetaris-usl.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
          scenarios.md engine-world-model.md engine-world-model-conformance.md screenshots/README.md; do
   [ -s "$J/$f" ] || problem "missing or empty: judging/$f"
 done

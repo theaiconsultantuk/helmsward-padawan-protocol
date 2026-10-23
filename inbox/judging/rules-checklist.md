@@ -33,6 +33,7 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 ## Data
 
 - [x] Zetaris is the data layer, with sources documented. Pointer: [sources.json](sources.json) (live `GET /sources`: 20 sources, 19 live in Zetaris), the registration statements in [zetaris-register.md](zetaris-register.md), and 23 `zetaris.query` lines in the hero trace.
+- [x] A Unified Semantic Layer compiled and activated over the raw sources. Pointer: [zetaris-usl.md](zetaris-usl.md) (12 keyed tables with foreign keys over CSV, JSON, Parquet, Markdown and the runtime CSVs, a cross-source join and a live-view proof), built by the scripted [../scripts/register_usl.mjs](../scripts/register_usl.mjs) with [../scripts/zetaris_usl.sql](../scripts/zetaris_usl.sql).
 - [x] Repository is small. Pointer: `inbox/` without node_modules, logs and runtime data is 3792 KB (`du -sk`, measured by the script).
 - [x] Sources and licences documented. Pointer: the data sources table and the Third-Party Code and Licences section of [../README.md](../README.md), [../data/sources.json](../data/sources.json), [pre-existing.md](pre-existing.md).
 - [x] No manual data setup. Pointer: the synthetic data is committed under `data/synthetic/`; registration is the scripted [../scripts/register_sources.mjs](../scripts/register_sources.mjs) with [../scripts/register_zetaris_sources.sql](../scripts/register_zetaris_sources.sql) with the statements in [zetaris-register.md](zetaris-register.md). Zetaris itself is the sponsor's installed service.

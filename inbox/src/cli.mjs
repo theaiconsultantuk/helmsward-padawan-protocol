@@ -36,6 +36,18 @@ async function doctor() {
   if (z.ok) { ok++; console.log(`zetaris: ok (SELECT 1 in ${z.ms} ms)`); }
   else { fail++; console.log(`zetaris: FAIL (${z.error})`); }
 
+  // Unified Semantic Layer: the tables SHOW TABLES lists, activated when a COUNT on the first one answers (informational, never a fail).
+  if (z.ok) {
+    try {
+      const NS = "lightning.metastore.jedi_pack";
+      const shown = await zetaris.sqlRun(`SHOW TABLES IN ${NS}`, { cfg });
+      const n = shown.rows.length;
+      let m = 0;
+      if (n > 0) { try { await zetaris.sqlRun(`SELECT COUNT(*) FROM ${shown.rows[0][0]}`, { cfg }); m = n; } catch { m = 0; } }
+      console.log(n > 0 ? `usl: ok (${n} tables, ${m} activated)` : "usl: missing");
+    } catch { console.log("usl: missing"); }
+  }
+
   const n = await nightshift.status({ cfg });
   if (n.state !== "online") {
     fail++; console.log(`nightshift: ${n.state}${n.error ? ` (${n.error})` : ""}`);

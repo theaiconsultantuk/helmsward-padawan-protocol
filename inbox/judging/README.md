@@ -28,6 +28,7 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [clean-clone-run.md](clean-clone-run.md) | Clone, build and run from a clean checkout, live and sample legs | Section 13 Running (clean clone) and Build (Docker) |
 | [secrets-scan.md](secrets-scan.md) | gitleaks and the no-secrets sweep, exit codes and finding counts | Section 13 Secrets; Logs contain no secrets |
 | [sources.json](sources.json) | The live GET /sources body: every Zetaris source, format, table and row count | Zetaris is the data layer, sources documented |
+| [zetaris-usl.md](zetaris-usl.md) | The Unified Semantic Layer compiled and activated over the raw sources: keys, foreign keys, live views, join and liveness proof | Sponsor call a judge can see (Zetaris) |
 | [zetaris-register.md](zetaris-register.md) | Every statement that registered the sources in Zetaris, with live row counts | Sponsor call a judge can see (Zetaris) |
 | [engine-scout-evals.md](engine-scout-evals.md) | Meterless Scout eval run and the command | Meterless Engine really used (Scout) |
 | [engine-hmem-two-run.md](engine-hmem-two-run.md) | H-MEM two-run proof: a second run reads what the first wrote | Shared memory (H-MEM) |
