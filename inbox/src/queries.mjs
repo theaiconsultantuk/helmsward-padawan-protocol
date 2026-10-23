@@ -11,7 +11,7 @@ export const TOPICS = [...CATEGORIES, "billing"];
 export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
   "threads_parquet", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
-  "contact_form_submissions", "trustpilot_reviews", "decisions",
+  "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
 ];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
 
@@ -78,7 +78,7 @@ export const TEMPLATES = {
   },
   decision_counts: {
     params: {}, cacheable: false, question: "the decision counters",
-    sql: () => "SELECT outcome, ledger_effect, COUNT(*) AS n FROM JEDI_PACK.decisions GROUP BY outcome, ledger_effect",
+    sql: () => "SELECT decision, verdict, COUNT(*) AS n FROM JEDI_PACK.decisions GROUP BY decision, verdict",
     cite: () => ["decisions"],
   },
 };
@@ -137,6 +137,9 @@ export async function wikiFor(intent, opts = {}) {
   return (await run("wiki", { wiki }, opts)).objects;
 }
 
+// the runtime table: registered once, rewritten by src/decisions.mjs, refreshed with UNCACHE after each write
+export const decisionsTable = "JEDI_PACK.decisions";
+
 export async function counters(opts = {}) {
   const out = { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 };
   let r;
@@ -148,10 +151,13 @@ export async function counters(opts = {}) {
     throw e;
   }
   for (const o of r.objects) {
-    const n = Number(o.n) || 0;
-    if (o.outcome in out) out[o.outcome] += n;
-    if (o.ledger_effect === "affirm") out.affirmed += n;
-    if (o.ledger_effect === "reject") out.rejected += n;
+    // columns of the runtime decisions table; outcome/ledger_effect are the pre-23-Oct names, still read
+    const n = Number(o.n ?? o["count(1)"] ?? o["count(*)"]) || 0;
+    const decision = o.decision ?? o.outcome, verdict = o.verdict ?? o.ledger_effect;
+    if (decision in out) out[decision] += n;
+    if (decision === "escalate") out.queued += n;
+    if (verdict === "affirm") out.affirmed += n;
+    if (verdict === "reject") out.rejected += n;
   }
   return out;
 }

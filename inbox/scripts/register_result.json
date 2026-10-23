@@ -185,5 +185,17 @@
     ],
     "rows": 1,
     "ok": true
+  },
+  {
+    "table": "decisions",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv\", header \"true\")",
+        "status": "exists, skipped"
+      }
+    ],
+    "rows": 0,
+    "ok": true
   }
 ]
