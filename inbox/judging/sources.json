@@ -74,7 +74,7 @@
     "format": "JSON",
     "table": "threads_json",
     "rows": 100,
-    "live": false
+    "live": true
   },
   {
     "name": "threads_parquet",
