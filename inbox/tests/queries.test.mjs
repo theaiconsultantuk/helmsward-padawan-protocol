@@ -170,3 +170,91 @@ test("G3: TABLES lists every non-REST source table in data/sources.json", async 
   for (const s of src.sources) if (s.format !== "REST") assert.ok(TABLES.includes(s.table), `TABLES lacks ${s.table}`);
   assert.ok(TABLES.includes("threads_json"));
 });
+
+test("S0.2: TOPICS and TABLES carry the scenario entries", async () => {
+  const { TOPICS, TABLES } = await import("../src/queries.mjs");
+  for (const t of ["rfq", "customer_service"]) assert.ok(TOPICS.includes(t), t);
+  for (const t of ["products", "faq", "intake_runtime"]) assert.ok(TABLES.includes(t), t);
+  for (const n of ["faq", "products", "product_price", "reviews", "world_threads", "holidays", "intake_thread"]) assert.ok(TEMPLATES[n], n);
+});
+
+test("S0.2: new templates refuse bad params before any fetch", async () => {
+  const bad = [
+    ["product_price", { product_id: "P3" }], ["product_price", { product_id: "P03'" }], ["product_price", { product_id: "p03" }],
+    ["intake_thread", { thread_id: "T1" }], ["intake_thread", { thread_id: "F1'; DROP" }], ["intake_thread", { thread_id: "F" }],
+    ["responsibility", { topic: "purchasing" }], ["policy", { topic: "purchasing" }],
+    ["faq", { q: "x" }], ["products", { product_id: "P01" }], ["holidays", { employee_id: 1 }],
+  ];
+  await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
+    for (const [n, p] of bad) {
+      assert.throws(() => validate(n, p), TypeError, `${n} ${JSON.stringify(p)}`);
+      await assert.rejects(run(n, p, { cfg: live }), TypeError);
+    }
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("S0.2: a message-like string passed as any param of a new template throws before the network", async () => {
+  const msg = "Hi, how long does shipping take? '; DROP TABLE faq; --";
+  await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
+    for (const n of ["faq", "products", "reviews", "world_threads", "holidays"]) {
+      await assert.rejects(run(n, { text: msg }, { cfg: live }), TypeError, n);
+    }
+    for (const [n, k] of [["product_price", "product_id"], ["intake_thread", "thread_id"]]) {
+      await assert.rejects(run(n, { [k]: msg }, { cfg: live }), TypeError, n);
+    }
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("S0.2: new templates render fixed SQL built only from whitelisted params", () => {
+  assert.equal(TEMPLATES.faq.sql({}), "SELECT faq_id, question, answer, keywords, source FROM JEDI_PACK.faq ORDER BY faq_id");
+  assert.match(TEMPLATES.product_price.sql({ product_id: "P03" }), /FROM JEDI_PACK\.products WHERE product_id = 'P03'$/);
+  assert.match(TEMPLATES.intake_thread.sql({ thread_id: "F12" }), /FROM JEDI_PACK\.intake_runtime WHERE thread_id = 'F12'$/);
+  assert.match(TEMPLATES.world_threads.sql({}), /FROM JEDI_PACK\.threads_json ORDER BY thread_id$/);
+  assert.equal(TEMPLATES.holidays.sql({}), "SELECT employee_id, date FROM JEDI_PACK.holiday_2026");
+  assert.equal(TEMPLATES.reviews.sql({}), "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM JEDI_PACK.trustpilot_reviews ORDER BY review_id");
+  assert.deepEqual(TEMPLATES.faq.cite({}, [{ faq_id: "Q01" }]), ["faq:Q01"]);
+  assert.deepEqual(TEMPLATES.product_price.cite({}, [{ product_id: "P03" }]), ["products:P03"]);
+  assert.deepEqual(TEMPLATES.intake_thread.cite({}, [{ thread_id: "F1" }]), ["intake_runtime:F1"]);
+});
+
+test("S0.2: every number in a FAQ answer appears in a policy row or a wiki page (contract drift)", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = new URL("../data/synthetic/", import.meta.url);
+  const parse = (txt) => {
+    const rows = []; let row = [], cur = "", q = false;
+    for (let i = 0; i < txt.length; i++) {
+      const c = txt[i];
+      if (q) { if (c === '"' && txt[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+      else if (c === '"') q = true; else if (c === ",") { row.push(cur); cur = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && txt[i + 1] === "\n") i++; row.push(cur); cur = ""; if (row.length > 1 || row[0]) rows.push(row); row = []; }
+      else cur += c;
+    }
+    if (cur || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  };
+  const faq = parse(readFileSync(new URL("faq.csv", dir), "utf8"));
+  assert.deepEqual(faq[0], ["faq_id", "question", "answer", "keywords", "source"]);
+  assert.equal(faq.length - 1, 12);
+  const nums = (s) => (s.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const backing = new Set(readFileSync(new URL("policy.csv", dir), "utf8").split(/\r?\n/).flatMap(nums));
+  for (const f of readdirSync(new URL("wiki/", dir))) for (const n of nums(readFileSync(new URL(`wiki/${f}`, dir), "utf8"))) backing.add(n);
+  let numbered = 0;
+  for (const [id, , answer, , source] of faq.slice(1)) {
+    assert.ok(source, `${id} has a source`);
+    for (const n of nums(answer)) { numbered++; assert.ok(backing.has(n), `${id}: number ${n} has no policy or wiki row behind it`); }
+  }
+  assert.ok(numbered >= 1, "the returns answer quotes the refund limit");
+  const returns = faq.find((r) => /refund/i.test(r[1]));
+  assert.match(returns[2], /150/);
+  assert.match(returns[4], /refund-policy/);
+});
+
+test("S0.2: products have one price each and no tier columns", async () => {
+  const { readFileSync } = await import("node:fs");
+  const lines = readFileSync(new URL("../data/synthetic/products.csv", import.meta.url), "utf8").trim().split("\n");
+  assert.equal(lines[0], "product_id,name,unit_price_usd,currency,min_order_qty,lead_days");
+  assert.equal(lines.length, 11);
+  assert.deepEqual(lines.slice(1).map((l) => Number(l.split(",")[2])).sort((a, b) => a - b), [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]);
+});

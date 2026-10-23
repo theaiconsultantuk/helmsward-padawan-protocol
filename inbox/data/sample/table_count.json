@@ -97,6 +97,22 @@
   },
   {
     "params": {
+      "table": "faq"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "12"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "holiday_2026"
     },
     "result": {
@@ -106,6 +122,22 @@
       "rows": [
         [
           "1251"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "intake_runtime"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "0"
         ]
       ],
       "total": 1
@@ -129,6 +161,22 @@
   },
   {
     "params": {
+      "table": "products"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "10"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "responsibility"
     },
     "result": {
@@ -137,7 +185,7 @@
       ],
       "rows": [
         [
-          "5"
+          "7"
         ]
       ],
       "total": 1

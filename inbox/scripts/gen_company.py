@@ -169,13 +169,114 @@ def eml(t):
     return head + body
 
 
+FAQ = [
+    ("Q01", "How long does shipping take?",
+     "Shipping time depends on your region and the product. Your order confirmation shows the estimate for your address, and customer service can tell you where your order is.",
+     "shipping delivery time long arrive ship days", "authored"),
+    ("Q02", "Which regions do you ship to, and do you ship to post boxes?",
+     "We ship to most regions. Some remote regions and post boxes cannot take a courier delivery, so give a street address where you can. Customer service confirms your region before the order ships.",
+     "regions region country countries post box pobox ship international", "authored"),
+    ("Q03", "How do I care for my gear?",
+     "Wipe it with a soft dry cloth, keep it out of long direct sun, and store it in its case or bag. Do not use solvents on the hilt or the crystal case.",
+     "care clean cleaning wash maintain store storage", "authored"),
+    ("Q04", "How long is the warranty?",
+     "Every product carries a warranty against manufacturing faults. The length is stated on your order confirmation, and a faulty item is handled as a replacement, not a refund.",
+     "warranty guarantee fault faulty defect length covered", "wiki/replacement-policy.md"),
+    ("Q05", "Which colours do you ship?",
+     "The colours shown on each product page are the colours we ship. If a colour is not shown, it is not in stock, and customer service can tell you if it is coming back.",
+     "colour colours color colors shade available stock", "authored"),
+    ("Q06", "Do you sell stands for the sabers?",
+     "Yes, the saber stand is in our product list, and it fits the training saber and the hilt.",
+     "stand stands display holder saber hilt", "products.csv"),
+    ("Q07", "Can you engrave my gear?",
+     "Engraving is not offered at the moment. Customer service can note a request, but we do not promise it.",
+     "engrave engraving engraved personalise personalize name custom", "authored"),
+    ("Q08", "What is your returns and refund policy?",
+     "A refund at or under 150 USD can be approved by our refund owner. Above 150 USD it goes to the manager. A replacement is not a refund. Write to us with your order reference.",
+     "return returns refund refunds money back policy", "wiki/refund-policy.md"),
+    ("Q09", "Where is my order?",
+     "Send us your order reference and customer service will check its status and reply to you. We never ask for a card number.",
+     "order status track tracking where parcel package reference", "wiki/what-may-leave.md"),
+    ("Q10", "Which payment methods do you accept?",
+     "We accept the payment methods shown at checkout. We never ask for a card number by email or chat.",
+     "payment pay payments card methods checkout invoice", "wiki/what-may-leave.md"),
+    ("Q11", "Do you offer gift wrapping?",
+     "Gift wrapping is not offered at the moment. Customer service can add a gift note to the order.",
+     "gift wrapping wrap present note", "authored"),
+    ("Q12", "Can I place a bulk order?",
+     "Yes. Sales quotes bulk orders: tell us the product and the quantity and sales will reply with a quote.",
+     "bulk order quote quotes wholesale quantity volume units", "authored"),
+]
+
+
+def gen_only(out, a):
+    """--only: write just the named files and refresh their sources.json rows; nothing else is touched."""
+    only = {x.strip() for x in a.only.split(",") if x.strip()}
+    bad = only - {"products", "faq", "responsibility"}
+    if bad:
+        raise SystemExit("unknown --only: %s" % ",".join(sorted(bad)))
+    if not os.path.isdir(out):
+        raise SystemExit("--only needs an existing --out (no rmtree)")
+    rng2 = random.Random(a.seed + 1)
+    counts = {}
+    if "products" in only:
+        prices = [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]
+        rng2.shuffle(prices)
+        rows = ["product_id,name,unit_price_usd,currency,min_order_qty,lead_days\n"]
+        for i, (n, pr) in enumerate(zip(PRODUCTS, prices), 1):
+            rows.append("P%02d,%s,%d,USD,1,%d\n" % (i, n, pr, rng2.randint(3, 14)))
+        write_text(os.path.join(out, "products.csv"), "".join(rows))
+        counts["products"] = len(rows) - 1
+    if "faq" in only:
+        buf = io.StringIO()
+        w = csv.writer(buf, lineterminator="\n")
+        w.writerow(["faq_id", "question", "answer", "keywords", "source"])
+        for r in FAQ:
+            w.writerow(r)
+        write_text(os.path.join(out, "faq.csv"), buf.getvalue())
+        counts["faq"] = len(FAQ)
+    if "responsibility" in only:
+        p = os.path.join(out, "responsibility.csv")
+        txt = read_bytes(p).decode()
+        have = {r["topic"] for r in read_csv(p)}
+        if not txt.endswith("\r\n"):
+            txt += "\r\n"
+        for line in ["rfq,6,14", "customer_service,7,15"]:
+            if line.split(",")[0] not in have:
+                txt += line + "\r\n"
+        write_text(p, txt)
+        counts["responsibility"] = len(read_csv(p))
+    sp = os.path.join(os.path.dirname(out), "sources.json")
+    sj = json.load(open(sp))
+    by = {s["name"]: s for s in sj["sources"]}
+    def ent(name, path, table, rows):
+        return {"name": name, "path": path, "format": "CSV", "table": table, "database": "JEDI_PACK",
+                "options": {"header": "true"}, "licence": "synthetic, CC0", "rows": rows}
+    new = {"products": ent("products", "products.csv", "products", counts.get("products", 0)),
+           "faq": ent("faq", "faq.csv", "faq", counts.get("faq", 0)),
+           "intake_runtime": ent("intake_runtime", "runtime/intake.csv", "intake_runtime", 0)}
+    for k, e in new.items():
+        if k == "intake_runtime" or k in only:
+            if k in by:
+                by[k]["rows"] = e["rows"]
+            else:
+                sj["sources"].append(e)
+    if "responsibility" in only:
+        by["responsibility"]["rows"] = counts["responsibility"]
+    write_text(sp, json.dumps(sj, indent=2) + "\n")
+    print("wrote (only)", out, counts)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--src", default=DEFAULT_SRC)
+    ap.add_argument("--only", default="", help="comma list of products,faq,responsibility: write only those files, keep the rest")
     a = ap.parse_args()
     out, src = os.path.abspath(a.out), os.path.abspath(a.src)
+    if a.only:
+        return gen_only(out, a)
     if os.path.isdir(out):
         shutil.rmtree(out)
     os.makedirs(out)

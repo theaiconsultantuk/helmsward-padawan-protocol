@@ -7,16 +7,19 @@ import * as zetaris from "./adapters/zetaris.mjs";
 
 export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
 export const INTENTS = ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"];
-export const TOPICS = [...CATEGORIES, "billing"];
+export const TOPICS = [...CATEGORIES, "billing", "rfq", "customer_service"];
 export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
   "threads_parquet", "threads_json", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
+  "products", "faq", "intake_runtime",
 ];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
 
 const V = {
   thread_id: (v) => typeof v === "string" && /^T\d{1,3}$/.test(v),
+  product_id: (v) => typeof v === "string" && /^P\d{2}$/.test(v),
+  intake_id: (v) => typeof v === "string" && /^F\d{1,6}$/.test(v),
   employee_id: (v) => (typeof v === "number" || (typeof v === "string" && /^\d{1,3}$/.test(v))) && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200,
   category: (v) => CATEGORIES.includes(v),
   topic: (v) => TOPICS.includes(v),
@@ -82,6 +85,42 @@ export const TEMPLATES = {
     sql: () => "SELECT thread_id, sender_email, subject, body, received_at FROM JEDI_PACK.threads_json ORDER BY thread_id",
     cite: () => ["threads_json"],
   },
+  // Scenario tables (S0.2): parameterless reads compared in JS, or one validated id. No customer text reaches SQL.
+  faq: {
+    params: {}, cacheable: true, question: "every FAQ row, matched in JS",
+    sql: () => "SELECT faq_id, question, answer, keywords, source FROM JEDI_PACK.faq ORDER BY faq_id",
+    cite: (p, o) => o.map((x) => `faq:${x.faq_id}`),
+  },
+  products: {
+    params: {}, cacheable: true, question: "every product and its one unit price",
+    sql: () => "SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM JEDI_PACK.products ORDER BY product_id",
+    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+  },
+  product_price: {
+    params: { product_id: V.product_id }, cacheable: true, question: "the unit price of one product",
+    sql: (p) => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM JEDI_PACK.products WHERE product_id = '${p.product_id}'`,
+    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+  },
+  reviews: {
+    params: {}, cacheable: true, question: "the public review index",
+    sql: () => "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM JEDI_PACK.trustpilot_reviews ORDER BY review_id",
+    cite: (p, o) => o.map((x) => `trustpilot_reviews:${x.review_id}`),
+  },
+  world_threads: {
+    params: {}, cacheable: true, minLimit: 1000, question: "every thread's sender, category, owner and outcome, for the world model",
+    sql: () => "SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM JEDI_PACK.threads_json ORDER BY thread_id",
+    cite: () => ["threads_json"],
+  },
+  holidays: {
+    params: {}, cacheable: true, minLimit: 2000, question: "every holiday row, filtered by date in JS",
+    sql: () => "SELECT employee_id, date FROM JEDI_PACK.holiday_2026",
+    cite: () => ["holiday_2026"],
+  },
+  intake_thread: {
+    params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
+    sql: (p) => `SELECT thread_id, received_at, channel, sender_name, sender_email, subject, body, scenario, category FROM JEDI_PACK.intake_runtime WHERE thread_id = '${p.thread_id}'`,
+    cite: (p, o) => o.map((x) => `intake_runtime:${x.thread_id}`),
+  },
   // The trust ledger's feedback: affirm / reject counts for one category, read from the runtime decisions table.
   ledger_adjust: {
     params: { category: V.category }, cacheable: false, question: "the affirm and reject verdicts for the category",
@@ -113,7 +152,7 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
   const q = `${t.question} ${JSON.stringify(params)}`;
   let r;
   try {
-    r = await sqlRunImpl(sql, { name, params, limit, cfg, trace });
+    r = await sqlRunImpl(sql, { name, params, limit: Math.max(limit, t.minLimit ?? 0), cfg, trace });
   } catch (e) {
     trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
       output_summary: `${e.name}: ${e.message}`, status: "error", sponsor: "zetaris" });

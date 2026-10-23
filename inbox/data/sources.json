@@ -36,7 +36,7 @@
         "header": "true"
       },
       "licence": "synthetic, CC0",
-      "rows": 5
+      "rows": 7
     },
     {
       "name": "policy",
@@ -197,6 +197,42 @@
       "licence": "synthetic, CC0",
       "rest": true,
       "rows": 41
+    },
+    {
+      "name": "products",
+      "path": "products.csv",
+      "format": "CSV",
+      "table": "products",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 10
+    },
+    {
+      "name": "faq",
+      "path": "faq.csv",
+      "format": "CSV",
+      "table": "faq",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 12
+    },
+    {
+      "name": "intake_runtime",
+      "path": "runtime/intake.csv",
+      "format": "CSV",
+      "table": "intake_runtime",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 0
     }
   ]
 }
