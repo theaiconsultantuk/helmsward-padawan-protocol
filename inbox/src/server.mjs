@@ -1,6 +1,7 @@
 // Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /runs /runs/:id[/trace|/journey] /queue /openapi.yaml.
 // JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
+import { timingSafeEqual } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -248,6 +249,15 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       }
       if (!["/run", "/ask", "/feedback"].includes(path)) { send(404, errBody(null, "NotFound", `no route ${req.method} ${path}`, false, t0)); return; }
       if (req.method !== "POST") { send(405, errBody(null, "BadRequest", `use POST ${path}`, false, t0)); return; }
+      // Opt-in token for a shared instance (API_TOKEN set): the three POST routes need "Authorization: Bearer <token>".
+      // Reads, the pages and /health stay open; unset means the loopback default, no token anywhere.
+      if (cfg.API_TOKEN) {
+        const got = Buffer.from(String(req.headers.authorization ?? "")), want = Buffer.from(`Bearer ${cfg.API_TOKEN}`);
+        if (got.length !== want.length || !timingSafeEqual(got, want)) {
+          send(401, errBody(null, "Unauthorized", "this instance needs Authorization: Bearer <API_TOKEN> on POST /run, /ask and /feedback", false, t0));
+          return;
+        }
+      }
 
       let body;
       try { body = JSON.parse(await readBody(req) || "null"); }

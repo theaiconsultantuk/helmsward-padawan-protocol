@@ -438,3 +438,22 @@ test("(17) the stored result keeps memory, so the journey marks written memory i
     assert.ok(Array.isArray(run.memory.written));
   }
 });
+
+test("API_TOKEN set: POST needs the bearer header, GET /health and the pages stay open", async () => {
+  const srv = createServer({ cfg: config({ SAMPLE_MODE: "true", API_TOKEN: "t-0001-test" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-token-")), quiet: true, publish: async () => ({ published: true }) } });
+  await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  try {
+    assert.equal((await fetch(`${b}/health`)).status, 200);
+    assert.equal((await fetch(`${b}/`)).status, 200);
+    const body = JSON.stringify({ run_id: "tok-1", input: { thread_id: "T02" } });
+    const no = await fetch(`${b}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
+    assert.equal(no.status, 401);
+    assert.equal((await no.json()).error.type, "Unauthorized");
+    const wrong = await fetch(`${b}/run`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer nope" }, body });
+    assert.equal(wrong.status, 401);
+    const ok = await fetch(`${b}/run`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer t-0001-test" }, body });
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).status, "success");
+  } finally { await new Promise((r) => srv.close(r)); }
+});
