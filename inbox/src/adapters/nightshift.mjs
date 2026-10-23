@@ -8,8 +8,17 @@ function authHeaders(cfg, extra = {}) {
   return { Authorization: `Bearer ${cfg.METERLESS_RUNTIME_TOKEN}`, "meterless-app": APP, ...extra };
 }
 
-// One place to change how the concrete model is read (decided in task 0.6).
+// One place to change how the concrete model is read (decided in task 0.6; receipt-first since 23 Oct, on Meterless's word:
+// "check routed_model in the receipt to confirm Nemotron handled the request"). The compute receipt sits in body.meterless.
+export function receiptOf(raw) {
+  const m = raw?.body?.meterless;
+  if (!m || typeof m !== "object") return null;
+  const phases = Array.isArray(m.phases) ? m.phases.map((p) => ({ phase: p?.phase, model: p?.model })).filter((p) => p.model) : [];
+  return { receipt_id: m.receipt_id ?? null, requested_model: m.requested_model ?? null, routed_model: m.routed_model ?? null, phases };
+}
 export function handledModel(raw) {
+  const r = receiptOf(raw);
+  if (r?.routed_model && typeof r.routed_model === "string") return r.routed_model;
   if (raw?.body && typeof raw.body.model === "string" && raw.body.model) return raw.body.model;
   for (const h of ["x-meterless-model", "x-model", "x-upstream-model"]) {
     if (raw?.headers?.[h]) return raw.headers[h];
@@ -87,7 +96,7 @@ export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg 
   const raw = { status, headers, body };
   const out = body?.choices?.[0]?.message?.content;
   if (typeof out !== "string") throw badResponse("nightshift: response has no message content", { status, service: "nightshift" });
-  return { text: out.trim(), model: handledModel(raw), route, latencyMs: Date.now() - t0, raw };
+  return { text: out.trim(), model: handledModel(raw), receipt: receiptOf(raw), route, latencyMs: Date.now() - t0, raw };
 }
 
 // Direct local lane (task 0.9): einh's Bionic server reached through LM Link. NOT through Nightshift.

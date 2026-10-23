@@ -304,3 +304,13 @@ test("(14) zetaris keeps the first 300 chars of a non-ok body in message and det
       e.name === "BadResponse" && e.status === 400 && /TABLE_OR_VIEW_NOT_FOUND/.test(e.message) && e.detail.length <= 300 && e.detail.startsWith("[TABLE_OR_VIEW_NOT_FOUND]"));
   });
 });
+
+test("nightshift: the receipt's routed_model wins over body.model, and the phases are kept", () => {
+  const raw = { body: { model: "nvidia/nemotron-3.5-lightning-30b-a3b", meterless: { schema: "meterless.compute_receipt.v1", receipt_id: "rcpt_x", requested_model: "nvidia/nemotron-3.5-lightning-30b-a3b", routed_model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", phases: [{ phase: "final_synthesis", model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", ms: 200 }] } }, headers: {} };
+  assert.equal(nightshift.handledModel(raw), "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC", "the lane that served, not the echoed request");
+  const r = nightshift.receiptOf(raw);
+  assert.equal(r.requested_model, "nvidia/nemotron-3.5-lightning-30b-a3b");
+  assert.deepEqual(r.phases, [{ phase: "final_synthesis", model: "webllm/SmolLM2-1.7B-Instruct-q4f16_1-MLC" }]);
+  assert.equal(nightshift.handledModel({ body: { model: "m-only" }, headers: {} }), "m-only", "no receipt: body.model as before");
+  assert.equal(nightshift.receiptOf({ body: { model: "m-only" } }), null);
+});
