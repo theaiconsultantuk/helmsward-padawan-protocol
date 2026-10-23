@@ -14,13 +14,13 @@ docker run -d --network none -e SAMPLE_MODE=true oah-inbox
 docker exec <container> node src/cli.mjs run --example N      # N = 1, 2, 3
 ```
 
-Image: `oah-inbox` (d8d3903b457f). Examples are in `input_examples/`; each is posted by `docker exec` because a `--network none` container has no reachable port. The container was removed afterwards (containers of this image left on the host: 0). The traces were copied out with `docker cp` into [traces/](traces/trace-example-1.jsonl).
+Image: `oah-inbox` (1496b1bf2a2e). Examples are in `input_examples/`; each is posted by `docker exec` because a `--network none` container has no reachable port. The container was removed afterwards (containers of this image left on the host: 0). The traces were copied out with `docker cp` into [traces/](traces/trace-example-1.jsonl).
 
 | example | thread | run_id | exit | status | decision | execution_time_seconds | trace |
 |---|---|---|---|---|---|---|---|
-| 1 | T02 | example-1 | 0 | success | hold | 0.023 | [trace-example-1.jsonl](traces/trace-example-1.jsonl) (25 lines) |
-| 2 | T18 | example-2 | 0 | success | send | 0.028 | [trace-example-2.jsonl](traces/trace-example-2.jsonl) (27 lines) |
-| 3 | T01 | example-3 | 0 | success | escalate | 0.021 | [trace-example-3.jsonl](traces/trace-example-3.jsonl) (26 lines) |
+| 1 | T02 | example-1 | 0 | success | hold | 0.02 | [trace-example-1.jsonl](traces/trace-example-1.jsonl) (25 lines) |
+| 2 | T18 | example-2 | 0 | success | send | 0.022 | [trace-example-2.jsonl](traces/trace-example-2.jsonl) (27 lines) |
+| 3 | T01 | example-3 | 0 | success | escalate | 0.024 | [trace-example-3.jsonl](traces/trace-example-3.jsonl) (26 lines) |
 
 ## Per-example detail
 
@@ -60,7 +60,7 @@ nvidia.model lines (sample mode skips the model, and the line says why):
 escalate_or_fallback line (line 22 of the trace):
 
 ```json
-{"timestamp":"2026-10-23T05:38:28Z","run_id":"example-1","step":"escalate_or_fallback","status":"skipped","output_summary":"gate not reached"}
+{"timestamp":"2026-10-23T05:56:47Z","run_id":"example-1","step":"escalate_or_fallback","status":"skipped","output_summary":"gate not reached"}
 ```
 
 ### Example 2
@@ -99,7 +99,7 @@ nvidia.model lines (sample mode skips the model, and the line says why):
 escalate_or_fallback line (line 24 of the trace):
 
 ```json
-{"timestamp":"2026-10-23T05:38:28Z","run_id":"example-2","step":"escalate_or_fallback","status":"skipped","output_summary":"gate not reached"}
+{"timestamp":"2026-10-23T05:56:47Z","run_id":"example-2","step":"escalate_or_fallback","status":"skipped","output_summary":"gate not reached"}
 ```
 
 ### Example 3
@@ -138,7 +138,7 @@ nvidia.model lines (sample mode skips the model, and the line says why):
 escalate_or_fallback line (line 23 of the trace):
 
 ```json
-{"timestamp":"2026-10-23T05:38:29Z","run_id":"example-3","step":"escalate_or_fallback","status":"success","output_summary":"escalated to owner 8 / backup 9; both critiques stored in /app/data/memory/queue/T01.json"}
+{"timestamp":"2026-10-23T05:56:47Z","run_id":"example-3","step":"escalate_or_fallback","status":"success","output_summary":"escalated to owner 8 / backup 9; both critiques stored in /app/data/memory/queue/T01.json"}
 ```
 
 ## Which trace carries a reached escalate_or_fallback
@@ -159,8 +159,8 @@ docker exec <container> node src/cli.mjs run --thread T02 --run-id demo-recovery
 Status `success`, decision `hold`, trace [trace-recovery.jsonl](traces/trace-recovery.jsonl):
 
 ```json
-{"timestamp":"2026-10-23T05:38:30Z","run_id":"demo-recovery","step":"zetaris.query","status":"error","output_summary":"UpstreamRefused: zetaris: connection failed (ECONNREFUSED)"}
-{"timestamp":"2026-10-23T05:38:30Z","run_id":"demo-recovery","step":"recovery","status":"success","output_summary":"Zetaris refused once; answered from the cached rows"}
+{"timestamp":"2026-10-23T05:56:49Z","run_id":"demo-recovery","step":"zetaris.query","status":"error","output_summary":"UpstreamRefused: zetaris: connection failed (ECONNREFUSED)"}
+{"timestamp":"2026-10-23T05:56:49Z","run_id":"demo-recovery","step":"recovery","status":"success","output_summary":"Zetaris refused once; answered from the cached rows"}
 ```
 
 Regenerate with `bash inbox/scripts/judging_pack.sh`.

@@ -108,7 +108,7 @@
     "name": "decisions",
     "format": "CSV",
     "table": "decisions",
-    "rows": 62,
+    "rows": 67,
     "live": true
   },
   {
@@ -136,7 +136,7 @@
     "name": "intake_runtime",
     "format": "CSV",
     "table": "intake_runtime",
-    "rows": 0,
+    "rows": 9,
     "live": true
   }
 ]
