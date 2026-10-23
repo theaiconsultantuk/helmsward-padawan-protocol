@@ -79,6 +79,22 @@ function queueList(memoryDir) {
   return out.sort((a, b) => when(b) - when(a));
 }
 
+// Static pages: a CLOSED list. The request only picks an entry; the file path is built from the entry, never from request input.
+const STATIC_TYPES = { ".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8" };
+export const STATIC_NAMES = ["app.js", "dashboard.js", "style.css", "demo-scenarios.json"];
+const PAGES = { "/": "index.html", "/dashboard": "dashboard.html" };
+function staticFile(path) {
+  let entry = Object.hasOwn(PAGES, path) ? PAGES[path] : null;
+  if (!entry && path.startsWith("/static/")) {
+    let raw;
+    try { raw = decodeURIComponent(path.slice(8)); } catch { raw = ""; }
+    entry = STATIC_NAMES.find((n) => n === raw) ?? null;
+  }
+  if (!entry) return null;
+  const ext = entry.slice(entry.lastIndexOf("."));
+  return { file: join(INBOX_ROOT, "public", entry), type: STATIC_TYPES[ext] };
+}
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -173,6 +189,16 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
       if (req.method === "GET" && path === "/health") {
         send(200, { ok: true, sample_mode: sampleMode(cfg), version: VERSION, uptime_s: Math.round((Date.now() - started) / 1000) });
+        return;
+      }
+      if (path === "/" || path === "/dashboard" || path.startsWith("/static/")) {
+        if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
+        const f = staticFile(path);
+        let buf = null;
+        if (f) { try { buf = readFileSync(f.file); } catch { buf = null; } }
+        if (!f || !buf) { send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0)); return; }
+        res.writeHead(200, { ...CORS, "Content-Type": f.type, "Content-Length": buf.length, "Cache-Control": "no-store" });
+        res.end(buf);
         return;
       }
       const GET_ONLY = ["/sources", "/intake", "/counters", "/openapi.yaml"];

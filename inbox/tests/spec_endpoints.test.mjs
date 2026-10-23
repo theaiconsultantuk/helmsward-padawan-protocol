@@ -47,7 +47,6 @@ test("the spec names at least the core endpoints", () => {
 
 test(
   "spec endpoints equal openapi.yaml paths",
-  { todo: "until S4.2 adds the page paths to openapi.yaml" },
   async (t) => {
     const api = await openapiEndpoints();
     if (!api) return t.skip("the yaml package is not installed");

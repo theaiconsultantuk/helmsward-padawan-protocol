@@ -287,6 +287,48 @@ paths:
             application/yaml:
               schema: { type: string }
               example: "openapi: 3.0.3"
+  /:
+    get:
+      summary: The front page
+      description: "Serves `public/index.html` (404 with the structured error until the page exists). The page only uses the API."
+      responses:
+        "200":
+          description: The unified front end.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /dashboard:
+    get:
+      summary: The internal dashboard
+      description: "Counters, the queue, recent runs and affirm/reject buttons. Served with `Cache-Control: no-store`."
+      responses:
+        "200":
+          description: The dashboard page.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /static/{name}:
+    get:
+      summary: A page asset from a closed list
+      description: "Serves `public/<name>` for exactly these names; anything else, including path tricks, is a 404. `Content-Type` follows the extension (`.js` application/javascript, `.css` text/css, `.json` application/json, all UTF-8)."
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema: { type: string, enum: [app.js, dashboard.js, style.css, demo-scenarios.json] }
+      responses:
+        "200":
+          description: The file.
+          content:
+            application/javascript:
+              schema: { type: string }
+            text/css:
+              schema: { type: string }
+            application/json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/NotFound" }
 components:
   responses:
     BadRequest:
