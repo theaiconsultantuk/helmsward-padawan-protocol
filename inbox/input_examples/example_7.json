@@ -1,1 +1,11 @@
-{"run_id": "example-7", "input": {"message": "the box was dented, I am annoyed, just so you know", "from": "new.customer@example.com", "name": "Rey Kanata", "channel": "chat", "scenario": "complaint", "as_of": "2026-10-20"}, "options": {"sample_mode": true}}
+{
+  "run_id": "example-7",
+  "input": {
+    "message": "the box was dented, I am annoyed, just so you know",
+    "from": "new.customer@example.com",
+    "name": "Rey Kanata",
+    "channel": "chat",
+    "scenario": "complaint",
+    "as_of": "2026-10-20"
+  }
+}
