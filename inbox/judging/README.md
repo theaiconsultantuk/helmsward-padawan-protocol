@@ -15,7 +15,7 @@ Regenerate the whole pack, from the repository root:
 bash inbox/scripts/judging_pack.sh
 ```
 
-The script reruns the sample-mode examples in a `--network none` container, runs the hero thread live, regenerates `../result.md` from that trace, reads `GET /sources` from a server it starts, scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
+The script reruns the sample-mode examples in a `--network none` container, runs the hero thread live, regenerates `../result.md` from that trace, reads `GET /sources` from a server it starts, runs `scripts/scenario_proofs.mjs` (examples 4 to 8 live and in sample mode, which rewrites `scenarios.md`, `engine-world-model.md` and the ten scenario traces), scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
 
 Start with [../result.md](../result.md), then [rules-checklist.md](rules-checklist.md).
 
@@ -49,9 +49,23 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [traces/trace-two-run-A.jsonl](traces/trace-two-run-A.jsonl) | Two-run proof, run A (writes memory) | Shared memory |
 | [traces/trace-two-run-B.jsonl](traces/trace-two-run-B.jsonl) | Two-run proof, run B (reads run A's memory id, skips a chunk) | Shared memory |
 | [traces/trace-ask-mvk7jd5c.jsonl](traces/trace-ask-mvk7jd5c.jsonl) | A free-form question answered through /ask | Dynamic delegation |
+| [engine-world-model.md](engine-world-model.md) | Meterless World Model: what it does in the complaint route, its tests and the live world_context and severity lines | Meterless Engine really used (World Model, the third engine, in a working feature with a test) |
+| [engine-world-model-conformance.md](engine-world-model-conformance.md) | World Model conformance scorecards, 8/8 on the vendored reference and on our bundle | Meterless Engine really used (World Model); the engine's own passing test |
+| [scenarios.md](scenarios.md) | Examples 4 to 8 (question, RFQ, vent, severe complaint) run live and in sample mode: decision, branch, models, journey reply, trace links | Branching; Dynamic delegation; Escalation; the scenarios slice |
+| [screenshots/README.md](screenshots/README.md) | Captures of the two reference pages (front page, dashboard, journeys) at 1280 and 390 px | Product & UX: the unified front end and the internal dashboard |
+| [traces/trace-scenario-4-live.jsonl](traces/trace-scenario-4-live.jsonl) | Example 4 live: a question answered from the FAQ (faq-hit, send) | Branching; Sponsor call (Zetaris faq rows) |
+| [traces/trace-scenario-4-sample.jsonl](traces/trace-scenario-4-sample.jsonl) | Example 4 in sample mode (faq-hit, send) | Sample mode; full step list |
+| [traces/trace-scenario-5-live.jsonl](traces/trace-scenario-5-live.jsonl) | Example 5 live: a question neither FAQ nor records answer (escalate to a person) | Escalation or fallback |
+| [traces/trace-scenario-5-sample.jsonl](traces/trace-scenario-5-sample.jsonl) | Example 5 in sample mode | Sample mode; full step list |
+| [traces/trace-scenario-6-live.jsonl](traces/trace-scenario-6-live.jsonl) | Example 6 live: an RFQ about 100 versus 100000 items, one price on file (escalate to sales with the price rows) | Branching; Handoff |
+| [traces/trace-scenario-6-sample.jsonl](traces/trace-scenario-6-sample.jsonl) | Example 6 in sample mode | Sample mode; full step list |
+| [traces/trace-scenario-7-live.jsonl](traces/trace-scenario-7-live.jsonl) | Example 7 live: a venting customer (complaint-vent, hold with a calm acknowledgement) | Meterless Engine (World Model); Branching |
+| [traces/trace-scenario-7-sample.jsonl](traces/trace-scenario-7-sample.jsonl) | Example 7 in sample mode | Sample mode; full step list |
+| [traces/trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl) | Example 8 live: a severe complaint, World Model history, severity 10, escalated with the draft | Meterless Engine (World Model); typed gates (OpenJev); Escalation |
+| [traces/trace-scenario-8-sample.jsonl](traces/trace-scenario-8-sample.jsonl) | Example 8 in sample mode | Sample mode; full step list |
 
-28 files listed, 0 missing.
+42 files listed, 0 missing.
 
 ## Two runs of the script
 
-A fresh run is inherent in the live parts, so a second run changes only: trace timestamps and run ids in `traces/trace-hero-live.jsonl`, `traces/trace-example-*.jsonl` and `traces/trace-recovery.jsonl`; the memory ids and model wording inside the hero trace; and the quotes in `../result.md` and `sample-mode-run.md` that cite them. `sources.json` changes only if the live row counts changed. The rest is static or derived from files that do not change. The traces of the five earlier runs (`padme-live`, `two-run`, `ask`) are kept as committed.
+A fresh run is inherent in the live parts, so a second run changes only: trace timestamps and run ids in `traces/trace-hero-live.jsonl`, `traces/trace-example-*.jsonl` and `traces/trace-recovery.jsonl`; the run timestamps, ids and model wording in the live `traces/trace-scenario-*-live.jsonl` (the sample ones differ only in timestamps) and the quotes in `scenarios.md` and `engine-world-model.md` that cite them; the memory ids and model wording inside the hero trace; and the quotes in `../result.md` and `sample-mode-run.md` that cite them. `sources.json` changes only if the live row counts changed. The rest is static or derived from files that do not change. The traces of the five earlier runs (`padme-live`, `two-run`, `ask`) are kept as committed.

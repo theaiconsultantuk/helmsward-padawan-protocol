@@ -8,6 +8,8 @@
 #   2. the hero thread runs live (up to HERO_ATTEMPTS tries; the live model is not deterministic) and its trace is copied in
 #   3. inbox/result.md is generated from the hero trace and the recovery trace
 #   4. judging/sample-mode-run.md, judging/sources.json (live GET /sources), judging/rules-checklist.md, judging/README.md
+#   4c. scripts/scenario_proofs.mjs runs examples 4..8 live and in sample mode against a server it starts; it writes judging/scenarios.md,
+#       judging/engine-world-model.md and the ten judging/traces/trace-scenario-*.jsonl itself (nothing is copied by hand here)
 #   5. judging/secrets-scan.md from gitleaks and tests/no_secrets.test.mjs, run last
 # Fresh runs are inherent: the second run differs in run timestamps, memory ids and model wording (see the README).
 set -uo pipefail
@@ -381,6 +383,21 @@ else
 fi
 
 # ------------------------------------------------------------------------------------------------
+# 4c. the scenario proofs: examples 4..8, live and sample (scripts/scenario_proofs.mjs starts its own server)
+# ------------------------------------------------------------------------------------------------
+# The script is not `set -e`: a non-zero exit is recorded as a problem so the pack ends NOT READY (exit 1) after everything else was written.
+note "scenario proofs (examples 4..8, live and sample)"
+if command -v node >/dev/null; then
+  if ! env -C "$INBOX" node scripts/scenario_proofs.mjs > "$WORK/scenario_proofs.log" 2>&1; then
+    SP_RC=$?
+    problem "scenario_proofs.mjs exited $SP_RC (see judging/scenarios.md for the failing cell)"
+    tail -n 5 "$WORK/scenario_proofs.log" >&2
+  fi
+else
+  problem "node is required for scenario_proofs.mjs"
+fi
+
+# ------------------------------------------------------------------------------------------------
 # 5a. secrets checks, first pass (the checklist tick reads this; secrets-scan.md is written from the final pass below)
 # ------------------------------------------------------------------------------------------------
 # gitleaks reports paths as <--source>/<file>, and INBOX is absolute, so the allowlist is anchored to exactly $INBOX/.env
@@ -446,7 +463,7 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 ## Running
 
 - $(tk "$(ok '[ -s "$INBOX/judging/clean-clone-run.md" ] && has README.md')" "clean-clone documented start") A documented command starts the project from a clean clone. Pointer: Quick start in [../README.md](../README.md); the clone, build and run proof is [clean-clone-run.md](clean-clone-run.md) (\`bash inbox/scripts/clean_clone_test.sh\`).
-- $(tk "$(ok 'has openapi.yaml && has src/server.mjs && has src/cli.mjs')" "programmatic entry") There is a programmatic entry point, not only a UI. Pointer: \`POST /run\` in [../openapi.yaml](../openapi.yaml) and \`node src/cli.mjs run --thread <id>\`; there is no UI in \`inbox/\`.
+- $(tk "$(ok 'has openapi.yaml && has src/server.mjs && has src/cli.mjs')" "programmatic entry") There is a programmatic entry point, not only a UI. Pointer: \`POST /run\` in [../openapi.yaml](../openapi.yaml) and \`node src/cli.mjs run --thread <id>\`; the two reference pages in \`public/\` use only that API.
 - $(tk "$(ok 'has input_examples/example_1.json && has output_examples/example_1.json && jq -e . "$T/trace-example-1.jsonl" >/dev/null 2>&1')" "structured I/O") Input and output are structured and machine-readable. Pointer: [../input_examples/example_1.json](../input_examples/example_1.json), [../output_examples/example_1.json](../output_examples/example_1.json), and one JSON object per trace line ([traces/trace-example-1.jsonl](traces/trace-example-1.jsonl)).
 - $(tk "$(ok '[ "$(cat "$WORK/ex-1.rc" 2>/dev/null)" = 0 ] && [ "$(cat "$WORK/ex-3.rc" 2>/dev/null)" = 0 ]')" "nothing interactive") Nothing requires interactive input. Pointer: [sample-mode-run.md](sample-mode-run.md): a detached container, then non-interactive \`docker exec\`, exit 0.
 
@@ -485,6 +502,14 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 - $(tk "$(ok 'jq -se "[.[].step]|index(\"delegate\")!=null and index(\"critique\")!=null and index(\"retry\")!=null and index(\"recovery\")!=null" "$T_HERO" "$T/trace-recovery.jsonl" >/dev/null 2>&1 || ( jq -e "select(.step==\"delegate\")" "$T_HERO" >/dev/null && jq -e "select(.step==\"critique\")" "$T_HERO" >/dev/null && jq -e "select(.step==\"retry\")" "$T_HERO" >/dev/null && jq -e "select(.step==\"recovery\")" "$T/trace-recovery.jsonl" >/dev/null )')" "handoffs, critique, retries, recovery") Show agent handoffs, critique, retries and recovery. Pointer: \`delegate\`, \`critique\`, \`retry\` in [traces/trace-hero-live.jsonl](traces/trace-hero-live.jsonl), \`recovery\` in [traces/trace-recovery.jsonl](traces/trace-recovery.jsonl); quoted by line number in [../result.md](../result.md).
 - $(tk "$(ok '[ "${SPONSOR_ZET:-0}" -ge 1 ] && [ "${SPONSOR_MET:-0}" -ge 1 ] && [ "${MODELLINES:-0}" -ge 1 ]')" "sponsor and model lines") Show Zetaris queries, Meterless Engine activity and which model handled each request. Pointer: the hero trace has $SPONSOR_ZET lines with \`sponsor: zetaris\`, $SPONSOR_MET with \`sponsor: meterless\`, $SPONSOR_NV with \`sponsor: nvidia\`, and $MODELLINES \`nvidia.model\` success lines that carry a model id.
 - $(tk "$FIRST_CLEAN" "logs contain no secrets") Contain no secrets. Pointer: [secrets-scan.md](secrets-scan.md) (\`tests/no_secrets.test.mjs\` sweeps \`logs/\`, \`output_examples/\`, \`judging/\` and \`data/sample/\` for every configured secret value and any Bearer token).
+
+## Engines and the scenario slice
+
+- $(tk "$(ok '[ -s "$J/engine-world-model.md" ] && [ -s "$J/engine-world-model-conformance.md" ] && [ "$(grep -c "8/8 checks passed" "$J/engine-world-model-conformance.md")" -ge 2 ] && has tests/world.test.mjs && has tests/world_model_conformance.test.mjs')" "third engine with its test") A third Meterless engine, the World Model, in a working feature with a test. Pointer: the complaint route in [engine-world-model.md](engine-world-model.md); the Meterless conformance suite scores 8/8 on the vendored reference and on our committed bundle ([engine-world-model-conformance.md](engine-world-model-conformance.md), \`npm run conformance\`); the domain layer is tested in \`tests/world.test.mjs\`.
+- $(tk "$(ok 'jq -s "[.[]|select(.action==\"world_context\" and .sponsor==\"meterless\")]|length>=1" "$T/trace-scenario-8-live.jsonl" | grep -q true')" "world_context line") The World Model's work is visible in a live trace. Pointer: the \`world_context\` line (sponsor \`meterless\`, cited ids in \`memory_ids\`) in [traces/trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl), quoted in [engine-world-model.md](engine-world-model.md).
+- $(tk "$(ok '[ -s "$INBOX/public/index.html" ] && [ -s "$INBOX/public/dashboard.html" ] && [ -s "$J/screenshots/README.md" ]')" "two pages") The unified front end and the internal dashboard are served by the service from the API alone. Pointer: \`GET /\` and \`GET /dashboard\` ([../public/](../public/index.html)), screenshots in [screenshots/README.md](screenshots/README.md), the contract for a replacement in [../docs/FRONTEND-SPEC.md](../docs/FRONTEND-SPEC.md).
+- $(tk "$(ok 'jq -s "[.[]|select(.action==\"intake_publish\" and .sponsor==\"zetaris\" and .status==\"success\")]|length>=1" "$T/trace-scenario-4-live.jsonl" | grep -q true && grep -q intake_runtime "$INBOX/data/sources.json"')" "free text through Zetaris") A free-text message becomes a ticket row that Zetaris reads, so every fact in the trace still comes through Zetaris. Pointer: the \`intake_publish\` line in [traces/trace-scenario-4-live.jsonl](traces/trace-scenario-4-live.jsonl) and the \`intake_runtime\` table in [../data/sources.json](../data/sources.json).
+- $(tk "$(ok '[ "$(ls "$T"/trace-scenario-*.jsonl 2>/dev/null | wc -l | tr -d " ")" -ge 10 ] && grep -q "Overall: all checks passed" "$J/scenarios.md"')" "scenario proofs") The five scenario examples run live and in sample mode and agree on decision and branch. Pointer: [scenarios.md](scenarios.md) and the ten \`traces/trace-scenario-*.jsonl\`, written by \`scripts/scenario_proofs.mjs\`.
 
 ## Owner steps (not ticked; not provable from this repository)
 
@@ -531,6 +556,20 @@ traces/trace-padme-live_2.jsonl	Padme chain step 2, live	Handoff; misread chain
 traces/trace-two-run-A.jsonl	Two-run proof, run A (writes memory)	Shared memory
 traces/trace-two-run-B.jsonl	Two-run proof, run B (reads run A's memory id, skips a chunk)	Shared memory
 traces/trace-ask-mvk7jd5c.jsonl	A free-form question answered through /ask	Dynamic delegation
+engine-world-model.md	Meterless World Model: what it does in the complaint route, its tests and the live world_context and severity lines	Meterless Engine really used (World Model, the third engine, in a working feature with a test)
+engine-world-model-conformance.md	World Model conformance scorecards, 8/8 on the vendored reference and on our bundle	Meterless Engine really used (World Model); the engine's own passing test
+scenarios.md	Examples 4 to 8 (question, RFQ, vent, severe complaint) run live and in sample mode: decision, branch, models, journey reply, trace links	Branching; Dynamic delegation; Escalation; the scenarios slice
+screenshots/README.md	Captures of the two reference pages (front page, dashboard, journeys) at 1280 and 390 px	Product & UX: the unified front end and the internal dashboard
+traces/trace-scenario-4-live.jsonl	Example 4 live: a question answered from the FAQ (faq-hit, send)	Branching; Sponsor call (Zetaris faq rows)
+traces/trace-scenario-4-sample.jsonl	Example 4 in sample mode (faq-hit, send)	Sample mode; full step list
+traces/trace-scenario-5-live.jsonl	Example 5 live: a question neither FAQ nor records answer (escalate to a person)	Escalation or fallback
+traces/trace-scenario-5-sample.jsonl	Example 5 in sample mode	Sample mode; full step list
+traces/trace-scenario-6-live.jsonl	Example 6 live: an RFQ about 100 versus 100000 items, one price on file (escalate to sales with the price rows)	Branching; Handoff
+traces/trace-scenario-6-sample.jsonl	Example 6 in sample mode	Sample mode; full step list
+traces/trace-scenario-7-live.jsonl	Example 7 live: a venting customer (complaint-vent, hold with a calm acknowledgement)	Meterless Engine (World Model); Branching
+traces/trace-scenario-7-sample.jsonl	Example 7 in sample mode	Sample mode; full step list
+traces/trace-scenario-8-live.jsonl	Example 8 live: a severe complaint, World Model history, severity 10, escalated with the draft	Meterless Engine (World Model); typed gates (OpenJev); Escalation
+traces/trace-scenario-8-sample.jsonl	Example 8 in sample mode	Sample mode; full step list
 TSV
 {
 cat <<MD
@@ -551,7 +590,7 @@ Regenerate the whole pack, from the repository root:
 bash inbox/scripts/judging_pack.sh
 \`\`\`
 
-The script reruns the sample-mode examples in a \`--network none\` container, runs the hero thread live, regenerates \`../result.md\` from that trace, reads \`GET /sources\` from a server it starts, scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
+The script reruns the sample-mode examples in a \`--network none\` container, runs the hero thread live, regenerates \`../result.md\` from that trace, reads \`GET /sources\` from a server it starts, runs \`scripts/scenario_proofs.mjs\` (examples 4 to 8 live and in sample mode, which writes \`scenarios.md\`, \`engine-world-model.md\` and the ten scenario traces), scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
 
 Start with [../result.md](../result.md), then [rules-checklist.md](rules-checklist.md).
 
@@ -571,7 +610,7 @@ $LISTED files listed, $MISSING missing.
 
 ## Two runs of the script
 
-A fresh run is inherent in the live parts, so a second run changes only: trace timestamps and run ids in \`traces/trace-hero-live.jsonl\`, \`traces/trace-example-*.jsonl\` and \`traces/trace-recovery.jsonl\`; the memory ids and model wording inside the hero trace; and the quotes in \`../result.md\` and \`sample-mode-run.md\` that cite them. \`sources.json\` changes only if the live row counts changed. The rest is static or derived from files that do not change. The traces of the five earlier runs (\`padme-live\`, \`two-run\`, \`ask\`) are kept as committed.
+A fresh run is inherent in the live parts, so a second run changes only: trace timestamps and run ids in \`traces/trace-hero-live.jsonl\`, \`traces/trace-example-*.jsonl\` and \`traces/trace-recovery.jsonl\`; the run timestamps, ids and model wording in the live \`traces/trace-scenario-*-live.jsonl\` (the sample ones differ only in timestamps) and the quotes in \`scenarios.md\` and \`engine-world-model.md\` that cite them; the memory ids and model wording inside the hero trace; and the quotes in \`../result.md\` and \`sample-mode-run.md\` that cite them. \`sources.json\` changes only if the live row counts changed. The rest is static or derived from files that do not change. The traces of the five earlier runs (\`padme-live\`, \`two-run\`, \`ask\`) are kept as committed.
 MD
 } > "$J/README.md"
 
@@ -626,11 +665,14 @@ FINAL_CLEAN=0; [ "$GL_RC" = 0 ] && [ "$GL_COUNT" = 0 ] && [ "$NS_RC" = 0 ] && FI
 # 8. existence check of everything the pack is supposed to hold
 # ------------------------------------------------------------------------------------------------
 for f in README.md rules-checklist.md sources.json sample-mode-run.md secrets-scan.md clean-clone-run.md engine-scout-evals.md engine-hmem-two-run.md \
-         padme-chain.md zetaris-register.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md; do
+         padme-chain.md zetaris-register.md nightshift-models.json nightshift-first-call.json pre-existing.md sponsor-explanation.md ai-usage.md score-review.md flow-v2.md \
+         scenarios.md engine-world-model.md engine-world-model-conformance.md screenshots/README.md; do
   [ -s "$J/$f" ] || problem "missing or empty: judging/$f"
 done
 [ -s "$INBOX/result.md" ] || problem "missing or empty: result.md"
-for f in trace-hero-live trace-example-1 trace-example-2 trace-example-3 trace-recovery trace-padme-live_1 trace-padme-live_2 trace-two-run-A trace-two-run-B; do
+for f in trace-hero-live trace-example-1 trace-example-2 trace-example-3 trace-recovery trace-padme-live_1 trace-padme-live_2 trace-two-run-A trace-two-run-B \
+         trace-scenario-4-live trace-scenario-4-sample trace-scenario-5-live trace-scenario-5-sample trace-scenario-6-live trace-scenario-6-sample \
+         trace-scenario-7-live trace-scenario-7-sample trace-scenario-8-live trace-scenario-8-sample; do
   [ -s "$T/$f.jsonl" ] || problem "missing or empty trace: judging/traces/$f.jsonl"
 done
 

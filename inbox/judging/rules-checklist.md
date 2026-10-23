@@ -12,7 +12,7 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 ## Running
 
 - [x] A documented command starts the project from a clean clone. Pointer: Quick start in [../README.md](../README.md); the clone, build and run proof is [clean-clone-run.md](clean-clone-run.md) (`bash inbox/scripts/clean_clone_test.sh`).
-- [x] There is a programmatic entry point, not only a UI. Pointer: `POST /run` in [../openapi.yaml](../openapi.yaml) and `node src/cli.mjs run --thread <id>`; there is no UI in `inbox/`.
+- [x] There is a programmatic entry point, not only a UI. Pointer: `POST /run` in [../openapi.yaml](../openapi.yaml) and `node src/cli.mjs run --thread <id>`; the two reference pages in `public/` use only that API.
 - [x] Input and output are structured and machine-readable. Pointer: [../input_examples/example_1.json](../input_examples/example_1.json), [../output_examples/example_1.json](../output_examples/example_1.json), and one JSON object per trace line ([traces/trace-example-1.jsonl](traces/trace-example-1.jsonl)).
 - [x] Nothing requires interactive input. Pointer: [sample-mode-run.md](sample-mode-run.md): a detached container, then non-interactive `docker exec`, exit 0.
 
@@ -51,6 +51,14 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 - [x] Show agent handoffs, critique, retries and recovery. Pointer: `delegate`, `critique`, `retry` in [traces/trace-hero-live.jsonl](traces/trace-hero-live.jsonl), `recovery` in [traces/trace-recovery.jsonl](traces/trace-recovery.jsonl); quoted by line number in [../result.md](../result.md).
 - [x] Show Zetaris queries, Meterless Engine activity and which model handled each request. Pointer: the hero trace has 23 lines with `sponsor: zetaris`, 2 with `sponsor: meterless`, 2 with `sponsor: nvidia`, and 2 `nvidia.model` success lines that carry a model id.
 - [x] Contain no secrets. Pointer: [secrets-scan.md](secrets-scan.md) (`tests/no_secrets.test.mjs` sweeps `logs/`, `output_examples/`, `judging/` and `data/sample/` for every configured secret value and any Bearer token).
+
+## Engines and the scenario slice
+
+- [x] A third Meterless engine, the World Model, in a working feature with a test. Pointer: the complaint route in [engine-world-model.md](engine-world-model.md); the Meterless conformance suite scores 8/8 on the vendored reference and on our committed bundle ([engine-world-model-conformance.md](engine-world-model-conformance.md), `npm run conformance`); the domain layer is tested in `tests/world.test.mjs`.
+- [x] The World Model's work is visible in a live trace. Pointer: the `world_context` line (sponsor `meterless`, cited ids in `memory_ids`) in [traces/trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl), quoted in [engine-world-model.md](engine-world-model.md).
+- [x] The unified front end and the internal dashboard are served by the service from the API alone. Pointer: `GET /` and `GET /dashboard` ([../public/](../public/index.html)), screenshots in [screenshots/README.md](screenshots/README.md), the contract for a replacement in [../docs/FRONTEND-SPEC.md](../docs/FRONTEND-SPEC.md).
+- [x] A free-text message becomes a ticket row that Zetaris reads, so every fact in the trace still comes through Zetaris. Pointer: the `intake_publish` line in [traces/trace-scenario-4-live.jsonl](traces/trace-scenario-4-live.jsonl) and the `intake_runtime` table in [../data/sources.json](../data/sources.json).
+- [x] The five scenario examples run live and in sample mode and agree on decision and branch. Pointer: [scenarios.md](scenarios.md) and the ten `traces/trace-scenario-*.jsonl`, written by `scripts/scenario_proofs.mjs`.
 
 ## Owner steps (not ticked; not provable from this repository)
 
