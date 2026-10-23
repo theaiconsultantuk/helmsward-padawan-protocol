@@ -85,7 +85,8 @@ function safeJson(v) {
 }
 
 function attachmentIds(result) {
-  const att = result?.output?.queued_for?.attachments;
+  let att = result?.output?.queued_for?.attachments;
+  if (isObj(att) && !Array.isArray(att)) att = Array.isArray(att.cited) ? att.cited : []; // scenario shape: { prices, quantities, products, cited: [ids] }
   if (!Array.isArray(att)) return [];
   const ids = [];
   for (const a of att) {

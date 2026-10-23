@@ -107,3 +107,6 @@ export function parseCriticJson(text) {
   if (!j || typeof j.pass !== "boolean" || typeof j.reason !== "string") return null;
   return { pass: j.pass, reason: j.reason.trim() };
 }
+
+// The RFQ acknowledgement (S1.2): code, no model call. Quantities may appear; a price never does.
+export const ACKNOWLEDGEMENT_TEMPLATE = "Thank you, your request for a quote is with our sales team, who will come back to you with the price for {quantities}.";

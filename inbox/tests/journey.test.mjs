@@ -137,3 +137,8 @@ test("queued_for owner fields and attachments map into reply.to", () => {
   assert.deepEqual(r.attachments, ["products:P03", "faq:Q01"]);
   assert.equal(r.kind, "escalation");
 });
+
+test("object attachments contribute their cited id strings", () => {
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ product_id: "P01" }], quantities: [100], cited: ["products:P01"] } } } });
+  assert.deepEqual(r.attachments, ["products:P01"]);
+});

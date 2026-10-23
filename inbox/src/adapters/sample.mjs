@@ -1,6 +1,7 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
 import { readFileSync } from "node:fs";
 import { config, INBOX_ROOT } from "../config.mjs";
+import { ACKNOWLEDGEMENT_TEMPLATE } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
 
@@ -87,4 +88,16 @@ export function gates(ticket) {
     },
     model: MODEL, gate_source: "rules", confidence: 0.5,
   };
+}
+
+// The greeting and sign-off every sample reply wears (same two lines as draft()).
+export function frame(ticket, body) {
+  return `Hello ${ticket?.sender_name ?? "there"},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
+}
+
+// The RFQ acknowledgement: ACKNOWLEDGEMENT_TEMPLATE filled with the quantities. Code, no model call; never a price.
+export function acknowledgement(ticket, { quantities = [] } = {}) {
+  const q = quantities.map(String);
+  const said = q.length === 0 ? "the quantity you asked about" : q.length === 1 ? q[0] : `${q.slice(0, -1).join(", ")} and ${q.at(-1)}`;
+  return { text: frame(ticket, ACKNOWLEDGEMENT_TEMPLATE.replace("{quantities}", said)), model: "template/acknowledgement", route: "template", promises: { refund_amount: null, replacement: false, other: null } };
 }
