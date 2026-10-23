@@ -58,6 +58,20 @@ Say: "Now one live ticket. Meterless plans it. Memory is read first. Nothing is 
 
 Judge line: `memory.read` with an empty list, `planner.plan` with two branches, `delegate`, `branch`.
 
+## Beat 4b. Pick a reason, or just write (added 23 Oct, about 0:50; sits between beats 4 and 5, so beats 1 to 10 keep their numbers and times)
+
+The runtime grows by about the length of this beat. Trim the live waits (cut to the finished journey) rather than the lines below, or drop it to the RFQ click and one sentence on the complaint.
+
+On screen: the front page `GET /`. Header "Why are you contacting us?", the picker (refund, question, RFQ, complaint) and the free-text field. The screen is split: left "How a person sees it", right "Under the hood".
+
+1. Type a free message ("How long does shipping take?") and send. On the right the first node reads "Zetaris row F<n>": the message became a row in `JEDI_PACK.intake_runtime`, and the FAQ answered it, so it sends.
+2. Click the RFQ demo button (the price difference between 100 and 100000 items). On the left: escalated to sales, with the one price attached ("we only have one unit price, no volume tiers, sales to quote"). On the right: the products row, the route, the acknowledgement as a template.
+3. Click the severe complaint demo. On the right the `world_context` line opens: the customer's history from the World Model, with provenance ids. Then severity 10 from OpenJev, escalated with the draft attached. On the left: a draft for a named person, the information attached.
+
+Say: "You can pick a reason or just write. A free message becomes a row in Zetaris before anything else happens. A request for a quote goes straight to sales with the price from Zetaris attached, and the agent says plainly that it has one price and no volume tiers. A severe complaint asks the Meterless World Model for the customer's history, OpenJev scores it ten, and it goes to a person with a draft already written. Left is what a person sees. Right is what happened underneath."
+
+Judge line: `intake_publish`, `branch` (`faq-hit`, `rfq`, `complaint-severe`), `world_context`, `severity_gate`, `escalate_or_fallback`. The demo inputs are authored; the outcomes are the agent's.
+
 ## Beat 5. Zetaris is the source of truth (1:04–1:24)
 
 On screen, three files behind the ticket, then the rows that came back. Do not use a model for these.

@@ -69,7 +69,9 @@
         "Do you engrave a name on the hilt",
         "Do you sell a stand for the saber, or only the saber itself",
         "I have not ordered yet, which colors do you ship",
-        "What does shipping cost and how long does delivery take"
+        "What does shipping cost and how long does delivery take",
+        "Where is my order of belts and holsters",
+        "Can I return a holster or a belt after delivery"
       ],
       "version": 1
     },
@@ -128,6 +130,26 @@
         "Your reply says something I never asked, that is wrong",
         "You said you would, any update on your earlier reply",
         "As I said before, you misunderstood"
+      ],
+      "version": 1
+    },
+    {
+      "id": "rfq.request",
+      "category": "other",
+      "description": "Customer asks for a price quote or bulk pricing for a number of items: a request for quote, not an order.",
+      "parameters": { "type": "object", "properties": {} },
+      "capabilities": ["zetaris.facts", "price.lookup", "queue.human"],
+      "riskClass": "medium",
+      "surfaces": ["email"],
+      "roles": ["*"],
+      "examples": [
+        "Please quote 100 training sabers",
+        "What is your price for 100000 hilts",
+        "Request for quote: 250 utility belts delivered to Antwerp",
+        "bulk pricing for 500 holsters",
+        "RFQ for saber stands",
+        "how much for 1000 units of the padawan robe",
+        "price difference between 100 and 100000 items"
       ],
       "version": 1
     }

@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { USL, TABLES_USL, TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { config } from "../src/config.mjs";
 import { withMockFetch } from "./helpers/mock_fetch.mjs";
 
 const live = { SAMPLE_MODE: "false", ZETARIS_REST_URL: "http://zetaris.invalid", ZETARIS_API_KEY: "k", ZETARIS_ORG_ID: "1" };
@@ -47,7 +48,9 @@ test("run builds objects, cites rows and traces success and error", async () => 
 });
 
 test("counters returns zeros when the table is missing, sums when present", async () => {
-  const missing = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse" }); };
+  // the text Zetaris returned for a bogus table on 23 Oct (cli.mjs sql "SELECT COUNT(*) FROM JEDI_PACK.no_such_table_xyz")
+  const OBSERVED = "zetaris: HTTP 400: {\"msg\":\"[TABLE_OR_VIEW_NOT_FOUND] The table or view `JEDI_PACK`.`no_such_table_xyz` cannot be found. Verify the spelling";
+  const missing = async () => { throw Object.assign(new Error(OBSERVED), { name: "BadResponse", status: 400, detail: OBSERVED }); };
   assert.deepEqual(await counters({ cfg: live, sqlRunImpl: missing }),
     { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 });
   const some = async () => ({ headers: ["outcome", "ledger_effect", "n"], rows: [["hold", "affirm", "3"], ["send", "reject", "2"]] });
@@ -169,4 +172,200 @@ test("G3: TABLES lists every non-REST source table in data/sources.json", async 
   const src = JSON.parse(readFileSync(new URL("../data/sources.json", import.meta.url), "utf8"));
   for (const s of src.sources) if (s.format !== "REST") assert.ok(TABLES.includes(s.table), `TABLES lacks ${s.table}`);
   assert.ok(TABLES.includes("threads_json"));
+});
+
+test("S0.2: TOPICS and TABLES carry the scenario entries", async () => {
+  const { TOPICS, TABLES } = await import("../src/queries.mjs");
+  for (const t of ["rfq", "customer_service"]) assert.ok(TOPICS.includes(t), t);
+  for (const t of ["products", "faq", "intake_runtime"]) assert.ok(TABLES.includes(t), t);
+  for (const n of ["faq", "products", "product_price", "reviews", "world_threads", "holidays", "intake_thread"]) assert.ok(TEMPLATES[n], n);
+});
+
+test("S0.2: new templates refuse bad params before any fetch", async () => {
+  const bad = [
+    ["product_price", { product_id: "P3" }], ["product_price", { product_id: "P03'" }], ["product_price", { product_id: "p03" }],
+    ["intake_thread", { thread_id: "T1" }], ["intake_thread", { thread_id: "F1'; DROP" }], ["intake_thread", { thread_id: "F" }],
+    ["responsibility", { topic: "purchasing" }], ["policy", { topic: "purchasing" }],
+    ["faq", { q: "x" }], ["products", { product_id: "P01" }], ["holidays", { employee_id: 1 }],
+  ];
+  await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
+    for (const [n, p] of bad) {
+      assert.throws(() => validate(n, p), TypeError, `${n} ${JSON.stringify(p)}`);
+      await assert.rejects(run(n, p, { cfg: live }), TypeError);
+    }
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("S0.2: a message-like string passed as any param of a new template throws before the network", async () => {
+  const msg = "Hi, how long does shipping take? '; DROP TABLE faq; --";
+  await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
+    for (const n of ["faq", "products", "reviews", "world_threads", "holidays"]) {
+      await assert.rejects(run(n, { text: msg }, { cfg: live }), TypeError, n);
+    }
+    for (const [n, k] of [["product_price", "product_id"], ["intake_thread", "thread_id"]]) {
+      await assert.rejects(run(n, { [k]: msg }, { cfg: live }), TypeError, n);
+    }
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("S0.2: new templates render fixed SQL built only from whitelisted params", () => {
+  assert.equal(TEMPLATES.faq.sql({}), "SELECT faq_id, question, answer, keywords, faq_source AS source FROM lightning.metastore.jedi_pack.jedi_pack.faq ORDER BY faq_id");
+  assert.match(TEMPLATES.product_price.sql({ product_id: "P03" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.product WHERE product_id = 'P03'$/);
+  assert.match(TEMPLATES.intake_thread.sql({ thread_id: "F12" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.intake WHERE thread_id = 'F12'$/);
+  assert.match(TEMPLATES.world_threads.sql({}), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.ticket ORDER BY thread_id$/);
+  assert.equal(TEMPLATES.holidays.sql({}), "SELECT employee_id, date FROM lightning.metastore.jedi_pack.jedi_pack.holiday");
+  assert.equal(TEMPLATES.reviews.sql({}), "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM lightning.metastore.jedi_pack.jedi_pack.review ORDER BY review_id");
+  assert.deepEqual(TEMPLATES.faq.cite({}, [{ faq_id: "Q01" }]), ["faq:Q01"]);
+  assert.deepEqual(TEMPLATES.product_price.cite({}, [{ product_id: "P03" }]), ["products:P03"]);
+  assert.deepEqual(TEMPLATES.intake_thread.cite({}, [{ thread_id: "F1" }]), ["intake_runtime:F1"]);
+});
+
+test("S0.2: every number in a FAQ answer appears in a policy row or a wiki page (contract drift)", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const dir = new URL("../data/synthetic/", import.meta.url);
+  const parse = (txt) => {
+    const rows = []; let row = [], cur = "", q = false;
+    for (let i = 0; i < txt.length; i++) {
+      const c = txt[i];
+      if (q) { if (c === '"' && txt[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+      else if (c === '"') q = true; else if (c === ",") { row.push(cur); cur = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && txt[i + 1] === "\n") i++; row.push(cur); cur = ""; if (row.length > 1 || row[0]) rows.push(row); row = []; }
+      else cur += c;
+    }
+    if (cur || row.length) { row.push(cur); rows.push(row); }
+    return rows;
+  };
+  const faq = parse(readFileSync(new URL("faq.csv", dir), "utf8"));
+  assert.deepEqual(faq[0], ["faq_id", "question", "answer", "keywords", "source"]);
+  assert.equal(faq.length - 1, 12);
+  const nums = (s) => (s.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
+  const backing = new Set(readFileSync(new URL("policy.csv", dir), "utf8").split(/\r?\n/).flatMap(nums));
+  for (const f of readdirSync(new URL("wiki/", dir))) for (const n of nums(readFileSync(new URL(`wiki/${f}`, dir), "utf8"))) backing.add(n);
+  let numbered = 0;
+  for (const [id, , answer, , source] of faq.slice(1)) {
+    assert.ok(source, `${id} has a source`);
+    for (const n of nums(answer)) { numbered++; assert.ok(backing.has(n), `${id}: number ${n} has no policy or wiki row behind it`); }
+  }
+  assert.ok(numbered >= 1, "the returns answer quotes the refund limit");
+  const returns = faq.find((r) => /refund/i.test(r[1]));
+  assert.match(returns[2], /150/);
+  assert.match(returns[4], /refund-policy/);
+});
+
+test("S0.2: products have one price each and no tier columns", async () => {
+  const { readFileSync } = await import("node:fs");
+  const lines = readFileSync(new URL("../data/synthetic/products.csv", import.meta.url), "utf8").trim().split("\n");
+  assert.equal(lines[0], "product_id,name,unit_price_usd,currency,min_order_qty,lead_days");
+  assert.equal(lines.length, 11);
+  assert.deepEqual(lines.slice(1).map((l) => Number(l.split(",")[2])).sort((a, b) => a - b), [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]);
+});
+
+// ---- S1.1: free-text (F) tickets ----
+const sampleCfg = config({ SAMPLE_MODE: "true" });
+const intakeRow = (over = {}) => ({ thread_id: "F1", received_at: "2026-10-20T09:00:00.000Z", channel: "chat", sender_name: "", sender_email: "a@example.com",
+  subject: "hello", body: "hello", scenario: "", category: "", ...over });
+const intakeFacts = (topic, extra = {}) => factsForTicket("F1", { ticketSource: "intake", intakeRow: intakeRow(), topic, as_of: "2026-10-20", cfg: sampleCfg, ...extra });
+
+test("F ticket, rfq: owner 6 / backup 14, both in, cited local", async () => {
+  const f = await intakeFacts("rfq");
+  assert.equal(f.category, "rfq");
+  assert.equal(f.owner_id, 6); assert.equal(f.backup_id, 14);
+  assert.equal(f.owner_out, false); assert.equal(f.backup_out, false);
+  assert.equal(f.category_weight, 0.4); assert.equal(f.floor, 0.8);
+  assert.ok(f.cited_rows.includes("intake_runtime:F1 (local)"));
+  assert.ok(f.cited_rows.includes("responsibility:rfq"));
+  assert.equal(f.may_leave, true); // a free-text ticket carries no authored flag
+  assert.equal(f.as_of, "2026-10-20");
+});
+
+test("F ticket, refund with a typed amount over the limit goes to the over-limit owners", async () => {
+  const f = await intakeFacts("refund", { amount: 400 });
+  assert.equal(f.policy_limit_usd, 150);
+  assert.equal(f.amount_usd, 400);
+  assert.equal(f.owner_id, 3); assert.equal(f.backup_id, 4);
+  assert.ok(f.cited_rows.includes("amount from the message"));
+  const under = await intakeFacts("refund", { amount: 50 });
+  assert.equal(under.owner_id, 15);
+});
+
+test("F ticket, customer_service: 7 / 15; owner 7 is out on 2026-10-23", async () => {
+  const a = await intakeFacts("customer_service");
+  assert.equal(a.owner_id, 7); assert.equal(a.backup_id, 15);
+  assert.equal(a.owner_out, false);
+  const b = await intakeFacts("customer_service", { as_of: "2026-10-23" });
+  assert.equal(b.owner_out, true);
+  assert.equal(b.backup_out, false);
+  assert.ok(b.cited_rows.includes("holiday_2026:7@2026-10-23"));
+});
+
+test("F ticket read through intake_thread when published, cited without (local)", async () => {
+  const seen = [];
+  const sqlRunImpl = async (sql, opts) => {
+    seen.push(opts.name);
+    if (opts.name === "intake_thread") return { headers: Object.keys(intakeRow()), rows: [Object.values(intakeRow({ subject: "from zetaris" }))] };
+    const { queryByName } = await import("../src/adapters/sample.mjs");
+    return queryByName(opts.name, opts.params, { cfg: sampleCfg });
+  };
+  const f = await factsForTicket("F1", { ticketSource: "intake", intakeRow: intakeRow(), published: true, topic: "rfq", as_of: "2026-10-20", cfg: sampleCfg, sqlRunImpl });
+  assert.ok(seen.includes("intake_thread"));
+  assert.ok(seen.includes("holidays"));
+  assert.equal(f.subject, "from zetaris");
+  assert.ok(f.cited_rows.includes("intake_runtime:F1"));
+  assert.ok(!f.cited_rows.some((c) => c.includes("(local)")));
+});
+
+test("a thread ticket read is unchanged by the intake switch", async () => {
+  const f = await factsForTicket("T02", { cfg: sampleCfg });
+  assert.equal(f.thread_id, "T02");
+  assert.ok(f.cited_rows[0] === "threads_parquet:T02");
+  assert.ok(!f.cited_rows.some((c) => c.startsWith("intake_runtime")));
+});
+
+test("(e) counters: a positively identified missing table is zeros; any other error surfaces", async () => {
+  const zeros = { send: 0, hold: 0, escalate: 0, close: 0, queued: 0, affirmed: 0, rejected: 0 };
+  const notFound = async () => { throw Object.assign(new Error("Table or view not found: JEDI_PACK.decisions"), { name: "BadResponse", status: 500 }); };
+  assert.deepEqual(await counters({ cfg: live, sqlRunImpl: notFound }), zeros);
+  const generic = async () => { throw Object.assign(new Error("zetaris: HTTP 500"), { name: "BadResponse", status: 500 }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: generic }), /HTTP 500/);
+});
+
+test("(14) counters: a bare HTTP 400, or a 400 with another body, surfaces instead of zeros", async () => {
+  const bare = async () => { throw Object.assign(new Error("zetaris: HTTP 400"), { name: "BadResponse", status: 400 }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: bare }), /HTTP 400/);
+  const other = async () => { throw Object.assign(new Error("zetaris: HTTP 400: syntax error near FROM"), { name: "BadResponse", status: 400, detail: "syntax error near FROM" }); };
+  await assert.rejects(counters({ cfg: live, sqlRunImpl: other }), /syntax error/);
+});
+
+test("USL: the switched templates read the Unified Semantic Layer, the legacy ones the raw tables", async () => {
+  const switched = ["faq", "products", "product_price", "responsibility", "holidays", "world_threads", "reviews", "intake_thread"];
+  const args = { product_price: { product_id: "P01" }, responsibility: { topic: "rfq" }, intake_thread: { thread_id: "F1" } };
+  assert.equal(USL, "lightning.metastore.jedi_pack.jedi_pack");
+  assert.ok(TABLES_USL.includes("ticket") && TABLES_USL.includes("wiki_page"));
+  const legacyArgs = { thread: { thread_id: "T02" }, policy: { topic: "refund" }, employee: { employee_id: 15 }, holiday: { employee_id: 15, date: "2026-10-22" },
+    category: { category: "refund" }, trust: { category: "refund" }, wiki: { wiki: "refund" }, table_count: { table: "decisions" }, ledger_adjust: { category: "refund" } };
+  for (const [name, t] of Object.entries(TEMPLATES)) {
+    const sql = t.sql(args[name] ?? legacyArgs[name] ?? {});
+    if (switched.includes(name)) {
+      assert.ok(sql.includes("lightning.metastore.jedi_pack.jedi_pack."), name);
+      assert.equal(t.layer, "usl", name);
+    } else {
+      assert.ok(!sql.includes("lightning.metastore"), name);
+      assert.notEqual(t.layer, "usl", name);
+    }
+  }
+  assert.throws(() => validate("responsibility", { topic: "x'; DROP" }), TypeError);
+  assert.throws(() => validate("product_price", { product_id: "P01'" }), TypeError);
+});
+
+test("USL: the trace line of a switched read says it went via the USL; a legacy read does not", async () => {
+  const lines = [];
+  const trace = { line: (l) => lines.push(l) };
+  const sqlRunImpl = async () => ({ headers: ["faq_id"], rows: [["Q01"]] });
+  await run("faq", {}, { trace, cfg: live, sqlRunImpl });
+  await run("thread", { thread_id: "T02" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["thread_id"], rows: [["T02"]] }) });
+  assert.match(lines[0].input_summary, / via the USL$/);
+  assert.deepEqual(lines[0].output_summary, "1 rows: faq:Q01");
+  assert.doesNotMatch(lines[1].input_summary, /USL/);
 });

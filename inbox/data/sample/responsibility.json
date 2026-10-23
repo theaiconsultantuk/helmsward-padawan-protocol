@@ -55,6 +55,26 @@
   },
   {
     "params": {
+      "topic": "customer_service"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "customer_service",
+          "7",
+          "15"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "topic": "question"
     },
     "result": {
@@ -108,6 +128,26 @@
           "replacement",
           "8",
           "9"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "topic": "rfq"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "owner_id",
+        "backup_id"
+      ],
+      "rows": [
+        [
+          "rfq",
+          "6",
+          "14"
         ]
       ],
       "total": 1

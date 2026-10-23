@@ -76,3 +76,50 @@ test("hardRisk: over the limit, both out, may not leave, draft promise", () => {
   assert.ok(hardRisk(facts02, { promises: { refund_amount: 400 } }).reasons.includes("draft promises refund above the limit"));
   assert.equal(hardRisk({ ...facts02, owner_out: false }).hard, false);
 });
+
+// ---- severityGate (S2.2)
+import { severityGate } from "../src/gates.mjs";
+import { SEVERITY_QUESTION } from "../src/prompts.mjs";
+const SEV = { thread_id: "C1", subject: "Cracked twice", body: "never again", channel: "chat" };
+
+test("SEVERITY_QUESTION: a score question with 10 levels", () => {
+  assert.equal(SEVERITY_QUESTION.type, "score"); assert.equal(SEVERITY_QUESTION.criteria.length, 10);
+});
+
+test("severityGate: openjev answer 9 with the nvidia.model line", async () => {
+  const t = trace(); let sent;
+  const g = await withMockFetch([{ match: isOj, reply: (u, i) => { sent = JSON.parse(i.body); return { status: 200, body: { model: "openjev-0.1", answers: { severity: { score: 8, confidence: 0.8 } } } }; } }],
+    () => severityGate(SEV, {}, "3 earlier threads", { trace: t, cfg, kind: "genuine" }));
+  assert.equal(g.score, 9); assert.equal(g.gate_source, "openjev"); assert.equal(g.confidence, 0.8);
+  assert.deepEqual(Object.keys(sent.questions), ["severity"]); assert.match(sent.state, /kind: genuine/);
+  assert.equal(t.lines[0].action, "severity_gate"); assert.equal(t.lines[0].status, "success"); assert.equal(t.lines[0].agent_name, "Severity");
+});
+
+test("severityGate: score is round(index) + 1, clamped", async () => {
+  for (const [raw, want] of [[8.2, 9], [7.4, 8], [0, 1], [9.9, 10]]) {
+    const g = await withMockFetch([{ match: isOj, reply: () => ({ status: 200, body: { model: "openjev-0.1", answers: { severity: { score: raw, legend: {}, confidence: 0.7 } } } }) }],
+      () => severityGate(SEV, {}, "", { cfg, kind: "genuine" }));
+    assert.equal(g.score, want); assert.equal(g.raw, raw); assert.equal(g.gate_source, "openjev");
+  }
+});
+
+test("severityGate: a 500 falls back to rules at 0.5 with an error line then a success line", async () => {
+  const t = trace();
+  const g = await withMockFetch([{ match: isOj, reply: () => ({ status: 500, body: { error: "boom" } }) }],
+    () => severityGate(SEV, {}, "", { trace: t, cfg, kind: "genuine" }));
+  assert.equal(g.gate_source, "rules"); assert.equal(g.confidence, 0.5); assert.equal(g.model, "rules"); assert.equal(g.score, 9);
+  assert.deepEqual(t.lines.map((l) => l.step + ":" + l.status), ["nvidia.model:error", "recovery:success", "nvidia.model:success"]);
+  assert.match(t.lines[1].output_summary, /severity by rules at confidence 0\.5/);
+});
+
+test("S5.3-7: an aborted signal stops severityGate fast, with one fetch and no fallback call", async () => {
+  const ac = new AbortController();
+  let calls = 0;
+  const fetchImpl = (u, init) => { calls += 1; return new Promise((_, rej) => init.signal.addEventListener("abort", () => rej(Object.assign(new Error("aborted"), { name: "AbortError" })))); };
+  const p = severityGate(SEV, {}, "", { trace: trace(), cfg, kind: "genuine", fetchImpl, signal: ac.signal });
+  setTimeout(() => ac.abort(new Error("RunTimeout")), 10);
+  const t0 = Date.now();
+  await assert.rejects(p);
+  assert.ok(Date.now() - t0 < 1000);
+  assert.equal(calls, 1);
+});

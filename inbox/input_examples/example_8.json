@@ -1,0 +1,11 @@
+{
+  "run_id": "example-8",
+  "input": {
+    "message": "This is the second training saber from you whose hilt split open in my son's hands and cut him. I will post this review everywhere and I am talking to a lawyer. Never again. I want this fixed today.",
+    "from": "tilda.moss@example.com",
+    "name": "Tilda Moss",
+    "channel": "chat",
+    "scenario": "complaint",
+    "as_of": "2026-10-20"
+  }
+}

@@ -19,7 +19,7 @@ const KNOWN_KEYS = [
 const DEFAULTS = {
   HOST: "127.0.0.1",
   PORT: "8000",
-  NIGHTSHIFT_TIMEOUT_MS: "90000",
+  NIGHTSHIFT_TIMEOUT_MS: "120000", // 23 Oct: a Nemotron critique answers in 40 to 80 s when it answers; two attempts plus the fallback fit the 300 s run cap
   NIGHTSHIFT_ROUTE_FALLBACK: "meterless/local",
   SAMPLE_MODE: "false",
   FAULT_ZETARIS_REFUSE_ONCE: "false",

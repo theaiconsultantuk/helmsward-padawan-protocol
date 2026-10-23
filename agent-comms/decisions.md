@@ -11,3 +11,4 @@
 - 2026-10-23: Branch for this slice is `kk/inbox-build`, landing on `main` by PR. Commits are authored as "Kristof Kennes" with no Co-Authored-By line; the AI disclosure lives in `inbox/README.md` under "AI and Model Usage".
 - 2026-10-23: The Zetaris database is `JEDI_PACK`, loaded from `inbox/data/synthetic/` through the driver's shared file root.
 - 2026-10-23: Provider order: Nightshift on Thor is primary (pinned Nemotron route), `meterless/local` is the fallback, sample rules come last.
+- 2026-10-23: The front end's contract is inbox/openapi.yaml plus inbox/docs/FRONTEND-SPEC.md; the service serves reference pages at GET / and GET /dashboard, driven only by the API, which the team's own front end may replace.

@@ -1,0 +1,10 @@
+{
+  "run_id": "example-9",
+  "input": {
+    "message": "Hi, I bought something from you last month for my nephew and now I need to change the delivery address, can you help?",
+    "from": "lea.ortiz@example.com",
+    "name": "Lea Ortiz",
+    "channel": "chat",
+    "as_of": "2026-10-20"
+  }
+}

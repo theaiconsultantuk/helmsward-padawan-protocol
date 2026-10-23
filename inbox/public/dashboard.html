@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="api-base" content="">
+<title>Jedi Pack inbox · dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="site">
+  <h1>Jedi Pack inbox · dashboard</h1>
+  <nav>
+    <a href="/">Front page</a>
+    <button type="button" id="refresh" class="secondary">Refresh</button>
+  </nav>
+</header>
+<main>
+  <p id="status" class="muted" role="status" aria-live="polite"></p>
+  <section aria-labelledby="h-counters">
+    <h2 id="h-counters">Counters</h2>
+    <div id="counters" class="tiles"></div>
+  </section>
+  <div class="grid two">
+    <section class="card" aria-labelledby="h-queue">
+      <h2 id="h-queue">Waiting for a human</h2>
+      <ul id="queue" class="rows"></ul>
+    </section>
+    <section class="card" aria-labelledby="h-runs">
+      <h2 id="h-runs">Recent runs</h2>
+      <ul id="runs" class="rows"></ul>
+    </section>
+  </div>
+</main>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

@@ -8,8 +8,17 @@ function authHeaders(cfg, extra = {}) {
   return { Authorization: `Bearer ${cfg.METERLESS_RUNTIME_TOKEN}`, "meterless-app": APP, ...extra };
 }
 
-// One place to change how the concrete model is read (decided in task 0.6).
+// One place to change how the concrete model is read (decided in task 0.6; receipt-first since 23 Oct, on Meterless's word:
+// "check routed_model in the receipt to confirm Nemotron handled the request"). The compute receipt sits in body.meterless.
+export function receiptOf(raw) {
+  const m = raw?.body?.meterless;
+  if (!m || typeof m !== "object") return null;
+  const phases = Array.isArray(m.phases) ? m.phases.map((p) => ({ phase: p?.phase, model: p?.model })).filter((p) => p.model) : [];
+  return { receipt_id: m.receipt_id ?? null, requested_model: m.requested_model ?? null, routed_model: m.routed_model ?? null, phases };
+}
 export function handledModel(raw) {
+  const r = receiptOf(raw);
+  if (r?.routed_model && typeof r.routed_model === "string") return r.routed_model;
   if (raw?.body && typeof raw.body.model === "string" && raw.body.model) return raw.body.model;
   for (const h of ["x-meterless-model", "x-model", "x-upstream-model"]) {
     if (raw?.headers?.[h]) return raw.headers[h];
@@ -53,14 +62,16 @@ export async function status({ cfg = config(), fetchImpl = globalThis.fetch } = 
 
 const UNKNOWN_MODEL = /model_not_found|unknown model|no such model/i;
 
-export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg = config(), fetchImpl = globalThis.fetch } = {}) {
+const withTimeout = (ms, signal) => (signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms));
+
+export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg = config(), fetchImpl = globalThis.fetch, signal } = {}) {
   const ms = timeoutMs ?? Number(cfg.NIGHTSHIFT_TIMEOUT_MS);
   const t0 = Date.now();
   let res;
   try {
     res = await fetchImpl(`${cfg.METERLESS_BASE_URL}/chat/completions`, {
       method: "POST",
-      signal: AbortSignal.timeout(ms),
+      signal: withTimeout(ms, signal),
       headers: authHeaders(cfg, { "meterless-scope": "user", "Content-Type": "application/json" }),
       body: JSON.stringify({ model: route, messages, temperature: 0.2 }),
     });
@@ -85,7 +96,7 @@ export async function chat(messages, { route, timeoutMs, purpose = "draft", cfg 
   const raw = { status, headers, body };
   const out = body?.choices?.[0]?.message?.content;
   if (typeof out !== "string") throw badResponse("nightshift: response has no message content", { status, service: "nightshift" });
-  return { text: out.trim(), model: handledModel(raw), route, latencyMs: Date.now() - t0, raw };
+  return { text: out.trim(), model: handledModel(raw), receipt: receiptOf(raw), route, latencyMs: Date.now() - t0, raw };
 }
 
 // Direct local lane (task 0.9): einh's Bionic server reached through LM Link. NOT through Nightshift.
@@ -97,7 +108,7 @@ const laneSetting = (cfg, key) => String(process.env[key] ?? cfg?.[key] ?? "").t
 const laneBase = (cfg) => laneSetting(cfg, "LOCAL_LANE_BASE_URL").replace(/\/+$/, "");
 const laneModels = (cfg) => laneSetting(cfg, "LOCAL_LANE_MODELS").split(",").map((m) => m.trim()).filter(Boolean);
 
-export async function localLane(messages, { cfg = config(), trace = null, timeoutMs, maxTokens = 1024, fetchImpl = globalThis.fetch } = {}) {
+export async function localLane(messages, { cfg = config(), trace = null, timeoutMs, maxTokens = 1024, fetchImpl = globalThis.fetch, signal } = {}) {
   const base = laneBase(cfg);
   const ids = laneModels(cfg);
   if (!base || !ids.length) throw badResponse("local lane: LOCAL_LANE_BASE_URL or LOCAL_LANE_MODELS is empty", { service: "local-lane" });
@@ -110,7 +121,7 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
       try {
         res = await fetchImpl(`${base}/chat/completions`, {
           method: "POST",
-          signal: AbortSignal.timeout(ms),
+          signal: withTimeout(ms, signal),
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ model: id, messages, temperature: 0.2, max_tokens: maxTokens }),
         });
@@ -131,6 +142,7 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
       return { text: out.trim(), model: (typeof body.model === "string" && body.model) || id, route: `local-lane:${id}`, latencyMs: Date.now() - t0, raw: { status: res.status, headers, body }, lane: "local-lane" };
     } catch (e) {
       last = e;
+      if (signal?.aborted) break;
       trace?.line?.({ step: "retry", agent_name: "Provider", action: "local_lane_next_model", input_summary: id, output_summary: `local lane ${id} failed (${e.name ?? "Error"}); trying next model`, status: "retrying" });
     }
   }
@@ -140,33 +152,53 @@ export async function localLane(messages, { cfg = config(), trace = null, timeou
 const NIGHTSHIFT_DOWN = new Set(["UpstreamRefused", "UpstreamTimeout"]);
 const nightshiftUnreachable = (e) => isAdapterError(e) && e.service === "nightshift" && NIGHTSHIFT_DOWN.has(e.name);
 
-export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs } = {}) {
+// A hung or 5xx primary call is tried once more before the fallback route: measured 23 Oct on the example 8 critique,
+// the same Nemotron call answered in 40 to 80 s on some tries and hung past 90, 150 and 180 s on others (Nightshift then
+// answered 5xx). Unknown-model and refused-connection errors are not retried on the primary; they go straight to the fallback.
+const PRIMARY_ATTEMPTS = 2;
+const retryPrimary = (e) => e.name === "UpstreamTimeout" || (e.name === "BadResponse" && Number(e.status) >= 500);
+
+export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs, signal } = {}) {
   if (sampleMode(cfg)) return { text: null, model: "sample/rules", route: "sample", latencyMs: 0, sample: true };
   const primary = cfg.NIGHTSHIFT_ROUTE_PRIMARY;
   const fallback = cfg.NIGHTSHIFT_ROUTE_FALLBACK;
-  let second;
-  try {
-    return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl });
-  } catch (e) {
-    if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable) throw e;
-    trace?.line({
-      step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
-      output_summary: `${primary} failed (${e.name}); trying ${fallback}`,
-      status: "retrying", retry_count: 1, sponsor: "meterless",
-    });
+  let retries = 0, first, second;
+  for (let attempt = 1; attempt <= PRIMARY_ATTEMPTS; attempt++) {
     try {
-      return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl });
-    } catch (e2) {
-      second = e2;
+      return await chat(messages, { route: primary, timeoutMs, purpose, cfg, fetchImpl, signal });
+    } catch (e) {
+      if (!isAdapterError(e) || e.name === "Unauthorized" || !e.recoverable || signal?.aborted) throw e;
+      first = e;
+      if (attempt < PRIMARY_ATTEMPTS && retryPrimary(e)) {
+        retries += 1;
+        trace?.line({
+          step: "retry", agent_name: "Provider", action: "retry_primary", input_summary: purpose,
+          output_summary: `${primary} failed (${e.name}); trying ${primary} once more (attempt ${attempt + 1} of ${PRIMARY_ATTEMPTS})`,
+          status: "retrying", retry_count: retries, sponsor: "meterless",
+        });
+        continue;
+      }
+      break;
     }
   }
+  retries += 1;
+  trace?.line({
+    step: "retry", agent_name: "Provider", action: "fallback_route", input_summary: purpose,
+    output_summary: `${primary} failed (${first.name}); trying ${fallback}`,
+    status: "retrying", retry_count: retries, sponsor: "meterless",
+  });
+  try {
+    return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
+  } catch (e2) {
+    second = e2;
+  }
   const ids = laneModels(cfg);
-  if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second)) throw second;
+  if (!laneBase(cfg) || !ids.length || !nightshiftUnreachable(second) || signal?.aborted) throw second;
   trace?.line({
     step: "retry", agent_name: "Provider", action: "fallback_local_lane", input_summary: purpose,
     output_summary: `Nightshift unreachable (${second.name}); trying local lane ${ids[0]}`,
-    status: "retrying", retry_count: 2,
+    status: "retrying", retry_count: retries + 1,
   });
-  const r = await localLane(messages, { cfg, trace, fetchImpl });
+  const r = await localLane(messages, { cfg, trace, fetchImpl, signal });
   return { ...r, sponsor: null };
 }

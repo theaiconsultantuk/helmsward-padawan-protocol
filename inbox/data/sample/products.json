@@ -1,0 +1,98 @@
+[
+  {
+    "params": {},
+    "result": {
+      "headers": [
+        "product_id",
+        "name",
+        "unit_price_usd",
+        "currency",
+        "min_order_qty",
+        "lead_days"
+      ],
+      "rows": [
+        [
+          "P01",
+          "training saber",
+          "189.0",
+          "USD",
+          "1",
+          "12"
+        ],
+        [
+          "P02",
+          "hilt",
+          "39.0",
+          "USD",
+          "1",
+          "3"
+        ],
+        [
+          "P03",
+          "kyber crystal case",
+          "99.0",
+          "USD",
+          "1",
+          "11"
+        ],
+        [
+          "P04",
+          "travel cloak",
+          "119.0",
+          "USD",
+          "1",
+          "9"
+        ],
+        [
+          "P05",
+          "utility belt",
+          "249.0",
+          "USD",
+          "1",
+          "12"
+        ],
+        [
+          "P06",
+          "holster",
+          "149.0",
+          "USD",
+          "1",
+          "8"
+        ],
+        [
+          "P07",
+          "padawan robe",
+          "59.0",
+          "USD",
+          "1",
+          "12"
+        ],
+        [
+          "P08",
+          "saber stand",
+          "49.0",
+          "USD",
+          "1",
+          "11"
+        ],
+        [
+          "P09",
+          "pilgrim pack",
+          "79.0",
+          "USD",
+          "1",
+          "9"
+        ],
+        [
+          "P10",
+          "boot set",
+          "29.0",
+          "USD",
+          "1",
+          "9"
+        ]
+      ],
+      "total": 10
+    }
+  }
+]

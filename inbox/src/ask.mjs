@@ -76,6 +76,44 @@ function templateAnswer(question, intent, data) {
   return parts.join(" ");
 }
 
+// Intent -> named query templates -> the rows an answer may use. `o` is { trace, cfg } (the trace collects the cited ids).
+// Shared by /ask and the question scenario (S1.2). Returns { data, rows }.
+export async function rowsForIntent(intent, customer, o, opts = {}) {
+  const data = { policies: [], wiki: [], names: {}, facts: null, category: CATEGORY_OF[intent] ?? null };
+  const rows = {};
+  if (CATEGORY_OF[intent]) {
+    const p = await queries.policyForCategory(CATEGORY_OF[intent], o);
+    data.policies = p.policy;
+    rows.policy = p.policy; rows.category = p.categories; rows.trust_ledger = p.trust_ledger;
+    for (const id of new Set(p.policy.flatMap((x) => [x.under_limit_owner_id, x.over_limit_owner_id]))) {
+      // a name is a nicety: an employee row that cannot be read leaves "employee <id>" in the answer
+      const e = (await queries.run("employee", { employee_id: id }, o).catch(() => ({ objects: [] }))).objects[0];
+      if (e) data.names[String(e.employee_id)] = `${e.given_name} ${e.family_name}`;
+    }
+    rows.owners = data.names;
+  }
+  const wikiIntent = WIKI_OF[intent] ?? (intent === "complaint" ? null : "GENERAL");
+  if (wikiIntent) {
+    const w = await queries.wikiFor(wikiIntent === "GENERAL" ? "other" : wikiIntent, o);
+    data.wiki = w;
+    rows.wiki = w.map((x) => ({ page: titleOf(x.preview), path: x.path, text: one(bodyOf(x.preview), 700) }));
+  }
+  if (customer) {
+    const ids = threadIdsFor(customer, opts.threads ?? loadThreadsIndex());
+    if (ids.length) {
+      const f = await queries.factsForTicket(ids[0], o);
+      data.facts = f;
+      rows.ticket = { thread_id: f.thread_id, category: f.category, amount_usd: f.amount_usd, received_at: f.received_at, subject: f.subject,
+        policy_limit_usd: f.policy_limit_usd, owner: f.owner_name, owner_out: f.owner_out };
+      if (ids[1]) {
+        const parent = await queries.thread(ids[1], o);
+        if (parent) rows.parent_ticket = { thread_id: parent.thread_id, category: parent.category, subject: parent.subject, amount_usd: parent.amount_usd };
+      }
+    }
+  }
+  return { data, rows };
+}
+
 export async function askQuestion(question, { customer = null, run_id = `ask_${Date.now().toString(36)}`, cfg = config(), deps = {} } = {}) {
   const trace = Trace.open(run_id, { ...(deps.logsDir ? { logsDir: deps.logsDir } : {}), ...(deps.quiet ? { stdout: false } : {}) });
   const q = String(question ?? "").trim();
@@ -109,38 +147,7 @@ export async function askQuestion(question, { customer = null, run_id = `ask_${D
     return trace.line(f);
   } };
   const o = { trace: qtrace, cfg };
-  const data = { policies: [], wiki: [], names: {}, facts: null, category: CATEGORY_OF[intent] ?? null };
-  const rows = {};
-  if (CATEGORY_OF[intent]) {
-    const p = await queries.policyForCategory(CATEGORY_OF[intent], o);
-    data.policies = p.policy;
-    rows.policy = p.policy; rows.category = p.categories; rows.trust_ledger = p.trust_ledger;
-    for (const id of new Set(p.policy.flatMap((x) => [x.under_limit_owner_id, x.over_limit_owner_id]))) {
-      // a name is a nicety: an employee row that cannot be read leaves "employee <id>" in the answer
-      const e = (await queries.run("employee", { employee_id: id }, o).catch(() => ({ objects: [] }))).objects[0];
-      if (e) data.names[String(e.employee_id)] = `${e.given_name} ${e.family_name}`;
-    }
-    rows.owners = data.names;
-  }
-  const wikiIntent = WIKI_OF[intent] ?? (intent === "complaint" ? null : "GENERAL");
-  if (wikiIntent) {
-    const w = await queries.wikiFor(wikiIntent === "GENERAL" ? "other" : wikiIntent, o);
-    data.wiki = w;
-    rows.wiki = w.map((x) => ({ page: titleOf(x.preview), path: x.path, text: one(bodyOf(x.preview), 700) }));
-  }
-  if (customer) {
-    const ids = threadIdsFor(customer, deps.threads ?? loadThreadsIndex());
-    if (ids.length) {
-      const f = await queries.factsForTicket(ids[0], o);
-      data.facts = f;
-      rows.ticket = { thread_id: f.thread_id, category: f.category, amount_usd: f.amount_usd, received_at: f.received_at, subject: f.subject,
-        policy_limit_usd: f.policy_limit_usd, owner: f.owner_name, owner_out: f.owner_out };
-      if (ids[1]) {
-        const parent = await queries.thread(ids[1], o);
-        if (parent) rows.parent_ticket = { thread_id: parent.thread_id, category: parent.category, subject: parent.subject, amount_usd: parent.amount_usd };
-      }
-    }
-  }
+  const { data, rows } = await rowsForIntent(intent, customer, o, { threads: deps.threads });
 
   // 3. Nightshift phrases the answer from the rows; sample mode builds it from the rows
   let answer, model, status = "success";

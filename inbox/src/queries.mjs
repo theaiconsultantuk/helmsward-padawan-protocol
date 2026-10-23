@@ -7,16 +7,23 @@ import * as zetaris from "./adapters/zetaris.mjs";
 
 export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
 export const INTENTS = ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"];
-export const TOPICS = [...CATEGORIES, "billing"];
+export const TOPICS = [...CATEGORIES, "billing", "rfq", "customer_service"];
 export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
   "threads_parquet", "threads_json", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
+  "products", "faq", "intake_runtime",
 ];
+// The Unified Semantic Layer (USL) Zetaris compiles over JEDI_PACK: live views, same facts. Scenario routes and the World Model read it;
+// the legacy thread road keeps the raw JEDI_PACK tables.
+export const USL = "lightning.metastore.jedi_pack.jedi_pack";
+export const TABLES_USL = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
 
 const V = {
   thread_id: (v) => typeof v === "string" && /^T\d{1,3}$/.test(v),
+  product_id: (v) => typeof v === "string" && /^P\d{2}$/.test(v),
+  intake_id: (v) => typeof v === "string" && /^F\d{1,6}$/.test(v),
   employee_id: (v) => (typeof v === "number" || (typeof v === "string" && /^\d{1,3}$/.test(v))) && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200,
   category: (v) => CATEGORIES.includes(v),
   topic: (v) => TOPICS.includes(v),
@@ -42,8 +49,8 @@ export const TEMPLATES = {
     cite: (p, o) => o.map((x) => `policy:${x.topic}`),
   },
   responsibility: {
-    params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
-    sql: (p) => `SELECT * FROM JEDI_PACK.responsibility WHERE topic = '${p.topic}'`,
+    layer: "usl", params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
+    sql: (p) => `SELECT * FROM ${USL}.responsibility WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `responsibility:${x.topic}`),
   },
   employee: {
@@ -82,6 +89,42 @@ export const TEMPLATES = {
     sql: () => "SELECT thread_id, sender_email, subject, body, received_at FROM JEDI_PACK.threads_json ORDER BY thread_id",
     cite: () => ["threads_json"],
   },
+  // Scenario tables (S0.2): parameterless reads compared in JS, or one validated id. No customer text reaches SQL.
+  faq: {
+    layer: "usl", params: {}, cacheable: true, question: "every FAQ row, matched in JS",
+    sql: () => `SELECT faq_id, question, answer, keywords, faq_source AS source FROM ${USL}.faq ORDER BY faq_id`,
+    cite: (p, o) => o.map((x) => `faq:${x.faq_id}`),
+  },
+  products: {
+    layer: "usl", params: {}, cacheable: true, question: "every product and its one unit price",
+    sql: () => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product ORDER BY product_id`,
+    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+  },
+  product_price: {
+    layer: "usl", params: { product_id: V.product_id }, cacheable: true, question: "the unit price of one product",
+    sql: (p) => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product WHERE product_id = '${p.product_id}'`,
+    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+  },
+  reviews: {
+    layer: "usl", params: {}, cacheable: true, question: "the public review index",
+    sql: () => `SELECT review_id, thread_id, reviewer_name, stars, created_at FROM ${USL}.review ORDER BY review_id`,
+    cite: (p, o) => o.map((x) => `trustpilot_reviews:${x.review_id}`),
+  },
+  world_threads: {
+    layer: "usl", params: {}, cacheable: true, minLimit: 1000, question: "every thread's sender, category, owner and outcome, for the world model",
+    sql: () => `SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM ${USL}.ticket ORDER BY thread_id`,
+    cite: () => ["threads_json"],
+  },
+  holidays: {
+    layer: "usl", params: {}, cacheable: true, minLimit: 2000, question: "every holiday row, filtered by date in JS",
+    sql: () => `SELECT employee_id, date FROM ${USL}.holiday`,
+    cite: () => ["holiday_2026"],
+  },
+  intake_thread: {
+    layer: "usl", params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
+    sql: (p) => `SELECT thread_id, received_at, channel, sender_name, sender_email, subject, body, scenario, category FROM ${USL}.intake WHERE thread_id = '${p.thread_id}'`,
+    cite: (p, o) => o.map((x) => `intake_runtime:${x.thread_id}`),
+  },
   // The trust ledger's feedback: affirm / reject counts for one category, read from the runtime decisions table.
   ledger_adjust: {
     params: { category: V.category }, cacheable: false, question: "the affirm and reject verdicts for the category",
@@ -110,10 +153,10 @@ export function validate(name, params = {}) {
 export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun } = {}) {
   const t = validate(name, params);
   const sql = t.sql(params);
-  const q = `${t.question} ${JSON.stringify(params)}`;
+  const q = `${t.question} ${JSON.stringify(params)}${t.layer === "usl" ? " via the USL" : ""}`;
   let r;
   try {
-    r = await sqlRunImpl(sql, { name, params, limit, cfg, trace });
+    r = await sqlRunImpl(sql, { name, params, limit: Math.max(limit, t.minLimit ?? 0), cfg, trace });
   } catch (e) {
     trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
       output_summary: `${e.name}: ${e.message}`, status: "error", sponsor: "zetaris" });
@@ -159,7 +202,11 @@ export async function counters(opts = {}) {
     r = await run("decision_counts", {}, { ...opts, trace: undefined });
   } catch (e) {
     // the table is registered in CP4: until then the SELECT fails (HTTP 400 / not found) and the answer is zeros
-    if (e?.name === "BadResponse" || /not found|does not exist|no such table|cannot find|no cached rows|ENOENT/i.test(String(e?.message))) return out;
+    // only a positively identified missing table is zeros: Zetaris/Spark says [TABLE_OR_VIEW_NOT_FOUND] ... cannot be found
+    // (observed 23 Oct on JEDI_PACK.no_such_table_xyz), or the sample reader has no cached rows. A bare HTTP 400, 500, 401 or timeout surfaces.
+    const text = `${e?.message ?? ""} ${e?.detail ?? ""}`;
+    const missing = /TABLE_OR_VIEW_NOT_FOUND|table or view not found|table or view .{0,200}cannot be found|does not exist|no such table|no cached rows|ENOENT/i.test(text);
+    if (missing) return out;
     throw e;
   }
   for (const o of r.objects) {
@@ -224,12 +271,31 @@ export function parseRestricted(preview) {
   return m[1].split(/,\s*(?:or\s+)?|\s+or\s+/i).map((s) => s.trim().replace(/^(an?|the)\s+/i, "")).filter(Boolean);
 }
 
-export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl } = {}) {
+// Free-text (F) tickets: the same facts as a thread ticket, with the intake row as the ticket, an explicit topic
+// (never a fall-through to "question") and an amount typed in the message. Thread (T) tickets are unchanged.
+const todayLondon = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/London" });
+const OTHER_WEIGHT = 0.4, DEFAULT_FLOOR = 0.8; // rfq / customer_service / billing have no trust row: the "other" row's weight, the default floor
+
+export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published } = {}) {
   const o = { trace, cfg, ...(sqlRunImpl ? { sqlRunImpl } : {}) };
-  const ticket = await thread(thread_id, o);
-  if (!ticket) throw new Error(`no thread ${thread_id}`);
-  const cited = [`threads_parquet:${thread_id}`];
-  const amount = ticket.amount_usd === "" || ticket.amount_usd == null ? null : Number(ticket.amount_usd);
+  const intake = ticketSource === "intake";
+  let ticket, cited;
+  if (intake) {
+    const pub = published ?? intakeRow?.published === true;
+    let live = null;
+    if (pub) live = (await run("intake_thread", { thread_id }, o)).objects[0] ?? null;
+    ticket = live ?? (intakeRow ? { ...intakeRow } : null);
+    if (!ticket) throw new Error(`no intake row ${thread_id}`);
+    delete ticket.published;
+    cited = [live ? `intake_runtime:${thread_id}` : `intake_runtime:${thread_id} (local)`];
+    if (topicOpt) ticket.category = topicOpt;
+  } else {
+    ticket = await thread(thread_id, o);
+    if (!ticket) throw new Error(`no thread ${thread_id}`);
+    cited = [`threads_parquet:${thread_id}`];
+  }
+  let amount = ticket.amount_usd === "" || ticket.amount_usd == null ? null : Number(ticket.amount_usd);
+  if (intake && amountOpt != null && Number.isFinite(Number(amountOpt))) { amount = Number(amountOpt); cited.push("amount from the message"); }
   const topic = TOPICS.includes(ticket.category) ? ticket.category : "question";
 
   const pol = (await run("policy", { topic }, o)).objects[0];
@@ -275,17 +341,25 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   if (!valid(backup)) backup = null;
   if (owner == null && backup == null) notes.push("owner: none (no responsibility row)");
 
-  const day = as_of ?? String(ticket.received_at).slice(0, 10);
+  const day = as_of ?? (intake ? todayLondon() : String(ticket.received_at).slice(0, 10));
   const none = { out: false };
-  const ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
-  const backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+  let ownerAv, backupAv;
+  if (intake) {
+    // parameterless holidays read, filtered in JS on the date
+    const hol = (await run("holidays", {}, o)).objects.filter((h) => h.date === day);
+    const avail = (e) => (e == null ? none : { out: hol.some((h) => Number(h.employee_id) === e) });
+    ownerAv = avail(owner); backupAv = avail(backup);
+  } else {
+    ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
+    backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+  }
   if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
   if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
   const emps = await Promise.all([owner, backup].map((e) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, o))));
   for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 
-  let weight = 0, floor = 0.8;
+  let weight = intake ? OTHER_WEIGHT : 0, floor = intake ? DEFAULT_FLOOR : 0.8;
   if (CATEGORIES.includes(ticket.category)) {
     const led = (await run("trust", { category: ticket.category }, o)).objects[0];
     if (led) { weight = Number(led.weight); floor = Number(led.floor); cited.push(`trust_ledger:${ticket.category}`); }
@@ -302,7 +376,8 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   return {
     thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
-    owner_out: ownerAv.out, backup_out: backupAv.out, may_leave: ticket.may_leave === true || ticket.may_leave === "true",
+    owner_out: ownerAv.out, backup_out: backupAv.out, // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send
+    may_leave: intake || ticket.may_leave === true || ticket.may_leave === "true",
     restricted_terms: restricted, disclosure_unknown, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
     subject: ticket.subject, body: ticket.body, sender_name: ticket.sender_name, sender_email: ticket.sender_email,
     channel: ticket.channel, follow_up_kind: ticket.follow_up_kind || null, follow_up_body: ticket.follow_up_body || null,

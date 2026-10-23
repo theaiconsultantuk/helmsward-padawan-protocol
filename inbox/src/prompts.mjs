@@ -107,3 +107,73 @@ export function parseCriticJson(text) {
   if (!j || typeof j.pass !== "boolean" || typeof j.reason !== "string") return null;
   return { pass: j.pass, reason: j.reason.trim() };
 }
+
+// The RFQ acknowledgement (S1.2): code, no model call. Quantities may appear; a price never does.
+export const ACKNOWLEDGEMENT_TEMPLATE = "Thank you, your request for a quote is with our sales team, who will come back to you with the price for {quantities}.";
+
+// Complaint handler (S2.2): the Nemotron read and the OpenJev severity question.
+export const COMPLAINT_READ_SYSTEM = "You read one customer complaint for the Jedi Pack support team with the company's record of this customer and product. Decide whether the customer is venting (angry, wants to be heard, no concrete harm to repair) or has a genuine complaint the company must handle to keep face (a concrete failure, a public audience, a repeat problem, a promise broken). Return strict JSON: {\"kind\":\"vent\"|\"genuine\",\"face_risk\":boolean,\"reasoning\":string,\"handle\":string}";
+
+export function complaintReadMessages({ ticket, worldText = "", provenanceIds = [] } = {}) {
+  const t = ticket ?? {};
+  const parts = [
+    line("Subject", t.subject),
+    `Customer message:\n${t.body ?? ""}`,
+    line("Channel", t.channel),
+    `Company record (World Model):\n${worldText || "no history"}`,
+    provenanceIds.length ? `Provenance ids: ${provenanceIds.join(", ")}` : null,
+    "Return the JSON object now.",
+  ];
+  return [{ role: "system", content: `${COMPLAINT_READ_SYSTEM}\n\nReturn the JSON object now.` }, { role: "user", content: parts.filter(Boolean).join("\n\n") }];
+}
+
+export function parseComplaintReadJson(text) {
+  const j = extractJson(text);
+  const bad = (why) => Object.assign(new Error(`complaint read: ${why}`), { name: "BadResponse" });
+  if (!j || (j.kind !== "vent" && j.kind !== "genuine")) throw bad("kind missing or not vent|genuine");
+  if (typeof j.face_risk !== "boolean") throw bad("face_risk missing or not a boolean");
+  if (typeof j.reasoning !== "string" || !j.reasoning.trim()) throw bad("reasoning missing");
+  if (typeof j.handle !== "string" || !j.handle.trim()) throw bad("handle missing");
+  return { kind: j.kind, face_risk: j.face_risk, reasoning: j.reasoning.trim(), handle: j.handle.trim() };
+}
+
+export const SEVERITY_LEVELS = ["1 nothing to handle", "2", "3", "4", "5", "6", "7", "8", "9 public damage or a broken promise", "10 legal or safety"];
+export const SEVERITY_QUESTION = { type: "score", instructions: "How severe is this complaint for the company (1 nothing to handle, 10 legal or safety)?", criteria: SEVERITY_LEVELS };
+
+// Customer-service handler (S3.1): a recommendation for the support lead and a draft with [[blank: …]] markers.
+export const RECOMMENDATION_SYSTEM = [
+  "You help the Jedi Pack support lead with a customer message that matched no known request type and no FAQ answer.",
+  "Write a short recommendation for the support lead (what the customer seems to want, what the records say, what to do next) and a draft reply the lead can finish.",
+  "Use only the records you are given. Never invent an order number, a date, an amount, an address or a name: wherever the reply needs one you do not have, write [[blank: <what is needed>]].",
+  "Promise no refund, replacement or date, and never mention a stored card number, an internal price list or a staff address.",
+  'Return strict JSON and nothing else, in exactly this shape: {"recommendation": string, "draft": string, "blanks": [{"id": string, "what": string}]}',
+  "blanks lists every [[blank: …]] marker you put in the draft, with the same words in what.",
+].join("\n");
+
+export function recommendationMessages({ ticket, facts, candidates = [], gates = null, rows = {}, worldText = "", memories = "", critiques = [] } = {}) {
+  const t = ticket ?? facts?.ticket ?? {};
+  const cand = candidates.map((c) => `${c.intent} (${Number(c.score).toFixed(2)})`).join(", ");
+  const g = gates?.answers ?? {};
+  const parts = [
+    line("Customer", facts?.sender_name ?? t.sender_name),
+    line("Channel", facts?.channel ?? t.channel),
+    `Customer message:\n${t.body ?? facts?.body ?? ""}`,
+    cand ? `Closest request types the router found, none clear enough: ${cand}` : null,
+    g.category ? `Typed gates: category ${g.category.choice} (${g.category.confidence})` : null,
+    `Records (the only facts you may use):\n${JSON.stringify(rows)}`,
+    worldText ? `Company record of this customer (World Model):\n${worldText}` : null,
+    memories ? `Memory from earlier runs:\n${memories}` : null,
+    critiques.length ? `Your previous draft was rejected:\n${critiques.map((c, i) => `${i + 1}. ${c}`).join("\n")}\nWrite a revised draft that fixes every point.` : null,
+    "Return the JSON object now.",
+  ];
+  return [{ role: "system", content: RECOMMENDATION_SYSTEM }, { role: "user", content: parts.filter(Boolean).join("\n\n") }];
+}
+
+export function parseRecommendationJson(text) {
+  const j = extractJson(text);
+  if (!j || typeof j.recommendation !== "string" || !j.recommendation.trim() || typeof j.draft !== "string" || !j.draft.trim()) {
+    throw Object.assign(new Error("recommendation: recommendation or draft missing"), { name: "BadResponse" });
+  }
+  const blanks = (Array.isArray(j.blanks) ? j.blanks : []).map((b, i) => (typeof b === "string" ? { id: `blank-${i + 1}`, what: b } : { id: String(b?.id ?? `blank-${i + 1}`), what: String(b?.what ?? "") })).filter((b) => b.what);
+  return { recommendation: j.recommendation.trim(), draft: j.draft.trim(), blanks };
+}

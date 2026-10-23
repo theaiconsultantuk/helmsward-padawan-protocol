@@ -13,6 +13,9 @@ import { Scout } from "./engines/scout/index.mjs";
 import { verifyContract } from "./engines/scout/contract.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
+import * as queries from "./queries.mjs";
+import { appendIntake, publishIntake } from "./intake.mjs";
+import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF } from "./scenarios.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE } from "./prompts.mjs";
 
 // The 15 ids, in the methodology table order. (The actual trace order is the demo order: branch comes before nvidia.model.)
@@ -122,7 +125,137 @@ const errName = (e) => e?.name ?? "Error";
 const safeMsg = (e) => String(mask(String(e?.message ?? e)));
 const one = (s, n = 220) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
-export async function runTicket(thread_id, { run_id = `run-${Date.now().toString(36)}`, as_of, cfg = config(), deps = {} } = {}) {
+// The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
+const approverOf = (f) => (f?.owner_out && !f?.backup_out
+  ? { id: f.backup_id ?? null, name: f.backup_name ?? null }
+  : { id: f?.owner_id ?? null, name: f?.owner_name ?? null });
+const overLimit = (f) => f?.amount_usd != null && f?.policy_limit_usd != null && f.amount_usd > f.policy_limit_usd;
+
+// The default hardRefusal of replyLoop: an amount over the policy limit is a hard fact on the round it appears. Risk refuses and the
+// ticket goes to the approver (unless owner and backup are both out). Returns the refusal reason, or null.
+export function overLimitRefusal(f) {
+  if (!overLimit(f) || (f.owner_out && f.backup_out)) return null;
+  const ap = approverOf(f);
+  return `amount ${f.amount_usd} USD is over the ${f.policy_limit_usd} USD limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`;
+}
+
+// The reply rounds: draft, critique, Risk sign-off, one retry. Reads everything from the toolbox tb
+// ({ f, ticket, L, skipped, fatal, S, sampleOn, memCtx, hardRisk, maxRounds, io: { drafter, sampleDrafter, critic, adapterTrace } }).
+//   messagesFn({ critiques }) -> drafter messages        (default: the draftMessages of the ticket, facts and memory)
+//   sampleDraftFn(seed)       -> sample-mode draft        (default: the run's sample drafter)
+//   hardRefusal(f, draft, n)  -> a reason string that makes the round a hard Risk refusal, or null (default: the over-limit rule)
+// Returns { draft, crit, risk, rounds, retried, ok }; rounds is the number of rounds run.
+export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRounds, hardRefusal } = {}) {
+  const { f, ticket, L, skipped, fatal, S, sampleOn, memCtx, io } = tb;
+  const B = branch ?? S.branch?.branch_id;
+  const max = maxRounds ?? tb.maxRounds ?? 2;
+  const ctxFacts = { ...f, backup: f.backup_name };
+  const msgs = messagesFn ?? (({ critiques }) => draftMessages({ ticket, facts: f, memoryContext: memCtx, critiques }));
+  const sampleDraft = sampleDraftFn ?? ((seed) => io.sampleDrafter(f.ticket ?? ticket, ctxFacts, { seed }));
+  const refusalOf = hardRefusal ?? ((ff) => overLimitRefusal(ff));
+  let refused = false;
+
+  const makeDraft = async (seed, critiques, n) => {
+    const sampled = () => {
+      const d = sampleDraft(seed);
+      L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
+      S.models.drafter = d.model;
+      return { text: d.text, promises: d.promises, model: d.model };
+    };
+    if (sampleOn) return sampled();
+    const messages = msgs({ critiques });
+    let res;
+    try {
+      res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
+    } catch (e) {
+      fatal("nvidia.model", e, "drafter failed, escalated to human");
+    }
+    if (res.sample || res.text == null) return sampled();
+    let parsed = parseDraftJson(res.text);
+    let firstModel = null;
+    if (!parsed) {
+      firstModel = res.model;
+      try {
+        res = await io.drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
+        parsed = parseDraftJson(res.text);
+      } catch (e) {
+        fatal("nvidia.model", e, "drafter failed on the JSON nudge, escalated to human");
+      }
+    }
+    S.models.drafter = res.model;
+    L({
+      step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: res.model, ...(res.lane === "local-lane" ? {} : { sponsor: "nvidia" }),
+      input_summary: `round ${n}${critiques.length ? ", with both critiques" : ""}`,
+      output_summary: (parsed ? `drafted ${parsed.text.length} chars; promises ${JSON.stringify(parsed.promises)}` : "no valid JSON after one nudge; treated as needs_revision")
+        + (firstModel !== null ? `; models: ${firstModel}, then ${res.model}` : ""),
+      status: parsed ? "success" : "needs_revision", branch_id: B, retry_count: n - 1,
+    });
+    return parsed ? { ...parsed, model: res.model } : { text: "", promises: null, model: res.model, failed: true };
+  };
+
+  const doCritique = async (draft, n) => {
+    let r;
+    if (draft.failed) r = { pass: false, reason: "the drafter returned no usable JSON", model: draft.model };
+    else {
+      try {
+        r = sampleOn ? io.sampleCritic(draft, f) : await io.critic({ draft, facts: f, ticket, trace: io.adapterTrace });
+      } catch (e) {
+        fatal("critique", e, "evaluator failed, escalated to human");
+      }
+    }
+    S.models.evaluator = r.model;
+    L({ step: "critique", agent_name: "Evaluator", action: "critique_draft", target_agent: "Planner", model: r.model, branch_id: B, retry_count: n - 1,
+      input_summary: `round ${n} draft, ${draft.text.length} chars`, output_summary: `${r.pass ? "Pass" : "Fail"}. ${one(r.reason)}`, status: r.pass ? "success" : "needs_revision", memory_ids: S.memRead });
+    return r;
+  };
+
+  const doRisk = (draft, n) => {
+    const hr = draft.failed ? { reasons: ["no usable draft"] } : tb.hardRisk(f, draft);
+    const bothOut = Boolean(f.owner_out && f.backup_out);
+    const refusal = refusalOf(f, draft, n) ?? null;
+    if (refusal) refused = true;
+    const reasons = hr.reasons.filter((r) => !BRANCH_RE.test(r) && !(refusal && /^draft promises refund above/.test(r)));
+    if (refusal) reasons.unshift(refusal);
+    const hard = f.may_leave === false || bothOut || Boolean(refusal);
+    const pass = reasons.length === 0;
+    const noted = "";
+    L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: n - 1,
+      input_summary: `round ${n} draft vs facts, Scout risk ${S.scoutRisk}`,
+      output_summary: pass ? `Signed off.${noted}` : `${hard ? "Refused" : "Not signed"}: ${reasons.join("; ")}`,
+      status: pass ? "success" : hard ? "refused" : "needs_revision" });
+    return { pass, reasons, hard, level: S.scoutRisk };
+  };
+
+  let draft = await makeDraft("correct", [], 1);
+  if (!draft.failed) S.draft = { text: draft.text, promises: draft.promises, model: draft.model }; // kept even if a later gate dies, so a chain can hand it on
+  let round = 1;
+  let retried = false;
+  let crit, risk;
+  for (;;) {
+    crit = await doCritique(draft, round);
+    risk = doRisk(draft, round);
+    S.rounds.push({ n: round, critique: crit, risk });
+    if ((crit.pass && risk.pass) || round >= max || risk.hard) break;
+    // a negative round, gate not met: retry
+    const next = "decline anything above the limit, promise only what the cited rows allow, and name who follows up";
+    const both = [`Evaluator: ${crit.reason}`, `Risk: ${risk.reasons.join("; ") || "signed off"}`];
+    L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Drafter", branch_id: B, retry_count: round, input_summary: `round ${round} negative`,
+      output_summary: `${both.join(" | ")}. Next draft must: ${next}`, status: "retrying", memory_ids: S.memRead });
+    retried = true;
+    L({ step: "planner.plan", agent_name: "Planner", action: "plan_revision", branch_id: B, retry_count: round, input_summary: "both critiques",
+      output_summary: `revised plan: branches reply-now vs hold-or-escalate; keep ${B}, redraft once with both critiques, then gate`, status: "success", memory_ids: S.memRead });
+    draft = await makeDraft("revised", both, round + 1);
+    round += 1;
+  }
+  S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
+  const ok = Boolean(crit.pass && risk.pass);
+  if (!retried) skipped("retry", refused && overLimitRefusal(f) ? "hard refusal: amount needs approval" : risk.hard && !ok ? "hard fact: a rewrite cannot change it" : "round 1 passed");
+  return { draft, crit, risk, rounds: round, retried, ok };
+}
+
+export async function runTicket(thread_id, { run_id = `run-${Date.now().toString(36)}`, as_of, cfg = config(), deps = {}, input = null } = {}) {
+  const isMsg = typeof input?.message === "string" && input.message.length > 0;
+  if (isMsg && !as_of && input.as_of) as_of = input.as_of;
   const clock = deps.clock ?? Date.now;
   const t0 = clock();
   const maxRounds = deps.maxRounds ?? 2;
@@ -135,9 +268,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const S = {
     aborted: false, facts: null, recovered: [], decision: null, reasons: [], draft: null, rounds: [], models: {},
     memRead: [], memWritten: [], branch: null, queued: null, current: "memory.read", scoutRisk: null,
+    scenario: { scenario: "legacy", how: "thread" }, recommendation: undefined, extraCited: [], msg: null,
   };
-  const L = (f) => (S.aborted ? null : trace.line(f));
-  const F = (f) => trace.line(f); // finalisation lines, written even after a timeout
+  // The one choke point: every line (direct, buffered-then-flushed, finalisation) is written here, then handed to deps.onLine.
+  const W = (f) => {
+    const out = trace.line(f);
+    if (typeof deps.onLine === "function") deps.onLine(out);
+    return out;
+  };
+  const L = (f) => (S.aborted ? null : W(f));
+  const F = (f) => W(f); // finalisation lines, written even after a timeout
   // adapters get a trace whose lines never carry a null sponsor (Trace.line rejects it)
   const adapterTrace = { line: (f) => L(f.sponsor === null ? { ...f, sponsor: undefined } : f) };
   const skipped = (step, why, extra = {}, w = L) => w({
@@ -145,20 +285,33 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     output_summary: "gate not reached", status: "skipped", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...extra,
   });
 
-  const hmem = deps.hmem && typeof deps.hmem.query === "function" ? deps.hmem : new HMEM({ persistDir: deps.hmem?.persistDir ?? memoryDir, clock });
+  // H-MEM init is guarded: a failing persistDir does not throw out of runTicket. memory.read reports it as a soft error inside the
+  // pipeline; the queue write and the memory write then fail through their own existing error + recovery paths.
+  let hmemInitErr = null;
+  let hmem;
+  if (deps.hmem && typeof deps.hmem.query === "function") hmem = deps.hmem;
+  else {
+    try { hmem = new HMEM({ persistDir: deps.hmem?.persistDir ?? memoryDir, clock }); } catch (e) {
+      hmemInitErr = e;
+      const down = () => { throw hmemInitErr; };
+      hmem = { query: down, add: down, queueForHuman: down };
+    }
+  }
+  const runAbort = new AbortController();
   const scout = deps.scout ?? new Scout({ intentRegistry: join(INBOX_ROOT, "src", "engines", "scout", "intents.inbox.json"), policyPack: ["default"], secret });
   const gatesFn = deps.gates ?? typedGates;
+  const runtimeDir = deps.runtimeDir ?? null;
   const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
   const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
   const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace }));
   const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
     ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
     : ledgerAdjustFor(category, { cfg, trace: o.trace })));
-  const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose }));
+  const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose, signal: o.signal ?? runAbort.signal }));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
   const critic = deps.critic ?? (async ({ draft, facts, ticket }) => {
-    const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique" });
+    const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique", signal: runAbort.signal });
     const j = parseCriticJson(r.text);
     return j ? { ...j, model: r.model } : { pass: false, reason: "evaluator returned no valid JSON", model: r.model };
   });
@@ -171,26 +324,26 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     throw new Stop(recoveryText);
   };
   // Same, for a step the run can survive.
-  const soft = (step, e, recoveryText) => {
+  const soft = (step, e, recoveryText, { agent, action } = {}) => {
     S.recovered.push({ step, type: errName(e), message: safeMsg(e) });
-    L({ step, agent_name: WHO[step][0], action: WHO[step][1], input_summary: `${step} failed`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
+    L({ step, agent_name: agent ?? WHO[step][0], action: action ?? WHO[step][1], input_summary: `${step} failed`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: `after ${step} error`, output_summary: recoveryText, status: "success" });
   };
 
-  // The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
-  const approverOf = (f) => (f?.owner_out && !f?.backup_out
-    ? { id: f.backup_id ?? null, name: f.backup_name ?? null }
-    : { id: f?.owner_id ?? null, name: f?.owner_name ?? null });
-  const overLimit = (f) => f?.amount_usd != null && f?.policy_limit_usd != null && f.amount_usd > f.policy_limit_usd;
-
-  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null } = {}) => {
+  // owner: { owner_id, backup_id, owner_name, backup_name, role } lets a handler name who it escalates to (default: the facts' owner and backup).
+  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null, owner = null, attachments, recommendation, escalation } = {}) => {
     const f = S.facts;
+    const ownerId = owner?.owner_id ?? f?.owner_id ?? null;
+    const backupId = owner?.backup_id ?? f?.backup_id ?? null;
     const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}),
       ...(approval ? { approval } : {}), ...(draft ? { draft: { text: draft.text, promises: draft.promises } } : {}) };
     let memId = null;
     let queueFailed = false;
     try {
-      memId = hmem.queueForHuman(ticketObj, critiques);
+      memId = hmem.queueForHuman(ticketObj, critiques, {
+        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? null },
+        scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null, attachments: attachments ?? null, escalation: escalation ?? null,
+      });
     } catch (e) {
       queueFailed = true;
       soft("escalate_or_fallback", e, "queue write failed; ticket left with the logged critiques for a human");
@@ -198,13 +351,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
     S.decision = "escalate";
-    S.queued = { owner_id: f?.owner_id ?? null, backup_id: f?.backup_id ?? null, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}) };
+    S.queued = { owner_id: ownerId, backup_id: backupId, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
+      ...(attachments !== undefined ? { attachments } : {}), ...(recommendation !== undefined ? { recommendation } : {}), ...(escalation !== undefined ? { escalation } : {}),
+      ...(owner?.owner_name !== undefined ? { owner_name: owner.owner_name } : {}), ...(owner?.backup_name !== undefined ? { backup_name: owner.backup_name } : {}),
+      ...(owner?.role !== undefined ? { role: owner.role } : {}) };
     if (memId) S.memWritten.push(memId);
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
         ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount_usd} USD over the ${approval.limit_usd} USD limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
-        : `escalated to owner ${f?.owner_id ?? "?"} / backup ${f?.backup_id ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
+        : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
     S.reasons.push(reason);
@@ -214,8 +370,66 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // Facts first, silently: memory.read needs the customer's name. Their zetaris.query lines are logged at step 4.
     const buf = [];
     let factsErr = null;
+    const o = { as_of, trace: { line: (f) => buf.push(f) } };
+    // A free-text message: append the intake row, publish it, then run Scout and the gates SILENTLY (their lines are written at their usual
+    // positions below) so the scenario, and with it the topic the facts are read for, is known before the facts read.
+    let preDecided = null;
+    let preErr = null;
+    let preGates = null;
+    let preGbuf = [];
+    const factsOpts = {};
+    if (isMsg) {
+      S.current = "executor.act";
+      const dir = deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime");
+      const received_at = new Date(clock()).toISOString();
+      const { thread_id: tid, row } = await appendIntake({ message: input.message, from: input.from, name: input.name, subject: input.subject, channel: input.channel,
+        scenario: input.scenario ?? "free_text", received_at }, { runtimeDir: dir });
+      thread_id = tid;
+      const pub = await publishIntake({ cfg, runtimeDir: dir });
+      if (pub.error) {
+        buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
+          output_summary: `published: false (${one(pub.error, 160)}); the row is read locally`, status: "error" });
+        buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after intake_publish error", output_summary: "intake publish unavailable: the ticket row is read from the local file", status: "success" });
+      } else {
+        buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
+          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success" });
+      }
+      S.msg = { row, published: pub.published === true };
+      const rowTicket = { ...row, thread_id: tid };
+      try {
+        preDecided = await scout.decide({ prompt: `${row.subject ?? ""}\n${row.body}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
+      } catch (e) {
+        preErr = e;
+      }
+      // Scout's contract and risk block are checked BEFORE any model call: a refused message never reaches the gates.
+      let scoutRefused = preErr != null || !preDecided;
+      if (!scoutRefused) {
+        try {
+          scoutRefused = !verifyContract(preDecided.executionContract, { secret: scout.secret ?? secret }).ok || preDecided.risk?.level === "block";
+        } catch { scoutRefused = true; }
+      }
+      if (!scoutRefused) {
+        try {
+          preGates = await gatesFn(rowTicket, {}, { trace: { line: (x) => preGbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
+        } catch (e) {
+          soft("nvidia.model", e, "typed gates failed, used code rules");
+          const g = sample.gates(rowTicket);
+          preGates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+        }
+      }
+      let faqHit = null;
+      try {
+        faqHit = matchFaq(row.body, (await queries.run("faq", {}, { cfg, trace: { line: () => {} } })).objects);
+      } catch { faqHit = null; }
+      S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit });
+      const params = preDecided?.parameters ?? {};
+      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? "question",
+        amount: params.currency === "USD" ? params.amount : undefined });
+    } else {
+      S.scenario = resolveScenario({ kind: "thread", declared: input?.scenario });
+    }
     try {
-      S.facts = await factsFn(thread_id, { as_of, trace: { line: (f) => buf.push(f) } });
+      S.facts = await factsFn(thread_id, { ...o, ...factsOpts });
     } catch (e) {
       factsErr = e;
     }
@@ -258,12 +472,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let memories = [];
     let memCtx = "";
     try {
+      if (hmemInitErr) throw hmemInitErr;
       const q = f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id);
       const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [f.sender_name] } : {}) });
       memories = r.memories;
       memCtx = r.context;
     } catch (e) {
-      soft("memory.read", e, "continued without memory");
+      soft("memory.read", e, hmemInitErr ? "memory unavailable, continuing without it" : "continued without memory");
     }
     S.memRead = memories.map((m) => m.memory.id);
     L({
@@ -307,7 +522,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.current = "meterless.engine";
     let decided;
     try {
-      decided = await scout.decide({ prompt: `${f.subject ?? ""}\n${inputText}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
+      if (preErr) throw preErr;
+      decided = preDecided ?? await scout.decide({ prompt: `${f.subject ?? ""}\n${inputText}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
     } catch (e) {
       fatal("meterless.engine", e, "Scout failed before any model call, escalated to human");
     }
@@ -331,19 +547,44 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     });
 
     // gates (a model call, so after the contract check); their line is held back until step 7
-    const gbuf = [];
-    let gates;
-    try {
-      gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn });
-    } catch (e) {
-      soft("nvidia.model", e, "typed gates failed, used code rules");
-      const g = sample.gates(ticket);
-      gates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+    const gbuf = preGates ? preGbuf : [];
+    let gates = preGates;
+    if (!gates) {
+      try {
+        gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
+      } catch (e) {
+        soft("nvidia.model", e, "typed gates failed, used code rules");
+        const g = sample.gates(ticket);
+        gates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+      }
     }
+
+    // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
+    const tb = {
+      f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
+      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace, signal: runAbort.signal },
+    };
 
     // 6. branch
     S.current = "branch";
     S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable });
+    const B0 = S.branch.branch_id;
+    // A scenario with a handler takes over only where the legacy branch would have drafted (under-floor or send-ok); the pre-empting branches stand.
+    const handler = HANDLERS[S.scenario.scenario];
+    let probe = null;
+    let notDispatched = null;
+    if (handler && (B0 === "under-floor" || B0 === "send-ok")) {
+      const missing = [...unavailable, ...(f.disclosure_unknown === true ? ["disclosure policy"] : [])];
+      if (missing.length) notDispatched = `scenario ${S.scenario.scenario} (${S.scenario.how}) not dispatched: ${missing.join(" and ")} unavailable, held for a person`;
+    }
+    if (handler && !notDispatched && (B0 === "under-floor" || B0 === "send-ok")) {
+      try {
+        probe = await handler.probe(tb);
+      } catch (e) {
+        soft("planner.plan", e, "scenario probe failed, legacy branch", { agent: "Planner", action: "route_scenario" });
+      }
+    }
+    if (probe) S.branch = { ...S.branch, branch_id: probe.branch_id, why: probe.why };
     const B = S.branch.branch_id;
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
@@ -351,6 +592,22 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.current = "nvidia.model";
     for (const g of gbuf) L({ ...g, branch_id: B });
     if (!gbuf.length) L({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model: gates.model, gate_source: gates.gate_source, input_summary: `typed gates for ${thread_id}`, output_summary: "gates supplied by caller", status: "success", branch_id: B });
+
+    if (notDispatched) L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`, output_summary: notDispatched, status: "success", memory_ids: S.memRead });
+    if (probe) {
+      for (const x of probe.lines ?? []) L(x);
+      L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`,
+        output_summary: `scenario ${S.scenario.scenario} (${S.scenario.how}) → ${B}`, status: "success", memory_ids: S.memRead });
+      const a = await handler.act(tb, probe);
+      S.decision = a.decision;
+      if (a.reasons?.length) S.reasons = [...a.reasons];
+      if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model, ...(a.draft.blanks ? { blanks: a.draft.blanks } : {}) };
+      if (a.recommendation !== undefined) S.recommendation = a.recommendation;
+      // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
+      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role };
+      for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
+      return;
+    }
 
     // early exits
     if (B === "thank-you") {
@@ -388,107 +645,10 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
 
     // 7b..10. the reply loop
-    const ctxFacts = { ...f, backup: f.backup_name };
-    const makeDraft = async (seed, critiques, n) => {
-      if (sampleOn) {
-        const d = sampleDrafter(f.ticket ?? ticket, ctxFacts, { seed });
-        L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
-        S.models.drafter = d.model;
-        return { text: d.text, promises: d.promises, model: d.model };
-      }
-      const messages = draftMessages({ ticket, facts: f, memoryContext: memCtx, critiques });
-      let res;
-      try {
-        res = await drafter(messages, { purpose: "draft", trace: adapterTrace });
-      } catch (e) {
-        fatal("nvidia.model", e, "drafter failed, escalated to human");
-      }
-      if (res.sample || res.text == null) {
-        const d = sampleDrafter(f.ticket ?? ticket, ctxFacts, { seed });
-        L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
-        S.models.drafter = d.model;
-        return { text: d.text, promises: d.promises, model: d.model };
-      }
-      let parsed = parseDraftJson(res.text);
-      if (!parsed) {
-        try {
-          res = await drafter([...messages, { role: "assistant", content: String(res.text) }, { role: "user", content: NUDGE }], { purpose: "draft", trace: adapterTrace });
-          parsed = parseDraftJson(res.text);
-        } catch (e) {
-          fatal("nvidia.model", e, "drafter failed on the JSON nudge, escalated to human");
-        }
-      }
-      S.models.drafter = res.model;
-      L({
-        step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: res.model, ...(res.lane === "local-lane" ? {} : { sponsor: "nvidia" }),
-        input_summary: `round ${n}${critiques.length ? ", with both critiques" : ""}`,
-        output_summary: parsed ? `drafted ${parsed.text.length} chars; promises ${JSON.stringify(parsed.promises)}` : "no valid JSON after one nudge; treated as needs_revision",
-        status: parsed ? "success" : "needs_revision", branch_id: B, retry_count: n - 1,
-      });
-      return parsed ? { ...parsed, model: res.model } : { text: "", promises: null, model: res.model, failed: true };
-    };
-
-    const doCritique = async (draft, n) => {
-      let r;
-      if (draft.failed) r = { pass: false, reason: "the drafter returned no usable JSON", model: draft.model };
-      else {
-        try {
-          r = sampleOn ? sampleCritic(draft, f) : await critic({ draft, facts: f, ticket, trace: adapterTrace });
-        } catch (e) {
-          fatal("critique", e, "evaluator failed, escalated to human");
-        }
-      }
-      S.models.evaluator = r.model;
-      L({ step: "critique", agent_name: "Evaluator", action: "critique_draft", target_agent: "Planner", model: r.model, branch_id: B, retry_count: n - 1,
-        input_summary: `round ${n} draft, ${draft.text.length} chars`, output_summary: `${r.pass ? "Pass" : "Fail"}. ${one(r.reason)}`, status: r.pass ? "success" : "needs_revision", memory_ids: S.memRead });
-      return r;
-    };
-
-    const doRisk = (draft, n) => {
-      const hr = draft.failed ? { reasons: ["no usable draft"] } : hardRisk(f, draft);
-      // An amount over the policy limit is a hard fact on the round it appears: Risk refuses and the ticket goes to the approver.
-      const bothOut = Boolean(f.owner_out && f.backup_out);
-      const needsApproval = overLimit(f) && !bothOut;
-      const ap = approverOf(f);
-      const reasons = hr.reasons.filter((r) => !BRANCH_RE.test(r) && !(needsApproval && /^draft promises refund above/.test(r)));
-      if (needsApproval) reasons.unshift(`amount ${f.amount_usd} USD is over the ${f.policy_limit_usd} USD limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`);
-      const hard = f.may_leave === false || bothOut || needsApproval;
-      const pass = reasons.length === 0;
-      const noted = "";
-      L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: n - 1,
-        input_summary: `round ${n} draft vs facts, Scout risk ${S.scoutRisk}`,
-        output_summary: pass ? `Signed off.${noted}` : `${hard ? "Refused" : "Not signed"}: ${reasons.join("; ")}`,
-        status: pass ? "success" : hard ? "refused" : "needs_revision" });
-      return { pass, reasons, hard, level: S.scoutRisk };
-    };
-
-    let draft = await makeDraft("correct", [], 1);
-    if (!draft.failed) S.draft = { text: draft.text, promises: draft.promises, model: draft.model }; // kept even if a later gate dies, so a chain can hand it on
-    let round = 1;
-    let retried = false;
-    let crit, risk;
-    for (;;) {
-      crit = await doCritique(draft, round);
-      risk = doRisk(draft, round);
-      S.rounds.push({ n: round, critique: crit, risk });
-      if ((crit.pass && risk.pass) || round >= maxRounds || risk.hard) break;
-      // a negative round, gate not met: retry
-      const next = "decline anything above the limit, promise only what the cited rows allow, and name who follows up";
-      const both = [`Evaluator: ${crit.reason}`, `Risk: ${risk.reasons.join("; ") || "signed off"}`];
-      L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Drafter", branch_id: B, retry_count: round, input_summary: `round ${round} negative`,
-        output_summary: `${both.join(" | ")}. Next draft must: ${next}`, status: "retrying", memory_ids: S.memRead });
-      retried = true;
-      L({ step: "planner.plan", agent_name: "Planner", action: "plan_revision", branch_id: B, retry_count: round, input_summary: "both critiques",
-        output_summary: `revised plan: branches reply-now vs hold-or-escalate; keep ${B}, redraft once with both critiques, then gate`, status: "success", memory_ids: S.memRead });
-      draft = await makeDraft("revised", both, round + 1);
-      round += 1;
-    }
-    S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
+    const { draft, crit, risk, rounds: round, ok } = await replyLoop(tb);
     const approvalNeeded = overLimit(f) && !(f.owner_out && f.backup_out);
-    if (!retried) skipped("retry", approvalNeeded ? "hard refusal: amount needs approval" : risk.hard && !(crit.pass && risk.pass) ? "hard fact: a rewrite cannot change it" : "round 1 passed");
 
     const critiques = S.rounds.flatMap((r) => [{ round: r.n, source: "Evaluator", pass: r.critique.pass, reason: r.critique.reason }, { round: r.n, source: "Risk", pass: r.risk.pass, reason: r.risk.reasons.join("; ") || "signed off" }]);
-    const ok = crit.pass && risk.pass;
     if (approvalNeeded) {
       const ap = approverOf(f);
       const approval = { kind: "amount", amount_usd: f.amount_usd, limit_usd: f.policy_limit_usd, approver_id: ap.id, approver_name: ap.name };
@@ -532,6 +692,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   ]);
   clearTimeout(timer);
   if (timedOut) {
+    runAbort.abort(new Error("RunTimeout"));
     const msg = `run exceeded ${runTimeoutMs} ms at ${S.current}`;
     S.recovered.push({ step: S.current, type: "RunTimeout", message: msg });
     L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "run_timeout", input_summary: "whole-run cap", output_summary: msg, status: "error" });
@@ -575,7 +736,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const result = {
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",
     output: {
-      decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: f?.cited_rows ?? [],
+      decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],
+      ...(S.recommendation !== undefined ? { recommendation: S.recommendation } : {}),
       ...(S.draft ? { draft: S.draft } : {}), ...(S.queued ? { queued_for: S.queued } : {}),
     },
     agents: [
@@ -583,9 +745,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       { name: "Drafter", role: "draft the reply", ...(S.models.drafter ? { model: S.models.drafter } : {}) },
       { name: "Evaluator", role: "critique the draft", ...(S.models.evaluator ? { model: S.models.evaluator } : {}) },
       { name: "Risk", role: "policy sign-off (code)" }, { name: "Memory", role: "H-MEM read and write" },
+      ...(trace.lines.some((l) => l.agent_name === "WorldModel") ? [{ name: "WorldModel", role: "customer and product history" }] : []),
+      ...(trace.lines.some((l) => l.agent_name === "Severity") ? [{ name: "Severity", role: "severity gate" }] : []),
     ],
     log_file: out.log_file, execution_time_seconds: Math.round(((clock() - t0) / 1000) * 1000) / 1000,
-    rounds: S.rounds, memory: { read: S.memRead, written: S.memWritten }, branch_id: S.branch?.branch_id ?? null,
+    rounds: S.rounds, memory: { read: S.memRead, written: S.memWritten }, branch_id: S.branch?.branch_id ?? null, scenario: S.scenario.scenario, resolved_how: S.scenario.how,
+    ...(S.msg ? { input: { kind: "message", thread_id, text: S.msg.row.body, from: S.msg.row.sender_email || S.msg.row.sender_name, name: S.msg.row.sender_name || null, channel: S.msg.row.channel, received_at: S.msg.row.received_at, as_of: f?.as_of ?? as_of ?? null } }
+      : f ? { input: { kind: "thread", thread_id, text: f.follow_up_kind ? (f.follow_up_body || f.body) : f.body, from: f.sender_email, name: f.sender_name, channel: f.channel, received_at: f.received_at, as_of: f.as_of } } : {}),
     ...(S.recovered.length ? { recovered: S.recovered } : {}),
     ...(unrecovered ? { error: { type: "RunTimeout", message: S.recovered.at(-1)?.message, recoverable: true } } : {}),
   };

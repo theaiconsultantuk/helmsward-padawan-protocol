@@ -1,0 +1,95 @@
+{
+  "run_id": "example-9",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "reasons": [
+      "no intent cleared the band (confidence 0.32; top order.question 7.2, appreciation 3.9); the FAQ (12 rows) was searched, no match. Both critics passed; customer service holds with the draft attached"
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:customer_service",
+      "holiday_2026:7@2026-10-20",
+      "holiday_2026:15@2026-10-20",
+      "employees:7",
+      "employees:15",
+      "wiki_what_may_leave"
+    ],
+    "recommendation": "no clear intent; top candidates order.question (7.2), appreciation (3.9), follow_up (3.9); nothing in the FAQ (12 rows searched); see the wiki page \"What may leave the company\". A person confirms the order and what the customer wants changed, then finishes the draft.",
+    "draft": {
+      "text": "Hello Lea Ortiz,\n\nThank you for getting in touch. A colleague will look at your order [[blank: order number]] and, once it is checked, update the delivery address to [[blank: new delivery address]].\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample-rules",
+      "blanks": [
+        {
+          "id": "blank-1",
+          "what": "order number"
+        },
+        {
+          "id": "blank-2",
+          "what": "new delivery address"
+        }
+      ]
+    },
+    "queued_for": {
+      "owner_id": 7,
+      "backup_id": 15,
+      "owner_name": "Mei-Ling Zhao",
+      "backup_name": "Soren Adey",
+      "role": "customer_service owner"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample-rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    },
+    {
+      "name": "WorldModel",
+      "role": "customer and product history"
+    }
+  ],
+  "scenario": "customer_service",
+  "resolved_how": "none",
+  "branch_id": "customer-service",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "Hi, I bought something from you last month for my nephew and now I need to change the delivery address, can you help?",
+    "from": "lea.ortiz@example.com",
+    "name": "Lea Ortiz",
+    "channel": "chat",
+    "received_at": "2026-10-23T05:24:07.417Z",
+    "as_of": "2026-10-20"
+  },
+  "trace_id": "example-9",
+  "log_file": "logs/trace-example-9.jsonl",
+  "execution_time_seconds": 0.061
+}
