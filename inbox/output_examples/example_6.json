@@ -1,0 +1,77 @@
+{
+  "run_id": "example-6",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "reasons": [
+      "rfq: Quantities asked: 100000 and 100; no product in the records matches; sales to identify."
+    ],
+    "cited_rows": [
+      "intake_runtime:F1 (local)",
+      "policy:refund",
+      "responsibility:rfq",
+      "holiday_2026:6@2026-10-20",
+      "holiday_2026:14@2026-10-20",
+      "employees:6",
+      "employees:14",
+      "wiki_what_may_leave"
+    ],
+    "recommendation": "Quantities asked: 100000 and 100; no product in the records matches; sales to identify.",
+    "draft": {
+      "text": "Hello,\n\nThank you, your request for a quote is with our sales team, who will come back to you with the price for 100000 and 100.\n\nBest regards,\nJedi Pack Support",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "template/acknowledgement"
+    },
+    "queued_for": {
+      "owner_id": 6,
+      "backup_id": 14,
+      "queue_file": "/tmp/ex-m-89e3Om/queue/F1.json",
+      "attachments": {
+        "prices": [],
+        "quantities": [
+          100000,
+          100
+        ],
+        "products": [],
+        "cited": []
+      },
+      "recommendation": "Quantities asked: 100000 and 100; no product in the records matches; sales to identify.",
+      "owner_name": "Tomas Keller",
+      "backup_name": "An-Na Nguyen",
+      "role": "rfq owner"
+    }
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-6",
+  "log_file": "logs/trace-example-6.jsonl",
+  "execution_time_seconds": 0.006
+}
