@@ -29,7 +29,7 @@
     "queued_for": {
       "owner_id": 6,
       "backup_id": 14,
-      "queue_file": "/tmp/ex-m-89e3Om/queue/F1.json",
+      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--scenarios/inbox/data/memory/queue/F1.json",
       "attachments": {
         "prices": [],
         "quantities": [
@@ -71,7 +71,20 @@
       "role": "H-MEM read and write"
     }
   ],
+  "scenario": "rfq",
+  "resolved_how": "declared",
+  "branch_id": "rfq",
+  "input": {
+    "kind": "message",
+    "thread_id": "F1",
+    "text": "Incoming RFQ for price difference between ordering 100000 items and 100 (we only have 1 price, so I would like to see how our flow responds",
+    "from": "einh@example.com",
+    "name": null,
+    "channel": "chat",
+    "received_at": "2026-10-23T05:19:01.748Z",
+    "as_of": "2026-10-20"
+  },
   "trace_id": "example-6",
   "log_file": "logs/trace-example-6.jsonl",
-  "execution_time_seconds": 0.006
+  "execution_time_seconds": 0.019
 }
