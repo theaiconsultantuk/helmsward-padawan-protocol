@@ -22,40 +22,76 @@ const CANDIDATES = [
 ];
 const isNemotron = (id) => typeof id === "string" && id.startsWith("nvidia/nemotron");
 
+const receiptOf = (body) => ({
+  kind: body?.meterless?.winning_route?.kind ?? "unknown",
+  egress: body?.meterless?.egress?.destination ?? "unknown",
+});
+
 async function doctor() {
   const cfg = config();
   if (sampleMode(cfg)) { console.log("sample mode: all three skipped"); return 0; }
-  let bad = 0;
+  let ok = 0, warn = 0, fail = 0;
 
   const z = await zetaris.status({ cfg });
-  if (z.ok) console.log(`zetaris: ok (SELECT 1 in ${z.ms} ms)`);
-  else { bad++; console.log(`zetaris: FAIL (${z.error})`); }
+  if (z.ok) { ok++; console.log(`zetaris: ok (SELECT 1 in ${z.ms} ms)`); }
+  else { fail++; console.log(`zetaris: FAIL (${z.error})`); }
 
   const n = await nightshift.status({ cfg });
   if (n.state !== "online") {
-    bad++; console.log(`nightshift: ${n.state}${n.error ? ` (${n.error})` : ""}`);
+    fail++; console.log(`nightshift: ${n.state}${n.error ? ` (${n.error})` : ""}`);
   } else {
     const routes = `routes: [${n.models.slice(0, 6).join(", ")}${n.models.length > 6 ? ", ..." : ""}]`;
     const primary = (cfg.NIGHTSHIFT_ROUTE_PRIMARY ?? "").trim();
+    console.log(`nightshift: online, ${routes}`);
     if (!primary) {
-      bad++;
-      console.log(`nightshift: online, ${routes}`);
+      fail++;
       console.log("primary route: not pinned yet (run: node src/cli.mjs pin-primary)");
     } else {
+      // own fetch: the adapter's chat() takes no max_tokens and drops the body of a 502 (meterless_detail)
       try {
-        const r = await nightshift.chat(PROMPT, { route: primary, timeoutMs: 30000, purpose: "doctor", cfg });
-        if (isNemotron(r.model)) console.log(`nightshift: online, ${routes}, primary ${primary} → ${r.model}`);
-        else { bad++; console.log(`nightshift: online, ${routes}, primary ${primary} → ${r.model ?? "no model id"} (FAIL: not nvidia/nemotron)`); }
+        const res = await fetch(`${cfg.METERLESS_BASE_URL}/chat/completions`, {
+          method: "POST", signal: AbortSignal.timeout(60000),
+          headers: { Authorization: `Bearer ${cfg.METERLESS_RUNTIME_TOKEN}`, "meterless-app": "jedi-pack-inbox", "meterless-scope": "user", "Content-Type": "application/json" },
+          body: JSON.stringify({ model: primary, messages: PROMPT, temperature: 0.2, max_tokens: 16 }),
+        });
+        const text = await res.text();
+        let body; try { body = JSON.parse(text); } catch { body = text; }
+        if (res.status === 401 || res.status === 403) {
+          fail++; console.log(`primary route ${primary}: unauthorized (HTTP ${res.status})`);
+        } else if (res.status >= 400) {
+          warn++;
+          const detail = String(body?.meterless_detail ?? body?.error?.message ?? (typeof body === "string" ? body : JSON.stringify(body))).slice(0, 120);
+          console.log(`primary route ${primary}: HTTP ${res.status}`);
+          console.log(`warn: ${detail}`);
+        } else {
+          const headers = {};
+          for (const [k, v] of res.headers.entries()) headers[k.toLowerCase()] = v;
+          const model = nightshift.handledModel({ headers, body });
+          const { kind, egress } = receiptOf(body);
+          console.log(`primary route ${primary} → ${model ?? "no model id"} (${kind}, egress ${egress})`);
+          if (isNemotron(model)) { ok++; console.log("ok"); }
+          else if (kind === "local") { warn++; console.log("warn: Nightshift answered from its local lane; the Nemotron evidence is in judging/traces/"); }
+          else { warn++; console.log(`warn: handled model is not nvidia/nemotron (${model ?? "no model id"})`); }
+        }
       } catch (e) {
-        bad++; console.log(`nightshift: online, ${routes}, primary ${primary} FAIL (${e.name}: ${e.message})`);
+        fail++; console.log(`primary route ${primary}: offline (${e.name}: ${e.message})`);
       }
     }
   }
 
   const o = await openjev.status({ cfg });
-  if (o.ok) console.log(`openjev: ok (model ${o.model}, ${o.ms} ms)`);
-  else { bad++; console.log(`openjev: FAIL (${o.error})`); }
-  return bad ? 1 : 0;
+  if (o.ok) { ok++; console.log(`openjev: ok (model ${o.model}, ${o.ms} ms)`); }
+  else { fail++; console.log(`openjev: FAIL (${o.error})`); }
+
+  if (String(process.env.LOCAL_LANE_BASE_URL ?? cfg.LOCAL_LANE_BASE_URL ?? "").trim()) {
+    try {
+      const r = await nightshift.localLane(PROMPT, { cfg, maxTokens: 16, timeoutMs: 60000 });
+      ok++; console.log(`local lane: ok (${r.model}, ${r.latencyMs} ms)`);
+    } catch { console.log("local lane: offline (optional)"); }
+  }
+
+  console.log(`doctor: ${ok} ok, ${warn} warn, ${fail} fail`);
+  return fail > 0 ? 1 : 0;
 }
 
 async function pinPrimary() {
@@ -102,7 +138,18 @@ async function pinPrimary() {
   writeFileSync(join(outDir, "nightshift-first-call.json"), JSON.stringify(mask(record, sec), null, 2) + "\n");
 
   // (3) pin
-  if (!pinned) { console.log("no route reported a Nemotron model id"); return 3; }
+  if (!pinned) {
+    console.log("no route reported a Nemotron model id");
+    for (const e of record) {
+      const { kind, egress } = receiptOf(e.body);
+      console.log(`  ${e.route}: winning_route.kind ${kind}, egress.destination ${egress}`);
+    }
+    let current = "";
+    try { current = (readFileSync(join(INBOX_ROOT, ".env"), "utf8").match(/^NIGHTSHIFT_ROUTE_PRIMARY=(.*)$/m)?.[1] ?? "").trim(); } catch { /* no .env */ }
+    if (current) { console.log(`Nightshift chose a local lane for every probe; pin stays at ${current}`); return 0; }
+    console.log("Nightshift chose a local lane for every probe; pin stays at unset");
+    return 3;
+  }
   execFileSync("sed", ["-i", `s|^NIGHTSHIFT_ROUTE_PRIMARY=.*|NIGHTSHIFT_ROUTE_PRIMARY=${pinned.route}|`, join(INBOX_ROOT, ".env")]);
   console.log(`pinned: ${pinned.route} → ${pinned.handled_model}`);
   return 0;
