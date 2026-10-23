@@ -1,9 +1,10 @@
 // The two pages and the closed static route, in sample mode (same harness as api.test.mjs).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { config } from "../src/config.mjs";
 import { createServer } from "../src/server.mjs";
 import { SCENARIOS } from "../src/scenarios.mjs";
@@ -90,8 +91,10 @@ test("after a sample RFQ run and an affirm, the counters count it and the queue 
   assert.ok(runs.some((x) => x.run_id === "pg-rfq"));
 });
 
-const TODO = { todo: "until S4.1 lands the front page" };
-test("GET / is html with a correct Content-Length", TODO, async () => {
+const here = dirname(fileURLToPath(import.meta.url));
+const inboxRoot = join(here, "..");
+
+test("GET / is html with a correct Content-Length", async () => {
   const r = await get("/");
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
@@ -101,20 +104,40 @@ test("GET / is html with a correct Content-Length", TODO, async () => {
   for (const m of html.matchAll(/<script[^>]*\ssrc=["']([^"']+)["']/gi)) assert.match(m[1], /^\/static\//, m[0]);
 });
 
-test("GET /static/app.js is javascript", TODO, async () => {
+test("the front page has the five radio values, both titles, the api-base meta and no inline handlers", async () => {
+  const html = await (await get("/")).text();
+  for (const v of ["refund", "question", "rfq", "complaint", "free_text"]) assert.ok(html.includes(`value="${v}"`), v);
+  assert.equal((html.match(/type="radio"/g) || []).length, 5);
+  assert.match(html, /<input type="radio" name="scenario" value="free_text" checked>/);
+  assert.ok(html.includes("How a person sees it"));
+  assert.ok(html.includes("Under the hood"));
+  assert.match(html, /<meta name="api-base"/);
+  assert.ok(!/<script(?![^>]*\ssrc=)[^>]*>\s*\S/i.test(html), "no inline script bodies");
+  assert.ok(!/<[^>]+\son[a-z]+\s*=/i.test(html), "no on*= handler");
+  assert.ok(!/https?:\/\//i.test(html), "no external request");
+});
+
+test("GET /static/app.js is javascript, never builds html from data, reads the journey", async () => {
   const r = await get("/static/app.js");
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "application/javascript; charset=utf-8");
+  const js = await r.text();
+  assert.ok(!/innerHTML|outerHTML|insertAdjacentHTML|document\.write/.test(js));
+  assert.ok(!/https?:\/\//i.test(js), "no absolute url literal");
+  assert.ok(js.includes("/runs/") && js.includes("/journey"));
 });
 
-test("demo-scenarios.json parses; every entry names a known scenario and carries as_of", TODO, async () => {
+test("demo-scenarios.json parses; six entries, known scenarios, as_of, messages equal the input examples", async () => {
   const r = await get("/static/demo-scenarios.json");
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "application/json; charset=utf-8");
   const list = await r.json();
-  assert.ok(Array.isArray(list) && list.length >= 1);
-  for (const d of list) {
+  assert.equal(list.length, 6);
+  list.forEach((d, i) => {
     assert.ok(SCENARIOS.includes(d.scenario), d.scenario);
     assert.ok(d.as_of, `${d.label} lacks as_of`);
-  }
+    assert.ok(typeof d.message === "string" && d.message.length > 0, `${d.label} lacks a message`);
+    const ex = JSON.parse(readFileSync(join(inboxRoot, "input_examples", `example_${i + 4}.json`), "utf8")).input;
+    assert.equal(d.message, ex.message, d.label);
+  });
 });
