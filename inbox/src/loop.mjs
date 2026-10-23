@@ -14,6 +14,8 @@ import { verifyContract } from "./engines/scout/contract.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
+import { appendIntake, publishIntake } from "./intake.mjs";
+import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF } from "./scenarios.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE } from "./prompts.mjs";
 
 // The 15 ids, in the methodology table order. (The actual trace order is the demo order: branch comes before nvidia.model.)
@@ -248,7 +250,9 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   return { draft, crit, risk, rounds: round, retried, ok };
 }
 
-export async function runTicket(thread_id, { run_id = `run-${Date.now().toString(36)}`, as_of, cfg = config(), deps = {} } = {}) {
+export async function runTicket(thread_id, { run_id = `run-${Date.now().toString(36)}`, as_of, cfg = config(), deps = {}, input = null } = {}) {
+  const isMsg = typeof input?.message === "string" && input.message.length > 0;
+  if (isMsg && !as_of && input.as_of) as_of = input.as_of;
   const clock = deps.clock ?? Date.now;
   const t0 = clock();
   const maxRounds = deps.maxRounds ?? 2;
@@ -261,6 +265,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const S = {
     aborted: false, facts: null, recovered: [], decision: null, reasons: [], draft: null, rounds: [], models: {},
     memRead: [], memWritten: [], branch: null, queued: null, current: "memory.read", scoutRisk: null,
+    scenario: { scenario: "legacy", how: "thread" }, recommendation: undefined, extraCited: [], msg: null,
   };
   // The one choke point: every line (direct, buffered-then-flushed, finalisation) is written here, then handed to deps.onLine.
   const W = (f) => {
@@ -348,8 +353,56 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const buf = [];
     let factsErr = null;
     const o = { as_of, trace: { line: (f) => buf.push(f) } };
+    // A free-text message: append the intake row, publish it, then run Scout and the gates SILENTLY (their lines are written at their usual
+    // positions below) so the scenario, and with it the topic the facts are read for, is known before the facts read.
+    let preDecided = null;
+    let preErr = null;
+    let preGates = null;
+    let preGbuf = [];
+    const factsOpts = {};
+    if (isMsg) {
+      S.current = "executor.act";
+      const dir = deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime");
+      const received_at = new Date(clock()).toISOString();
+      const { thread_id: tid, row } = await appendIntake({ message: input.message, from: input.from, name: input.name, subject: input.subject, channel: input.channel,
+        scenario: input.scenario ?? "free_text", received_at }, { runtimeDir: dir });
+      thread_id = tid;
+      const pub = await publishIntake({ cfg, runtimeDir: dir });
+      if (pub.error) {
+        buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
+          output_summary: `published: false (${one(pub.error, 160)}); the row is read locally`, status: "error" });
+        buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after intake_publish error", output_summary: "intake publish unavailable: the ticket row is read from the local file", status: "success" });
+      } else {
+        buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
+          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success" });
+      }
+      S.msg = { row, published: pub.published === true };
+      const rowTicket = { ...row, thread_id: tid };
+      try {
+        preDecided = await scout.decide({ prompt: `${row.subject ?? ""}\n${row.body}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
+      } catch (e) {
+        preErr = e;
+      }
+      try {
+        preGates = await gatesFn(rowTicket, {}, { trace: { line: (x) => preGbuf.push(x) }, cfg, sampleMode: sampleOn });
+      } catch (e) {
+        soft("nvidia.model", e, "typed gates failed, used code rules");
+        const g = sample.gates(rowTicket);
+        preGates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+      }
+      let faqHit = null;
+      try {
+        faqHit = matchFaq(row.body, (await queries.run("faq", {}, { cfg, trace: { line: () => {} } })).objects);
+      } catch { faqHit = null; }
+      S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit });
+      const params = preDecided?.parameters ?? {};
+      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? "question",
+        amount: params.currency === "USD" ? params.amount : undefined });
+    } else {
+      S.scenario = resolveScenario({ kind: "thread", declared: input?.scenario });
+    }
     try {
-      S.facts = await factsFn(thread_id, o);
+      S.facts = await factsFn(thread_id, { ...o, ...factsOpts });
     } catch (e) {
       factsErr = e;
     }
@@ -441,7 +494,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.current = "meterless.engine";
     let decided;
     try {
-      decided = await scout.decide({ prompt: `${f.subject ?? ""}\n${inputText}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
+      if (preErr) throw preErr;
+      decided = preDecided ?? await scout.decide({ prompt: `${f.subject ?? ""}\n${inputText}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
     } catch (e) {
       fatal("meterless.engine", e, "Scout failed before any model call, escalated to human");
     }
@@ -465,33 +519,59 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     });
 
     // gates (a model call, so after the contract check); their line is held back until step 7
-    const gbuf = [];
-    let gates;
-    try {
-      gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn });
-    } catch (e) {
-      soft("nvidia.model", e, "typed gates failed, used code rules");
-      const g = sample.gates(ticket);
-      gates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+    const gbuf = preGates ? preGbuf : [];
+    let gates = preGates;
+    if (!gates) {
+      try {
+        gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn });
+      } catch (e) {
+        soft("nvidia.model", e, "typed gates failed, used code rules");
+        const g = sample.gates(ticket);
+        gates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+      }
     }
 
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
-      maxRounds, runtimeDir, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace },
+      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace },
     };
 
     // 6. branch
     S.current = "branch";
     S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable });
+    const B0 = S.branch.branch_id;
+    // A scenario with a handler takes over only where the legacy branch would have drafted (under-floor or send-ok); the pre-empting branches stand.
+    const handler = HANDLERS[S.scenario.scenario];
+    let probe = null;
+    if (handler && (B0 === "under-floor" || B0 === "send-ok")) {
+      try {
+        probe = await handler.probe(tb);
+      } catch (e) {
+        soft("planner.plan", e, "scenario probe failed, legacy branch", { agent: "Planner", action: "route_scenario" });
+      }
+    }
+    if (probe) S.branch = { ...S.branch, branch_id: probe.branch_id, why: probe.why };
     const B = S.branch.branch_id;
-    // S1.3a: scenario probe()/act() dispatch goes here
     L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
     // 7a. the typed gates line
     S.current = "nvidia.model";
     for (const g of gbuf) L({ ...g, branch_id: B });
     if (!gbuf.length) L({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model: gates.model, gate_source: gates.gate_source, input_summary: `typed gates for ${thread_id}`, output_summary: "gates supplied by caller", status: "success", branch_id: B });
+
+    if (probe) {
+      for (const x of probe.lines ?? []) L(x);
+      L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`,
+        output_summary: `scenario ${S.scenario.scenario} (${S.scenario.how}) → ${B}`, status: "success", memory_ids: S.memRead });
+      const a = await handler.act(tb, probe);
+      S.decision = a.decision;
+      if (a.reasons?.length) S.reasons = [...a.reasons];
+      if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model };
+      if (a.recommendation !== undefined) S.recommendation = a.recommendation;
+      for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
+      return;
+    }
 
     // early exits
     if (B === "thank-you") {
@@ -619,7 +699,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const result = {
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",
     output: {
-      decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: f?.cited_rows ?? [],
+      decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],
+      ...(S.recommendation !== undefined ? { recommendation: S.recommendation } : {}),
       ...(S.draft ? { draft: S.draft } : {}), ...(S.queued ? { queued_for: S.queued } : {}),
     },
     agents: [
@@ -627,10 +708,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       { name: "Drafter", role: "draft the reply", ...(S.models.drafter ? { model: S.models.drafter } : {}) },
       { name: "Evaluator", role: "critique the draft", ...(S.models.evaluator ? { model: S.models.evaluator } : {}) },
       { name: "Risk", role: "policy sign-off (code)" }, { name: "Memory", role: "H-MEM read and write" },
+      ...(trace.lines.some((l) => l.agent_name === "WorldModel") ? [{ name: "WorldModel", role: "customer and product history" }] : []),
+      ...(trace.lines.some((l) => l.agent_name === "Severity") ? [{ name: "Severity", role: "severity gate" }] : []),
     ],
     log_file: out.log_file, execution_time_seconds: Math.round(((clock() - t0) / 1000) * 1000) / 1000,
-    rounds: S.rounds, memory: { read: S.memRead, written: S.memWritten }, branch_id: S.branch?.branch_id ?? null,
-    ...(f ? { input: { kind: "thread", thread_id, text: f.follow_up_kind ? (f.follow_up_body || f.body) : f.body, from: f.sender_email, name: f.sender_name, channel: f.channel, received_at: f.received_at, as_of: f.as_of } } : {}),
+    rounds: S.rounds, memory: { read: S.memRead, written: S.memWritten }, branch_id: S.branch?.branch_id ?? null, scenario: S.scenario.scenario, resolved_how: S.scenario.how,
+    ...(S.msg ? { input: { kind: "message", thread_id, text: S.msg.row.body, from: S.msg.row.sender_email || S.msg.row.sender_name, name: S.msg.row.sender_name || null, channel: S.msg.row.channel, received_at: S.msg.row.received_at, as_of: f?.as_of ?? as_of ?? null } }
+      : f ? { input: { kind: "thread", thread_id, text: f.follow_up_kind ? (f.follow_up_body || f.body) : f.body, from: f.sender_email, name: f.sender_name, channel: f.channel, received_at: f.received_at, as_of: f.as_of } } : {}),
     ...(S.recovered.length ? { recovered: S.recovered } : {}),
     ...(unrecovered ? { error: { type: "RunTimeout", message: S.recovered.at(-1)?.message, recoverable: true } } : {}),
   };

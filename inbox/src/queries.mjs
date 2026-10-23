@@ -368,7 +368,8 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   return {
     thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
-    owner_out: ownerAv.out, backup_out: backupAv.out, may_leave: ticket.may_leave === true || ticket.may_leave === "true",
+    owner_out: ownerAv.out, backup_out: backupAv.out, // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send
+    may_leave: intake || ticket.may_leave === true || ticket.may_leave === "true",
     restricted_terms: restricted, disclosure_unknown, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
     subject: ticket.subject, body: ticket.body, sender_name: ticket.sender_name, sender_email: ticket.sender_email,
     channel: ticket.channel, follow_up_kind: ticket.follow_up_kind || null, follow_up_body: ticket.follow_up_body || null,

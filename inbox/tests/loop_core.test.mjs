@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
 import { runTicket, decideBranch, STEP_ORDER } from "../src/loop.mjs";
+import { deriveJourney } from "../src/journey.mjs";
 
 // ---- stubs: facts built from the authored threads, no Zetaris ----
 const THREADS = Object.fromEntries(
@@ -268,4 +269,56 @@ test("H2: a failed queue write is said plainly: incomplete line, error then reco
   assert.equal(t.result.output.queued_for.queue_file, null);
   const i = t.lines.findIndex((l) => l.step === "escalate_or_fallback" && l.status === "error");
   assert.ok(i > -1 && t.lines[i + 1].step === "recovery" && t.lines[i + 1].status === "success", "error then recovery");
+});
+
+// ---- S1.3a: the scenario wiring and the message road ----
+const msgRun = async (input, { d = dirs(), runtimeDir = mkdtempSync(join(tmpdir(), "loop-rt-")), run_id = "m-1" } = {}) => {
+  const result = await runTicket(null, { run_id, cfg: sampleCfg(), as_of: "2026-10-20", input, deps: { quiet: true, ...d, runtimeDir } });
+  const lines = readFileSync(join(d.logsDir, `trace-${run_id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  return { result, lines, d, runtimeDir };
+};
+
+test("the journey derived from the collected lines equals the one derived from the file (T02)", async () => {
+  const collected = [];
+  const { result, lines } = await run("T02", { run_id: "drift-T02", extra: { onLine: (l) => collected.push(l) } });
+  assert.deepEqual(deriveJourney(result, collected), deriveJourney(result, lines));
+});
+
+test("a sample-mode FAQ message: question, faq-hit, send, cited, every step traced", async () => {
+  const { result, lines, runtimeDir } = await msgRun({ message: "How long does shipping take?", from: "a@example.com", channel: "chat" });
+  assert.equal(result.scenario, "question");
+  assert.ok(["scout", "faq"].includes(result.resolved_how), result.resolved_how);
+  assert.equal(result.branch_id, "faq-hit");
+  assert.equal(result.output.decision, "send");
+  assert.ok(result.output.cited_rows.includes("faq:Q01"));
+  assert.ok(result.output.cited_rows.some((c) => c.startsWith("intake_runtime:F1")));
+  assert.equal(result.input.kind, "message");
+  assert.equal(result.input.thread_id, "F1");
+  assert.ok(lines.some((l) => l.step === "zetaris.query" && l.action === "intake_publish"));
+  assert.ok(lines.some((l) => l.step === "planner.plan" && l.action === "route_scenario"));
+  assert.ok(lines.some((l) => l.step === "nvidia.model" && l.status === "skipped" && /FAQ/.test(l.input_summary + l.output_summary)));
+  for (const s of STEP_ORDER) assert.ok(lines.some((l) => l.step === s), `step ${s} present`);
+  assert.equal(lines.at(-1).step, "synthesis");
+  // the runtime dir keeps F1; a second message gets F2
+  const second = await msgRun({ message: "How long does shipping take?", from: "a@example.com", channel: "chat" }, { runtimeDir, run_id: "m-2" });
+  assert.equal(second.result.input.thread_id, "F2");
+});
+
+test("an RFQ message escalates to sales with the one unit price attached, no price in the draft", async () => {
+  const { result } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 training sabers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
+  assert.equal(result.scenario, "rfq");
+  assert.equal(result.resolved_how, "declared");
+  assert.equal(result.output.decision, "escalate");
+  assert.equal(result.output.queued_for.owner_id, 6);
+  assert.ok(result.output.queued_for.attachments.cited.includes("products:P01"));
+  assert.match(result.output.recommendation, /one unit price/);
+  assert.ok(!/189/.test(result.output.draft?.text ?? ""));
+});
+
+test("a declared question scenario on a refund thread runs the question route", async () => {
+  const result = await runTicket("T02", { run_id: "decl-T02", cfg: sampleCfg(), input: { scenario: "question" },
+    deps: { facts: factsStub(), quiet: true, ...dirs(), runtimeDir: mkdtempSync(join(tmpdir(), "loop-rt-")) } });
+  assert.equal(result.scenario, "question");
+  assert.equal(result.resolved_how, "declared");
+  assert.ok(["faq-hit", "question-records", "question-unanswered"].includes(result.branch_id), result.branch_id);
 });

@@ -274,6 +274,7 @@ test("F ticket, rfq: owner 6 / backup 14, both in, cited local", async () => {
   assert.equal(f.category_weight, 0.4); assert.equal(f.floor, 0.8);
   assert.ok(f.cited_rows.includes("intake_runtime:F1 (local)"));
   assert.ok(f.cited_rows.includes("responsibility:rfq"));
+  assert.equal(f.may_leave, true); // a free-text ticket carries no authored flag
   assert.equal(f.as_of, "2026-10-20");
 });
 
