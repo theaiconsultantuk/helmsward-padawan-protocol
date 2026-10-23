@@ -17,7 +17,7 @@ let server, base;
 
 before(async () => {
   server = createServer({
-    cfg: config({ SAMPLE_MODE: "true" }),
+    cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "true" }),
     deps: { dir, runtimeDir, logsDir, memoryDir, quiet: true, publish: async (o) => { publishes.push(o.dir); return { published: true, uncached: true }; } },
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -155,7 +155,7 @@ test("a sample-forced /run on a LIVE server records no decision and publishes no
   const ldir = mkdtempSync(join(tmpdir(), "api-live-runtime-"));
   const livePublishes = [];
   const live = createServer({
-    cfg: config({ SAMPLE_MODE: "false" }),
+    cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "false" }),
     deps: { dir: ldir, logsDir, memoryDir, quiet: true, publish: async () => { livePublishes.push(1); return { published: true, uncached: true }; } },
   });
   await new Promise((r) => live.listen(0, "127.0.0.1", r));
@@ -173,7 +173,7 @@ test("a sample-forced /run on a LIVE server records no decision and publishes no
 // publish() with docker and tar stubbed: only the UNCACHE failure kind varies
 const fakeTar = () => ({ stdout: {}, on(ev, cb) { if (ev === "close") setImmediate(() => cb(0)); } });
 const publishWith = (err) => publish({
-  dir, cfg: config({ SAMPLE_MODE: "false" }), run: async () => {}, spawnImpl: fakeTar,
+  dir, cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "false" }), run: async () => {}, spawnImpl: fakeTar,
   runSql: async () => { if (err) throw err; },
 });
 
@@ -354,7 +354,7 @@ test("GET /queue lists the escalated RFQ with its owner, draft flag and critique
 });
 
 test("GET /queue is [] when the queue directory is absent", async () => {
-  const empty = createServer({ cfg: config({ SAMPLE_MODE: "true" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-emptymem-")), quiet: true, publish: async () => ({ published: true }) } });
+  const empty = createServer({ cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "true" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-emptymem-")), quiet: true, publish: async () => ({ published: true }) } });
   await new Promise((res) => empty.listen(0, "127.0.0.1", res));
   try {
     const q = await (await fetch(`http://127.0.0.1:${empty.address().port}/queue`)).json();
@@ -440,7 +440,7 @@ test("(17) the stored result keeps memory, so the journey marks written memory i
 });
 
 test("API_TOKEN set: POST needs the bearer header, GET /health and the pages stay open", async () => {
-  const srv = createServer({ cfg: config({ SAMPLE_MODE: "true", API_TOKEN: "t-0001-test" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-token-")), quiet: true, publish: async () => ({ published: true }) } });
+  const srv = createServer({ cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "true", API_TOKEN: "t-0001-test" }), deps: { dir, runtimeDir, logsDir, memoryDir: mkdtempSync(join(tmpdir(), "api-token-")), quiet: true, publish: async () => ({ published: true }) } });
   await new Promise((r) => srv.listen(0, "127.0.0.1", r));
   const b = `http://127.0.0.1:${srv.address().port}`;
   try {
