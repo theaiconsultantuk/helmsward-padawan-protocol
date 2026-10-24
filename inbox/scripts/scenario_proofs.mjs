@@ -8,6 +8,7 @@ import { createServer as netServer } from "node:net";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseEnvFile } from "../src/envfile.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const J = join(ROOT, "judging"), T = join(J, "traces");
@@ -45,9 +46,10 @@ if (!base) {
 }
 process.on("exit", () => { try { child?.kill(); } catch {} });
 // A shared instance (API_TOKEN set in .env) refuses POST /run without the bearer; the token is read from the environment, then inbox/.env (the environment wins, as in src/config.mjs), and never printed.
-// Read without importing src/config.mjs: that import installs the NO_NETWORK fetch guard in this process too (Codex review 9).
-const envFileToken = () => { try { const m = /^API_TOKEN=(.*)$/m.exec(readFileSync(join(ROOT, ".env"), "utf8")); return m ? m[1].trim().replace(/^["']|["']$/g, "") : ""; } catch { return ""; } };
-const TOKEN = process.env.API_TOKEN || envFileToken();
+// Read through src/envfile.mjs, never src/config.mjs: that import installs the NO_NETWORK fetch guard in this process too (Codex review 9).
+// Same precedence as config(): a set environment value wins, even an empty one (Codex review 10).
+const fileToken = () => { try { return parseEnvFile(readFileSync(join(ROOT, ".env"), "utf8")).API_TOKEN ?? ""; } catch { return ""; } };
+const TOKEN = process.env.API_TOKEN !== undefined ? process.env.API_TOKEN : fileToken();
 const AUTH = TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
 const getJson = async (path, init) => {
   const r = await fetch(base + path, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
