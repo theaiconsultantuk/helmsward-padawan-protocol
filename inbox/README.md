@@ -47,8 +47,8 @@ The image is `node:22-slim` plus this folder; nothing is installed at build time
 ```bash
 docker build -t jedi-pack-inbox .
 
-# with your Zetaris and Nightshift settings (fill in .env from .env.example first)
-docker run --rm -p 8000:8000 --env-file .env jedi-pack-inbox
+# with your Zetaris and Nightshift settings (fill in .env from .env.example first; the example ships SAMPLE_MODE=true, so set it false there or override it here)
+docker run --rm -p 8000:8000 --env-file .env -e SAMPLE_MODE=false jedi-pack-inbox
 
 # without credentials, Zetaris and Nightshift stopped: the whole loop on bundled data
 docker run --rm -p 8000:8000 -e SAMPLE_MODE=true jedi-pack-inbox
