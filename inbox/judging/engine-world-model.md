@@ -22,7 +22,7 @@ A message declared or classified as a complaint makes the loop ask the World Mod
 
 ## Tests
 
-Real run, 2026-10-24 07:07:06 (Europe/Brussels): `node --test` on the four files.
+Real run, 2026-10-24 08:21:33 (Europe/Brussels): `node --test` on the four files.
 
 | File | Tests | Pass | Fail | Skipped |
 |---|---|---|---|---|
@@ -44,7 +44,7 @@ Trace: `judging/traces/trace-scenario-8-live.jsonl`. Input: Tilda Moss (`tilda.m
 The `world_context` line, verbatim:
 
 ```json
-{"timestamp":"2026-10-24T05:05:58Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
 ```
 
 Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"]`.
@@ -54,7 +54,7 @@ Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","t
 The live severity gate asks OpenJev one `score` question with ten levels (1 to 10), because OpenJev accepts at most ten score levels. The score is an expected index, so severity = round(score) + 1. Escalation is at 9 or above. The live `severity_gate` line from example 8; its `output_summary` carries the integer, the raw float, the confidence and the source:
 
 ```json
-{"timestamp":"2026-10-24T05:05:58Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F20","output_summary":"severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.9859017201146587,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"openjev"}
+{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F30","output_summary":"severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.9859017201146587,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"openjev"}
 ```
 
 Reading: `severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev`.

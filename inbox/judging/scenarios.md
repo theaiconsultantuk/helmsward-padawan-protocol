@@ -7,7 +7,7 @@ tags: [judging, scenarios]
 
 # Scenario proofs
 
-Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-24 07:07:06.
+Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-24 08:21:33.
 
 Each example runs twice through `POST /run`: live (`options.sample_mode: false`) and sample (`options.sample_mode: true`). The traces are copied from `GET /runs/<id>/trace` as the service wrote them; the script writes no trace line. Both traces must contain the fixture's `step:status:branch_id` subsequence for the cell. Overall: all checks passed.
 
@@ -31,7 +31,7 @@ Checked against: fixture cell `question-hit`: `zetaris.query:success:`, `meterle
 
 ### Live (`scenario-4-live`)
 
-- decision: `send`; scenario `question`; resolved `scout`; branch `faq-hit`; 1.3 s
+- decision: `send`; scenario `question`; resolved `scout`; branch `faq-hit`; 1.4 s
 - branch line, why: FAQ Q01 matches (score 1.00, shared: long, shipping, take); FAQ text is canonical, the floor gates model drafts
 - nvidia.model lines (1): `typed_gates` `openjev-0.1 (openjev-0.1)` success
 - journey human.reply: kind `auto_reply`, to `null`, attachments none, recommendation `none`
@@ -89,7 +89,7 @@ Checked against: fixture cell `rfq-no-product`: `branch:success:rfq`, `risk.sign
 
 ### Live (`scenario-6-live`)
 
-- decision: `escalate`; scenario `rfq`; resolved `declared`; branch `rfq`; 1.5 s
+- decision: `escalate`; scenario `rfq`; resolved `declared`; branch `rfq`; 1.3 s
 - branch line, why: request for a quote: no product matched, quantities 100000, 100; sales quotes, prices attached
 - nvidia.model lines (1): `typed_gates` `openjev-0.1 (openjev-0.1)` success
 - journey human.reply: kind `escalation`, to `{"employee_id":6,"name":"Tomas Keller","role":"rfq owner"}`, attachments none, recommendation `Quantities asked: 100000 and 100; no product in the records matches; sales to identify.`
@@ -118,23 +118,23 @@ Checked against: fixture cell `complaint-vent`: `branch:success:complaint-vent`,
 
 ### Live (`scenario-7-live`)
 
-- decision: `hold`; scenario `complaint`; resolved `declared`; branch `complaint-vent`; 41.9 s
+- decision: `hold`; scenario `complaint`; resolved `declared`; branch `complaint-vent`; 100.2 s
 - branch line, why: severity 2 (2), the customer reads as vent (no earlier threads); a calm acknowledgement closes it
 - nvidia.model lines (4): `typed_gates` `openjev-0.1 (openjev-0.1)` success; `read_complaint` `nvidia/nemotron-3.5-lightning-30b-a3b` success; `severity_gate` `openjev-0.1 (openjev-0.1)` success; `draft_reply` `nvidia/nemotron-3.5-lightning-30b-a3b` success
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:09Z","run_id":"scenario-7-live","trace_id":"scenario-7-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"211 entities, 199 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T06:19:06Z","run_id":"scenario-7-live","trace_id":"scenario-7-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"211 entities, 199 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:09Z","run_id":"scenario-7-live","trace_id":"scenario-7-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F18","output_summary":"severity 2 (2), raw 0.9378819622008716, confidence 0.5742432884774249, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.5742432884774249,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"openjev"}
+{"timestamp":"2026-10-24T06:19:06Z","run_id":"scenario-7-live","trace_id":"scenario-7-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F28","output_summary":"severity 2 (2), raw 0.9378819622008716, confidence 0.5742432884774249, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.5742432884774249,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"openjev"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":5,"name":"Priya Raman","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`
-- reply text (first 200 chars): `I'm sorry to hear about the dented box. I understand your frustration.`
+- reply text (first 200 chars): `I'm sorry to hear your box arrived dented. I understand your frustration, and I'm here to help.`
 - trace: `judging/traces/trace-scenario-7-live.jsonl` (42 lines); subsequence check: ok
 
 ### Sample (`scenario-7-sample`)
@@ -144,13 +144,13 @@ Checked against: fixture cell `complaint-vent`: `branch:success:complaint-vent`,
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:40Z","run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"211 entities, 199 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T06:19:43Z","run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"211 entities, 199 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:40Z","run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F19","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T06:19:43Z","run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F29","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":5,"name":"Priya Raman","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`
@@ -171,23 +171,23 @@ Checked against: fixture cell `complaint-severe`: `branch:success:complaint-seve
 
 ### Live (`scenario-8-live`)
 
-- decision: `escalate`; scenario `complaint`; resolved `declared`; branch `complaint-severe`; 85.8 s
+- decision: `escalate`; scenario `complaint`; resolved `declared`; branch `complaint-severe`; 109.7 s
 - branch line, why: severity 10 (10 legal or safety), the customer reads as genuine (3 earlier threads on record); a person handles it
 - nvidia.model lines (4): `typed_gates` `openjev-0.1 (openjev-0.1)` success; `read_complaint` `nvidia/nemotron-3.5-lightning-30b-a3b` success; `severity_gate` `openjev-0.1 (openjev-0.1)` success; `draft_reply` `nvidia/nemotron-3.5-lightning-30b-a3b` success
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:58Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:05:58Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F20","output_summary":"severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.9859017201146587,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"openjev"}
+{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F30","output_summary":"severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.9859017201146587,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"openjev"}
 ```
 
-- journey human.reply: kind `escalation`, to `{"employee_id":5,"name":"Priya Raman","role":"complaint owner"}`, attachments none, recommendation `Immediately initiate replacement/refund, document the injury, offer dedicated legal/communication channel to de-escalate, and launch internal quality review on hilt failure pattern to address repeat issue.`
-- reply text (first 200 chars): `Dear Tilda Moss, I'm so sorry to hear about your son's injury and the hilt failure. A member of our team will follow up with you directly today to address this matter and ensure we resolve it properly`
+- journey human.reply: kind `escalation`, to `{"employee_id":5,"name":"Priya Raman","role":"complaint owner"}`, attachments none, recommendation `Issue immediate replacement/fix for the training saber, conduct internal hilt defect investigation, and proactively engage the customer to mitigate public review and legal escalation.`
+- reply text (first 200 chars): `Dear Tilda, I'm very sorry to hear about your son's injury and the hilt issue with your training saber. I understand how concerning this is, and I want you to know that a member of our team will follo`
 - trace: `judging/traces/trace-scenario-8-live.jsonl` (42 lines); subsequence check: ok
 
 ### Sample (`scenario-8-sample`)
@@ -197,13 +197,13 @@ Checked against: fixture cell `complaint-severe`: `branch:success:complaint-seve
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:07:06Z","run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T06:21:33Z","run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T05:07:06Z","run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F21","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T06:21:33Z","run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F31","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":5,"name":"Priya Raman","role":"complaint owner"}`, attachments none, recommendation `A person should own this, repair the failure and answer the customer directly.`

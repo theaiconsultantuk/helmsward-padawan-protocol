@@ -18,32 +18,32 @@ Source: Technical Execution Requirements, section 13 "Readiness Checklist". A bo
 
 ## Build
 
-- [x] Docker build succeeds, or setup is fully documented. Pointer: [../Dockerfile](../Dockerfile); image `oah-inbox` (339e040f9133) was built from it and ran this pack's sample runs; the clean-clone build is in [clean-clone-run.md](clean-clone-run.md).
+- [x] Docker build succeeds, or setup is fully documented. Pointer: [../Dockerfile](../Dockerfile); image `oah-inbox` (5f3672a41f8f) was built from it and ran this pack's sample runs; the clean-clone build is in [clean-clone-run.md](clean-clone-run.md).
 - [x] Dependencies install at build time. Pointer: [../Dockerfile](../Dockerfile) has no `npm` step at all: the service has no runtime dependencies (`package.json` lists dev dependencies only, used by the Scout evals).
 - [x] Runs without a local GPU. Pointer: `grep -rIlE "cuda|nvidia-smi|torch" src Dockerfile` finds 0 files; models are reached over HTTP through Nightshift. The sample run above used none.
 - [x] No runtime installs or model downloads. Pointer: the `--network none` container in [sample-mode-run.md](sample-mode-run.md) completed all three examples, which it could not do if anything were downloaded at run time.
 
 ## Secrets
 
-- [x] No keys in code, logs, examples, the demo video or the slide deck. Pointer: [secrets-scan.md](secrets-scan.md) (gitleaks 0 findings, exit 0; `tests/no_secrets.test.mjs` exit 0). Code, logs and examples are covered by that scan. **Owner step:** the demo video and the slide deck are the team's to check by eye before upload; they are not in this repository.
+- [x] No keys in code, logs or examples (the repository files the scan read). Pointer: [secrets-scan.md](secrets-scan.md) (gitleaks 0 findings, exit 0; `tests/no_secrets.test.mjs` exit 0). The demo video and the slide deck are not in this repository and are not covered by this scan: they are the two owner steps at the end of this list, unticked until the team checks them by eye.
 - [x] The NVIDIA key is in Nightshift, not in the app. Pointer: `grep -rIlE "NVIDIA_API_KEY|nvapi-" src .env.example Dockerfile` finds 0 files; the app holds only `METERLESS_RUNTIME_TOKEN` for Nightshift ([../.env.example](../.env.example)).
 - [x] `.env.example` present with placeholders. Pointer: [../.env.example](../.env.example).
 - [x] `.env` is gitignored. Pointer: line `.env` of `inbox/.gitignore` and of `inbox/.dockerignore`. The gitleaks run without its allowlist finds the local `.env` only (see [secrets-scan.md](secrets-scan.md)); that file is never committed or put in the image.
 
 ## Data
 
-- [x] Zetaris is the data layer, with sources documented. Pointer: [sources.json](sources.json) (live `GET /sources`: 21 sources, 20 live in Zetaris), the registration statements in [zetaris-register.md](zetaris-register.md), and 23 `zetaris.query` lines in the hero trace.
+- [x] Zetaris is the data layer, with sources documented. Pointer: [sources.json](sources.json) (live `GET /sources`: 21 sources, 20 live in Zetaris), the registration statements in [zetaris-register.md](zetaris-register.md), and 22 `zetaris.query` lines in the hero trace (23 lines carry `sponsor: zetaris`: those queries plus the `executor.act` line that gathers them).
 - [x] A Unified Semantic Layer compiled and activated over the raw sources. Pointer: [zetaris-usl.md](zetaris-usl.md) (12 keyed tables with foreign keys over CSV, JSON, Parquet, Markdown and the runtime CSVs, a cross-source join and a live-view proof), built by the scripted [../scripts/register_usl.mjs](../scripts/register_usl.mjs) with [../scripts/zetaris_usl.sql](../scripts/zetaris_usl.sql).
-- [x] Repository is small. Pointer: `inbox/` without node_modules, logs and runtime data is 3916 KB (`du -sk`, measured by the script).
+- [x] Repository is small. Pointer: `inbox/` without node_modules, logs and runtime data is 3976 KB (`du -sk`, measured by the script).
 - [x] Sources and licences documented. Pointer: the data sources table and the Third-Party Code and Licences section of [../README.md](../README.md), [../data/sources.json](../data/sources.json), [pre-existing.md](pre-existing.md).
 - [x] No manual data setup. Pointer: the synthetic data is committed under `data/synthetic/`; registration is the scripted [../scripts/register_sources.mjs](../scripts/register_sources.mjs) with [../scripts/register_zetaris_sources.sql](../scripts/register_zetaris_sources.sql) with the statements in [zetaris-register.md](zetaris-register.md). Zetaris itself is the sponsor's installed service.
 - [x] Sample mode works without Zetaris, Nightshift or network access. Pointer: [sample-mode-run.md](sample-mode-run.md) (three examples, `--network none`, `SAMPLE_MODE=true`).
 
 ## Runtime
 
-- [x] A run finishes in minutes. Pointer: the live hero run took 51.906 s (`execution_time_seconds` in the run's own output); sample runs take under a second ([sample-mode-run.md](sample-mode-run.md)).
+- [x] A run finishes in minutes. Pointer: the live hero run took 57.427 s (`execution_time_seconds` in the run's own output); sample runs take under a second ([sample-mode-run.md](sample-mode-run.md)).
 - [x] External calls have timeouts. Pointer: `grep -rnE "AbortSignal.timeout|TIMEOUT_MS|setTimeout" src` finds 19 sites (per-call Nightshift, Zetaris, OpenJev timeouts; the server's request timeout).
-- [x] Agent loops are bounded. Pointer: `maxRounds = 2` and a 300000 ms run cap in [../src/loop.mjs](../src/loop.mjs); the hero trace in [../result.md](../result.md) shows the loop ending at round 2.
+- [x] Agent loops are bounded. Pointer: `maxRounds = 2` and a 300000 ms run cap in [../src/loop.mjs](../src/loop.mjs); the hero trace in [../result.md](../result.md) shows the loop ending at round 1 (no retry: Risk refused on round 1, which ends the loop).
 - [x] Failures return a controlled response. Pointer: [traces/trace-recovery.jsonl](traces/trace-recovery.jsonl) (an `error` line, then `recovery`, result unchanged); `errBody` in [../src/server.mjs](../src/server.mjs) returns `{status:"error", error:{type, message, recoverable}}`.
 
 ## Logs
