@@ -115,7 +115,7 @@
     {
       "id": "rfq-one-price",
       "input": {
-        "message": "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100 (we only have 1 price, so I would like to see how our flow responds",
+        "message": "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100 (we only have 1 price, so I would like to see how our flow responds",
         "from": "einh@example.com",
         "channel": "chat",
         "scenario": "rfq"
@@ -196,7 +196,7 @@
     {
       "id": "rfq-no-quantity",
       "input": {
-        "message": "Can you quote Orbit Stands for our school?",
+        "message": "Can you quote Orbit Display Stands for our school?",
         "from": "school@example.com",
         "channel": "chat",
         "scenario": "rfq"
@@ -403,7 +403,7 @@
         ],
         "draft_present": true,
         "draft_includes": [
-          "tempered duralloy twin-core, hand-wrapped nerf-leather grip",
+          "brass and blackened steel",
           "Sent automatically on behalf of the Product team."
         ],
         "auto_reply": true,
@@ -413,7 +413,6 @@
       },
       "sequence": [
         "branch:success:product-hit",
-        "nvidia.model:skipped:product-hit",
         "planner.plan:success:product-hit",
         "nvidia.model:skipped:product-hit",
         "critique:skipped:product-hit",
@@ -427,7 +426,7 @@
     {
       "id": "s06-product-unanswered",
       "input": {
-        "message": "Is the Wayfarer Cloak waterproof?",
+        "message": "Is the Wayfarer Long Cloak waterproof?",
         "from": "a@email.com",
         "channel": "chat"
       },
@@ -446,7 +445,6 @@
       },
       "sequence": [
         "branch:success:product-unanswered",
-        "nvidia.model:skipped:product-unanswered",
         "planner.plan:success:product-unanswered",
         "nvidia.model:skipped:product-unanswered",
         "critique:skipped:product-unanswered",
@@ -461,7 +459,7 @@
       "id": "s10-delivery-suspended",
       "input": {
         "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
-        "from": "a@email.com",
+        "from": "cass.holm@example.com",
         "channel": "contact-form"
       },
       "as_of": "2026-10-20",
@@ -532,7 +530,6 @@
       },
       "sequence": [
         "branch:success:faq-hit",
-        "nvidia.model:skipped:faq-hit",
         "planner.plan:success:faq-hit",
         "nvidia.model:skipped:faq-hit",
         "critique:skipped:faq-hit",
@@ -611,7 +608,7 @@
     {
       "id": "s07-bulk-quote",
       "input": {
-        "message": "Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.",
+        "message": "Hello, could you send us a quote for 25 Vanta Arc Trainers for our academy? Thank you.",
         "from": "academy@example.com",
         "channel": "email"
       },
@@ -690,7 +687,7 @@
     {
       "id": "s07c-quote-over-limit",
       "input": {
-        "message": "We need a quote for 50 Arc Blade Trainers for the new academy wing.",
+        "message": "We need a quote for 50 Vanta Arc Trainers for the new academy wing.",
         "from": "academy@example.com",
         "channel": "email"
       },
@@ -730,7 +727,7 @@
     {
       "id": "s08-mild-injury",
       "input": {
-        "message": "This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.",
+        "message": "This is unacceptable: the hot emitter of my Vanta Arc Trainer gave my son a small burn.",
         "from": "parent@example.com",
         "name": "Dana Orr",
         "channel": "email"
@@ -761,7 +758,7 @@
     {
       "id": "s09-legal-threat",
       "input": {
-        "message": "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+        "message": "The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
         "from": "angry@example.com",
         "name": "Rex Dow",
         "channel": "email"
@@ -782,7 +779,7 @@
         ],
         "draft_present": true,
         "draft_includes": [
-          "We are sorry to read what happened with your Emitter Hilt"
+          "We are sorry to read what happened with your Strand Emitter Hilt"
         ],
         "auto_reply": false,
         "status": "open",
@@ -804,7 +801,7 @@
     {
       "id": "s13-trustpilot-complaint",
       "input": {
-        "message": "The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.",
+        "message": "The Drift Boot Wraps arrived scuffed and I am disappointed. Posting my honest review here.",
         "from": "tp@example.com",
         "name": "Lena Kor",
         "channel": "trustpilot"
@@ -841,7 +838,7 @@
     {
       "id": "s01-refund-in-limit",
       "input": {
-        "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+        "message": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
         "from": "alvaneashdown@email.com",
         "name": "Alvane Ashdown",
         "channel": "contact-form",
@@ -871,7 +868,7 @@
     {
       "id": "s02-refund-approver-out",
       "input": {
-        "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+        "message": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
         "from": "briskbrightmoor@email.com",
         "name": "Brisk Brightmoor",
         "channel": "contact-form",
@@ -932,7 +929,7 @@
     {
       "id": "s04-second-refund",
       "input": {
-        "message": "I would like another refund, 60 GC, for the strap on my Drift Boots.",
+        "message": "I would like another refund, 60 GC, for the strap on my Drift Boot Wraps.",
         "from": "liravenn@email.com",
         "name": "Lira Venn",
         "channel": "contact-form",

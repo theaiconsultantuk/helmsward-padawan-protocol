@@ -34,7 +34,7 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [engine-hmem-two-run.md](engine-hmem-two-run.md) | H-MEM two-run proof: a second run reads what the first wrote | Shared memory (H-MEM) |
 | [nightshift-models.json](nightshift-models.json) | The routes Nightshift offered | Nightshift connection; where NVIDIA contributes |
 | [nightshift-first-call.json](nightshift-first-call.json) | The first probe call to Nightshift and its receipt | Nightshift connection; which model handled the request |
-| [padme-chain.md](padme-chain.md) | Padme's email chain processed one step after the other, live | Errors and recovery; misread disclosure |
+| [padme-chain.md](padme-chain.md) | Seraphine's email chain processed one step after the other, live | Errors and recovery; misread disclosure |
 | [trust-floor.md](trust-floor.md) | Why a within-limit refund is still held: the category trust weight, the floor, the affirm and reject deltas, the branch order, with the numbers and the evidence | Shared memory and feedback; Technical: the decision rule a judge can verify |
 | [refund-chain.md](refund-chain.md) | One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first | Shared memory (H-MEM); holiday calendar; limit approval |
 | [refund-chain-sample.md](refund-chain-sample.md) | The refund chain's deterministic twin (no model call) | Sample mode; the chain logic alone |
@@ -48,8 +48,8 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [traces/trace-example-2.jsonl](traces/trace-example-2.jsonl) | Sample-mode example 2 (send) | Sample mode; full step list |
 | [traces/trace-example-3.jsonl](traces/trace-example-3.jsonl) | Sample-mode example 3 (escalate, the misread) | Escalation or fallback present in the sample trace |
 | [traces/trace-recovery.jsonl](traces/trace-recovery.jsonl) | Sample run with Zetaris refusing once: an error line, then recovery | Errors and recovery |
-| [traces/trace-padme-live_1.jsonl](traces/trace-padme-live_1.jsonl) | Padme chain step 1, live | Handoff; misread chain |
-| [traces/trace-padme-live_2.jsonl](traces/trace-padme-live_2.jsonl) | Padme chain step 2, live | Handoff; misread chain |
+| [traces/trace-padme-live_1.jsonl](traces/trace-padme-live_1.jsonl) | Seraphine chain step 1, live | Handoff; misread chain |
+| [traces/trace-padme-live_2.jsonl](traces/trace-padme-live_2.jsonl) | Seraphine chain step 2, live | Handoff; misread chain |
 | [traces/trace-refund-live_1.jsonl](traces/trace-refund-live_1.jsonl) | Refund chain step 1, live (40 USD, held; owner out, backup in) | Holiday calendar; trust floor |
 | [traces/trace-refund-live_2.jsonl](traces/trace-refund-live_2.jsonl) | Refund chain step 2, live (400 USD, over the limit, escalated; reads step 1's memory) | Shared memory; limit approval |
 | [traces/trace-refund-sample_1.jsonl](traces/trace-refund-sample_1.jsonl) | Refund chain step 1, sample mode | Sample mode |

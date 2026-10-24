@@ -20,7 +20,7 @@ test("cold start writes F1 with the header; the second append is F2", async () =
   assert.equal(a.row.sender_name, "");
   const b = await appendIntake({ message: "x".repeat(100), from: "Jo Smith", name: undefined, channel: "email" }, { runtimeDir });
   assert.equal(b.thread_id, "F2");
-  assert.equal(b.row.subject.length, 60);
+  assert.ok(b.row.subject.length <= 61 && b.row.subject.endsWith("\u2026"), "a long message gets a label cut with an ellipsis");
   assert.equal(b.row.sender_name, "Jo Smith");
   assert.equal(b.row.sender_email, "");
   assert.equal(b.row.category, "");

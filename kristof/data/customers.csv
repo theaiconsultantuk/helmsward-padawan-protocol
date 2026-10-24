@@ -1,5 +1,5 @@
 customer_id,name,callsign,email,home_planet,since,seeded_prior_refund,fictional
-C001,Padmé Amidala,padme-3,padme.amidala@example.com,Tatooine,2025-06-17,false,true
+C001,Seraphine Kaelborn,kaelborn-3,seraphine.kaelborn@example.com,Tatooine,2025-06-17,false,true
 C002,Lira Venn,lira-3,liravenn@email.com,Corellia,2025-04-20,true,true
 C003,Cass Holm,cass-8,cass.holm@example.com,Kamino,2025-10-18,false,true
 C004,Ivo Trent,ivo-9,ivo.trent@example.com,Coruscant,2025-10-15,false,true

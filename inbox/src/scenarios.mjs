@@ -11,6 +11,10 @@ import { getWorld, toObjects, complaintContext, worldLine, mentionedProducts } f
 import * as sample from "./adapters/sample.mjs";
 import { stampedBuffer } from "./trace_buffer.mjs";
 
+// The one seam a test uses to feed the complaint road a LIVE severity reading while the rest of the run stays on the sample data (tests/live_reading.test.mjs).
+// Production never touches it.
+export const seams = { severityGate };
+
 export const SCENARIOS = ["refund", "question", "rfq", "complaint", "free_text"];
 export const TOPIC_OF = { refund: "refund", question: "question", rfq: "rfq", complaint: "complaint", customer_service: "customer_service", product: "product", delivery: "delivery", other: "other" };
 // What a scenario's facts gather may read beyond the ticket row, the owner chain, the trust row and the what-may-leave page.
@@ -25,10 +29,15 @@ const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track
 const ORDER_ID = /\bJP-\d{4}\b/i;
 // a question about what a product is, made of or costs, with or without the product named
 const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
-const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
+const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
 // the cues that put ANY message on the complaint road, whatever intent Scout read: a legal threat, an injury, an unsafe product
-const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open)\b/i;
-const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
+const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open)\b/i;
+// a complaint about something other than where the parcel is
+const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
+// The one RFQ test (einh, 25 Oct 2026, "simplest rule"): a quote / quotation / RFQ / bulk / wholesale word in the message. Nothing else makes a message an RFQ except a declared rfq scenario:
+// every other price or count question ("How much for 51 Strand Emitter Hilts?") takes the product or question road, whatever Scout read.
+const RFQ_WORD = /\b(quotes?|quotations?|rfqs?|bulk|wholesale)\b/i;
+const lookupRows = (productHit) => (productHit?.all ?? (productHit?.row ? [productHit] : [])).map((f) => f.row).filter(Boolean);
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
 
@@ -37,23 +46,37 @@ const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|acc
 export function resolveScenario({ kind, declared = null, decided = null, gates = null, faqHit = null, text = null, productHit = null } = {}) {
   if (declared && declared !== "free_text") return { scenario: declared, how: "declared" };
   if (kind === "thread") return { scenario: "legacy", how: "thread" };
-  const id = decided?.intent?.primary?.id ?? "GENERAL";
+  let id = decided?.intent?.primary?.id ?? "GENERAL";
+  const T = String(text ?? "");
   const conf = decided?.intent?.confidence ?? 0;
   const cat = gates?.answers?.category;
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
+  // a quote word inside a complaint ("Your quote is unacceptable") is a complaint; the complaint cues are read first only for a message that carries the RFQ word, everything else keeps its later precedence
+  if (RFQ_WORD.test(T) && COMPLAINT_CUES.test(T)) return { scenario: "complaint", how: "cues" };
+  // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
+  if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
+  if (id === "rfq.request" && text != null) id = "GENERAL";
+  else if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
+  // a pure product question ("What is the Cracked Core Recycling Pouch made of?", "...etiquette cards...") is a product question even when a word of the product's own name reads as a refund or a replacement:
+  // take the product's name and aliases out of the text, and if what is left asks what it is made of or costs and carries no refund, return, order or account word, the catalogue row answers it
+  if (["refund.request", "replacement.request", "appreciation", "follow_up"].includes(id) && productHit && PRODUCT_WORDS.test(T) && T.includes("?")) {
+    let rest = T.toLowerCase();
+    for (const r of lookupRows(productHit)) for (const n of [r.name, ...String(r.aliases ?? "").split(";")]) if (n) rest = rest.replace(new RegExp("(?<![a-z0-9])" + String(n).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:e?s)?(?![a-z0-9])", "g"), " ");
+    if (!/\b(refund\w*|return\w*|replace\w*|exchange\w*|money back|bought|ordered|received|arrived|my|broke\w*|damag\w*|faulty|wrong|missing)\b/.test(rest) && !ACCOUNT_WORDS.test(rest) && !ORDER_ID.test(T) && !COMPLAINT_CUES.test(rest) && !SAFETY_CUES.test(rest) && !OTHER_COMPLAINT.test(rest)) return { scenario: "product", how: "scout" };
+  }
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
-  if (id === "complaint" || (cat?.choice === "complaint" && cat.confidence >= 0.6)) return { scenario: "complaint", how: id === "complaint" ? "scout" : "gates" };
+  if (id === "complaint") return { scenario: "complaint", how: "scout" };
   // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
   if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  // a quote asked for a counted product ("could you quote 25 Arc Blade Trainers", "quote 20 ... same as my order JP-1008") is an RFQ even when Scout read a plain order question;
-  // the count is a number that is not part of an order id, and it is checked before the delivery road
-  const counted = /(?<![\w.-])\d[\d,]*(?![\w-])/.test(String(text ?? "").replace(/\bJP-\d{4}\b/gi, " "));
-  if ((id === "order.question" || id === "GENERAL") && QUOTE_WORDS.test(String(text ?? "")) && productHit && counted) return { scenario: "rfq", how: "scout" };
-  // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order")
+  // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order").
+  // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.
+  // Safety cues and the complaint cues have already gone by, so a delivery question that threatens or names an injury never gets here.
   const oid = ORDER_ID.test(String(text ?? "")) || ORDER_ID.test(String(decided?.parameters?.id ?? ""));
+  // only a PURE delivery enquiry overrides a gate's complaint read: a message that also complains about something else (staff, an apology, a refund, a damaged item) stays a complaint
+  if (cat?.choice === "complaint" && cat.confidence >= 0.6 && OTHER_COMPLAINT.test(String(text ?? ""))) return { scenario: "complaint", how: "gates" };
   if (oid && DELIVERY_WORDS.test(String(text ?? "")) && !["replacement.request", "appreciation", "follow_up"].includes(id)) return { scenario: "delivery", how: "scout" };
+  if (cat?.choice === "complaint" && cat.confidence >= 0.6) return { scenario: "complaint", how: "gates" };
   // a product named (by name or alias) or a material/spec/price question: the catalogue row answers it
   if ((id === "order.question" || id === "GENERAL") && (productHit || PRODUCT_WORDS.test(String(text ?? "")))) return { scenario: "product", how: "scout" };
   if (id === "order.question" || (cat?.choice === "question" && cat.confidence >= 0.6)) return { scenario: "question", how: id === "order.question" ? "scout" : "gates" };
@@ -108,7 +131,8 @@ export function matchProducts(text, productRows) {
 // The product a message is about, from the product_lookup rows ({ sku, name, aliases }): the name's tokens all in the text, or an alias's.
 // A name match outranks an alias match, then the more tokens matched wins; two equally good products are ambiguous (null, with the skus listed).
 export function matchProductLookup(text, lookupRows) {
-  const t = new Set(tokens(text));
+  // "pouches" stems to "pouche": the -es plural of a -ch/-sh/-x/-ss word also counts as the singular
+  const t = new Set(tokens(text).flatMap((w) => (/(?:ch|sh|x|ss)e$/.test(w) ? [w, w.slice(0, -1)] : [w])));
   const found = [];
   for (const p of lookupRows ?? []) {
     const n = tokens(p.name);
@@ -155,6 +179,15 @@ async function ownerOf(tb, topic, o) {
 }
 
 // the real Risk sign-off line over a code-made draft
+// the team (and its label) of the person a hold waits for, from that person's own hierarchy row: a hold re-routed away from the ticket's own owner wears the new owner's team
+async function teamOf(tb, owner) {
+  if (owner?.owner_id == null) return {};
+  try {
+    const h = await personOf(tb, owner.owner_id, { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+    return h?.team ? { team: h.team, team_label: h.team_label ?? null } : (owner.owner_team ? { team: owner.owner_team } : {});
+  } catch { return owner.owner_team ? { team: owner.owner_team } : {}; }
+}
+
 function signoff(tb, branch, draft) {
   const hr = tb.hardRisk(tb.f ?? {}, draft);
   const reasons = hr.reasons ?? [];
@@ -219,6 +252,22 @@ async function probeQuestion(tb) {
   const cited = [...new Set(idsIn(collected))];
   const checked = `the FAQ (${faqRows.length} rows), ${rows.wiki?.length ?? 0} wiki page(s)${rows.policy?.length ? ", the policy rows" : ""}${rows.ticket ? ", the customer's ticket" : ""}`;
   const answerable = candidates.some(shares2);
+  // A question that names no product, matches no FAQ row and shares nothing with the records is not a product owner's question: it takes the other road
+  // (Support's default owner, a hold, no draft), whatever the models read it as. The question road's unanswered branch stays for product-scoped questions,
+  // and for a caller who declared the scenario "question" (the caller's choice stands; only a resolved message is re-routed).
+  let namesProduct = true;
+  if (!answerable && tb.scenario?.how !== "declared") {
+    try {
+      const lookup = (await tb.queries.run("product_lookup", {}, o)).objects;
+      // a product is named by its name, an alias or its SKU id (FS-A01)
+      namesProduct = matchProductLookup(text, lookup).all.length > 0 || lookup.some((x) => x.sku && new RegExp(`(?<![\\w-])${String(x.sku).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`, "i").test(text));
+    } catch { namesProduct = true; }
+  }
+  if (!answerable && !namesProduct) {
+    const oo = await ownerOf(tb, "other", o);
+    return { branch_id: "other-unanswered", why: `nothing in the records answers this and it names no product; checked ${checked}`,
+      cited: oo.looked_up ? ["responsibility:other"] : [], data: { owner: oo, faqRows: faqRows.length, rows, records: data, checked }, lines: [...ro, ...collected].map((x) => ({ ...x, branch_id: "other-unanswered" })) };
+  }
   const owner = answerable ? null : await ownerOf(tb, "question", o);
   const branch_id = answerable ? "question-records" : "question-unanswered";
   const lines = [...ro, ...collected].map((x) => ({ ...x, branch_id }));
@@ -249,6 +298,7 @@ async function actFaqHit(tb, p) {
 }
 
 async function actQuestion(tb, p) {
+  if (p.branch_id === "other-unanswered") return actOther(tb, p);
   const B = p.branch_id;
   if (B === "faq-hit") return actFaqHit(tb, p);
   if (B === "question-records") {
@@ -360,11 +410,11 @@ const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 const num = (v) => (v === "" || v == null ? NaN : Number(v));
 const cut = (v) => round2(v).toFixed(2);
 
-// "50 Arc Blade Trainers": the integer written directly before the product's name (Scout counts a quantity only before a unit word)
+// "50 Vanta Arc Trainers": the integer written directly before the product's name (Scout counts a quantity only before a unit word)
 function quantityBeforeProduct(text, name) {
   const words = String(name ?? "").split(/\s+/).filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (!words.length) return null;
-  // two numbers in the message ("the difference between 100000 Arc Blade Trainers and 100") is a comparison, not an order
+  // two numbers in the message ("the difference between 100000 Vanta Arc Trainers and 100") is a comparison, not an order
   if ((String(text ?? "").match(/(?<![\w.-])\d[\d,]*(?![\w-])/g) ?? []).length !== 1) return null;
   const m = new RegExp(`(?<![\\w.,-])(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\s*x)?\\s+(?:of\\s+(?:the\\s+)?)?${words.join("\\s+")}s?\\b`, "i").exec(String(text ?? ""));
   return m ? parseInt(m[1].replace(/,/g, ""), 10) : null;
@@ -530,11 +580,13 @@ async function probeComplaint(tb) {
     }
   }
   // severity (the gate logs its own line through the shim)
-  const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
+  const sev = await seams.severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
     { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
   // a legal threat wins over the channel and over plain severity: the severity read says legal, or a score of 10 on lawyer/legal/sue words
   const legal = sev.legal === true || (sev.score >= 10 && LEGAL_TEXT.test(`${ticket.subject} ${ticket.body}`));
-  const sevCls = legal ? "complaint-legal" : sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
+  // a self-described mild injury is a genuine complaint whatever the severity model scored it: a person still owns it, the draft is attached, and the note names the injury
+  const mild = legal ? null : mildInjury(`${ticket.subject} ${ticket.body}`);
+  const sevCls = legal ? "complaint-legal" : mild ? "complaint-genuine" : sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
   const owner = await ownerOf(tb, "complaint", o);
   const cited = ["world_threads", ...ctx.skus.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
   let legalRoute = null;
@@ -550,11 +602,45 @@ async function probeComplaint(tb) {
   const asked = /\b(refund\w*|money back|reimburs\w*)\b/i.test(`${ticket.subject} ${ticket.body}`) ? amountsIn(`${ticket.subject} ${ticket.body}`) : null;
   const refundNote = asked ? `; the customer also asks for a refund${asked.length ? ` (${asked.join(", ")} GC named)` : ""}, which the refund owner decides after the complaint is read` : "";
   const hist = ctx.summary.earlier_threads ? `${ctx.summary.earlier_threads} earlier thread${ctx.summary.earlier_threads === 1 ? "" : "s"} on record` : "no earlier threads";
-  return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-legal" ? "a legal threat: a courtesy reply now, Support owns it and Legal reviews" : sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? "the owner gets the draft and the handling note" : "a calm acknowledgement closes it"}${refundNote}`,
-    cited, data: { ctx, read, severity: sev, owner, legalRoute, products }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
+  return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-legal" ? "a legal threat: a courtesy reply now, Support owns it and Legal reviews" : sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? (mild ? `a safety report: the customer names a ${mild}; the owner gets the draft and the handling note` : "the owner gets the draft and the handling note") : "a calm acknowledgement closes it"}${refundNote}`,
+    cited, data: { ctx, read, severity: sev, owner, legalRoute, products, mild }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
 }
 
 const LEGAL_TEXT = /lawyer|attorney|legal|sue\b|court/i;
+// A self-described mild injury: a minor qualifier right before the injury ("a small burn", "slight bruise"), or the injury called minor ("the burn was minor").
+// The customer's own words decide it, not the severity model: a live severity read can score "a small burn" 10 (legal or safety).
+// A legal word, or anything that says it was not mild (hospital, stitches, permanent), keeps the severity rule.
+const INJURY = "burns?|burned|burnt|cuts?|bruises?|bruised|scratch(?:es|ed)?|grazes?|grazed|blisters?|nicks?|scrapes?|stings?|rash";
+const MILD_INJURY_BEFORE = new RegExp(`\\b(?:small|minor|slight|little|mild|tiny|light|superficial)\\s+(?:[a-z]+\\s+)?(${INJURY})\\b`, "i");
+const MILD_INJURY_AFTER = new RegExp(`\\b(${INJURY})(?:\\s+(?:on|to|in)\\s+(?:his|her|my|the|their)\\s+[a-z]+)?\\s+(?:was|is|were|looks?|seems?)\\s+(?:only\\s+|just\\s+|quite\\s+|very\\s+)?(?:small|minor|slight|mild|superficial)\\b`, "i");
+const NOT_MILD = /\b(hospital|a&e|emergency|stitches|surgery|ambulance|paramedic|fracture\w*|broken bone|third.degree|scar\w*|permanent\w*|disfigur\w*|serious\w*|severe\w*)\b/i;
+// words that put the injury word to a person or a body part ("a small burn on his hand"); without one the word may be a price cut or a burn mark on a carpet
+const PERSON_OR_BODY = /\b(son|daughter|child|children|kid|kids|boy|girl|baby|wife|husband|partner|brother|sister|hand|hands|finger|fingers|thumb|palm|wrist|arm|arms|leg|legs|knee|elbow|foot|feet|toe|toes|face|skin|neck|shoulder|chest|me|him|her|hurt|injur\w*|wound\w*)\b/i;
+// between the qualifier and the injury word, a word that makes it something else ("small price cut", "minor hair cut")
+const NOT_INJURY_NOUN = /^(price|prices|pricing|discount|budget|tax|rate|rates|cost|costs|hair|paper|power|fabric|cloth|corner|corners|tax|profit|margin|staff|job|jobs)$/i;
+const NEGATOR = /\b(not|no|never|none|without|isn['’]?t|wasn['’]?t|weren['’]?t|aren['’]?t|didn['’]?t|doesn['’]?t|don['’]?t|hardly|nothing)\b/i;
+const negatedBefore = (t, index) => {
+  const sentence = t.slice(0, index).split(/[.!?;\n]/).pop();
+  return NEGATOR.test(sentence.trim().split(/\s+/).slice(-4).join(" "));
+};
+// An affirmative description of an actual injury to a person. Negation before the qualifier or the injury ("not a small burn"), a non-injury use of the word
+// ("small price cut", "a cut in the budget") and a sentence with no person or body part in it are all not mild injuries.
+export function mildInjury(text) {
+  const t = String(text ?? "");
+  if (LEGAL_TEXT.test(t) || NOT_MILD.test(t)) return null;
+  for (const re of [new RegExp(MILD_INJURY_BEFORE.source, "gi"), new RegExp(MILD_INJURY_AFTER.source, "gi")]) {
+    for (const m of t.matchAll(re)) {
+      const sentence = t.slice(0, m.index).split(/[.!?;\n]/).pop() + t.slice(m.index).split(/[.!?;\n]/)[0];
+      const between = m[0].split(/\s+/);
+      if (between.length === 3 && NOT_INJURY_NOUN.test(between[1])) continue;
+      if (negatedBefore(t, m.index)) continue;
+      if (new RegExp(`\\b(?:${INJURY})\\s+(?:in|on|to|of)\\s+(?:the\\s+)?(?:price|prices|cost|budget|rate|rates|bill|tax)\\b`, "i").test(t.slice(m.index))) continue;
+      if (!PERSON_OR_BODY.test(sentence)) continue;
+      return m[0].replace(/\s+/g, " ").toLowerCase();
+    }
+  }
+  return null;
+}
 
 // The courtesy reply of a legal threat: a template, no model, Support's name on it. It acknowledges and promises nothing; Legal reviews the case.
 async function actLegal(tb, p) {
@@ -583,12 +669,13 @@ async function actLegal(tb, p) {
 async function actComplaint(tb, p) {
   if (p.branch_id === "complaint-legal") return actLegal(tb, p);
   const B = p.branch_id;
-  const { ctx, read, severity: sev, owner } = p.data;
+  const { ctx, read, severity: sev, owner, mild } = p.data;
   const severe = B === "complaint-severe";
   const messagesFn = ({ critiques }) => {
     const m = draftMessages({ ticket: tb.ticket, facts: tb.f, memoryContext: tb.memCtx, critiques });
     const last = m.length - 1;
     const extra = [`How to handle it: ${read.handle || "acknowledge and pass to the owner"}`, `The company's record of this customer: ${ctx.text}`,
+      ...(mild ? [`The customer reports a minor injury (${mild}): acknowledge it plainly and say a person will follow up.`] : []),
       B === "complaint-vent" ? "The customer is venting: write a calm acknowledgement, promise nothing." : "Acknowledge the problem and say a person will follow up; promise no refund, replacement or date."].join("\n");
     m[last] = { ...m[last], content: m[last].content.replace(/Return the JSON object now\.$/, `${extra}\n\nReturn the JSON object now.`) };
     return m;
@@ -613,7 +700,7 @@ async function actComplaint(tb, p) {
     return { decision: "escalate", reasons: [reason], draft, queued: owner, cited: p.cited };
   }
   tb.skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
-  const recommendation = B === "complaint-vent" ? "vent: a calm reply closes it; no action" : read.handle || "a person owns this and repairs it";
+  const recommendation = B === "complaint-vent" ? "vent: a calm reply closes it; no action" : `${mild ? `safety report, ${mild} (self-described as mild): ` : ""}${read.handle || "a person owns this and repairs it"}`;
   return { decision: "hold", reasons: [`${p.why}. Both critics passed; the reply waits for the complaint owner with the draft attached`], draft, queued: owner, recommendation, cited: p.cited };
 }
 
@@ -859,6 +946,20 @@ async function probeDelivery(tb) {
     const owner = await ownerOf(tb, "delivery", o);
     return fin("delivery-unknown", `order ${order_id || "(none)"} is not in the records; a person checks it`, owner.looked_up ? ["responsibility:delivery"] : [], { order_id, owner });
   }
+  // The order answers only its own customer: the sender's email must be the email of the order's customer.
+  // Anyone else gets a hold for a person, with nothing of the order (status, planet, rule) in the reasons, the trace or the output.
+  const sender = String(tb.f?.sender_email ?? "").trim().toLowerCase();
+  let owns = false;
+  if (sender && order.customer_id) {
+    const c = (await tb.queries.run("customer_by_email", { email: sender }, o)).objects;
+    owns = c.some((x) => String(x.customer_id) === String(order.customer_id));
+  }
+  if (!owns) {
+    const owner = await ownerOf(tb, "customer_service", o);
+    // the order lookup's trace line carries the row's own words (quantity, status, planet) in `detail`: it is dropped here, the id line stays
+    for (let i = 0; i < ro.length; i++) if (ro[i].action === "sql:order") { const { detail, ...rest } = ro[i]; ro[i] = rest; }
+    return fin("delivery-not-owner", `order ${order_id} does not belong to the sender; a person checks it, nothing about the order is sent`, owner.looked_up ? ["responsibility:customer_service"] : [], { order_id, owner });
+  }
   const planet = String(order.shipping_planet ?? "");
   const rule = planet ? (await tb.queries.run("shipping_rule", { planet }, o)).objects[0] : undefined;
   const cited = [`orders:${order.order_id}`, ...(rule ? [`shipping_rules:${rule.planet}`] : [])];
@@ -877,6 +978,14 @@ async function actDelivery(tb, p) {
     skipLine(tb, "retry", "delivery-unknown: a rewrite cannot change it");
     tb.skipped("escalate_or_fallback", "the delivery owner checks the order; nothing is escalated");
     return { decision: "hold", reasons: [`${p.why}. Held for the delivery owner, no draft`], queued: p.data.owner, recommendation: `order ${p.data.order_id || "(none)"} not found; ask the customer for the order reference`, cited: p.cited };
+  }
+  if (B === "delivery-not-owner") {
+    skipLine(tb, "nvidia.model", "delivery-not-owner: no draft");
+    skipLine(tb, "critique", "delivery-not-owner: no draft to critique");
+    skipLine(tb, "risk.signoff", "delivery-not-owner: nothing to sign");
+    skipLine(tb, "retry", "delivery-not-owner: a rewrite cannot change it");
+    tb.skipped("escalate_or_fallback", "Support checks the sender against the order; nothing is escalated");
+    return { decision: "hold", reasons: [`${p.why}. Held for Support, no draft`], queued: p.data.owner, recommendation: `the sender is not the customer on order ${p.data.order_id}; Support checks who is asking before anything about the order is shared`, cited: p.cited, ...(await teamOf(tb, p.data.owner)) };
   }
   const { order, rule, planet } = p.data;
   skipLine(tb, "nvidia.model", `${B}: the answer is composed from the order and the shipping rule, no model call`);
@@ -923,7 +1032,7 @@ async function actOther(tb, p) {
   skipLine(tb, "risk.signoff", "other-unanswered: nothing to sign");
   skipLine(tb, "retry", "other-unanswered: a rewrite cannot change it");
   tb.skipped("escalate_or_fallback", "a person answers; nothing is escalated");
-  return { decision: "hold", reasons: [`${p.why}. Held for the owner, no draft`], queued: p.data.owner, recommendation: "nothing in the records answers this; a person replies", cited: p.cited };
+  return { decision: "hold", reasons: [`${p.why}. Held for the owner, no draft`], queued: p.data.owner, recommendation: "nothing in the records answers this; a person replies", cited: p.cited, ...(await teamOf(tb, p.data.owner)) };
 }
 
 export const handleCustomerService = { probe: probeCustomerService, act: actCustomerService };

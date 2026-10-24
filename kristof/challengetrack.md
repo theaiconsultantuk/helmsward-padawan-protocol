@@ -232,7 +232,7 @@ Code, every time:
 - "Is this person out today": date in a holiday row. A Python date check. The model is not allowed to answer this.
 - Backup lookup. SQL.
 - Trust floor: weight compared with a number.
-- File name: `traces/2026-10-22T1430-refund-padme.amidala-retries2.md`. No colon. The colon in the original pattern breaks on Windows.
+- File name: `traces/2026-10-22T1430-refund-seraphine.kaelborn-retries2.md`. No colon. The colon in the original pattern breaks on Windows.
 
 Model, Nemotron through Nightshift, inside the loop only:
 
@@ -277,7 +277,7 @@ One round, in order:
 6. Either fails, and the gate is not met: this is a retry. `retry_count` goes up by one. Both sentences go back to the planner. Return to step 1.
 7. The gate is met: stop. Write both feedbacks to the ticket file. The decision is escalate.
 
-The ceiling is 2 negative rounds. The loop does not continue past the gate. A customer who says the reply was wrong opens a follow-up on the same ticket. That follow-up is the Padmé sample below. It is not a randomizer. A training loop that randomizes inputs is out.
+The ceiling is 2 negative rounds. The loop does not continue past the gate. A customer who says the reply was wrong opens a follow-up on the same ticket. That follow-up is the Seraphine sample below. It is not a randomizer. A training loop that randomizes inputs is out.
 
 Markovian shape of one ticket:
 
@@ -327,7 +327,7 @@ Fictional files are in `kristof/data/`. They are not loaded into a Zetaris insta
 | Categories | `categories.csv` | complaint, refund, question, appreciation, other. Rules first. |
 | Trust ledger | `trust-ledger.csv` | Weights are the stored seeds. Affirm raises a weight. Reject lowers it. The 24 threads do not recompute the numbers. |
 | Automation matrix | `automation-matrix.xml` | Autonomous only when the category weight is at or above the floor 0.80. Only appreciation qualifies. |
-| Email intake | `intakes/email/*.eml` | One mailbox file per email thread. Padmé's correction is `T01-reply.eml`. |
+| Email intake | `intakes/email/*.eml` | One mailbox file per email thread. Seraphine's correction is `T01-reply.eml`. |
 | Contact form | `intakes/contact-form/submissions.json` | Five fictional form posts. No live endpoint. |
 | Trustpilot | `intakes/trustpilot/reviews.json` | Three fictional reviews. `live_api` is false. |
 | 24 threads | `threads/threads.jsonl` and the same rows in `threads/threads.parquet` | Send, hold, escalate, pure thank-you, follow-up, duplicate, and two external-data blocks. |
@@ -341,7 +341,7 @@ Two scripted pairs. Each pair is one line with `status` `error`, then the next l
 
 **Zetaris refuses once.** In run `demo-recovery`, the first `zetaris.query` has `status` `error`. The summary says port 8888 refused the connection. The next line is `recovery`. The summary names the fixture rows that were used instead, and the same question is answered from those rows. The run does not stop.
 
-**She says the agent misunderstood her.** Same ticket as the refund draft for Padmé Amidala. Her reply is a new message on that thread:
+**She says the agent misunderstood her.** Same ticket as the refund draft for Seraphine Kaelborn. Her reply is a new message on that thread:
 
 > You misunderstood me. I did not ask for my money back. The saber arrived cracked and I asked you to replace it. Your reply says a refund is on the way. That is wrong. Do not send a refund.
 

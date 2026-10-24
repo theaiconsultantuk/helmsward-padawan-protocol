@@ -10,7 +10,10 @@ import { resolveScenario } from "../src/scenarios.mjs";
 const orders = readFileSync(join(INBOX_ROOT, "data", "synthetic", "orders.csv"), "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
 const HELD_ALDERAAN = orders.find((r) => r[6] === "Alderaan" && r[7] === "held")[0];   // order_id,customer_id,sku,quantity,amount,currency,shipping_planet,status
 const OPEN = orders.find((r) => r[6] === "Corellia");
-const where = (id) => msg(`Where is my order ${id}? It was meant to arrive weeks ago.`, "contact-form");
+const customers = readFileSync(join(INBOX_ROOT, "data", "synthetic", "customers.csv"), "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
+// the delivery road answers only the order's own customer: the sender is the customer on the order (orders.csv customer_id -> customers.csv email)
+const ownerEmail = (id) => customers.find((c) => c[0] === orders.find((o) => o[0] === id)?.[1])?.[3];
+const where = (id) => msg(`Where is my order ${id}? It was meant to arrive weeks ago.`, "contact-form", ownerEmail(id) ?? "a@email.com");
 
 test("a held order to Alderaan: the shipping rule is suspended, so the note is sent on behalf of Support", async () => {
   const { result, lines } = await runMessage(where(HELD_ALDERAAN));

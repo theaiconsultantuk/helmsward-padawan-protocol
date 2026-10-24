@@ -89,12 +89,16 @@ test("the FAQ edge: exactly 0.6 is a hit, 0.4 is not, one shared word is never o
   assert.equal(matchFaq("alpha", one), null, "a full score on one token is under the two-token floor");
 });
 
+// the delivery road answers only the order's own customer
+const csv = (f) => readFileSync(join(INBOX_ROOT, "data", "synthetic", f), "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
+const ownerOf = (order) => csv("customers.csv").find((c) => c[0] === csv("orders.csv").find((o) => o[0] === order)?.[1])?.[3];
+
 test("sweep: across the three row-answered routes and the holds, auto_reply is true only on a sent draft", async () => {
   const messages = [
     msg("What is the primary material used in the Sovereign Arc Duellist?", "contact-form"),
-    msg("Is the Wayfarer Cloak waterproof?"),
-    msg("Where is my order JP-1001?", "contact-form"),
-    msg("Where is my order JP-1008?", "contact-form"),
+    msg("Is the Wayfarer Long Cloak waterproof?"),
+    msg("Where is my order JP-1001?", "contact-form", ownerOf("JP-1001")),
+    msg("Where is my order JP-1008?", "contact-form", ownerOf("JP-1008")),
     msg("Where is my order JP-9999?", "contact-form"),
     msg("Do you offer gift wrapping?"),
     msg("Can I book the Coruscant store for a private birthday party?"),

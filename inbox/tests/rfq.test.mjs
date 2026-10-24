@@ -50,8 +50,8 @@ test("price difference, no product named: both quantities, nothing matched, sale
   assert.equal(esc[0][3].owner.owner_id, 6);
 });
 
-test("Arc Blade Trainer named: one price row cited, two quantities named, no tier denial", async () => {
-  const { probe, out, lines, esc } = await run(`${MSG} for Arc Blade Trainers`);
+test("Vanta Arc Trainer named: one price row cited, two quantities named, no tier denial", async () => {
+  const { probe, out, lines, esc } = await run(`${MSG} for Vanta Arc Trainers`);
   assert.equal(probe.data.prices.length, 1);
   assert.ok(probe.cited.includes("products:FS-B01"));
   assert.deepEqual(out.attachments.cited, ["products:FS-B01"]);
@@ -69,8 +69,8 @@ test("Arc Blade Trainer named: one price row cited, two quantities named, no tie
 });
 
 test("matchProducts needs every name token", () => {
-  const rows = [{ sku: "FS-B01", name: "Arc Blade Trainer" }, { sku: "FS-B02", name: "Emitter Hilt" }];
-  assert.deepEqual(matchProducts("quote 5 emitter hilts", rows).map((r) => r.sku), ["FS-B02"]);
+  const rows = [{ sku: "FS-B01", name: "Vanta Arc Trainer" }, { sku: "FS-B02", name: "Strand Emitter Hilt" }];
+  assert.deepEqual(matchProducts("quote 5 strand emitter hilts", rows).map((r) => r.sku), ["FS-B02"]);
   assert.deepEqual(matchProducts("a saber", rows), []);
 });
 
@@ -85,7 +85,7 @@ test("resolveScenario", () => {
 // ---- the quote road (P29): one product and one quantity are quoted from the tier and the parts; anything less stays the acknowledgement above ----
 
 test("one product and one quantity: the handler probes tiers and parts and holds a quote for the rfq owner (no escalate)", async () => {
-  const { probe, out, esc } = await run("Please quote 25 Arc Blade Trainers for our academy");
+  const { probe, out, esc } = await run("Please quote 25 Vanta Arc Trainers for our academy");
   assert.equal(probe.branch_id, "rfq-quote");
   assert.deepEqual(probe.data.quote, { sku: "FS-B01", quantity: 25, tier: "squad", unit_price: 170.1, discount_pct: 10, total: 4252.5, currency: "GC",
     parts: probe.data.quote.parts });
@@ -98,15 +98,15 @@ test("one product and one quantity: the handler probes tiers and parts and holds
 });
 
 test("the quantity may stand before the product name (Scout counts only before a unit word); two numbers do not make an order", async () => {
-  assert.equal((await run("send a quote for 50 Arc Blade Trainers")).probe.data.quote.quantity, 50);
-  assert.equal((await run("send a quote for 1,000 Arc Blade Trainers")).probe.data.quote.quantity, 1000);
-  assert.equal((await run("the difference between 100000 Arc Blade Trainers and 100")).probe.branch_id, "rfq");
-  assert.equal((await run("Arc Blade Trainers, quantity not decided yet")).probe.branch_id, "rfq");
+  assert.equal((await run("send a quote for 50 Vanta Arc Trainers")).probe.data.quote.quantity, 50);
+  assert.equal((await run("send a quote for 1,000 Vanta Arc Trainers")).probe.data.quote.quantity, 1000);
+  assert.equal((await run("the difference between 100000 Vanta Arc Trainers and 100")).probe.branch_id, "rfq");
+  assert.equal((await run("Vanta Arc Trainers, quantity not decided yet")).probe.branch_id, "rfq");
 });
 
 test("resolveScenario: a quote for a counted product is an RFQ even when Scout read a plain order question; a product question stays a product question", () => {
   const decided = { intent: { primary: { id: "GENERAL" }, confidence: 0.2 } };
-  const productHit = { row: { sku: "FS-B01" } };
-  assert.deepEqual(resolveScenario({ kind: "message", decided, text: "could you quote 25 Arc Blade Trainers?", productHit }), { scenario: "rfq", how: "scout" });
-  assert.equal(resolveScenario({ kind: "message", decided, text: "What is the Arc Blade Trainer made of?", productHit }).scenario, "product");
+  const productHit = { row: { sku: "FS-B01", name: "Vanta Arc Trainer" } };
+  assert.deepEqual(resolveScenario({ kind: "message", decided, text: "could you quote 25 Vanta Arc Trainers?", productHit }), { scenario: "rfq", how: "scout" });
+  assert.equal(resolveScenario({ kind: "message", decided, text: "What is the Vanta Arc Trainer made of?", productHit }).scenario, "product");
 });

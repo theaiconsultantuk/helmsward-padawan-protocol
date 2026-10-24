@@ -76,8 +76,8 @@ test("product complaint count matches a direct count over the rows, and the fact
 test("a product mentioned in 2 complaint threads reports 2 (built rows)", async () => {
   const mk = (id, email, cat, subject) => ({ thread_id: id, sender_email: email, sender_name: email, category: cat, channel: "email", received_at: `2026-10-2${id}T09:00:00Z`, owner_id: "7", outcome: "hold", subject });
   const custom = {
-    world_threads: [mk("1", "a@example.com", "complaint", "My Emitter Hilt is cracked"), mk("2", "b@example.com", "complaint", "Emitter Hilt arrived late"),
-      mk("3", "c@example.com", "refund", "Money back for my Emitter Hilt"), mk("4", "a@example.com", "complaint", "Tell everyone: bad service")],
+    world_threads: [mk("1", "a@example.com", "complaint", "My Strand Emitter Hilt is cracked"), mk("2", "b@example.com", "complaint", "Strand Emitter Hilt arrived late"),
+      mk("3", "c@example.com", "refund", "Money back for my Strand Emitter Hilt"), mk("4", "a@example.com", "complaint", "Tell everyone: bad service")],
     products,
     reviews: [],
   };

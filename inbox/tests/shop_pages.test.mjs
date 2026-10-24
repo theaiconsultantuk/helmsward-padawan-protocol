@@ -207,3 +207,39 @@ test("(9) contact.js token handling: the token survives throwing storage and a t
   const src = readShop("js/contact.js");
   assert.match(src, /stripFailed\) setStatus\(/);
 });
+
+// The storefront prices in GC and its public catalogue carries no internal fields (Codex review 33 finding 1).
+const INTERNAL_FIELDS = ["inbox_agent", "brand_file", "refund_limit_usd", "refund_limit_source",
+  "over_refund_limit", "inbox_product_map", "thread_refs"];
+const SHOP_HTML = ["index.html", "shop.html", "product.html", "faq.html", "contact.html"];
+
+test("the served catalogue and every embedded copy carry no internal fields, and GC is the currency", async () => {
+  const served = await page("/shop/data/catalogue.json");
+  const blobs = [];
+  for (const f of SHOP_HTML) {
+    const html = await page("/shop/" + f);
+    const m = html.match(/<script type="application\/json" id="catalogue-data">([\s\S]*?)<\/script>/);
+    if (m) blobs.push([f, m[1]]);
+    else assert.ok(f === "contact.html", `${f} should embed the catalogue`);
+  }
+  assert.ok(blobs.length >= 4, "index, shop, product and faq embed a catalogue copy");
+  for (const [name, text] of [["catalogue.json", served], ...blobs]) {
+    for (const k of INTERNAL_FIELDS) assert.ok(!text.includes(`"${k}"`), `${name} exposes ${k}`);
+    const cat = JSON.parse(text);
+    assert.ok(cat.products.length > 0, name);
+    for (const p of cat.products) {
+      assert.equal(typeof p.price_usd, "number", `${name} ${p.id}`);
+      assert.equal(p.currency, "GC", `${name} ${p.id}`);
+    }
+  }
+});
+
+test("no served shop page shows a dollar sign before a number or USD to the visitor", async () => {
+  for (const f of [...SHOP_HTML, "data/catalogue.json"]) {
+    const text = await page("/shop/" + f);
+    assert.ok(!/\$\s?\d/.test(text), `${f} shows $ before a number`);
+    assert.ok(!/\bUSD\b/.test(text), `${f} shows USD`);
+  }
+  // the price formatter the pages share prints GC
+  assert.match(readShop("js/core.js"), /const usd = n => `\$\{n\} GC`;/);
+});

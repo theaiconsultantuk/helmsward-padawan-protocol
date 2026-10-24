@@ -148,10 +148,25 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
 class Stop extends Error {}
 
 const errName = (e) => e?.name ?? "Error";
-const safeMsg = (e) => String(mask(String(e?.message ?? e)));
+// Public text never carries a host path: an absolute path (the memory dir, INBOX_ROOT, the os tmp dir, a Windows drive path) becomes "<path>/<last part>".
+// The full message stays server-side (serverLog), never in a trace line or the journey.
+const redactPaths = (t) => String(t)
+  .replace(/(?<![\w:.\/])[A-Za-z]:[\\/](?:[^\\/\s'"`,;)]+[\\/])*[^\\/\s'"`,;)]*/g, (m) => `<path>/${m.split(/[\\/]/).filter(Boolean).pop() ?? ""}`)
+  .replace(/(?<![\w:.\/])\/(?:[\w.@+~-]+\/)*[\w.@+~-]+/g, (m) => `<path>/${m.split("/").filter(Boolean).pop() ?? ""}`);
+const safeMsg = (e) => redactPaths(String(mask(String(e?.message ?? e))));
+export const redactHostPaths = redactPaths;
+const serverLog = (quiet, step, e) => { if (!quiet) console.error(`[loop] ${step}: ${errName(e)}: ${String(e?.message ?? e)}`); };
 // A buffered trace line keeps the moment it was recorded (`at`), so its timestamp and duration_ms are when the step ran, not when the buffer was written out.
 const stampedBuffer = () => { const a = []; a.push = (...xs) => Array.prototype.push.apply(a, xs.map((x) => (x && x.at === undefined ? { ...x, at: Date.now() } : x))); return a; };
-const one = (s, n = 220) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+// Cut at a word boundary with "…" when the text is longer than n; never mid-word.
+const one = (s, n = 220) => {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  if (t.length <= n) return t;
+  const head = t.slice(0, n);
+  const sp = head.lastIndexOf(" ");
+  const cut = sp >= Math.floor(n / 2) ? head.slice(0, sp) : head;
+  return `${cut.replace(/[\s,;:.\-(]+$/, "")}\u2026`;
+};
 
 // The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
 const approverOf = (f) => (f?.owner_out && !f?.backup_out
@@ -359,7 +374,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const ov = { ...S.meta, ...over };
     return {
       team: ov.team ?? (backupHolds ? f?.backup_team : f?.owner_team) ?? null,
-      team_label: ov.team_label ?? (backupHolds ? f?.backup_team_label : f?.owner_team_label) ?? null,
+      team_label: ov.team_label !== undefined ? ov.team_label : ((backupHolds ? f?.backup_team_label : f?.owner_team_label) ?? null),
       backup_team: ov.backup_team ?? f?.backup_team ?? null,
       topic_label: ov.topic_label ?? f?.topic_label ?? null,
       cc: ov.cc ?? [], also: ov.also ?? [],
@@ -421,6 +436,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
   // Log an error line, then the recovery line, then stop the pipeline (the run still ends with a result).
   const fatal = (step, e, recoveryText) => {
+    serverLog(deps.quiet, step, e);
     S.recovered.push({ step, type: errName(e), message: safeMsg(e) });
     L({ step, agent_name: WHO[step][0], action: WHO[step][1], input_summary: `${step} failed`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: `after ${step} error`, output_summary: recoveryText, status: "success" });
@@ -428,6 +444,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   };
   // Same, for a step the run can survive.
   const soft = (step, e, recoveryText, { agent, action } = {}) => {
+    serverLog(deps.quiet, step, e);
     S.recovered.push({ step, type: errName(e), message: safeMsg(e) });
     L({ step, agent_name: agent ?? WHO[step][0], action: action ?? WHO[step][1], input_summary: `${step} failed`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: `after ${step} error`, output_summary: recoveryText, status: "success" });
@@ -458,6 +475,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
+    const queue_name = `queue/${tid}.json`; // the trace names the file inside the memory dir, never the server's absolute path
     S.decision = "escalate";
     S.queued = { owner_id: ownerId, backup_id: backupId, owner_name: f?.owner_name ?? null, backup_name: f?.backup_name ?? null, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
       ...(attachments !== undefined ? { attachments } : {}), ...(recommendation !== undefined ? { recommendation } : {}), ...(escalation !== undefined ? { escalation } : {}),
@@ -468,9 +486,9 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
-        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
-        : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
-        : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
+        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_name}`}`
+        : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_name}`}`
+        : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_name}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
     S.reasons.push(reason);
@@ -514,7 +532,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
         buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after intake_publish error", output_summary: "intake publish unavailable: the ticket row is read from the local file", status: "success" });
       } else {
         buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
-          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success" });
+          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success",
+          detail: pub.published ? `the new message was saved as ${tid} and published, so the next read sees it` : `the new message was saved as ${tid}; it was not published, so it is read from the local file` });
       }
       S.msg = { row, published: pub.published === true };
       const rowTicket = { ...row, thread_id: tid };
@@ -760,7 +779,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status", "courtesy_reply"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
       if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
       settleSend();
-      if (a.ownerHint) S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
+      if (a.ownerHint) {
+        S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
+        // team and team_label come together from the chosen owner only (the hint's own hierarchy row); a label that row does not give stays null, never the ticket owner's
+        const hid = a.ownerHint.owner_id;
+        if (hid != null && hid !== f?.owner_id) {
+          let h = null;
+          try { h = (await (deps.hierarchy ?? ((id) => queries.run("hierarchy", { employee_id: id }, { cfg, trace: { line: () => {} } })))(hid)).objects[0] ?? null; } catch { h = null; }
+          S.meta = { ...S.meta, team: h?.team ?? a.ownerHint.owner_team ?? a.team ?? null, team_label: h?.team_label ?? null };
+        } else if (hid != null) S.meta = { ...S.meta, team: f?.owner_team ?? a.team ?? null, team_label: f?.owner_team_label ?? null };
+      }
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
       if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...(a.attachments !== undefined ? { attachments: a.attachments } : {}), ...queueMeta() };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
@@ -821,6 +849,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     if (B === "under-floor") {
       S.decision = "hold";
+      // the hold names the person it waits for (the backup when the owner is out); there is no queue file for a plain hold
+      if (!S.queued) S.queued = { owner_id: f.owner_id ?? null, backup_id: f.backup_id ?? null, owner_name: f.owner_name ?? null, backup_name: f.backup_name ?? null, ...queueMeta() };
       S.reasons.push(`${S.branch.why}. Both critics passed; the reply waits for ${f.owner_out ? `backup ${f.backup_id}` : `owner ${f.owner_id}`} with the draft attached`);
       skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
       return;
@@ -865,14 +895,18 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   let written = null;
   try {
     const f = S.facts;
-    const reason = one(S.reasons[0] ?? "no reason recorded", 160);
+    // A delivery answer is built from an order's rows (planet, status, sku, amount) that only the order's customer may see. Memory is recalled by display name
+    // and by thread, so a later run from anyone else could read it back: a delivery memory records that a delivery enquiry was handled, never the order's facts.
+    const orderRun = /^delivery-/.test(S.branch?.branch_id ?? "");
+    const reason = orderRun ? "a delivery enquiry was handled; no order details are kept in memory" : one(S.reasons[0] ?? "no reason recorded", 160);
     written = hmem.add({
-      content: `${thread_id} ${S.decision}: ${f ? `${f.sender_name} ${f.category}. ` : ""}${reason}`,
+      content: `${orderRun ? "delivery enquiry" : thread_id} ${S.decision}: ${f && !orderRun ? `${f.sender_name} ${f.category}. ` : ""}${reason}`,
       source: "loop", type: "factual", tags: [f?.category ?? "unknown", S.decision],
       entities: [f?.sender_name, emailKey(f?.sender_email), thread_id].filter(Boolean), provenance: { origin: "loop", run_id, learnedAt: clock(), label: "factual" },
     });
     S.memWritten.push(written.id);
   } catch (e) {
+    serverLog(deps.quiet, "memory.write", e);
     S.recovered.push({ step: "memory.write", type: errName(e), message: safeMsg(e) });
     F({ step: "memory.write", agent_name: "Memory", action: "memory_write", input_summary: "hmem.add", output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
     F({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after memory.write error", output_summary: "continued, nothing remembered from this run", status: "success" });

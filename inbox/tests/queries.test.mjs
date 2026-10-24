@@ -177,7 +177,7 @@ test("detail: the employee, policy and responsibility reads put the rows in word
   assert.equal(lines[3].detail, undefined);
   assert.equal(lines[3].input_summary, 'the employee record {"employee_id":15}');
   await run("trust", { category: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["category", "weight", "floor"], rows: [["refund", 0.55, 0.8]] }) });
-  assert.equal(lines[4].detail, undefined);
+  assert.equal(lines[4].detail, "refund: trust weight 0.55, floor 0.8");
 });
 
 test("G2: run() forwards the trace to sqlRunImpl and writes one line of its own on a throw", async () => {
@@ -302,7 +302,7 @@ test("S0.2: products: 50 skus, one price each, GC, no tier columns; the template
   assert.equal(l.rows.find((x) => x[0] === "FS-B01")[2], "189.0"); // a double comes back in Java's form
 });
 
-test("storefront parity: every storefront sku is in products.csv with the same name and price", (t) => {
+test("storefront parity: every storefront sku is in products.csv with the same name, price and description", (t) => {
   const path = new URL("../public/shop/data/catalogue.json", import.meta.url);
   if (!existsSync(path)) return t.skip("storefront not on main yet");
   const cat = JSON.parse(readFileSync(path, "utf8"));
@@ -312,8 +312,29 @@ test("storefront parity: every storefront sku is in products.csv with the same n
   for (const it of items) {
     const sku = it.sku ?? it.id;
     assert.ok(rows[sku], `${sku} is not in products.csv`);
-    assert.equal(it.name, rows[sku].name, sku);
-    assert.equal(Number(it.price ?? it.unit_price), Number(rows[sku].unit_price), sku);
+    assert.equal(it.name, rows[sku].name, `${sku} name`);
+    assert.equal(Number(it.price_usd ?? it.price ?? it.unit_price), Number(rows[sku].unit_price), `${sku} price`);
+    if (it.description != null) assert.equal(rows[sku].description, it.description, `${sku} description is Jocke's copy`);
+  }
+});
+
+// The agent's product rows answer product questions, so they must say what the storefront says (Jocke's materials_specs are canon).
+// Normalised = lower-case letters and digits only, so "Hilt: brass" and the row pair "hilt=brass" compare equal.
+test("storefront parity: the agent's material and specs carry every line of the storefront's materials_specs", (t) => {
+  const path = new URL("../public/shop/data/catalogue.json", import.meta.url);
+  if (!existsSync(path)) return t.skip("storefront not on main yet");
+  const items = JSON.parse(readFileSync(path, "utf8")).products ?? [];
+  const rows = Object.fromEntries(readCsv(new URL("../data/synthetic/products.csv", import.meta.url).pathname).map((r) => [r.sku, r]));
+  const norm = (x) => String(x ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  assert.ok(items.length > 0);
+  for (const it of items) {
+    const row = rows[it.id];
+    assert.ok(row, `${it.id} is not in products.csv`);
+    assert.ok(Array.isArray(it.materials_specs) && it.materials_specs.length > 0, `${it.id} has no materials_specs`);
+    const specs = norm(String(row.specs ?? "").split(";").join(" "));
+    for (const line of it.materials_specs) assert.ok(specs.includes(norm(line)), `${it.id} specs miss the storefront line "${line}": ${row.specs}`);
+    assert.ok(norm(row.material).length > 0, `${it.id} has no material`);
+    assert.ok(it.materials_specs.some((line) => norm(line).includes(norm(row.material))), `${it.id} material "${row.material}" is in none of its storefront lines`);
   }
 });
 

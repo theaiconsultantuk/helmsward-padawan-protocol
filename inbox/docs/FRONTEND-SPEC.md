@@ -194,7 +194,7 @@ Trimmed from `openapi.yaml`:
   "nodes": [ { "n": 1, "step": "memory.read", "agent": "Memory", "label": "Memory read", "route": "empty (cold first run)", "detail": null, "consulted": [], "retained": [], "reached_human": false, "status": "success", "model": null, "timestamp": "..." } ],
   "human": { "input": "...", "path": ["Memory read", "Plan", "Branch: rfq", "Hand-off", "Reply"],
              "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:FS-B01"], "blanks": [], "recommendation": "..." } },
-  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:FS-B01"], "queue_file": "data/memory/queue/F2.json" } }
+  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:FS-B01"], "queue_file": "queue/F2.json" } }
 ```
 
 The judge-scenarios build adds these fields, here and on `GET /runs/{id}` (`output`, `output.queued_for`).

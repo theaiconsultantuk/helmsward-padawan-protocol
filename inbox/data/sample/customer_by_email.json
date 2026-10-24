@@ -1171,36 +1171,6 @@
   },
   {
     "params": {
-      "email": "padme.amidala@example.com"
-    },
-    "result": {
-      "headers": [
-        "customer_id",
-        "name",
-        "callsign",
-        "email",
-        "home_planet",
-        "since",
-        "seeded_prior_refund",
-        "fictional"
-      ],
-      "rows": [
-        [
-          "C001",
-          "Padmé Amidala",
-          "padme-3",
-          "padme.amidala@example.com",
-          "Tatooine",
-          "2025-06-17",
-          "false",
-          "true"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
       "email": "perrinyarrow@email.com"
     },
     "result": {
@@ -1402,6 +1372,36 @@
           "sable.wren@example.com",
           "Hoth",
           "2025-07-09",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "seraphine.kaelborn@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C001",
+          "Seraphine Kaelborn",
+          "kaelborn-3",
+          "seraphine.kaelborn@example.com",
+          "Tatooine",
+          "2025-06-17",
           "false",
           "true"
         ]

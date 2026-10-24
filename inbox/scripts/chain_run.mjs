@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Task 3.5: the Padmé (T01) email chain processed sequentially through the real loop.
+// Task 3.5: the Seraphine (T01) email chain processed sequentially through the real loop.
 // Step 1 = her original email (received 22 Oct 09:14Z), run as a fresh replacement request, NOT as a misread.
 // Step 2 = her follow-up (22 Oct 14:05Z), run with step 1's saved draft promises (deps.priorDraft) and the same memory dir.
 // Two genuine outcomes, both recorded as they happen: (a) step 1 promised a refund, step 2 detects the misread and escalates;
@@ -17,7 +17,7 @@ import * as sample from "../src/adapters/sample.mjs";
 // The two messages' own Date headers (kristof/data/intakes/email/T01.eml and T01-reply.eml).
 const CHAINS = {
   T01: {
-    customer: "Padmé Amidala",
+    customer: "Seraphine Kaelborn",
     steps: [
       { n: 1, label: "original email (asks for a replacement)", received_at: "2026-10-22T09:14:00Z" },
       { n: 2, label: "follow-up (\"you misunderstood me\")", received_at: "2026-10-22T14:05:00Z" },
@@ -105,13 +105,13 @@ export function renderReport(c, extra = {}) {
         : "neither (a) nor (b): step 1 produced no draft to hand over, so step 2 could only fall back to the authored misread rule; this run does not count as either outcome.";
   return [
     "---",
-    "title: Padmé email chain, run sequentially",
+    "title: Seraphine email chain, run sequentially",
     "description: Her original email and her follow-up processed one after the other through the real loop, with the first draft's promises and memory carried into the second step.",
     "date: 2026-10-23",
     "tags: [judging, demo]",
     "---",
     "",
-    "# Padmé email chain, run sequentially",
+    "# Seraphine email chain, run sequentially",
     "",
     `Command: \`node inbox/scripts/chain_run.mjs --chain T01${c.sample ? ` --sample --seed ${c.seed}` : ""}\` (run \`${c.name}\`, steps \`${c.name}_1\` and \`${c.name}_2\`).`,
     "",

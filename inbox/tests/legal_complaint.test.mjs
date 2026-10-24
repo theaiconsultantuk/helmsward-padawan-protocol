@@ -10,7 +10,7 @@ import { runMessage, msg, dirs, assertAutoReplyInvariant } from "./helpers/route
 
 const [h, ...rows] = parseCsv(readFileSync(join(INBOX_ROOT, "data", "synthetic", "employees.csv"), "utf8"));
 const EMAIL = Object.fromEntries(rows.map((r) => [Number(r[h.indexOf("employee_id")]), r[h.indexOf("email")]]));
-const LEGAL = "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.";
+const LEGAL = "The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.";
 const send = (text, channel = "email", from = "angry@example.com", extra = {}, opts = {}) => runMessage(msg(text, channel, from, { name: "Rex Dow", ...extra }), opts);
 
 test("legal threat: complaint-legal escalates to Support (15) with Legal's default owner (203) also told and the heads of Support (7) and Legal (202) in copy", async () => {
@@ -40,7 +40,7 @@ test("legal threat: complaint-legal escalates to Support (15) with Legal's defau
   for (const c of ["responsibility:legal", "companyhierarchy:7", "companyhierarchy:202", "companyhierarchy:203"]) assert.ok(o.cited_rows.includes(c), `cites ${c}`);
   assertAutoReplyInvariant(assert, result, "legal");
   // the courtesy draft: Support's template, the situation named, signed by Support, no refund, amount, date promise
-  assert.match(o.draft.text, /^Hello Rex Dow,\n\nWe are sorry to read what happened with your Emitter Hilt\. We are looking into it now and will come back to you within two working days\.\n\nBest regards,\nJedi Pack Support team$/);
+  assert.match(o.draft.text, /^Hello Rex Dow,\n\nWe are sorry to read what happened with your Strand Emitter Hilt\. We are looking into it now and will come back to you within two working days\.\n\nBest regards,\nJedi Pack Support team$/);
   assert.deepEqual(o.draft.promises, { refund_amount: null, replacement: false, other: null });
   assert.ok(!/refund|replace|lawyer|legal/i.test(o.draft.text), "the courtesy reply does not answer the threat");
   // no model call: the template is the draft
@@ -83,16 +83,16 @@ test("the same email threatens twice (status x operation): both escalate legal, 
 });
 
 test("a legal threat on Trustpilot: legal wins over the channel, the channel row is still cited", async () => {
-  const { result } = await send("I will take legal action over the scuffed Drift Boots.", "trustpilot", "tp@example.com", { name: "Lena Kor" });
+  const { result } = await send("I will take legal action over the scuffed Drift Boot Wraps.", "trustpilot", "tp@example.com", { name: "Lena Kor" });
   assert.equal(result.branch_id, "complaint-legal");
   assert.equal(result.output.decision, "escalate");
   assert.ok(result.output.cited_rows.includes("channels:trustpilot"));
-  assert.match(result.output.draft.text, /with your Drift Boots\./);
+  assert.match(result.output.draft.text, /with your Drift Boot Wraps\./);
   assert.equal(result.output.courtesy_reply, true);
 });
 
 test("a mild injury (scenario 8) is not legal: complaint-genuine holds for Support with the draft, nobody in copy, no courtesy flag", async () => {
-  const { result } = await send("This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.", "email", "parent@example.com", { name: "Dana Orr" });
+  const { result } = await send("This is unacceptable: the hot emitter of my Vanta Arc Trainer gave my son a small burn.", "email", "parent@example.com", { name: "Dana Orr" });
   const o = result.output;
   assert.equal(result.scenario, "complaint");
   assert.equal(result.branch_id, "complaint-genuine");
@@ -117,7 +117,7 @@ test("unsafe alone (score 10, no lawyer/legal/sue/court words) is the severe rou
 });
 
 test("a Trustpilot complaint that is not severe (scenario 13) holds for Support with a draft", async () => {
-  const { result } = await send("The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.", "trustpilot", "tp@example.com", { name: "Lena Kor" });
+  const { result } = await send("The Drift Boot Wraps arrived scuffed and I am disappointed. Posting my honest review here.", "trustpilot", "tp@example.com", { name: "Lena Kor" });
   assert.equal(result.output.decision, "hold");
   assert.match(result.branch_id, /^complaint-(genuine|vent)$/);
   assert.equal(result.output.queued_for.owner_id, 15);

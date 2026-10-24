@@ -78,7 +78,9 @@ export function extractParams(prompt) {
   });
   // the loop's prompt is "subject\nbody"; a free-text subject is the body's first 60 characters, so its amounts are the body's own and count once
   const nl = s.indexOf("\n"), head = nl > 0 ? s.slice(0, nl).trim() : "", rest = nl > 0 ? s.slice(nl + 1) : s;
-  const found = [...(head && rest.includes(head) ? rest : s).matchAll(MONEY)].map(one);
+  // a derived subject ends with "\u2026" when it was cut, so compare its stem; whitespace is collapsed on both sides
+  const stem = head.replace(/[\s\u2026]+$/, "").replace(/\s+/g, " "), flat = rest.replace(/\s+/g, " ");
+  const found = [...(stem && flat.includes(stem) ? rest : s).matchAll(MONEY)].map(one);
   if (found.length) {
     p.amount = found[0].num;
     p.currency = found[0].cur;

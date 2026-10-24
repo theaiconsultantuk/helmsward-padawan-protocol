@@ -1,7 +1,7 @@
 ---
 title: Meterless World Model engine
 description: What the Meterless World Model does in the Jedi Pack inbox, the complaint route it powers, its tests and the live trace with the world_context line.
-date: 2026-10-24
+date: 2026-10-25
 tags: [judging, meterless, world-model]
 ---
 
@@ -22,7 +22,7 @@ A message declared or classified as a complaint makes the loop ask the World Mod
 
 ## Tests
 
-Real run, 2026-10-24 20:19:59 (Europe/Brussels): `node --test` on the four files.
+Real run, 2026-10-25 00:50:41 (Europe/Brussels): `node --test` on the four files.
 
 | File | Tests | Pass | Fail | Skipped |
 |---|---|---|---|---|
@@ -44,17 +44,17 @@ Trace: `judging/traces/trace-scenario-8-sample.jsonl`. Input: Tilda Moss (`tilda
 The `world_context` line, verbatim:
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and FS-A07","output_summary":"250 entities, 221 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product FS-A07: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:FS-A07,fact_69c3bf75aaaf9511","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:FS-A07","fact_69c3bf75aaaf9511"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.643Z","duration_ms":1,"elapsed_ms":7,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and no product","output_summary":"250 entities, 228 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab"],"sponsor":"meterless"}
 ```
 
-Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:FS-A07","fact_69c3bf75aaaf9511"]`.
+Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab"]`.
 
 ## OpenJev severity: ten levels
 
 The severity gate asks OpenJev one `score` question with ten levels (1 to 10), because OpenJev accepts at most ten score levels. The score is an expected index, so severity = round(score) + 1. Escalation is at 9 or above. The `severity_gate` line from example 8 (live when configured, else sample); its `output_summary` carries the integer, the raw float, the confidence and the source:
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.643Z","duration_ms":1,"elapsed_ms":7,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 Reading: `sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules`.

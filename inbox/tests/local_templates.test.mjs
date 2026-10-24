@@ -150,7 +150,7 @@ test("products, lookup, by_sku, order, tiers, bom, channel", () => {
   const lk = L("product_lookup");
   assert.deepEqual(lk.headers, ["sku", "name", "aliases"]); assert.equal(lk.rows.length, 50);
   const b03 = objs(L("product_by_sku", { sku: "FS-B03" }))[0];
-  assert.match(b03.material, /tempered duralloy twin-core/);
+  assert.match(b03.material, /brass and blackened steel/);
   assert.equal(L("product_by_sku", { sku: "FS-Z99" }).rows.length, 0);
   assert.equal(objs(L("order", { order_id: "JP-1042" }))[0].shipping_planet, "Corellia");
   assert.deepEqual(L("bulk_tiers").rows, [["crew", "1", "10", "0.0"], ["squad", "11", "100", "10.0"], ["fleet", "101", null, "20.0"]]);

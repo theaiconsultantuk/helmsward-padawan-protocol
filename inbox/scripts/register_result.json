@@ -8,11 +8,19 @@
     "format": "CSV",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE employees FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE employees FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/employees.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 207
       }
     ],
-    "rows": 200,
+    "options": {
+      "header": "true"
+    },
+    "rows": 207,
     "ok": true
   },
   {
@@ -20,11 +28,19 @@
     "format": "CSV",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE holiday_2026 FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE holiday_2026 FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/holiday-2026.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 1263
       }
     ],
-    "rows": 1251,
+    "options": {
+      "header": "true"
+    },
+    "rows": 1263,
     "ok": true
   },
   {
@@ -32,11 +48,19 @@
     "format": "CSV",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE responsibility FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE responsibility FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/responsibility.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 12
       }
     ],
-    "rows": 5,
+    "options": {
+      "header": "true"
+    },
+    "rows": 12,
     "ok": true
   },
   {
@@ -44,11 +68,19 @@
     "format": "CSV",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE policy FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE policy FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/policy.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 2
       }
     ],
-    "rows": 1,
+    "options": {
+      "header": "true"
+    },
+    "rows": 2,
     "ok": true
   },
   {
@@ -56,10 +88,18 @@
     "format": "CSV",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE categories FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE categories FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/categories.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 5
       }
     ],
+    "options": {
+      "header": "true"
+    },
     "rows": 5,
     "ok": true
   },
@@ -68,23 +108,19 @@
     "format": "CSV",
     "attempts": [
       {
-        "stmt": "CREATE LIGHTNING FILESTORE TABLE trust_ledger FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/trust-ledger.csv\", header \"true\")",
-        "status": "exists, skipped"
-      }
-    ],
-    "rows": 5,
-    "ok": true
-  },
-  {
-    "table": "automation_matrix",
-    "format": "XML",
-    "attempts": [
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE trust_ledger FROM JEDI_PACK",
+        "status": "ok"
+      },
       {
-        "stmt": "CREATE LIGHTNING FILESTORE TABLE automation_matrix FROM JEDI_PACK FORMAT XML OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/automation-matrix.xml\", rowTag \"category\")",
-        "status": "exists, skipped"
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE trust_ledger FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/trust-ledger.csv\", header \"true\")",
+        "status": "ok",
+        "rows": 12
       }
     ],
-    "rows": 5,
+    "options": {
+      "header": "true"
+    },
+    "rows": 12,
     "ok": true
   },
   {
@@ -92,10 +128,16 @@
     "format": "MARKDOWN",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE wiki_refund_policy FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_refund_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/refund-policy.md\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 1
       }
     ],
+    "options": {},
     "rows": 1,
     "ok": true
   },
@@ -104,10 +146,16 @@
     "format": "MARKDOWN",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE wiki_replacement_policy FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_replacement_policy FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/replacement-policy.md\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 1
       }
     ],
+    "options": {},
     "rows": 1,
     "ok": true
   },
@@ -116,10 +164,16 @@
     "format": "MARKDOWN",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE wiki_what_may_leave FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE wiki_what_may_leave FROM JEDI_PACK FORMAT MARKDOWN OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/wiki/what-may-leave.md\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 1
       }
     ],
+    "options": {},
     "rows": 1,
     "ok": true
   },
@@ -128,10 +182,18 @@
     "format": "JSON",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE threads_json FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE threads_json FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.json\", multiLine \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 100
       }
     ],
+    "options": {
+      "multiLine": "true"
+    },
     "rows": 100,
     "ok": true,
     "file_lines": 100
@@ -141,10 +203,16 @@
     "format": "PARQUET",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE threads_parquet FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE threads_parquet FROM JEDI_PACK FORMAT PARQUET OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/threads/threads.parquet\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 100
       }
     ],
+    "options": {},
     "rows": 100,
     "ok": true
   },
@@ -153,10 +221,18 @@
     "format": "JSON",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE contact_form_submissions FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE contact_form_submissions FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/intakes/contact-form/submissions.json\", multiLine \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 41
       }
     ],
+    "options": {
+      "multiLine": "true"
+    },
     "rows": 41,
     "ok": true,
     "file_lines": 41
@@ -166,10 +242,18 @@
     "format": "JSON",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE trustpilot_reviews FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE trustpilot_reviews FROM JEDI_PACK FORMAT JSON OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/intakes/trustpilot/reviews.json\", multiLine \"true\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 19
       }
     ],
+    "options": {
+      "multiLine": "true"
+    },
     "rows": 19,
     "ok": true,
     "file_lines": 19
@@ -179,23 +263,57 @@
     "format": "TEXT",
     "attempts": [
       {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
         "stmt": "CREATE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK FORMAT TEXT OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/notes/escalation-notes.txt\")",
-        "status": "exists, skipped"
+        "status": "ok",
+        "rows": 1
       }
     ],
+    "options": {},
     "rows": 1,
     "ok": true
   },
   {
-    "table": "decisions",
+    "table": "products",
     "format": "CSV",
     "attempts": [
       {
-        "stmt": "CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv\", header \"true\")",
-        "status": "exists, skipped"
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE products FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE products FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/products.csv\", header \"true\")",
+        "status": "ok",
+        "rows": 50
       }
     ],
-    "rows": 0,
+    "options": {
+      "header": "true"
+    },
+    "rows": 50,
+    "ok": true
+  },
+  {
+    "table": "faq",
+    "format": "CSV",
+    "attempts": [
+      {
+        "stmt": "UNCACHE LIGHTNING FILESTORE TABLE faq FROM JEDI_PACK",
+        "status": "ok"
+      },
+      {
+        "stmt": "CREATE LIGHTNING FILESTORE TABLE faq FROM JEDI_PACK FORMAT CSV OPTIONS (path \"file:///home/zetaris/customer-data/shared/jedi-pack/faq.csv\", header \"true\")",
+        "status": "ok",
+        "rows": 18
+      }
+    ],
+    "options": {
+      "header": "true"
+    },
+    "rows": 18,
     "ok": true
   }
 ]
