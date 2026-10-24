@@ -75,7 +75,8 @@ export const EVALUATOR_SYSTEM = [
 
 const line = (k, v) => (v === undefined || v === null || v === "" ? null : `${k}: ${v}`);
 
-function requestText(facts, ticket) {
+// exported 24 Oct for the refund Reader (src/refund_reader.mjs), which reads the same customer text the drafter and the Evaluator see
+export function requestText(facts, ticket) {
   const t = ticket ?? facts?.ticket ?? {};
   const kind = facts?.follow_up_kind ?? t.follow_up_kind;
   return kind ? (facts?.follow_up_body ?? t.follow_up_body ?? facts?.body ?? t.body ?? "") : (facts?.body ?? t.body ?? "");
