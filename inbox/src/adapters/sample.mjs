@@ -40,26 +40,25 @@ const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
 export function draft(ticket, facts, { seed = "correct" } = {}) {
   const cat = facts.category ?? ticket.category;
-  const rows = (facts.cited_rows ?? []).join(", ");
-  const cite = rows ? ` (policy rows: ${rows})` : "";
+  // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   const ask = `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (seed === "revised") {
-    const lim = facts.policy_limit_usd == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD${cite}, so we are not promising it today`;
-    mid = `${lim}${facts.policy_limit_usd == null ? cite : ""}. ${facts.backup ?? "A colleague"} will follow up with you.`;
+    const lim = facts.policy_limit_usd == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD, so we are not promising it today`;
+    mid = `${lim}. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
     promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
+    mid = ticket.amount_usd == null ? "We are looking into your refund request." : `We will refund ${ticket.amount_usd} USD.`;
   } else if (cat === "refund") {
     promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
+    mid = ticket.amount_usd == null ? "We are looking into your refund request." : `We will refund ${ticket.amount_usd} USD.`;
   } else if (cat === "replacement") {
     promises.replacement = true;
-    mid = `We will send you a replacement${cite}.`;
+    mid = "We will send you a replacement.";
   } else {
-    mid = `Thank you for getting in touch${cite}.`;
+    mid = "Thank you for getting in touch.";
   }
   return { text: `${hi}\n\n${ask} ${mid}\n\nBest regards,\nJedi Pack Support`, model: MODEL, route: "sample", promises };
 }
@@ -125,7 +124,7 @@ export function complaintRead(ticket, { worldText = "" } = {}) {
     face_risk: genuine,
     reasoning: genuine ? "The message names a concrete failure, a repeat or a public audience." : "The customer is upset but names no concrete harm to repair.",
     handle: genuine ? "A person should own this, repair the failure and answer the customer directly." : "A calm acknowledgement is enough; there is nothing to repair.",
-    model: "sample-rules",
+    model: "sample/rules",
   };
 }
 
@@ -155,6 +154,6 @@ export function recommendation(ticket, { candidates = [], pages = [], faqRows = 
   const ds = [...body.matchAll(/\[\[blank:\s*([^\]]*?)\s*\]\]/g)].map((m, i) => ({ id: `blank-${i + 1}`, what: m[1] }));
   return {
     recommendation: `no clear intent; top candidates ${top}; nothing in the FAQ${faqRows ? ` (${faqRows} rows searched)` : ""}; ${seen}. A person confirms the order and what the customer wants changed, then finishes the draft.`,
-    draft: frame(ticket, body), blanks: ds, model: "sample-rules",
+    draft: frame(ticket, body), blanks: ds, model: "sample/rules",
   };
 }

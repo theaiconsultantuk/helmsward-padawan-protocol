@@ -21,19 +21,22 @@ The agent does not send mail. It returns a decision, a draft when one is allowed
 
 ## Quick start
 
-Needs Node 22 or newer (`engines` in `package.json`). The service has no runtime dependencies; `npm ci` installs only dev tools (tsx, yaml).
+Needs Node 22 or newer (`engines` in `package.json`; a teammate's run on Node 20 printed only an engines warning and sample mode worked). The service has no runtime dependencies; `npm ci` installs only dev tools (tsx, yaml). Everything below runs from the `inbox/` folder, so from the repository root:
 
 ```bash
-cp .env.example .env      # then fill in the placeholders you need
+cd inbox
 npm ci
+SAMPLE_MODE=true npm start   # bundled data, no network, no keys: open http://127.0.0.1:8000
+```
+
+That is the whole clean run: the one process serves the front end at `/`, the dashboard at `/dashboard` and the API, and nothing in it needs a key or another service. For the live stack:
+
+```bash
+cp .env.example .env      # then fill in the Zetaris and Nightshift placeholders and set SAMPLE_MODE=false
 npm start                 # node src/server.mjs
 ```
 
-Run these from the `inbox/` folder. Without keys, run on bundled data with no network:
-
-```bash
-SAMPLE_MODE=true npm start
-```
+A variable on the command line wins over `.env` (`SAMPLE_MODE=true npm start` runs on bundled data whatever the file says). `npm test` skips the live Zetaris tests, and says why, unless `.env` points at a Zetaris that answers.
 
 Port: `PORT` defaults to `8000` and `HOST` to `127.0.0.1`. On the dev VM `.env` sets `8810` because `8000` is taken there. `.env` is gitignored; never commit it.
 
@@ -44,8 +47,8 @@ The image is `node:22-slim` plus this folder; nothing is installed at build time
 ```bash
 docker build -t jedi-pack-inbox .
 
-# with your Zetaris and Nightshift settings (fill in .env from .env.example first)
-docker run --rm -p 8000:8000 --env-file .env jedi-pack-inbox
+# with your Zetaris and Nightshift settings (fill in .env from .env.example first; the example ships SAMPLE_MODE=true, so set it false there or override it here)
+docker run --rm -p 8000:8000 --env-file .env -e SAMPLE_MODE=false jedi-pack-inbox
 
 # without credentials, Zetaris and Nightshift stopped: the whole loop on bundled data
 docker run --rm -p 8000:8000 -e SAMPLE_MODE=true jedi-pack-inbox
@@ -72,14 +75,15 @@ The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everyw
 
 **Base URL.** `http://127.0.0.1:8000` by default; `PORT` moves it (`8810` on the dev VM) and `HOST` defaults to `127.0.0.1`. Start it with `node src/server.mjs`. `SAMPLE_MODE=true` answers from cached rows with no network (counters then come from the local decisions file); `"options": {"sample_mode": true}` on a `/run` forces it for one call.
 
-**Reaching a shared instance.** The team's live instance is https://jedi.blastworks.ai (until 29 Oct 2026). When an instance runs with `API_TOKEN` set, the three POST routes (`/run`, `/ask`, `/feedback`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
+**Reaching a shared instance.** A clean run needs no key (Quick start). The team's shared instance is https://jedi.blastworks.ai (until 29 Oct 2026), and only there is a token set, so strangers cannot spend the sponsor quota. When an instance runs with `API_TOKEN` set, the three POST routes (`/run`, `/ask`, `/feedback`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
 
 ```bash
-B=http://127.0.0.1:8810
+B=http://127.0.0.1:8000
 curl -s $B/health
 curl -s $B/sources                      # every source: name, format, table, rows, live
 curl -s $B/intake                       # the contact-form submissions (the REST source Zetaris reads)
 curl -s -X POST $B/run -H 'Content-Type: application/json' -d '{"run_id":"demo-1","input":{"thread_id":"T02"}}'
+# the same run_id a second time answers 409 Conflict ("run_id already used"): pick a new one, or leave run_id out and one is made
 curl -s -X POST $B/run -H 'Content-Type: application/json' -d '{"input":{"message":"How long does shipping take?","from":"a@example.com","channel":"chat","as_of":"2026-10-20"}}'
 curl -s -X POST $B/ask -H 'Content-Type: application/json' -d '{"question":"Can I get a refund on my lightsaber?"}'
 curl -s $B/runs/demo-1                  # the stored result
@@ -121,7 +125,7 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 8. If either fails on round 1: `retry`, a revised plan, one redraft with both critiques. That is the only retry.
 9. Two negative rounds, or a hard fact Risk cannot rewrite: `escalate_or_fallback` queues the ticket for a human with both critiques stored. No third draft.
 10. Refunds are mentioned only on refund requests (the `refund` category); questions may quote policy. On any other message a draft that promises money (its promises fields) is refused by Risk; a draft that names a refund in its words (read with the cited row ids removed and accents, emphasis and hyphens normalised) is refused too, except on a question whose own text asks about refunds (a refund word not negated in the three words before it), which may quote the policy. The Evaluator and the drafter are told the same rule; a refused draft is rewritten on the retry, else the ticket is held or escalated. Risk's word test is the guarantee, the Evaluator the second reader, and the refund Reader (below, under Providers) a third that reads meaning and can only add a reason. The approval limit is a refund-category rule.
-10. `memory.write` stores one factual memory; `synthesis` ends the trace. `recovery` lines follow any `error` line.
+11. `memory.write` stores one factual memory; `synthesis` ends the trace. `recovery` lines follow any `error` line.
 
 Steps a branch does not reach are still logged with status `skipped`.
 
@@ -363,7 +367,7 @@ Agent frameworks: none. The service has zero runtime dependencies (Node standard
 
 Sponsor technology:
 
-- Zetaris: serves all company data (17 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
+- Zetaris: serves all company data (18 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
 - Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`, and the World Model, vendored and bundled (see Engines). Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, the Scout eval harness, `world` and the World Model conformance suite (8/8).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
 - NVIDIA: Nemotron lanes through Nightshift for drafting, critique and the complaint read; DiffusionGemma (OpenJev) for typed gates and the complaint severity.

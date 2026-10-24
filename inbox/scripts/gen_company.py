@@ -368,7 +368,10 @@ def main():
             "sender_name": "%s %s" % (g, f), "sender_email": "%s.%s%d@example.com" % (g.lower(), f.lower(), i + 1),
             "subject": subject, "body": body, "follow_up_body": "", "follow_up_kind": "",
             "received_at": stamps[i], "amount_usd": amount,
-            "may_leave": bool(cat == "refund" and amount <= limit), "owner_id": owner, "backup_id": backup,
+            # Every generated ticket may be answered: no template asks for a card number, a staff price list or a staff home address
+            # (what-may-leave.md). Until 24 Oct this read "refund within the limit", so 64 of the 76 generated threads held as
+            # data-block and T27, an over-limit refund, held instead of escalating (Paul, 24 Oct). Only authored threads carry false.
+            "may_leave": True, "owner_id": owner, "backup_id": backup,
             "owner_out": bool(owner is not None and (owner, date) in absent),
             "outcome": "", "outcome_reason": "", "ledger_effect": "", "source_id": "synthetic-" + tid,
             "fictional": True})
