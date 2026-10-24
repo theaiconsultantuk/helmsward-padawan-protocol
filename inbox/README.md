@@ -35,7 +35,34 @@ Run these from the `inbox/` folder. Without keys, run on bundled data with no ne
 SAMPLE_MODE=true npm start
 ```
 
-Port: `PORT` defaults to `8000` and `HOST` to `127.0.0.1`. On the dev VM `.env` sets `8810` because `8000` is taken there. The Dockerfile (`node:22-slim`) binds `0.0.0.0:8000`. `.env` is gitignored; never commit it.
+Port: `PORT` defaults to `8000` and `HOST` to `127.0.0.1`. On the dev VM `.env` sets `8810` because `8000` is taken there. `.env` is gitignored; never commit it.
+
+### Docker
+
+The image is `node:22-slim` plus this folder; nothing is installed at build time and nothing after start. Build and run from `inbox/`:
+
+```bash
+docker build -t jedi-pack-inbox .
+
+# with your Zetaris and Nightshift settings (fill in .env from .env.example first)
+docker run --rm -p 8000:8000 --env-file .env jedi-pack-inbox
+
+# without credentials, Zetaris and Nightshift stopped: the whole loop on bundled data
+docker run --rm -p 8000:8000 -e SAMPLE_MODE=true jedi-pack-inbox
+
+curl -s http://127.0.0.1:8000/health
+curl -s -X POST http://127.0.0.1:8000/run -H 'Content-Type: application/json' -d @input_examples/example_1.json
+```
+
+Inside the container the server binds `0.0.0.0:8000` even when `.env` says `HOST=127.0.0.1` (the Dockerfile sets `JEDI_IN_CONTAINER=1`; the start-up line says when it ignored `HOST`), so `-p` reaches it. The marker alone does this: `JEDI_IN_CONTAINER=1` exported before a native `npm start` also turns a loopback `HOST` into `0.0.0.0`, so set it only in a container.
+
+Reaching Zetaris and Nightshift from inside the container: `localhost` there is the container itself.
+
+- Docker Desktop (Mac, Windows): point `ZETARIS_REST_URL` and `METERLESS_BASE_URL` at `host.docker.internal` instead of `127.0.0.1`.
+- Linux, bridge network: add `--add-host=host.docker.internal:host-gateway` and use that name in the URLs. That only resolves the name; the host service must also listen on an address the bridge can reach (`0.0.0.0`, or the `docker0` address), not on `127.0.0.1` alone.
+- Linux, simplest: `--network host` with the URLs left at `127.0.0.1`, and no `-p` (the container shares the host's ports, so the app is on `http://127.0.0.1:8000` directly).
+
+The container has no `docker` CLI, so the two Zetaris publishes fall back to local files and say `published: false` (Limitations).
 
 Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, Nightshift, OpenJev and the optional local lane), `npm run cli -- run --thread T02`.
 
