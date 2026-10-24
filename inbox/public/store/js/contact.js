@@ -2,7 +2,9 @@
 (function () {
   "use strict";
   var meta = document.querySelector('meta[name="api-base"]');
-  var base = (meta && meta.getAttribute("content")) || "https://jedi.blastworks.ai";
+  var metaBase = (meta && meta.getAttribute("content")) || "https://jedi.blastworks.ai";
+  var base = (location.hostname === "jedi.blastworks.ai") ? "" : metaBase;
+  var hostLabel = (metaBase || location.origin).replace(/^https?:\/\//, "").replace(/\/.*$/, "") || "jedi.blastworks.ai";
   var $ = function (id) { return document.getElementById(id); };
   var BLANK = /\[\[blank:\s*([^\]]*?)\s*\]\]/g;
   var INJECTION = /ignore (all |any )?(previous|prior|above)|system prompt|admin mode|developer mode|jailbreak|disregard (your|the) (rules|instructions)/i;
