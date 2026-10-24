@@ -8,7 +8,7 @@ The machine-readable copies are `public/demo-scenarios.json` (served by `GET /de
 | Call | Returns |
 |---|---|
 | `GET /demo/scenarios` | the 14 entries: `{ id, label, scenario, reason, channel, name, email, message, as_of, expected, client }` |
-| `GET /demo/client?scenario=<id>` | a GENERATED client `{ name, email, generated: true }`, no-store; `s04` returns the seeded customer `{ customer_id, name, email, generated: false, seeded_prior_refund: true }` |
+| `GET /demo/client?scenario=<id>` | a GENERATED client `{ name, email, generated: true }`, no-store; `s04` returns the seeded customer `{ customer_id, name, email, generated: false, seeded_prior_refund: true }`; `s10` returns the owner of order JP-1001, Cass Holm: `{ customer_id, name, email: "cass.holm@example.com", generated: false, order_owner: true, order_id }` |
 | `GET /faq` | `[{ faq_id, question, answer, keywords }]`, no `source` |
 | `POST /run` | body `{ run_id?, input: { message, from, name, channel, scenario, as_of } }` (the shape of `input_examples/example_10.json` to `example_23.json`) |
 | `GET /runs/{id}/journey` | the journey with the new fields below |
@@ -44,7 +44,8 @@ Differences from the planning table, so a card does not wait for them:
 - s14 takes `complaint-vent` (a mild dented-parcel complaint), not `customer-service`. The route is still a Support draft.
 - s07 is 25 units. The 50-unit quote that goes over the quote limit (`rfq-quote-over-limit`, escalate to 40, the CEO 201 when 40 is out) and the quote with a part out of stock (`rfq-quote-stock`) are grid cells, not demo entries.
 - `trusted_to_send` is false on a reply composed from rows (s05, s11) and the reply still sends, see below.
-- A plain hold (`under-floor`, s01, s02, s04) has no `queued_for`; its owner is `output.owner`.
+- A plain hold (`under-floor`, s01, s02, s04) carries `output.queued_for` with the person it waits for: `owner_id`, `backup_id`, the names, `team`, `team_label` and `queued_for.owner` (the same object as `output.owner`: 15 on s01 and s04, 27 on s02 where the owner is out and the backup holds it). It writes no queue file, so `queued_for.queue_file` is absent.
+- Team and team_label always come from one employee row: s11 (FAQ auto reply, owner 15 Support) reads `team: "Support"`, `team_label: "Helpful Hands Hangar"`, never Product's "Gizmo Forge".
 
 ## New fields
 
@@ -118,6 +119,21 @@ _Fixed 24 Oct before the merge: the first cut labelled every non-sample model Op
 
 ## Open items
 
-- A plain hold (`under-floor`) is not written to `GET /queue` and its journey's `reached_human.who` stays empty; read `output.owner` for the person.
+- A plain hold (`under-floor`) is not written to `GET /queue` (no queue file). Its journey names the person: `reached_human.who` and `human.reply.to` are the owner, and `reached_human.queue_file` is absent.
 - A message listing two or more amounts in one currency with no word "total" is read as their sum (Paul's H17, "90 + 90 + 90"); "I paid 90 GC, refund the 90 GC" would read as 180.
-- Delivery replies go to anyone who quotes a real order id (no sender-owns-order check); the order data is fictional.
+
+## Wave-1 wording and trace changes
+
+- `output.queued_for.queue_file` (`POST /run`, `GET /runs/:id`) and the journey's `reached_human.queue_file` are `queue/<thread_id>.json`, relative to the memory dir, never the server's absolute path. It is `null` when the queue write failed and absent on a plain hold.
+- The `escalate_or_fallback` trace text says `stored in queue/F12.json`.
+- A free-text intake draft says `You wrote about "<whole first sentence>".`, or `Thank you for your message.` when there is no sentence to quote.
+- A derived free-text subject ends with "…" when the message is longer than 60 characters.
+- `zetaris.query` trace lines now carry `detail` on trust, channel, wiki, holiday, prior refunds, the duplicate check, the ledger, products, the FAQ, the order, the shipping rule and more.
+- `memory.read` excerpts end with "…" when they were cut.
+- The fixture step tokens (`tests/fixtures/scenario_shapes.json`) for s05, s06 and s11 no longer expect a skipped typed-gates line before `planner.plan`: that line is `skipped` in sample mode and `success` on a live run, so both modes carry the same tokens. A token ending in ":" (s13, s14) matches any branch id.
+
+## Routing changes (builder A1)
+
+- **Order ownership.** Only the order's customer gets the delivery answer. s10 must be sent by the order's owner (JP-1001 is C003 Cass Holm, `cass.holm@example.com`), so its demo `client` value is `seeded-order-owner`. Anyone else who quotes an order id takes the new branch `delivery-not-owner`: hold, status `open`, `auto_reply` false, no draft, team Support, owner 15. The reason reads "order JP-xxxx does not belong to the sender; a person checks it, nothing about the order is sent. Held for Support, no draft", and nothing about the order (status, address, planet) leaves in the response or the trace text. This replaces the earlier open item that delivery replies went to anyone quoting a real order id.
+- **`other-unanswered`** is also reached by a resolved free-text question that names no product and has no FAQ hit; its reason reads "...names no product; checked ...". A question that is declared `scenario: question` and finds nothing stays `question-unanswered` (escalate to the Product owner 5).
+- **`complaint-genuine`** is reachable at severity 9 to 10 when the customer calls the injury mild (s08); the recommendation then starts "safety report, <injury> (self-described as mild)".

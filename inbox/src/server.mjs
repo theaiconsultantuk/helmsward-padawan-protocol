@@ -131,6 +131,14 @@ function seededClient() {
   return { customer_id: row.customer_id, name: row.name, email: row.email, generated: false, seeded_prior_refund: true };
 }
 
+// the seeded client of s10: the customer on order JP-1001 (orders.csv customer_id -> customers.csv), the only sender the delivery road answers for that order
+function orderOwnerClient(order_id = "JP-1001") {
+  const order = readCsv(join(INBOX_ROOT, "data", "synthetic", "orders.csv")).find((r) => r.order_id === order_id);
+  const row = order && readCsv(join(INBOX_ROOT, "data", "synthetic", "customers.csv")).find((r) => r.customer_id === order.customer_id);
+  if (!row) throw new HttpError(500, "InternalError", `no customer on order ${order_id} in the records`);
+  return { customer_id: row.customer_id, name: row.name, email: row.email, generated: false, order_owner: true, order_id };
+}
+
 const newRunId = () => `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 const errBody = (run_id, type, message, recoverable, t0, trace_id = null) => ({
   run_id, status: "error", error: { type, message, recoverable }, trace_id,
@@ -235,7 +243,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         if (path === "/demo/scenarios") { send(200, demoScenarios()); return; }
         const sc = new URL(req.url, "http://localhost").searchParams.get("scenario");
         if (sc !== null && !demoScenarios().some((d) => d.id === sc)) throw new HttpError(400, "BadRequest", "scenario must be one of s01..s14 or absent");
-        const client = sc === "s04" ? seededClient() : generateClient();
+        const client = sc === "s04" ? seededClient() : sc === "s10" ? orderOwnerClient() : generateClient();
         if (res.headersSent) return;
         const text = JSON.stringify(mask(client, sec));
         res.writeHead(200, { ...CORS, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(text), "Cache-Control": "no-store" });

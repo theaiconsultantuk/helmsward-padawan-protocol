@@ -1,13 +1,13 @@
 ---
 title: Scenario proofs
 description: Examples 4 to 8 and 10 to 23 (the 14 demo scenarios) run live and in sample mode with the traces, the models, the World Model line and the journey reply for each.
-date: 2026-10-24
+date: 2026-10-25
 tags: [judging, scenarios]
 ---
 
 # Scenario proofs
 
-Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-24 20:19:59.
+Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-25 00:08:02.
 
 Each example runs through `POST /run`: live (`options.sample_mode: false`) and sample (`options.sample_mode: true`). The traces are copied from `GET /runs/<id>/trace` as the service wrote them; the script writes no trace line. Both traces must contain the fixture's `step:status:branch_id` subsequence for the cell. Overall: all checks passed.
 
@@ -126,18 +126,18 @@ This leg was skipped (no live config). It runs against the live service after th
 
 ### Sample (`scenario-7-sample`)
 
-- decision: `hold`; scenario `complaint`; resolved `declared`; branch `complaint-vent`; 0 s
+- decision: `hold`; scenario `complaint`; resolved `declared`; branch `complaint-vent`; 0.1 s
 - branch line, why: severity 4 (4), the customer reads as vent (no earlier threads); a calm acknowledgement closes it
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.510Z","duration_ms":0,"elapsed_ms":36,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"250 entities, 221 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.387Z","duration_ms":48,"elapsed_ms":53,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.510Z","duration_ms":0,"elapsed_ms":36,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F4","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.389Z","duration_ms":1,"elapsed_ms":55,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F4","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`
@@ -168,17 +168,17 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and FS-A07","output_summary":"250 entities, 221 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product FS-A07: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:FS-A07,fact_69c3bf75aaaf9511","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:FS-A07","fact_69c3bf75aaaf9511"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.415Z","duration_ms":1,"elapsed_ms":11,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and no product","output_summary":"250 entities, 228 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.415Z","duration_ms":1,"elapsed_ms":11,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `courtesy reply now, Legal reviews; the send marks follow-up`
-- reply text (first 200 chars): `Hello Tilda Moss, We are sorry to read what happened with your Hooded Training Tunic. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support team`
+- reply text (first 200 chars): `Hello Tilda Moss, We are sorry to read what happened with your order. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support team`
 - owner `15 Soren Adey (Support)`; cc `[7,202]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-8-sample.jsonl` (42 lines); subsequence check: ok
 
@@ -202,8 +202,8 @@ This leg was skipped (no live config). It runs against the live service after th
 
 - decision: `hold`; scenario `refund`; resolved `declared`; branch `under-floor`; 0 s
 - branch line, why: refund weight 0.55 is under the floor 0.8; owner 15 in
-- journey human.reply: kind `draft_for_human`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Alvane Ashdown, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
+- journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":null}`, attachments none, recommendation `none`
+- reply text (first 200 chars): `Hello Alvane Ashdown, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son". We are looking into your refund request. Best regards, Jedi Pack Support `
 - owner `15 Soren Adey (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-10-sample.jsonl` (26 lines); subsequence check: ok
 
@@ -227,8 +227,8 @@ This leg was skipped (no live config). It runs against the live service after th
 
 - decision: `hold`; scenario `refund`; resolved `declared`; branch `under-floor`; 0 s
 - branch line, why: refund weight 0.55 is under the floor 0.8; owner 15 out, backup 27 in; memory consulted
-- journey human.reply: kind `draft_for_human`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Brisk Brightmoor, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
+- journey human.reply: kind `draft_for_human`, to `{"employee_id":27,"name":"Galmel Kernfield","role":null}`, attachments none, recommendation `none`
+- reply text (first 200 chars): `Hello Brisk Brightmoor, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son". We are looking into your refund request. Best regards, Jedi Pack Suppor`
 - owner `27 Galmel Kernfield (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-11-sample.jsonl` (29 lines); subsequence check: ok
 
@@ -277,8 +277,8 @@ This leg was skipped (no live config). It runs against the live service after th
 
 - decision: `hold`; scenario `refund`; resolved `declared`; branch `under-floor`; 0 s
 - branch line, why: refund weight 0.55 is under the floor 0.8; owner 15 in; memory consulted
-- journey human.reply: kind `draft_for_human`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Lira Venn, You wrote about "I would like another refund, 60 GC, for the strap on my Drif". We are looking into your refund request. Best regards, Jedi Pack Support team`
+- journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":null}`, attachments none, recommendation `none`
+- reply text (first 200 chars): `Hello Lira Venn, You wrote about "I would like another refund, 60 GC, for the strap on my Drift Boot Wraps". We are looking into your refund request. Best regards, Jedi Pack Support team`
 - owner `15 Soren Adey (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `Second Refund Request from this client (2 earlier: T02, T06).`
 - trace: `judging/traces/trace-scenario-13-sample.jsonl` (26 lines); subsequence check: ok
 
@@ -292,7 +292,7 @@ Input (`input_examples/example_14.json`):
 - from: `dessadunmarrow@email.com` (Dessa Dunmarrow)
 - channel: `contact-form`; scenario: `free_text`; as_of: `2026-10-25`
 
-Checked against: fixture cell `s05-product-hit`: `branch:success:product-hit`, `nvidia.model:skipped:product-hit`, `planner.plan:success:product-hit`, `nvidia.model:skipped:product-hit`, `critique:skipped:product-hit`, `risk.signoff:success:product-hit`, `retry:skipped:product-hit`, `escalate_or_fallback:skipped:product-hit`, `memory.write:success:product-hit`, `synthesis:success:product-hit`.
+Checked against: fixture cell `s05-product-hit`: `branch:success:product-hit`, `planner.plan:success:product-hit`, `nvidia.model:skipped:product-hit`, `critique:skipped:product-hit`, `risk.signoff:success:product-hit`, `retry:skipped:product-hit`, `escalate_or_fallback:skipped:product-hit`, `memory.write:success:product-hit`, `synthesis:success:product-hit`.
 
 ### Live (`scenario-14-live`)
 
@@ -317,7 +317,7 @@ Input (`input_examples/example_15.json`):
 - from: `edricembervale@email.com` (Edric Embervale)
 - channel: `chat`; scenario: `free_text`; as_of: `2026-10-25`
 
-Checked against: fixture cell `s06-product-unanswered`: `branch:success:product-unanswered`, `nvidia.model:skipped:product-unanswered`, `planner.plan:success:product-unanswered`, `nvidia.model:skipped:product-unanswered`, `critique:skipped:product-unanswered`, `risk.signoff:skipped:product-unanswered`, `retry:skipped:product-unanswered`, `escalate_or_fallback:skipped:product-unanswered`, `memory.write:success:product-unanswered`, `synthesis:success:product-unanswered`.
+Checked against: fixture cell `s06-product-unanswered`: `branch:success:product-unanswered`, `planner.plan:success:product-unanswered`, `nvidia.model:skipped:product-unanswered`, `critique:skipped:product-unanswered`, `risk.signoff:skipped:product-unanswered`, `retry:skipped:product-unanswered`, `escalate_or_fallback:skipped:product-unanswered`, `memory.write:success:product-unanswered`, `synthesis:success:product-unanswered`.
 
 ### Live (`scenario-15-live`)
 
@@ -376,20 +376,20 @@ This leg was skipped (no live config). It runs against the live service after th
 ### Sample (`scenario-17-sample`)
 
 - decision: `hold`; scenario `complaint`; resolved `declared`; branch `complaint-genuine`; 0 s
-- branch line, why: severity 6 (6), the customer reads as genuine (no earlier threads); the owner gets the draft and the handling note
+- branch line, why: severity 6 (6), the customer reads as genuine (no earlier threads); a safety report: the customer names a small burn; the owner gets the draft and the handling note
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.609Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of galengreystoke@email.com and FS-B01","output_summary":"250 entities, 221 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B01: 0 complaints; ids: product:jedi:FS-B01,fact_7b75921e9eb61e1b","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-B01","fact_7b75921e9eb61e1b"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.551Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of galengreystoke@email.com and FS-B01","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B01: 0 complaints; ids: product:jedi:FS-B01,fact_7b75921e9eb61e1b","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-B01","fact_7b75921e9eb61e1b"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.609Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F13","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 6 (6), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.551Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F13","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 6 (6), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
 ```
 
-- journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `A person should own this, repair the failure and answer the customer directly.`
+- journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `safety report, small burn (self-described as mild): A person should own this, repair the failure and answer the customer directly.`
 - reply text (first 200 chars): `Hello Galen Greystoke, We are very sorry to hear about the burn. We take product safety seriously, and our Support team will contact you personally about it. Best regards, Jedi Pack Support team`
 - owner `15 Soren Adey (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-17-sample.jsonl` (32 lines); subsequence check: ok
@@ -417,17 +417,17 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.621Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of havihollowell@email.com and FS-B02","output_summary":"250 entities, 221 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B02: 0 complaints; ids: product:jedi:FS-B02,fact_aa6e9086d79a5174","status":"success","branch_id":"complaint-legal","memory_ids":["product:jedi:FS-B02","fact_aa6e9086d79a5174"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.565Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of havihollowell@email.com and FS-B02","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B02: 0 complaints; ids: product:jedi:FS-B02,fact_aa6e9086d79a5174","status":"success","branch_id":"complaint-legal","memory_ids":["product:jedi:FS-B02","fact_aa6e9086d79a5174"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.621Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F14","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.565Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F14","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `courtesy reply now, Legal reviews; the send marks follow-up`
-- reply text (first 200 chars): `Hello Havi Hollowell, We are sorry to read what happened with your Strand Emitter Hilt. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support team`
+- reply text (first 200 chars): `Hello Havi Hollowell, We are sorry to read what happened with your Strand Emitter Hilt. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support te`
 - owner `15 Soren Adey (Support)`; cc `[7,202]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-18-sample.jsonl` (42 lines); subsequence check: ok
 
@@ -438,7 +438,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 Input (`input_examples/example_19.json`):
 
 - message: `Where is my order JP-1001? It was meant to arrive weeks ago.`
-- from: `ilmarironbridge@email.com` (Ilmar Ironbridge)
+- from: `cass.holm@example.com` (Cass Holm)
 - channel: `contact-form`; scenario: `free_text`; as_of: `2026-10-25`
 
 Checked against: fixture cell `s10-delivery-suspended`: `branch:success:delivery-suspended`, `nvidia.model:skipped:delivery-suspended`, `planner.plan:success:delivery-suspended`, `nvidia.model:skipped:delivery-suspended`, `critique:skipped:delivery-suspended`, `risk.signoff:success:delivery-suspended`, `retry:skipped:delivery-suspended`, `escalate_or_fallback:skipped:delivery-suspended`, `memory.write:success:delivery-suspended`, `synthesis:success:delivery-suspended`.
@@ -452,9 +452,9 @@ This leg was skipped (no live config). It runs against the live service after th
 - decision: `send`; scenario `delivery`; resolved `scout`; branch `delivery-suspended`; 0 s
 - branch line, why: order JP-1001 ships to Alderaan, where deliveries are suspended (shipping_rules:Alderaan); the rule's note answers it
 - journey human.reply: kind `auto_reply`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Ilmar Ironbridge, Deliveries to Alderaan are currently suspended. Your order JP-1001 is held for now; our team will contact you as soon as deliveries to Alderaan resume. Best regards, Jedi Pack `
+- reply text (first 200 chars): `Hello Cass Holm, Deliveries to Alderaan are currently suspended. Your order JP-1001 is held for now; our team will contact you as soon as deliveries to Alderaan resume. Best regards, Jedi Pack Support`
 - owner `15 Soren Adey (Support)`; cc `[]`; auto_reply `true`; status `handled`; memory_note `none`
-- trace: `judging/traces/trace-scenario-19-sample.jsonl` (27 lines); subsequence check: ok
+- trace: `judging/traces/trace-scenario-19-sample.jsonl` (28 lines); subsequence check: ok
 
 Live vs sample: live skipped (no live config); sample subsequence ok. Subsequence check: live skipped, sample ok.
 
@@ -466,7 +466,7 @@ Input (`input_examples/example_20.json`):
 - from: `jessajasperly@email.com` (Jessa Jasperly)
 - channel: `chat`; scenario: `free_text`; as_of: `2026-10-25`
 
-Checked against: fixture cell `s11-other-faq-hit`: `branch:success:faq-hit`, `nvidia.model:skipped:faq-hit`, `planner.plan:success:faq-hit`, `nvidia.model:skipped:faq-hit`, `critique:skipped:faq-hit`, `risk.signoff:success:faq-hit`, `retry:skipped:faq-hit`, `escalate_or_fallback:skipped:faq-hit`, `memory.write:success:faq-hit`, `synthesis:success:faq-hit`.
+Checked against: fixture cell `s11-other-faq-hit`: `branch:success:faq-hit`, `planner.plan:success:faq-hit`, `nvidia.model:skipped:faq-hit`, `critique:skipped:faq-hit`, `risk.signoff:success:faq-hit`, `retry:skipped:faq-hit`, `escalate_or_fallback:skipped:faq-hit`, `memory.write:success:faq-hit`, `synthesis:success:faq-hit`.
 
 ### Live (`scenario-20-live`)
 
@@ -529,13 +529,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.655Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of leskalongmire@email.com and FS-A03","output_summary":"250 entities, 221 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-A03: 0 complaints; ids: product:jedi:FS-A03,fact_e112eada793824e9","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-A03","fact_e112eada793824e9"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.606Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of leskalongmire@email.com and FS-A03","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-A03: 0 complaints; ids: product:jedi:FS-A03,fact_e112eada793824e9","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-A03","fact_e112eada793824e9"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.655Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F18","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 8 (8), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.606Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F18","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 8 (8), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `A person should own this, repair the failure and answer the customer directly.`
@@ -566,13 +566,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.665Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of marekmarshgate@email.com and no product","output_summary":"250 entities, 221 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:08:02.619Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of marekmarshgate@email.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T18:19:59.665Z","duration_ms":0,"elapsed_ms":2,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F19","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 3 (3), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:08:02.620Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F19","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 3 (3), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`

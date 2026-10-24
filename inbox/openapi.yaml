@@ -81,7 +81,7 @@ paths:
   /demo/client:
     get:
       summary: A client for a demo run
-      description: "A GENERATED client on every call (fictional given and family name from two fixed lists, `<given><family>@email.com` lower-case), so a repeated demo never meets a prior refund. For `scenario=s04` the seeded customer from `customers.csv` whose earlier refunds (T02, T06) are on record. Sent with `Cache-Control: no-store`. An unknown scenario id answers 400."
+      description: "A GENERATED client on every call (fictional given and family name from two fixed lists, `<given><family>@email.com` lower-case), so a repeated demo never meets a prior refund. For `scenario=s04` the seeded customer from `customers.csv` whose earlier refunds (T02, T06) are on record. For `scenario=s10` the owner of order JP-1001 (Cass Holm, cass.holm@example.com): `{ customer_id, name, email, generated: false, order_owner: true, order_id }`. Sent with `Cache-Control: no-store`. An unknown scenario id answers 400."
       parameters:
         - { name: scenario, in: query, required: false, schema: { type: string, pattern: "^s(0[1-9]|1[0-4])$" }, example: s04 }
       responses:
@@ -252,7 +252,7 @@ paths:
                 reached_human:
                   who: { employee_id: 6, name: Tomas Keller }
                   what: [the draft, both critiques, "products:FS-B01"]
-                  queue_file: data/memory/queue/F2.json
+                  queue_file: queue/F2.json
         "404": { $ref: "#/components/responses/NotFound" }
   /queue:
     get:
@@ -536,7 +536,7 @@ components:
                     cited: { type: array, items: { type: string }, description: "Row ids, for example products:FS-B01." }
         scenario: { $ref: "#/components/schemas/ResolvedScenario" }
         resolved_how: { type: string, enum: [declared, thread, scout, gates, faq, none, unrouted], description: How the scenario was decided. }
-        branch_id: { type: string, nullable: true, description: "The branch the loop took, for example faq-hit. Free text: the legacy ids (send-ok, thank-you, follow-up, duplicate, public-channel, owner-out, over-limit, under-floor, data-block, misread, unknown) and the scenario ids." }
+        branch_id: { type: string, nullable: true, description: "The branch the loop took, for example faq-hit. Free text: the legacy ids (send-ok, thank-you, follow-up, duplicate, public-channel, owner-out, over-limit, under-floor, data-block, misread, unknown) and the scenario ids, including delivery-not-owner." }
         input:
           type: object
           description: The ticket as the loop read it.
@@ -684,7 +684,7 @@ components:
         message: { type: string }
         as_of: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
         expected: { $ref: "#/components/schemas/DemoExpected" }
-        client: { type: string, enum: [random, seeded-second-refund] }
+        client: { type: string, enum: [random, seeded-second-refund, seeded-order-owner] }
     DemoClient:
       type: object
       required: [name, email, generated]
@@ -694,6 +694,8 @@ components:
         email: { type: string }
         generated: { type: boolean }
         seeded_prior_refund: { type: boolean, description: "Only on the seeded client: true." }
+        order_owner: { type: boolean, description: "Only on the s10 client: true, the owner of order_id." }
+        order_id: { type: string, description: "Only on the s10 client, for example JP-1001." }
     Journey:
       type: object
       required: [run_id, nodes, human, reached_human]
@@ -745,7 +747,7 @@ components:
           properties:
             who: { $ref: "#/components/schemas/Person" }
             what: { type: array, items: { type: string } }
-            queue_file: { type: string, nullable: true }
+            queue_file: { type: string, nullable: true, description: "queue/<thread_id>.json inside the memory dir; null when the queue write failed; absent on a plain hold" }
     TraceLine:
       type: object
       properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: since the previous line of the run }, elapsed_ms: { type: integer, description: since the run's first line }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }

@@ -199,8 +199,8 @@
     "scenario": "free_text",
     "reason": "Other",
     "channel": "contact-form",
-    "name": "Ilmar Ironbridge",
-    "email": "ilmarironbridge@email.com",
+    "name": "Cass Holm",
+    "email": "cass.holm@example.com",
     "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
     "as_of": "2026-10-25",
     "expected": {
@@ -212,7 +212,7 @@
       "status": "handled",
       "draft": true
     },
-    "client": "random"
+    "client": "seeded-order-owner"
   },
   {
     "id": "s11",

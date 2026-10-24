@@ -770,7 +770,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status", "courtesy_reply"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
       if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
       settleSend();
-      if (a.ownerHint) S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
+      if (a.ownerHint) {
+        S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
+        // team and team_label come from that person's own hierarchy row, never from the ticket owner's (a FAQ answered for Support must not wear Product's label)
+        if (a.ownerHint.owner_id != null && a.ownerHint.owner_id !== f?.owner_id) {
+          try {
+            const h = (await queries.run("hierarchy", { employee_id: a.ownerHint.owner_id }, { cfg, trace: { line: () => {} } })).objects[0];
+            if (h?.team) S.meta = { ...S.meta, team: h.team, team_label: h.team_label ?? null };
+          } catch { /* the label stays as the facts have it */ }
+        } else if (f?.owner_team) S.meta = { ...S.meta, team: f.owner_team, team_label: f.owner_team_label ?? null };
+      }
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
       if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...(a.attachments !== undefined ? { attachments: a.attachments } : {}), ...queueMeta() };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
@@ -831,6 +840,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     if (B === "under-floor") {
       S.decision = "hold";
+      // the hold names the person it waits for (the backup when the owner is out); there is no queue file for a plain hold
+      if (!S.queued) S.queued = { owner_id: f.owner_id ?? null, backup_id: f.backup_id ?? null, owner_name: f.owner_name ?? null, backup_name: f.backup_name ?? null, ...queueMeta() };
       S.reasons.push(`${S.branch.why}. Both critics passed; the reply waits for ${f.owner_out ? `backup ${f.backup_id}` : `owner ${f.owner_id}`} with the draft attached`);
       skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
       return;

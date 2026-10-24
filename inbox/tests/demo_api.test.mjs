@@ -52,14 +52,15 @@ test("GET /demo/scenarios returns the 14 entries of the file; every reason of th
   for (const d of list) {
     assert.ok(set.includes(d.reason), `${d.id} reason ${d.reason}`);
     assert.deepEqual(Object.keys(d), ["id", "label", "scenario", "reason", "channel", "name", "email", "message", "as_of", "expected", "client"]);
-    assert.ok(["random", "seeded-second-refund"].includes(d.client));
+    assert.ok(["random", "seeded-second-refund", "seeded-order-owner"].includes(d.client));
   }
   for (const r2 of set) assert.ok(list.some((d) => d.reason === r2), `no entry with reason ${r2}`);
   assert.equal(list.find((d) => d.id === "s13").channel, "trustpilot");
   assert.equal(list.find((d) => d.id === "s14").channel, "email");
   assert.equal(list.filter((d) => d.client === "seeded-second-refund").map((d) => d.id).join(), "s04");
-  // the entries' own clients never collide with a seeded customer or an authored sender, except s04's seeded one
-  for (const d of list.filter((x) => x.id !== "s04")) assert.ok(!senders.has(d.email) && !customers.some((c) => c.email === d.email), `${d.id} ${d.email}`);
+  assert.equal(list.filter((d) => d.client === "seeded-order-owner").map((d) => d.id).join(), "s10");
+  // the entries' own clients never collide with a seeded customer or an authored sender, except the seeded ones (s04's refund client, s10's order owner)
+  for (const d of list.filter((x) => x.id !== "s04" && x.id !== "s10")) assert.ok(!senders.has(d.email) && !customers.some((c) => c.email === d.email), `${d.id} ${d.email}`);
 });
 
 test("the name lists are 40 + 40 distinct fictional parts and no combination hits customers.csv or a thread sender", () => {
@@ -102,6 +103,20 @@ test("GET /demo/client?scenario=s04 is the seeded customers.csv row, with a prio
   assert.equal(entry.email, c.email);
   const prior = runLocal("prior_refunds", { email: c.email, thread_id: "T99", received_at: "2026-10-30T00:00:00Z" }, loadTables(synthetic));
   assert.ok(prior.total >= 1, `prior refunds ${prior.total}`);
+});
+
+test("GET /demo/client?scenario=s10 is the customer on order JP-1001, the only sender the delivery road answers", async () => {
+  const r = await get("/demo/client?scenario=s10");
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  const c = await r.json();
+  assert.equal(c.generated, false);
+  assert.equal(c.order_owner, true);
+  const row = customers.find((x) => x.customer_id === c.customer_id);
+  assert.ok(row && row.name === c.name && row.email === c.email);
+  const entry = (await (await get("/demo/scenarios")).json()).find((d) => d.id === "s10");
+  assert.equal(entry.email, c.email);
+  assert.equal(entry.name, c.name);
 });
 
 test("the token applies to POST only: reads stay open, POST /run needs the bearer", async () => {
