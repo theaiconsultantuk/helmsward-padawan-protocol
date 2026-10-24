@@ -27,7 +27,7 @@ paths:
   /sources:
     get:
       summary: The registered data sources with live row counts
-      description: One entry per Zetaris table. `live` is true when the row count was measured through Zetaris just now, false when the manifest number is shown.
+      description: "One entry per Zetaris table. `live` is true when the row count was measured through Zetaris just now, false when the manifest number is shown."
       responses:
         "200":
           description: The sources.
@@ -40,10 +40,64 @@ paths:
                 - { name: employees, format: CSV, table: employees, rows: 200, live: true }
                 - { name: decisions, format: CSV, table: decisions, rows: 0, live: true }
                 - { name: intake_live, format: REST, table: intake_live, rows: 41, live: false }
+  /faq:
+    get:
+      summary: The FAQ rows
+      description: "Every row of the `faq` template (the sample cache in sample mode, Zetaris live), ordered by `faq_id`. The internal `source` column is never returned. Open on a token instance (the token applies to POST only)."
+      responses:
+        "200":
+          description: The FAQ rows.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FaqRow" }
+              example:
+                - { faq_id: Q11, question: Do you offer gift wrapping?, answer: "Yes. Gift wrapping is available at checkout.", keywords: gift wrap wrapping present }
+  /demo/scenarios:
+    get:
+      summary: The 14 judge demo scenarios
+      description: "The entries of `public/demo-scenarios.json`, s01 to s14, in order. Each carries the message to send, its channel, the `as_of` day and the `expected` outcome the sample-mode loop yields. `name` and `email` are a fallback client; call `GET /demo/client` for a fresh one."
+      responses:
+        "200":
+          description: The scenarios.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DemoScenario" }
+              example:
+                - id: s09
+                  label: Complaint, legal threat
+                  scenario: complaint
+                  reason: Complaint
+                  channel: email
+                  name: Havi Hollowell
+                  email: havihollowell@email.com
+                  message: The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.
+                  as_of: "2026-10-25"
+                  expected: { decision: escalate, branch: complaint-legal, owner_id: 15, team: Support, auto_reply: false, status: open, draft: true, cc: [7, 202] }
+                  client: random
+  /demo/client:
+    get:
+      summary: A client for a demo run
+      description: "A GENERATED client on every call (fictional given and family name from two fixed lists, `<given><family>@email.com` lower-case), so a repeated demo never meets a prior refund. For `scenario=s04` the seeded customer from `customers.csv` whose earlier refunds (T02, T06) are on record. Sent with `Cache-Control: no-store`. An unknown scenario id answers 400."
+      parameters:
+        - { name: scenario, in: query, required: false, schema: { type: string, pattern: "^s(0[1-9]|1[0-4])$" }, example: s04 }
+      responses:
+        "200":
+          description: The client.
+          headers:
+            Cache-Control: { schema: { type: string }, description: no-store }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DemoClient" }
+              example: { name: Emeric Kettleby, email: emerickettleby@email.com, generated: true }
+        "400": { $ref: "#/components/responses/BadRequest" }
   /intake:
     get:
       summary: Contact-form submissions (the REST source Zetaris reads)
-      description: The same 41 synthetic submissions as `contact_form_submissions`, served as a JSON array. Zetaris registers it as `JEDI_PACK.intake_live`.
+      description: "The same 41 synthetic submissions as `contact_form_submissions`, served as a JSON array. Zetaris registers it as `JEDI_PACK.intake_live`."
       responses:
         "200":
           description: The submissions.
@@ -412,6 +466,18 @@ components:
             cited_rows: { type: array, items: { type: string } }
             draft: { type: object }
             recommendation: { type: string, description: Present when the run recommends an action to the person it queues for. }
+            team: { type: string, description: "The team that owns the ticket, or the team an auto reply is sent on behalf of: Support, Sales, Product, Legal, Billing, Fulfilment, Finance, People, Engineering." }
+            team_label: { type: string, description: "The team's display name (fiction, labels only), for example Helpful Hands Hangar." }
+            backup_team: { type: string, nullable: true, description: "The backup's team, read only when the owner is out or the route names one." }
+            topic_label: { type: string, description: "The topic's display name, for example Department of Giving It Back." }
+            channel_label: { type: string, description: "The channel's display name, for example Direct email or Contact form." }
+            cc: { type: array, description: "People in copy (department heads on a legal route).", items: { $ref: "#/components/schemas/Participant" } }
+            also: { type: array, description: "Other people the ticket is also routed to (Legal counsel on a legal route).", items: { $ref: "#/components/schemas/Participant" } }
+            status: { type: string, enum: [open, handled, follow_up], description: "open at routing; handled at once for an auto reply. POST /runs/{id}/send (Plan 2) sets handled, or follow_up when courtesy_reply is true." }
+            auto_reply: { type: boolean, description: "true only for a sent draft (decision send); a hold or escalate is never an auto reply." }
+            memory_note: { type: string, nullable: true, description: "H-MEM's note, for example Second Refund Request from this client (2 earlier: T02, T06)." }
+            trusted_to_send: { type: boolean, description: "The trust-floor yes or no: true when the reply cleared the trust floor. A reply composed from rows can send while this is false." }
+            courtesy_reply: { type: boolean, description: "true only on the legal route: the draft is a courtesy reply, so the send marks follow_up." }
             queued_for:
               type: object
               properties:
@@ -420,6 +486,17 @@ components:
                 backup_id: { type: integer }
                 backup_name: { type: string, nullable: true, description: "Read only when the owner is out; null otherwise." }
                 role: { type: string, description: "The owner's role, or default contact when the contact desk is the target." }
+                team: { type: string }
+                team_label: { type: string }
+                backup_team: { type: string, nullable: true }
+                topic_label: { type: string }
+                cc: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+                also: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+                status: { type: string, enum: [open, handled, follow_up] }
+                auto_reply: { type: boolean }
+                memory_note: { type: string, nullable: true }
+                channel_label: { type: string }
+                courtesy_reply: { type: boolean }
                 fallback_contact:
                   type: object
                   nullable: true
@@ -435,6 +512,27 @@ components:
                     prices: { type: array, items: { type: object } }
                     quantities: { type: array, items: { type: object } }
                     products: { type: array, items: { type: object } }
+                    quote:
+                      type: object
+                      description: "A quote (rfq routes): tier AND parts. A part out of stock is flagged short and holds the quote for Sales."
+                      properties:
+                        sku: { type: string, example: FS-B01 }
+                        quantity: { type: integer }
+                        tier: { type: string, example: squad }
+                        unit_price: { type: number }
+                        discount_pct: { type: number }
+                        total: { type: number }
+                        currency: { type: string, example: GC }
+                        parts:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              part_id: { type: string, example: PT-0001 }
+                              part_name: { type: string }
+                              needed: { type: integer }
+                              stock: { type: integer }
+                              short: { type: boolean }
                     cited: { type: array, items: { type: string }, description: "Row ids, for example products:FS-B01." }
         scenario: { $ref: "#/components/schemas/ResolvedScenario" }
         resolved_how: { type: string, enum: [declared, thread, scout, gates, faq, none, unrouted], description: How the scenario was decided. }
@@ -540,7 +638,62 @@ components:
         reached_human: { type: boolean }
         status: { type: string, nullable: true }
         model: { type: string, nullable: true }
-        timestamp: { type: string, nullable: true }
+        timestamp: { type: string, nullable: true, description: "ISO with milliseconds (.mmmZ)." }
+        duration_ms: { type: integer, description: "Milliseconds since the previous line of the same run, 0 for the first." }
+        tech: { type: string, description: "What did the step: Zetaris, Meterless Nightshift (<model>), OpenJev (<model>), H-MEM or rules; never guessed (unknown only when the line names neither a sponsor nor a model)." }
+        returned: { description: "What the step handed back. Zetaris: the HIT rows only ([{id, table, key, detail}]), [] when nothing matched; a model: its reply text as traced; other techs: null." }
+    Participant:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { type: string }
+        email: { type: string, nullable: true }
+    FaqRow:
+      type: object
+      required: [faq_id, question, answer, keywords]
+      properties:
+        faq_id: { type: string, example: Q11 }
+        question: { type: string }
+        answer: { type: string }
+        keywords: { type: string }
+    DemoExpected:
+      type: object
+      required: [decision, branch, owner_id, team, auto_reply, status, draft]
+      properties:
+        decision: { type: string, enum: [send, hold, escalate, close] }
+        branch: { type: string }
+        owner_id: { type: integer, nullable: true, description: "The employee the run waits on; null for an auto reply (nobody owns a ticket answered at once)." }
+        team: { type: string }
+        auto_reply: { type: boolean }
+        status: { type: string, enum: [open, handled, follow_up] }
+        draft: { type: boolean }
+        memory_note: { type: boolean, description: Present and true only when H-MEM's note is expected. }
+        cc: { type: array, items: { type: integer }, description: Employee ids in copy. }
+    DemoScenario:
+      type: object
+      required: [id, label, scenario, reason, channel, name, email, message, as_of, expected, client]
+      properties:
+        id: { type: string, pattern: "^s(0[1-9]|1[0-4])$" }
+        label: { type: string }
+        scenario: { type: string, enum: [refund, question, rfq, complaint, free_text], description: "The declared scenario to POST (MessageInput.scenario)." }
+        reason: { type: string, enum: [Refund, Question, Quote, Complaint, Other, Review, Email] }
+        channel: { type: string, enum: [email, contact-form, chat, trustpilot] }
+        name: { type: string }
+        email: { type: string }
+        message: { type: string }
+        as_of: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$" }
+        expected: { $ref: "#/components/schemas/DemoExpected" }
+        client: { type: string, enum: [random, seeded-second-refund] }
+    DemoClient:
+      type: object
+      required: [name, email, generated]
+      properties:
+        customer_id: { type: string, description: "Only on the seeded client." }
+        name: { type: string }
+        email: { type: string }
+        generated: { type: boolean }
+        seeded_prior_refund: { type: boolean, description: "Only on the seeded client: true." }
     Journey:
       type: object
       required: [run_id, nodes, human, reached_human]
@@ -549,6 +702,17 @@ components:
         scenario: { type: string, nullable: true }
         resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, null] }
         decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        team: { type: string, nullable: true }
+        team_label: { type: string, nullable: true }
+        topic_label: { type: string, nullable: true }
+        cc: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+        also: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+        status: { type: string, nullable: true, enum: [open, handled, follow_up, null] }
+        auto_reply: { type: boolean }
+        memory_note: { type: string, nullable: true }
+        channel_label: { type: string, nullable: true }
+        trusted_to_send: { type: boolean }
+        courtesy_reply: { type: boolean, description: "Present and true only on the legal route." }
         input:
           type: object
           properties:
@@ -584,7 +748,7 @@ components:
             queue_file: { type: string, nullable: true }
     TraceLine:
       type: object
-      properties: { timestamp: { type: string }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
+      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: since the previous line of the run }, elapsed_ms: { type: integer, description: since the run's first line }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
       additionalProperties: true
     Error:
       type: object

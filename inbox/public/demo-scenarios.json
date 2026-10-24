@@ -1,56 +1,301 @@
 [
   {
-    "label": "Shipping question (FAQ)",
+    "id": "s01",
+    "label": "Refund within the limit, approver in",
+    "scenario": "refund",
+    "reason": "Refund",
+    "channel": "contact-form",
+    "name": "Alvane Ashdown",
+    "email": "alvaneashdown@email.com",
+    "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "under-floor",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s02",
+    "label": "Refund, approver out of office",
+    "scenario": "refund",
+    "reason": "Refund",
+    "channel": "contact-form",
+    "name": "Brisk Brightmoor",
+    "email": "briskbrightmoor@email.com",
+    "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+    "as_of": "2026-10-27",
+    "expected": {
+      "decision": "hold",
+      "branch": "under-floor",
+      "owner_id": 27,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s03",
+    "label": "Refund over the limit",
+    "scenario": "refund",
+    "reason": "Refund",
+    "channel": "contact-form",
+    "name": "Camren Cobbleton",
+    "email": "camrencobbleton@email.com",
+    "message": "I would like a refund of 400 GC for my Sovereign Arc Duellist, the blade will not ignite.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "escalate",
+      "branch": "over-limit",
+      "owner_id": 40,
+      "team": "Sales",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s04",
+    "label": "Second refund from the same client",
+    "scenario": "refund",
+    "reason": "Refund",
+    "channel": "contact-form",
+    "name": "Lira Venn",
+    "email": "liravenn@email.com",
+    "message": "I would like another refund, 60 GC, for the strap on my Drift Boots.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "under-floor",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true,
+      "memory_note": true
+    },
+    "client": "seeded-second-refund"
+  },
+  {
+    "id": "s05",
+    "label": "Product question, answered from the catalogue",
     "scenario": "free_text",
-    "name": "",
-    "email": "a@example.com",
-    "message": "How long does shipping take?",
-    "as_of": "2026-10-20",
-    "expected": "FAQ hit → sent automatically"
+    "reason": "Question",
+    "channel": "contact-form",
+    "name": "Dessa Dunmarrow",
+    "email": "dessadunmarrow@email.com",
+    "message": "What is the primary material used in the Sovereign Arc Duellist?",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "send",
+      "branch": "product-hit",
+      "owner_id": 5,
+      "team": "Product",
+      "auto_reply": true,
+      "status": "handled",
+      "draft": true
+    },
+    "client": "random"
   },
   {
-    "label": "Question not in the records",
-    "scenario": "question",
-    "name": "",
-    "email": "a@example.com",
-    "message": "Do you have a shop in Antwerp I can visit on Saturday?",
-    "as_of": "2026-10-20",
-    "expected": "Not in the FAQ or records → escalated to the question owner"
+    "id": "s06",
+    "label": "Product question, not in the catalogue row",
+    "scenario": "free_text",
+    "reason": "Question",
+    "channel": "chat",
+    "name": "Edric Embervale",
+    "email": "edricembervale@email.com",
+    "message": "Is the Wayfarer Cloak waterproof?",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "product-unanswered",
+      "owner_id": 5,
+      "team": "Product",
+      "auto_reply": false,
+      "status": "open",
+      "draft": false
+    },
+    "client": "random"
   },
   {
-    "label": "RFQ price difference",
+    "id": "s07",
+    "label": "Bulk quote",
     "scenario": "rfq",
-    "name": "",
-    "email": "einh@example.com",
-    "message": "Incoming RFQ for price difference between ordering 100000 items and 100 (we only have 1 price, so I would like to see how our flow responds",
-    "as_of": "2026-10-20",
-    "expected": "RFQ → escalated to sales (Tomas Keller), acknowledgement only, no quote"
+    "reason": "Quote",
+    "channel": "email",
+    "name": "Fiora Fennick",
+    "email": "fiorafennick@email.com",
+    "message": "Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "rfq-quote",
+      "owner_id": 6,
+      "team": "Sales",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
   },
   {
-    "label": "Complaint, venting",
+    "id": "s08",
+    "label": "Complaint, mild injury",
     "scenario": "complaint",
-    "name": "Rey Kanata",
-    "email": "new.customer@example.com",
-    "message": "the box was dented, I am annoyed, just so you know",
-    "as_of": "2026-10-20",
-    "expected": "Just venting → held, calm draft for the complaint owner"
+    "reason": "Complaint",
+    "channel": "email",
+    "name": "Galen Greystoke",
+    "email": "galengreystoke@email.com",
+    "message": "This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "complaint-genuine",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
   },
   {
-    "label": "Complaint, severe",
+    "id": "s09",
+    "label": "Complaint, legal threat",
     "scenario": "complaint",
-    "name": "Tilda Moss",
-    "email": "tilda.moss@example.com",
-    "message": "This is the second training saber from you whose hilt split open in my son's hands and cut him. I will post this review everywhere and I am talking to a lawyer. Never again. I want this fixed today.",
-    "as_of": "2026-10-20",
-    "expected": "Severity 10 → escalated, draft attached"
+    "reason": "Complaint",
+    "channel": "email",
+    "name": "Havi Hollowell",
+    "email": "havihollowell@email.com",
+    "message": "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "escalate",
+      "branch": "complaint-legal",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true,
+      "cc": [
+        7,
+        202
+      ]
+    },
+    "client": "random"
   },
   {
-    "label": "Something else (address change)",
+    "id": "s10",
+    "label": "Delivery to a suspended planet",
     "scenario": "free_text",
-    "name": "Lea Ortiz",
-    "email": "lea.ortiz@example.com",
-    "message": "Hi, I bought something from you last month for my nephew and now I need to change the delivery address, can you help?",
-    "as_of": "2026-10-20",
-    "expected": "Free text → held for customer service, draft with blanks"
+    "reason": "Other",
+    "channel": "contact-form",
+    "name": "Ilmar Ironbridge",
+    "email": "ilmarironbridge@email.com",
+    "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "send",
+      "branch": "delivery-suspended",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": true,
+      "status": "handled",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s11",
+    "label": "Other, answered by the FAQ",
+    "scenario": "free_text",
+    "reason": "Other",
+    "channel": "chat",
+    "name": "Jessa Jasperly",
+    "email": "jessajasperly@email.com",
+    "message": "Do you offer gift wrapping?",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "send",
+      "branch": "faq-hit",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": true,
+      "status": "handled",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s12",
+    "label": "Other, no answer on record",
+    "scenario": "free_text",
+    "reason": "Other",
+    "channel": "chat",
+    "name": "Kovan Kettleby",
+    "email": "kovankettleby@email.com",
+    "message": "Can I book the Coruscant store for a private birthday party?",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "other-unanswered",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": false
+    },
+    "client": "random"
+  },
+  {
+    "id": "s13",
+    "label": "Trustpilot review, complaint",
+    "scenario": "complaint",
+    "reason": "Review",
+    "channel": "trustpilot",
+    "name": "Leska Longmire",
+    "email": "leskalongmire@email.com",
+    "message": "The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "complaint-genuine",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
+  },
+  {
+    "id": "s14",
+    "label": "Direct email to info@",
+    "scenario": "complaint",
+    "reason": "Email",
+    "channel": "email",
+    "name": "Marek Marshgate",
+    "email": "marekmarshgate@email.com",
+    "message": "Hi, my package arrived with a dented box.",
+    "as_of": "2026-10-25",
+    "expected": {
+      "decision": "hold",
+      "branch": "complaint-vent",
+      "owner_id": 15,
+      "team": "Support",
+      "auto_reply": false,
+      "status": "open",
+      "draft": true
+    },
+    "client": "random"
   }
 ]

@@ -127,17 +127,18 @@ test("GET /static/app.js is javascript, never builds html from data, reads the j
   assert.ok(js.includes("/runs/") && js.includes("/journey"));
 });
 
-test("demo-scenarios.json parses; six entries, known scenarios, as_of, messages equal the input examples", async () => {
+test("demo-scenarios.json parses; fourteen entries s01..s14, known scenarios, as_of, messages equal the input examples", async () => {
   const r = await get("/static/demo-scenarios.json");
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "application/json; charset=utf-8");
   const list = await r.json();
-  assert.equal(list.length, 6);
+  assert.equal(list.length, 14);
   list.forEach((d, i) => {
+    assert.equal(d.id, `s${String(i + 1).padStart(2, "0")}`);
     assert.ok(SCENARIOS.includes(d.scenario), d.scenario);
     assert.ok(d.as_of, `${d.label} lacks as_of`);
     assert.ok(typeof d.message === "string" && d.message.length > 0, `${d.label} lacks a message`);
-    const ex = JSON.parse(readFileSync(join(inboxRoot, "input_examples", `example_${i + 4}.json`), "utf8")).input;
+    const ex = JSON.parse(readFileSync(join(inboxRoot, "input_examples", `example_${i + 10}.json`), "utf8")).input;
     assert.equal(d.message, ex.message, d.label);
   });
 });

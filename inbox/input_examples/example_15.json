@@ -1,0 +1,11 @@
+{
+  "run_id": "example-15",
+  "input": {
+    "message": "Is the Wayfarer Cloak waterproof?",
+    "from": "edricembervale@email.com",
+    "name": "Edric Embervale",
+    "channel": "chat",
+    "scenario": "free_text",
+    "as_of": "2026-10-25"
+  }
+}

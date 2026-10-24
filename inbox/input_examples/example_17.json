@@ -1,0 +1,11 @@
+{
+  "run_id": "example-17",
+  "input": {
+    "message": "This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.",
+    "from": "galengreystoke@email.com",
+    "name": "Galen Greystoke",
+    "channel": "email",
+    "scenario": "complaint",
+    "as_of": "2026-10-25"
+  }
+}

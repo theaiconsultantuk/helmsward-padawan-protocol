@@ -166,6 +166,18 @@ export function overLimitRefusal(f) {
   return `amount ${f.amount} GC is over the ${f.policy_limit} GC limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`;
 }
 
+// P11 (einh's board, 24 Oct 2026): above the approver's limit the draft says "routed for approval" and never promises a refund, an amount or a date.
+export const OVER_LIMIT_LINE = "The amount is above the approver's limit: say the request has been routed for approval; never promise a refund, an amount or a date.";
+const MONEY_PROMISE = /\b(?:we|i)(?:'ll|\s+will|\s+are\s+going\s+to|\s+can|\s+shall)\s+(?:gladly\s+)?(?:refund|reimburse|credit|pay)\b|\b(?:refund|reimburse)(?:ed|ing)?\s+(?:you|of)\b|\b\d[\d.,]*\s*(?:gc|galactic credits?)\b|\b20\d\d-\d\d-\d\d\b|\b(?:by|on|before|within)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|\d)/i;
+// Does an over-limit draft promise money: a refund amount in its promises, or the amount, a date or "we will refund" in its words?
+export function promisesMoney(d, f) {
+  if (!d || d.failed) return false;
+  if (d.promises?.refund_amount != null) return true;
+  const text = String(d.text ?? "");
+  if (MONEY_PROMISE.test(text)) return true;
+  return f?.amount != null && new RegExp(`(^|[^\\d.])${String(f.amount).replace(/\.0+$/, "").replace(".", "\\.")}(?:\\.0+)?([^\\d]|$)`).test(text);
+}
+
 // The reply rounds: draft, critique, Risk sign-off, one retry. Reads everything from the toolbox tb
 // ({ f, ticket, L, skipped, fatal, S, sampleOn, memCtx, hardRisk, maxRounds, io: { drafter, sampleDrafter, critic, reader, adapterTrace }, readerOn }).
 //   messagesFn({ critiques }) -> drafter messages        (default: the draftMessages of the ticket, facts and memory)
@@ -178,19 +190,22 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   const max = maxRounds ?? tb.maxRounds ?? 2;
   const ctxFacts = { ...f, backup: f.backup_name };
   const msgs = messagesFn ?? (({ critiques }) => draftMessages({ ticket, facts: f, memoryContext: memCtx, critiques }));
-  const sampleDraft = sampleDraftFn ?? ((seed) => io.sampleDrafter(f.ticket ?? ticket, ctxFacts, { seed }));
+  const sampleDraft = sampleDraftFn ?? ((seed, o = {}) => io.sampleDrafter(f.ticket ?? ticket, ctxFacts, { seed, ...o }));
   const refusalOf = hardRefusal ?? ((ff) => overLimitRefusal(ff));
   let refused = false;
+  // the approval path: an amount over the limit with someone to approve it (the default hardRefusal; a caller's own refusal is not this path)
+  const approvalPath = !hardRefusal && Boolean(overLimitRefusal(f));
 
   const makeDraft = async (seed, critiques, n) => {
     const sampled = () => {
-      const d = sampleDraft(seed);
+      const d = sampleDraft(seed, { overLimit: approvalPath });
       L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
       S.models.drafter = d.model;
       return { text: d.text, promises: d.promises, model: d.model };
     };
     if (sampleOn) return sampled();
-    const messages = msgs({ critiques });
+    let messages = msgs({ critiques });
+    if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}` } : m));
     let res;
     try {
       res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
@@ -273,7 +288,9 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     if (rd.status === "success") S.models.reader = rd.model;
     risk = doRisk(draft, round, rd.reason);
     S.rounds.push({ n: round, critique: crit, risk });
-    if ((crit.pass && risk.pass) || round >= max || risk.hard) break;
+    // an over-limit hard refusal still gets ONE rewrite when the draft promised money (P11); then the approval escalate
+    const rewriteForApproval = approvalPath && !retried && risk.hard && promisesMoney(draft, f) && f.may_leave !== false;
+    if ((crit.pass && risk.pass) || round >= max || (risk.hard && !rewriteForApproval)) break;
     // a negative round, gate not met: retry
     const next = "decline anything above the limit, promise only what the cited rows allow, mention a refund only on a refund request or a question about refunds in any wording or language, and name who follows up";
     const both = [`Evaluator: ${crit.reason}`, `Risk: ${risk.reasons.join("; ") || "signed off"}`];
@@ -368,7 +385,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const runtimeDir = deps.runtimeDir ?? null;
   const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
   const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
-  const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace }));
+  const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") }));
   const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
     ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
     : ledgerAdjustFor(category, { cfg, trace: o.trace })));
@@ -501,6 +518,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       } catch { productHit = null; }
       S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit, text: row.body, productHit });
       const params = preDecided?.parameters ?? {};
+      if (params.summed >= 2 && params.currency === "GC") S.summedNote = `summed ${params.summed} listed amounts (${(params.amounts ?? []).join(" + ")} = ${params.amount} GC; the message never says "total")`;
       // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
       Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
         amount: params.currency === "GC" ? params.amount : undefined });
@@ -579,7 +597,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
         + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : "")
-        + (secondRefund() ? `. ${secondRefund()}` : ""),
+        + (secondRefund() ? `. ${secondRefund()}` : "") + (S.summedNote ? `. ${S.summedNote}` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -693,6 +711,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       // queue-entry fields a handler decides (team, cc, also, status ...), and whether the reply goes out by itself
       S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status", "courtesy_reply"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
       if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
+      if (a.ownerHint) S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
       if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...(a.attachments !== undefined ? { attachments: a.attachments } : {}), ...queueMeta() };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
@@ -832,10 +851,31 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   meta.auto_reply = (S.autoReply === true || autoBranch) && decision === "send" && Boolean(S.draft?.text);
   const trusted = f ? !trustFloor(f, S.gates ?? undefined, { ledgerAdjust: S.ledger }).under : false;
   if (S.queued) Object.assign(S.queued, meta);
+  // the person every card names (2.1d): the approver over the limit, else the handler's owner, else the facts' owner (the backup when the owner is out)
+  const ownerObj = (() => {
+    const q = S.queued;
+    const bh = Boolean(f?.owner_out && !f?.backup_out && f?.backup_id != null);
+    let id, name, role, own = null;
+    if (q?.approval?.approver_id != null) ({ approver_id: id, approver_name: name } = q.approval);
+    else if (q?.owner_id != null && q.owner_id !== f?.owner_id) { id = q.owner_id; name = q.owner_name; role = q.role; own = true; }
+    else if (!q && S.ownerHint?.owner_id != null) { id = S.ownerHint.owner_id; name = S.ownerHint.owner_name; role = S.ownerHint.role; own = true; }
+    else if (bh) id = f.backup_id;
+    else id = f?.owner_id ?? q?.owner_id ?? null;
+    const asOwner = id != null && id === f?.owner_id, asBackup = id != null && id === f?.backup_id;
+    const pick = (k) => (asOwner ? f[`owner_${k}`] : asBackup ? f[`backup_${k}`] : undefined);
+    return {
+      employee_id: id ?? null,
+      name: name ?? pick("name") ?? (id != null ? `Employee ${id}` : null),
+      role: role ?? pick("role") ?? null,
+      team: (own ? meta.team : pick("team")) ?? meta.team ?? null,
+      team_label: (own ? meta.team_label : pick("team_label")) ?? meta.team_label ?? null,
+    };
+  })();
+  if (S.queued) S.queued.owner = ownerObj;
   const result = {
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",
     output: {
-      decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],
+      decision: S.decision, owner: ownerObj, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],
       ...(S.recommendation !== undefined ? { recommendation: S.recommendation } : {}),
       ...(S.draft ? { draft: S.draft } : {}), ...(S.queued ? { queued_for: S.queued } : {}),
       status: meta.status, auto_reply: meta.auto_reply, memory_note: meta.memory_note, team: meta.team, team_label: meta.team_label, backup_team: meta.backup_team,

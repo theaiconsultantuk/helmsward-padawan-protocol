@@ -59,7 +59,7 @@ test("an order that is not in the records holds for the delivery owner, no draft
 test("cold-start twins: F1 then F2 in the same dirs both answer from the rows; the second remembers the first", async () => {
   const d = dirs();
   const a = await runMessage(where(HELD_ALDERAAN), { d, run_id: "cold-1" });
-  const b = await runMessage(where(HELD_ALDERAAN), { d, run_id: "cold-2" });
+  const b = await runMessage({ ...where(HELD_ALDERAAN), message: `${where(HELD_ALDERAAN).message} Thanks.` }, { d, run_id: "cold-2" }); // identical text would be a duplicate
   assert.equal(a.result.input.thread_id, "F1");
   assert.equal(b.result.input.thread_id, "F2");
   for (const r of [a, b]) {

@@ -62,7 +62,8 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false } = {
   const cat = facts.category ?? ticket.category;
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
-  const ask = `You wrote about "${ticket.subject}".`;
+  // an over-limit reply never quotes the subject: a free-text subject is the body's first 60 characters and can carry the amount or a date
+  const ask = overLimit ? "Thank you for your message." : `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (overLimit && (cat === "refund" || seed === "revised")) {
@@ -83,6 +84,18 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false } = {
     mid = "Thank you for getting in touch.";
   }
   return { text: frame(ticket, `${ask} ${mid}`), model: MODEL, route: "sample", promises };
+}
+
+// The body of a genuine-complaint sample draft, composed from the ticket: an injury is named and taken seriously; anything else
+// keeps the generic apology. No refund, replacement, amount or date is promised either way.
+const INJURY = /\b(burn(?:t|ed|s)?|injur(?:y|ed|ies)|hurt|cut|shock(?:ed)?|bruis(?:e|ed)|blister(?:s|ed)?|sting|fire|smoke|hospital)\b/i;
+const NOUN = { burnt: "burn", burned: "burn", burns: "burn", injured: "injury", injuries: "injury", shocked: "shock", bruised: "bruise", blisters: "blister", blistered: "blister" };
+export function genuineComplaintBody(ticket) {
+  const m = INJURY.exec(`${ticket?.subject ?? ""} ${ticket?.body ?? ""}`);
+  if (!m) return "Thank you for telling us, and we are sorry. This matters to us, and a colleague will look at it personally and come back to you.";
+  const w = m[1].toLowerCase();
+  const what = NOUN[w] ?? w;
+  return `We are very sorry to hear about the ${what}. We take product safety seriously, and our Support team will contact you personally about it.`;
 }
 
 export function critique(d, facts) {

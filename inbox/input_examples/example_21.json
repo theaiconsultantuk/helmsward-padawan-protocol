@@ -1,0 +1,11 @@
+{
+  "run_id": "example-21",
+  "input": {
+    "message": "Can I book the Coruscant store for a private birthday party?",
+    "from": "kovankettleby@email.com",
+    "name": "Kovan Kettleby",
+    "channel": "chat",
+    "scenario": "free_text",
+    "as_of": "2026-10-25"
+  }
+}

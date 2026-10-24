@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "./config.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
+import { readIntake } from "./intake.mjs";
 
 export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation", "other"];
 export const INTENTS = ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"];
@@ -433,10 +434,33 @@ export function earliestDuplicate(ticket, rows) {
   return hits.length ? { thread_id: hits[0].thread_id, received_at: hits[0].received_at } : null;
 }
 
-// The duplicate lookup through Zetaris (sample mode: the cached rows). A failed query throws.
+// Pure (P13/H13): the earliest earlier free-text intake row with the same sender_email and the same body (case and spacing aside) within 7 days;
+// the subject is not compared, because a free-text subject is derived from the body. An empty sender never matches.
+const DUP_WINDOW_MS = 7 * 24 * 3600 * 1000;
+const norm = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+const fnum = (id) => { const m = /^F(\d+)$/.exec(String(id)); return m ? Number(m[1]) : Infinity; };
+export function earliestIntakeDuplicate(ticket, rows) {
+  const mail = norm(ticket.sender_email), body = norm(ticket.body);
+  const at = Date.parse(ticket.received_at);
+  if (!mail || !body || Number.isNaN(at)) return null;
+  const hits = (rows ?? []).filter((t) => {
+    if (t.thread_id === ticket.thread_id || norm(t.sender_email) !== mail || norm(t.body) !== body) return false;
+    const ta = Date.parse(t.received_at);
+    if (Number.isNaN(ta) || at - ta > DUP_WINDOW_MS) return false;
+    return ta < at || (ta === at && fnum(t.thread_id) < fnum(ticket.thread_id));
+  }).sort((a, b) => Date.parse(a.received_at) - Date.parse(b.received_at) || fnum(a.thread_id) - fnum(b.thread_id));
+  return hits.length ? { thread_id: hits[0].thread_id, received_at: hits[0].received_at } : null;
+}
+
+// The duplicate lookup: the thread fingerprints through Zetaris (sample mode: the cached rows), then the runtime intake rows (opts.runtimeDir,
+// default data/runtime), which are never in the fingerprints on a cold start. A failed query throws.
 export async function findDuplicate(ticket, opts = {}) {
   const r = await run("thread_fingerprints", {}, { limit: 1000, ...opts });
-  return earliestDuplicate(ticket, r.objects);
+  const hit = earliestDuplicate(ticket, r.objects);
+  if (hit) return hit;
+  let intake = [];
+  try { intake = readIntake(opts.runtimeDir ? { runtimeDir: opts.runtimeDir } : {}); } catch { /* an unreadable local file is no duplicate evidence */ }
+  return earliestIntakeDuplicate(ticket, intake);
 }
 
 export async function sources(opts = {}) {

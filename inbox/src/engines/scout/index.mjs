@@ -71,13 +71,23 @@ export function extractQuantities(s) {
 
 export function extractParams(prompt) {
   const p = {}, s = String(prompt ?? "");
-  const money = s.match(/([$€£])\s?(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?|(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?\s?(GC|USD|EUR|GBP|dollars?|euros?)\b/);
-  if (money) {
-    const num = parseFloat((money[2] ?? money[4]).replace(/,/g, ""));
-    const suf = (money[3] ?? money[5] ?? "").toLowerCase();
-    const cur = money[1] ?? money[6];
-    p.amount = num * (suf === "k" ? 1e3 : suf === "m" ? 1e6 : 1);
-    p.currency = { "$": "USD", "€": "EUR", "£": "GBP" }[cur] ?? String(cur).toUpperCase().replace(/^DOLLARS?$/, "USD").replace(/^EUROS?$/, "EUR");
+  const MONEY = /([$€£])\s?(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?|(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?\s?(GC|USD|EUR|GBP|dollars?|euros?)\b/g;
+  const one = (m) => ({
+    num: parseFloat((m[2] ?? m[4]).replace(/,/g, "")) * ((m[3] ?? m[5] ?? "").toLowerCase() === "k" ? 1e3 : (m[3] ?? m[5] ?? "").toLowerCase() === "m" ? 1e6 : 1),
+    cur: { "$": "USD", "€": "EUR", "£": "GBP" }[m[1] ?? m[6]] ?? String(m[1] ?? m[6]).toUpperCase().replace(/^DOLLARS?$/, "USD").replace(/^EUROS?$/, "EUR"),
+  });
+  // the loop's prompt is "subject\nbody"; a free-text subject is the body's first 60 characters, so its amounts are the body's own and count once
+  const nl = s.indexOf("\n"), head = nl > 0 ? s.slice(0, nl).trim() : "", rest = nl > 0 ? s.slice(nl + 1) : s;
+  const found = [...(head && rest.includes(head) ? rest : s).matchAll(MONEY)].map(one);
+  if (found.length) {
+    p.amount = found[0].num;
+    p.currency = found[0].cur;
+    // P13/H17: a message that lists two or more amounts in one currency and never says "total" asks for their sum (the model read only the first)
+    p.amounts = found.map((f) => f.num);
+    if (found.length >= 2 && !/\btotal\b/i.test(s) && found.every((f) => f.cur === found[0].cur)) {
+      p.amount = Math.round(found.reduce((a, f) => a + f.num, 0) * 100) / 100;
+      p.summed = found.length;
+    }
     if (/over|above|more than|at least/i.test(s)) p.valueMin = p.amount; else p.value = p.amount;
   }
   const iso = s.match(/\b\d{4}-\d{2}-\d{2}\b/);

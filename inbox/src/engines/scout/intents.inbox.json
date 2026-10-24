@@ -31,7 +31,8 @@
         "I still need the 40.00 GC back",
         "Any news on the refund, I still need the money back",
         "The charge was 40.00 GC, refund the charge",
-        "Refund and my card details, send the card number I paid with"
+        "Refund and my card details, send the card number I paid with",
+        "I want a refund for two items that arrived damaged, 35 GC for one and 65 GC for the other"
       ],
       "version": 1
     },
@@ -49,7 +50,8 @@
         "Please replace the cracked hilt, send a replacement",
         "I do not want a refund, I want a replacement saber",
         "The blade arrived broken, ship me a new one",
-        "The saber arrived damaged, replace it"
+        "The saber arrived damaged, replace it",
+        "I do not want the money back, I want it replaced"
       ],
       "version": 1
     },

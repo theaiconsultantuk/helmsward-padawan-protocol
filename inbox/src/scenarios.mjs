@@ -62,17 +62,32 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
 
 // ---- pure matchers (one tokenizer: Scout's tokens()) ----
 
-// score = |tokens(text) ∩ (tokens(question) ∪ tokens(keywords))| / |tokens(question)|; a hit is the top row, score >= 0.6, >= 2 shared tokens.
+// score = (sum over shared tokens of 1, or 0.5 when negated) / |tokens(question)|, shared = tokens(text) ∩ (tokens(question) ∪ tokens(keywords));
+// a hit is the top row, score >= 0.6, >= 2 shared tokens. P13/H05: a negation (not, no, never, don't, do not) within 3 words before a
+// matched keyword halves that keyword's contribution, so "I do not want my money back, I want the blade replaced" misses the refund FAQ.
+const NEGATION = /^(?:not|no|never|dont|don't|don’t|cannot|cant|can't|can’t|nothing|without)$/;
+export function negatedTokens(text) {
+  const words = String(text ?? "").toLowerCase().split(/[^\p{L}\p{N}'’]+/u).filter(Boolean);
+  const out = new Set();
+  words.forEach((w, i) => {
+    if (!words.slice(Math.max(0, i - 3), i).some((p) => NEGATION.test(p))) return;
+    for (const tk of tokens(w)) out.add(tk);
+  });
+  return out;
+}
+
 export function matchFaq(text, faqRows) {
   const t = new Set(tokens(text));
+  const neg = negatedTokens(text);
   let best = null;
   for (const row of faqRows ?? []) {
     const q = new Set(tokens(row.question));
     if (!q.size) continue;
     const pool = new Set([...q, ...tokens(row.keywords)]);
     const shared = [...t].filter((w) => pool.has(w));
-    const score = shared.length / q.size;
-    if (!best || score > best.score) best = { row, score, shared };
+    const negated = shared.filter((w) => neg.has(w));
+    const score = (shared.length - negated.length / 2) / q.size;
+    if (!best || score > best.score) best = { row, score, shared, ...(negated.length ? { negated } : {}) };
   }
   return best && best.score >= 0.6 && best.shared.length >= 2 ? best : null;
 }
@@ -219,7 +234,9 @@ async function actFaqHit(tb, p) {
     return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
   }
   tb.skipped("escalate_or_fallback", "FAQ answer sent; nothing to escalate");
-  return { decision: "send", reasons: [`FAQ ${row.faq_id} answers it; ${p.why}`], draft, cited: p.cited, auto_reply: true, team: "Support" };
+  // the card names the person responsible for the team the reply was sent for (Support: the customer_service default owner)
+  const ownerHint = await ownerOf(tb, "customer_service", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+  return { decision: "send", reasons: [`FAQ ${row.faq_id} answers it; ${p.why}`], draft, cited: p.cited, auto_reply: true, team: "Support", ownerHint };
 }
 
 async function actQuestion(tb, p) {
@@ -554,7 +571,7 @@ async function actComplaint(tb, p) {
   const sampleDraftFn = () => ({
     text: sample.frame(tb.ticket ?? tb.f, B === "complaint-vent"
       ? "Thank you for letting us know. We are sorry the order did not arrive as you hoped, and we have noted it."
-      : "Thank you for telling us, and we are sorry. This matters to us, and a colleague will look at it personally and come back to you."),
+      : sample.genuineComplaintBody(tb.ticket ?? tb.f)), // 2.1d: an injury is named (adapters/sample.mjs)
     promises: NO_PROMISES(), model: "sample/rules" });
   const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B, hardRefusal: severe ? () => `severity ${sev.score}: a person handles it` : undefined });
   const draft = { text: r.draft.text, promises: r.draft.promises, model: r.draft.model };
@@ -825,7 +842,8 @@ async function actDelivery(tb, p) {
     return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
   }
   tb.skipped("escalate_or_fallback", "delivery answer sent; nothing to escalate");
-  return { decision: "send", reasons: [p.why], draft, cited: p.cited, auto_reply: true, team: "Support" };
+  const ownerHint = await ownerOf(tb, "customer_service", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+  return { decision: "send", reasons: [p.why], draft, cited: p.cited, auto_reply: true, team: "Support", ownerHint };
 }
 
 // ---- other (the FAQ first, else a person; never a guess) ----

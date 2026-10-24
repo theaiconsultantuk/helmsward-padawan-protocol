@@ -141,7 +141,7 @@ test("cold-start twin: the same quote asked twice by the same email is F1 then F
   const d = dirs();
   const a = await ask(11, "Emitter Hilts", "2026-10-20", {});
   const x = await runMessage(msg("Hello, we need a quote for 11 Emitter Hilts for our guild. Thank you.", "email", "guild@example.com"), { d, run_id: "twin1" });
-  const y = await runMessage(msg("Hello, we need a quote for 11 Emitter Hilts for our guild. Thank you.", "email", "guild@example.com"), { d, run_id: "twin2" });
+  const y = await runMessage(msg("Hello, we need a quote for 11 Emitter Hilts for our guild. Thank you again.", "email", "guild@example.com"), { d, run_id: "twin2" });
   assert.equal(x.result.input.thread_id, "F1");
   assert.equal(y.result.input.thread_id, "F2");
   for (const r of [a, x, y]) assert.equal(r.result.branch_id, "rfq-quote");

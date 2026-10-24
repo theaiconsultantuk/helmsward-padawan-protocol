@@ -125,7 +125,7 @@ test("cold-start twin of both out: second run on the same memory decides the sam
   const d = mkDeps();
   const out = cfgWithOut([[15, "2026-09-29"], [27, "2026-09-29"]]);
   const a = await go("sl-twin-1", input, { d, cfg: out });
-  const b = await go("sl-twin-2", input, { d, cfg: out });
+  const b = await go("sl-twin-2", { ...input, message: `${input.message} Any news?` }, { d, cfg: out }); // identical text would be a duplicate
   assert.equal(a.result.output.decision, "escalate");
   assert.equal(b.result.output.decision, a.result.output.decision);
   assert.notEqual(find(b.lines, "memory.read")?.output_summary, "empty (cold first run)");

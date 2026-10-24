@@ -108,6 +108,8 @@ curl -s $B/openapi.yaml
 
 **The two pages.** The service also serves two reference pages, driven only by the API above: `GET /` is the unified front end (the "Why are you contacting us?" picker, a free-text field and the demo buttons, with the person's view on the left and "Under the hood" on the right) and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject). Their script, stylesheet and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names. Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
 
+**The 14 judge scenarios.** `GET /demo/scenarios`, `GET /demo/client` and `GET /faq` serve the demo data; every new field, the status lifecycle and the scenario table are in [docs/API-CONTRACT-judge-scenarios.md](docs/API-CONTRACT-judge-scenarios.md).
+
 **For the front end.** `docs/FRONTEND-SPEC.md` ([docs/FRONTEND-SPEC.md](docs/FRONTEND-SPEC.md)) says what each endpoint returns, how the journey is derived and what a replacement page must keep; `openapi.yaml` is the contract.
 
 Every result carries a `trace_id` and a `log_file`; `GET /runs/<run_id>/trace` returns that file as a JSON array (works for `/ask` run ids too). Results are kept for the last 200 runs, so a restart forgets them.

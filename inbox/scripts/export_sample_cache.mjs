@@ -96,8 +96,9 @@ want("product_lookup", {}); want("bulk_tiers", {});
 for (const sku of skus) { want("product_price", { sku }); want("product_by_sku", { sku }); want("bom", { sku }); }
 want("thread_fingerprints", {});
 for (const c of CATEGORIES) want("ledger_adjust", { category: c });
-// employees: 1-20, every owner/backup on a thread, every head and the CEO (201-207 are not in employees.csv: live answers no row)
-const emps = new Set([...Array.from({ length: 20 }, (_, i) => i + 1), ...heads]);
+// employees: 1-20, every owner/backup on a thread, every head and the CEO, and the 201-207 block (employees.csv carries those seven rows:
+// the CEO, the Legal head and the Legal staff the legal route copies, so their emails are not null in sample mode)
+const emps = new Set([...Array.from({ length: 20 }, (_, i) => i + 1), ...Array.from({ length: 7 }, (_, i) => 201 + i), ...heads]);
 for (const t of threads) for (const k of ["owner_id", "backup_id"]) if (t[k] !== "" && t[k] != null) emps.add(Number(t[k]));
 for (const e of [...emps].sort((a, b) => a - b)) want("employee", { employee_id: e });
 // hierarchy: every id the validator allows. 1-207 exist; 208-210 are valid ids with no row, cached as empty answers

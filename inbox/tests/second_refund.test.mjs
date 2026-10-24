@@ -105,7 +105,7 @@ for (const [label, first, firstDecision, zetarisCount] of [
     const a = await ask(d, first, { from: email, scenario });
     assert.equal(a.o.decision, firstDecision, `first: ${a.result.branch_id}`);
     assert.equal(a.o.status, firstDecision === "send" ? "handled" : "open");
-    const b = await ask(d, "I want a refund of 100 GC for my cracked saber", { from: email, ticks: 5, live: true });
+    const b = await ask(d, "I want a refund of 100 GC for my cracked saber, it is still broken", { from: email, ticks: 5, live: true }); // not the same words: identical text is a duplicate (P13/H13)
     assert.equal(b.o.decision, "hold", "the second refund is decided on its own amount");
     const want = [zetarisCount ? sentence(1, ["F1"]) : null, RECALL(1)].filter(Boolean).join(" ");
     assert.equal(b.o.memory_note, want);

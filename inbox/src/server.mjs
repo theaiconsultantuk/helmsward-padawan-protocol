@@ -1,4 +1,4 @@
-// Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /runs /runs/:id[/trace|/journey] /queue /openapi.yaml.
+// Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /faq /demo/scenarios /demo/client /runs /runs/:id[/trace|/journey] /queue /openapi.yaml.
 // JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
@@ -13,6 +13,8 @@ import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
 import { deriveJourney } from "./journey.mjs";
+import { readCsv } from "./csv.mjs";
+import { generateClient } from "./demo_names.mjs";
 
 export const VERSION = "0.1.0";
 export const BODY_LIMIT = 256 * 1024;
@@ -120,6 +122,15 @@ function threadIndex() {
 }
 const threadIds = () => new Set(threadIndex().keys());
 
+// the 14 demo scenarios: a committed JSON file, read per request (the file is small and a republish needs no restart)
+const demoScenarios = () => JSON.parse(readFileSync(join(INBOX_ROOT, "public", "demo-scenarios.json"), "utf8"));
+// the seeded client of s04 (customers.csv, seeded_prior_refund=true): the authored T02/T06 refunds are its prior refunds
+function seededClient() {
+  const row = readCsv(join(INBOX_ROOT, "data", "synthetic", "customers.csv")).find((r) => String(r.seeded_prior_refund) === "true");
+  if (!row) throw new HttpError(500, "InternalError", "no seeded client in customers.csv");
+  return { customer_id: row.customer_id, name: row.name, email: row.email, generated: false, seeded_prior_refund: true };
+}
+
 const newRunId = () => `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 const errBody = (run_id, type, message, recoverable, t0, trace_id = null) => ({
   run_id, status: "error", error: { type, message, recoverable }, trace_id,
@@ -211,6 +222,24 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         if (!f || !buf) { send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0)); return; }
         res.writeHead(200, { ...CORS, "Content-Type": f.type, "Content-Length": buf.length, "Cache-Control": "no-store" });
         res.end(buf);
+        return;
+      }
+      if (path === "/faq" || path === "/demo/scenarios" || path === "/demo/client") {
+        if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
+        if (path === "/faq") {
+          // the faq template through the same reader the loop uses (sample cache in sample mode, Zetaris live); `source` stays internal
+          const rows = deps.faq ? await deps.faq({ cfg }) : (await queries.run("faq", {}, { cfg, limit: 500 })).objects;
+          send(200, rows.map(({ faq_id, question, answer, keywords }) => ({ faq_id, question, answer, keywords })));
+          return;
+        }
+        if (path === "/demo/scenarios") { send(200, demoScenarios()); return; }
+        const sc = new URL(req.url, "http://localhost").searchParams.get("scenario");
+        if (sc !== null && !demoScenarios().some((d) => d.id === sc)) throw new HttpError(400, "BadRequest", "scenario must be one of s01..s14 or absent");
+        const client = sc === "s04" ? seededClient() : generateClient();
+        if (res.headersSent) return;
+        const text = JSON.stringify(mask(client, sec));
+        res.writeHead(200, { ...CORS, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(text), "Cache-Control": "no-store" });
+        res.end(text);
         return;
       }
       const GET_ONLY = ["/sources", "/intake", "/counters", "/openapi.yaml"];

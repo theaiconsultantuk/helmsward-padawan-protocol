@@ -26,8 +26,8 @@ test("legal threat: complaint-legal escalates to Support (15) with Legal's defau
   assert.deepEqual(o.cc.map((p) => p.id), [7, 202]);
   assert.deepEqual(o.cc.map((p) => [p.name, p.role]), [["Mei-Ling Zhao", "Head of Support"], ["Ilsa Wrenmoor", "Head of Legal"]]);
   for (const p of o.cc) assert.equal(p.email, EMAIL[p.id], `cc ${p.id} email is the employees.csv row`);
-  // the offline sample cache holds no employees row for 203: the email is absent, never invented (the live read or a rebuilt cache fills it)
-  assert.ok([null, EMAIL[203]].includes(o.also[0].email));
+  assert.equal(o.also[0].email, EMAIL[203], "the sample cache holds employees 201-207: Legal's email is the employees.csv row, not null");
+  assert.ok(EMAIL[203]);
   assert.deepEqual(Object.keys(o.cc[0]), ["id", "name", "role", "email"]);
   assert.equal(o.courtesy_reply, true);
   assert.equal(o.queued_for.courtesy_reply, true);
@@ -101,6 +101,9 @@ test("a mild injury (scenario 8) is not legal: complaint-genuine holds for Suppo
   assert.ok(o.draft.text.length > 0);
   assert.deepEqual(o.cc, []);
   assert.deepEqual(o.also, []);
+  assert.match(o.draft.text, /sorry to hear about the burn/);
+  assert.match(o.draft.text, /product safety/);
+  assert.doesNotMatch(o.draft.text, /did not arrive as you hoped/);
   assert.equal(o.courtesy_reply, undefined);
   assert.equal(o.status, "open");
   assert.equal(o.auto_reply, false);

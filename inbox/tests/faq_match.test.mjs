@@ -62,3 +62,14 @@ test("a thank-you word does not hide an FAQ question: appreciation plus an FAQ h
   assert.deepEqual(resolveScenario({ kind: "message", decided: dec, faqHit: { row: {} }, text: "Do you offer gift wrapping?" }), { scenario: "question", how: "faq" });
   assert.deepEqual(resolveScenario({ kind: "message", decided: dec, faqHit: { row: {} }, text: "Thank you, love the gift wrapping" }), { scenario: "legacy", how: "scout" });
 });
+
+test("P13/H05 negation guard: a negation within 3 tokens before a keyword halves its contribution", () => {
+  assert.equal(matchFaq("I do not want my money back, I want the blade replaced.", FAQ), null, "the refund FAQ is missed");
+  const plain = matchFaq("I want my money back", FAQ);
+  assert.equal(plain.row.faq_id, "Q08");
+  assert.equal(plain.negated, undefined);
+  const half = matchFaq("Can I get my money back for a refund?", FAQ);
+  assert.equal(half.score, 1, "no negation, the score is unchanged");
+  // a negation too far before the keyword does not count
+  assert.equal(matchFaq("not today but later I wonder about my money back refund", FAQ)?.row.faq_id, "Q08");
+});

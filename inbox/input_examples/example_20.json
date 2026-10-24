@@ -1,0 +1,11 @@
+{
+  "run_id": "example-20",
+  "input": {
+    "message": "Do you offer gift wrapping?",
+    "from": "jessajasperly@email.com",
+    "name": "Jessa Jasperly",
+    "channel": "chat",
+    "scenario": "free_text",
+    "as_of": "2026-10-25"
+  }
+}
