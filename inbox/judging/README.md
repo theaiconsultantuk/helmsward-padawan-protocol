@@ -1,13 +1,13 @@
 ---
 title: Judging pack index
 description: One line per evidence file in the Jedi Pack judging pack, with the rule or criterion it answers, checked for existence by the script that regenerates it.
-date: 2026-10-23
+date: 2026-10-24
 tags: [judging, index]
 ---
 
 # Judging pack
 
-Everything a judge needs to check the submission without asking the team. Paths are relative to `inbox/judging/`. Each file below was checked to exist when this index was generated (2026-10-23).
+Everything a judge needs to check the submission without asking the team. Paths are relative to `inbox/judging/`. Each file below was checked to exist when this index was generated (2026-10-24).
 
 Regenerate the whole pack, from the repository root:
 
@@ -72,7 +72,7 @@ Start with [../result.md](../result.md), then [rules-checklist.md](rules-checkli
 | [traces/trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl) | Example 8 live: a severe complaint, World Model history, severity 10, escalated with the draft | Meterless Engine (World Model); typed gates (OpenJev); Escalation |
 | [traces/trace-scenario-8-sample.jsonl](traces/trace-scenario-8-sample.jsonl) | Example 8 in sample mode | Sample mode; full step list |
 
-49 files listed, 0 missing.
+50 files listed, 0 missing.
 
 ## Two runs of the script
 

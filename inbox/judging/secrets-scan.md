@@ -1,7 +1,7 @@
 ---
 title: Secrets scan
 description: The gitleaks run over inbox/ and the no-secrets invariant test, with exit codes and finding counts, run after every other artefact of the judging pack was written.
-date: 2026-10-23
+date: 2026-10-24
 tags: [judging, secrets, scan]
 ---
 
@@ -18,7 +18,7 @@ gitleaks detect --source inbox --no-git --redact --no-banner -c <default rules +
 - Exit code: **0**
 - Findings: **0**
 - Files scanned: everything under `inbox/`, with the working-copy `.env` allowlisted (it is the local secrets file: gitignored in `inbox/.gitignore` and excluded from the image by `inbox/.dockerignore`).
-- The same scan with no allowlist: exit 1, 3 findings, in: inbox/.env. These are the real keys in the local, gitignored `.env`, not in any shipped file. The values are redacted and never printed here.
+- The same scan with no allowlist: exit 1, 4 findings, in: inbox/.env. These are the real keys in the local, gitignored `.env`, not in any shipped file. The values are redacted and never printed here.
 
 ## No-secrets invariant test
 
@@ -27,7 +27,7 @@ node --test inbox/tests/no_secrets.test.mjs
 ```
 
 - Exit code: **0**
-- no_secrets: swept 124 file(s) against 7 secret value(s)
+- no_secrets: swept 109 file(s) against 8 secret value(s)
 - What it checks: no configured secret value and no `Bearer <token>` in `logs/`, `output_examples/`, `judging/` (this directory, traces included) and `data/sample/`.
 
 ## Verdict
