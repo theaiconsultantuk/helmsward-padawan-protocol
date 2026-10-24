@@ -106,7 +106,7 @@ test("the quantity may stand before the product name (Scout counts only before a
 
 test("resolveScenario: a quote for a counted product is an RFQ even when Scout read a plain order question; a product question stays a product question", () => {
   const decided = { intent: { primary: { id: "GENERAL" }, confidence: 0.2 } };
-  const productHit = { row: { sku: "FS-B01" } };
+  const productHit = { row: { sku: "FS-B01", name: "Vanta Arc Trainer" } };
   assert.deepEqual(resolveScenario({ kind: "message", decided, text: "could you quote 25 Vanta Arc Trainers?", productHit }), { scenario: "rfq", how: "scout" });
   assert.equal(resolveScenario({ kind: "message", decided, text: "What is the Vanta Arc Trainer made of?", productHit }).scenario, "product");
 });

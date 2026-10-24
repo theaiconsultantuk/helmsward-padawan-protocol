@@ -21,7 +21,7 @@ test("3: a refund that threatens a lawyer is a complaint-legal escalation, the r
 
 test("3: a quote naming an order id is an RFQ, not a delivery reply", async () => {
   const text = "Please quote 20 Vanta Arc Trainers, same as my order JP-1008";
-  const r = resolveScenario({ kind: "message", text, productHit: { row: { sku: "FS-B01" } }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
+  const r = resolveScenario({ kind: "message", text, productHit: { row: { sku: "FS-B01", name: "Vanta Arc Trainer" } }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
   assert.equal(r.scenario, "rfq");
   const { result } = await ask(text);
   assert.equal(result.scenario, "rfq");

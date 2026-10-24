@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runMessage, msg } from "./helpers/route_run.mjs";
-import { resolveScenario } from "../src/scenarios.mjs";
+import { resolveScenario, hasQuantity } from "../src/scenarios.mjs";
 
 const ask = (text) => runMessage(msg(text, "contact-form", "q@email.com", { scenario: "free_text" }));
 const products = JSON.parse(readFileSync(new URL("../public/shop/data/catalogue.json", import.meta.url), "utf8")).products;
@@ -42,11 +42,59 @@ test("resolveScenario: an rfq.request read with no quote cue and no count does n
   assert.equal(resolveScenario({ kind: "message", text: "wholesale pricing for the Vanta Arc Trainer", decided, productHit }).scenario, "rfq");
 });
 
-test("sweep: no storefront product's made-of question routes to the RFQ", async () => {
-  assert.equal(products.length, 12);
-  for (const p of products) {
-    const { result } = await ask(`What is the ${p.name} made of?`);
-    assert.notEqual(result.scenario, "rfq", p.name);
-    assert.notEqual(result.branch_id, "rfq", p.name);
+const csv = readFileSync(new URL("../data/synthetic/products.csv", import.meta.url), "utf8");
+// a minimal CSV reader for the quoted fields of products.csv
+function rowsOf(text) {
+  const out = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n") { row.push(f); out.push(row); row = []; f = ""; }
+    else if (c !== "\r") f += c;
   }
+  if (f || row.length) { row.push(f); out.push(row); }
+  return out;
+}
+const [head, ...body] = rowsOf(csv);
+const catalogue = body.map((r) => ({ name: r[head.indexOf("name")], aliases: r[head.indexOf("aliases")].split(";").filter(Boolean), sku: r[0] }));
+const plural = (w) => (/(?:s|x|ch|sh)$/i.test(w) ? `${w}es` : /[^aeiou]y$/i.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
+// the aliases that are product codes ("P01") are not words a customer asks about
+const phrases = catalogue.flatMap((p) => [p.name, ...p.aliases.filter((a) => !/^P\d+$/.test(a))].flatMap((n) => [n, plural(n)]));
+
+test("sweep: every catalogue name, alias and plural, asked what it is made of, is a product question (never RFQ, refund or legacy)", async () => {
+  assert.ok(phrases.length > 100);
+  const bad = [];
+  for (const ph of phrases) {
+    const { result } = await ask(`What is the ${ph} made of?`);
+    if (result.scenario !== "product" || !["product-hit", "product-unanswered"].includes(result.branch_id)) bad.push(`${ph} -> ${result.scenario}/${result.branch_id}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test("a quantity-bound price request is an RFQ whatever number it carries, and whether or not Scout scores it", async () => {
+  for (const q of ["How much for 51 Strand Emitter Hilts?", "How much for 50 Strand Emitter Hilts?", "What is the price for 73 Quartermaster Utility Belts?", "I want to order 12 Vanta Arc Trainers", "What would 300 Wayfarer Long Cloaks cost?"]) {
+    const { result } = await ask(q);
+    assert.equal(result.scenario, "rfq", q);
+  }
+});
+
+test("spelled-out quantities count: a price for fifty, twenty-five, a dozen", async () => {
+  for (const q of ["We need a price for fifty Vanta Arc Trainers for the new academy wing", "Please quote twenty-five Vanta Arc Trainers", "How much for a dozen Strand Emitter Hilts?", "price for two hundred hilts"]) {
+    const { result } = await ask(q);
+    assert.equal(result.scenario, "rfq", q);
+  }
+});
+
+test("money, dates and unrelated counts are not quantities; a lone attribute word needs commercial context", async () => {
+  const hit = { all: [{ row: { sku: "FS-B01", name: "Vanta Arc Trainer", aliases: "" } }] };
+  for (const t of ["189 GC", "on 24/10", "on 2026/10/24", "2 questions about the Vanta Arc Trainer", "JP-1008", "costs 189 GC for the Vanta Arc Trainer"]) assert.equal(hasQuantity(t, hit), false, t);
+  for (const t of ["50 Vanta Arc Trainers", "fifty vanta arc trainers", "20 units", "a dozen units", "twenty-five Vanta Arc Trainers"]) assert.equal(hasQuantity(t, hit), true, t);
+  const decided = { intent: { primary: { id: "rfq.request" }, confidence: 0.9 } };
+  for (const q of ["What is the volume and price of the Core Crystal Cleaning Solution?", "Do you give a discount on the Vanta Arc Trainer?", "I have 2 questions about the Vanta Arc Trainer, it costs 189 GC on 24/10"]) {
+    assert.notEqual(resolveScenario({ kind: "message", text: q, decided, productHit: hit }).scenario, "rfq", q);
+  }
+  const { result } = await ask("What is the volume and price of the Core Crystal Cleaning Solution?");
+  assert.equal(result.scenario, "product");
 });
