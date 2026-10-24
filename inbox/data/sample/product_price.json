@@ -1,103 +1,33 @@
 [
   {
     "params": {
-      "product_id": "P01"
+      "sku": "FS-A01"
     },
     "result": {
       "headers": [
-        "product_id",
+        "sku",
         "name",
-        "unit_price_usd",
+        "unit_price",
         "currency",
         "min_order_qty",
-        "lead_days"
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
       ],
       "rows": [
         [
-          "P01",
-          "training saber",
-          "189.0",
-          "USD",
-          "1",
-          "12"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P02"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P02",
-          "hilt",
-          "39.0",
-          "USD",
-          "1",
-          "3"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P03"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P03",
-          "kyber crystal case",
-          "99.0",
-          "USD",
-          "1",
-          "11"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P04"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P04",
-          "travel cloak",
+          "FS-A01",
+          "Wayfarer Cloak",
           "119.0",
-          "USD",
+          "GC",
           "1",
-          "9"
+          "9",
+          "heavyweight desert-sand linen",
+          "length=135 cm;hood=yes;wash=30 C",
+          "true",
+          "travel cloak;cloak;P04"
         ]
       ],
       "total": 1
@@ -105,77 +35,33 @@
   },
   {
     "params": {
-      "product_id": "P05"
+      "sku": "FS-A02"
     },
     "result": {
       "headers": [
-        "product_id",
+        "sku",
         "name",
-        "unit_price_usd",
+        "unit_price",
         "currency",
         "min_order_qty",
-        "lead_days"
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
       ],
       "rows": [
         [
-          "P05",
-          "utility belt",
-          "249.0",
-          "USD",
-          "1",
-          "12"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P06"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P06",
-          "holster",
-          "149.0",
-          "USD",
-          "1",
-          "8"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P07"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P07",
-          "padawan robe",
+          "FS-A02",
+          "Initiate Robe",
           "59.0",
-          "USD",
+          "GC",
           "1",
-          "12"
+          "12",
+          "undyed organic cotton",
+          "fit=loose;sizes=XS-XXL;wash=machine",
+          "true",
+          "padawan robe;robe;P07"
         ]
       ],
       "total": 1
@@ -183,77 +69,1631 @@
   },
   {
     "params": {
-      "product_id": "P08"
+      "sku": "FS-A03"
     },
     "result": {
       "headers": [
-        "product_id",
+        "sku",
         "name",
-        "unit_price_usd",
+        "unit_price",
         "currency",
         "min_order_qty",
-        "lead_days"
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
       ],
       "rows": [
         [
-          "P08",
-          "saber stand",
-          "49.0",
-          "USD",
-          "1",
-          "11"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P09"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P09",
-          "pilgrim pack",
-          "79.0",
-          "USD",
-          "1",
-          "9"
-        ]
-      ],
-      "total": 1
-    }
-  },
-  {
-    "params": {
-      "product_id": "P10"
-    },
-    "result": {
-      "headers": [
-        "product_id",
-        "name",
-        "unit_price_usd",
-        "currency",
-        "min_order_qty",
-        "lead_days"
-      ],
-      "rows": [
-        [
-          "P10",
-          "boot set",
+          "FS-A03",
+          "Drift Boots",
           "29.0",
-          "USD",
+          "GC",
           "1",
-          "9"
+          "9",
+          "soft felt-lined suede, silent rubber sole",
+          "sole=soft;sizes=36-47;lining=felt",
+          "true",
+          "boot set;boots;P10"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A04",
+          "Quartermaster's Apron",
+          "42.0",
+          "GC",
+          "1",
+          "8",
+          "waxed canvas, leather blade loop",
+          "length=85 cm;pockets=2;strap=adjustable",
+          "false",
+          "apron"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A05",
+          "Temple Slippers",
+          "35.0",
+          "GC",
+          "1",
+          "9",
+          "pressed wool felt, grippy rubber sole",
+          "sizes=36-46;sole=rubber;wash=hand",
+          "false",
+          "slippers"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A06",
+          "Outer Rim Scarf",
+          "27.0",
+          "GC",
+          "1",
+          "7",
+          "loose-weave sand-tone cotton",
+          "length=180 cm;width=60 cm;colours=2",
+          "false",
+          "scarf"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A07",
+          "Hooded Training Tunic",
+          "64.0",
+          "GC",
+          "1",
+          "10",
+          "sweat-wicking recycled polyester",
+          "hood=yes;sizes=XS-XXL;fabric=wicking",
+          "false",
+          "tunic;training tunic"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A08",
+          "Scoundrel's Vest",
+          "88.0",
+          "GC",
+          "1",
+          "12",
+          "fitted charcoal wool blend, silk lining",
+          "pockets=4 hidden;sizes=S-XXL;clean=dry",
+          "false",
+          "vest"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A09",
+          "Bad Feeling About This Tee",
+          "24.0",
+          "GC",
+          "1",
+          "6",
+          "organic cotton jersey",
+          "fit=slim;sizes=XS-XXL;fabric=180 gsm",
+          "false",
+          "tee;t-shirt"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A10"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A10",
+          "Emitter-Print Socks",
+          "14.0",
+          "GC",
+          "2",
+          "4",
+          "combed cotton-elastane blend",
+          "pairs=2;sizes=36-46;print=hilts",
+          "false",
+          "socks"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B01",
+          "Arc Blade Trainer",
+          "189.0",
+          "GC",
+          "1",
+          "12",
+          "low-heat ceramic core, rubberised nerf-leather grip",
+          "length=98 cm;weight=520 g;emitter=single;heat=low",
+          "true",
+          "training saber;training blade;P01"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B02",
+          "Emitter Hilt",
+          "39.0",
+          "GC",
+          "1",
+          "3",
+          "machined duralloy shell, knurled brass grip rings",
+          "length=24 cm;weight=310 g;emitter=none",
+          "true",
+          "hilt;P02"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B03",
+          "Sovereign Arc Duellist",
+          "420.0",
+          "GC",
+          "1",
+          "15",
+          "tempered duralloy twin-core, hand-wrapped nerf-leather grip",
+          "length=104 cm;weight=640 g;emitter=twin",
+          "true",
+          "duellist;collector blade"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B04",
+          "Dual-Phase Practice Pole",
+          "139.0",
+          "GC",
+          "1",
+          "10",
+          "tempered duralloy shaft, twin ceramic cores",
+          "length=190 cm;weight=1.1 kg;emitter=dual",
+          "false",
+          "practice pole;staff"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B05",
+          "Pocket Emitter Keyring",
+          "19.0",
+          "GC",
+          "1",
+          "3",
+          "anodised aluminium shell, coin-cell core",
+          "length=6 cm;blade=4 cm;battery=coin cell",
+          "false",
+          "keyring;mini hilt"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B06",
+          "Hilt Grip Tape Roll",
+          "9.0",
+          "GC",
+          "5",
+          "2",
+          "textured cotton-backed polymer tape",
+          "length=5 m;width=25 mm;adhesive=strong",
+          "false",
+          "grip tape;tape"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B07",
+          "Crimson Cadet Trainer",
+          "199.0",
+          "GC",
+          "1",
+          "14",
+          "low-heat ceramic core, crimson-lacquered nerf-leather grip",
+          "length=98 cm;weight=530 g;emitter=single;heat=low",
+          "false",
+          "red trainer;cadet blade"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B08",
+          "Blade Hum Tuning Kit",
+          "45.0",
+          "GC",
+          "1",
+          "6",
+          "three tuned brass resonators, steel micro-wrench",
+          "resonators=3;wrench=2 mm;key=adjustable",
+          "false",
+          "tuning kit;hum kit"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-B09",
+          "Ceremonial Display Blade",
+          "620.0",
+          "GC",
+          "1",
+          "21",
+          "polished duralloy blade, walnut wall mount",
+          "length=110 cm;ignition=none;mount=wall",
+          "false",
+          "display blade;ceremonial blade"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C01",
+          "Core Crystal Case",
+          "99.0",
+          "GC",
+          "1",
+          "11",
+          "moulded foam lining, ballistic-nylon shell",
+          "capacity=1 core;width=9 cm;weight=180 g",
+          "true",
+          "kyber crystal case;crystal case;P03"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C02",
+          "Drift Vault Case",
+          "400.0",
+          "GC",
+          "1",
+          "12",
+          "brushed steel vault, felt-lined drawers",
+          "slots=12;lock=keyed;weight=6.2 kg",
+          "true",
+          "the case;vault case"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C03",
+          "Orbit Stand",
+          "49.0",
+          "GC",
+          "1",
+          "11",
+          "powder-coated steel arm, magnetic ceramic cradle",
+          "tilt=7 deg;mount=wall;load=1.5 kg",
+          "true",
+          "saber stand;stand;P08"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C04",
+          "Core Crystal Polishing Cloth",
+          "12.0",
+          "GC",
+          "3",
+          "2",
+          "lint-free microfibre",
+          "size=20x20 cm;pack=3;wash=cold",
+          "false",
+          "polishing cloth;cloth"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C05",
+          "Cracked Core Recycling Pouch",
+          "15.0",
+          "GC",
+          "1",
+          "4",
+          "padded recycled-polymer pouch",
+          "size=12x8 cm;lining=foam;prepaid=yes",
+          "false",
+          "recycling pouch"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C06",
+          "Twin Core Travel Tin",
+          "34.0",
+          "GC",
+          "1",
+          "7",
+          "pressed tin, felt-lined lid",
+          "capacity=2 cores;width=7 cm;weight=90 g",
+          "false",
+          "travel tin;tin"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C07",
+          "Humidity-Controlled Core Cabinet",
+          "780.0",
+          "GC",
+          "1",
+          "30",
+          "powder-coated steel, tempered glass door",
+          "slots=40;hygrometer=yes;lock=keyed",
+          "false",
+          "core cabinet;cabinet"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C08",
+          "Carbonite-Style Ice Tray",
+          "16.0",
+          "GC",
+          "1",
+          "5",
+          "food-grade platinum silicone",
+          "cavities=6;temp=-30 to 200 C;dishwasher=yes",
+          "false",
+          "ice tray"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-C09",
+          "Core Crystal Cleaning Solution",
+          "22.0",
+          "GC",
+          "1",
+          "6",
+          "alcohol-free ozone-scented solution in a glass bottle",
+          "volume=100 ml;alcohol=none;scent=ozone",
+          "false",
+          "cleaning solution"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G01",
+          "Quartermaster Belt",
+          "249.0",
+          "GC",
+          "1",
+          "12",
+          "vegetable-tanned leather, solid brass buckles",
+          "pouches=9;blade clips=1;width=4 cm",
+          "true",
+          "utility belt;belt;P05"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G02",
+          "Sidearm Holster",
+          "149.0",
+          "GC",
+          "1",
+          "8",
+          "waxed leather, steel drop-leg hinge",
+          "fit=right or left;strap=adjustable;drop=18 cm",
+          "true",
+          "holster;P06"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G03",
+          "Pilgrim Pack",
+          "79.0",
+          "GC",
+          "1",
+          "9",
+          "waxed canvas, riveted leather straps",
+          "volume=24 l;weight=900 g;straps=padded",
+          "true",
+          "pilgrim pack;pack;P09"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G04",
+          "Not-a-Moon Desk Globe",
+          "69.0",
+          "GC",
+          "1",
+          "9",
+          "grey resin sphere, brushed steel base",
+          "diameter=12 cm;weight=420 g;dish=yes",
+          "false",
+          "desk globe;globe"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G05",
+          "Do or Do Not Planner",
+          "21.0",
+          "GC",
+          "1",
+          "5",
+          "recycled paper, stitched linen cover",
+          "pages=400;format=weekly;size=A5",
+          "false",
+          "planner;diary"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G06",
+          "Protocol Etiquette Flashcards",
+          "18.0",
+          "GC",
+          "1",
+          "5",
+          "laminated recycled card",
+          "cards=200;size=9x6 cm;blank cards=1",
+          "false",
+          "flashcards;etiquette cards"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G07",
+          "Rolling Companion Cooler",
+          "160.0",
+          "GC",
+          "1",
+          "14",
+          "rotomoulded polymer dome, rubber wheels",
+          "volume=45 l;wheels=3;beeps=constant",
+          "false",
+          "cooler;rolling cooler"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G08",
+          "Hangar Floor Mat",
+          "48.0",
+          "GC",
+          "1",
+          "10",
+          "ribbed natural rubber",
+          "size=120x80 cm;thickness=8 mm;print=markings",
+          "false",
+          "floor mat;mat"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G09",
+          "Smuggler's Compartment Lunchbox",
+          "36.0",
+          "GC",
+          "1",
+          "7",
+          "brushed stainless steel",
+          "volume=1.1 l;false bottom=yes;seal=silicone",
+          "false",
+          "lunchbox"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G10"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G10",
+          "Nav Chart Wall Poster",
+          "25.0",
+          "GC",
+          "1",
+          "6",
+          "matt 170 gsm art paper",
+          "size=A1;frame=none;print=star-lane",
+          "false",
+          "poster;chart"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G11"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G11",
+          "Cantina Band Playlist Speaker",
+          "89.0",
+          "GC",
+          "1",
+          "12",
+          "rubberised ABS, steel grille",
+          "battery=9 h;tracks=1;speaker=10 W",
+          "false",
+          "speaker"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G12"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G12",
+          "Herd Animal Grooming Brush",
+          "17.0",
+          "GC",
+          "1",
+          "5",
+          "beechwood body, stiff boar-free nylon bristles",
+          "length=22 cm;bristles=stiff;weight=240 g",
+          "false",
+          "grooming brush;brush"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G13"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G13",
+          "Cerulean Milk Powder",
+          "13.0",
+          "GC",
+          "2",
+          "4",
+          "vanilla milk powder in a resealable foil pouch",
+          "pack=500 g;colour=blue;vegan=yes",
+          "false",
+          "blue milk;milk powder"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G14"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G14",
+          "Desert Moisture Collector Kit",
+          "310.0",
+          "GC",
+          "1",
+          "21",
+          "anodised aluminium condenser, borosilicate collector",
+          "yield=1 l per day;height=1.4 m;power=solar",
+          "false",
+          "moisture collector;vaporator kit"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G15"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G15",
+          "Speeder Parking Sign",
+          "29.0",
+          "GC",
+          "1",
+          "6",
+          "enamelled steel plate",
+          "size=40x30 cm;mount=bolt;rust=proof",
+          "false",
+          "parking sign;sign"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G16"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G16",
+          "Pilot's Headset Stand",
+          "33.0",
+          "GC",
+          "1",
+          "8",
+          "solid walnut",
+          "height=28 cm;finish=oiled;weight=650 g",
+          "false",
+          "headset stand"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G17"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G17",
+          "Emergency Escape Pod Blanket",
+          "58.0",
+          "GC",
+          "1",
+          "9",
+          "metallised polyester film in a steel tin",
+          "size=160x210 cm;weight=60 g;tin=yes",
+          "false",
+          "blanket;escape blanket"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G18"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G18",
+          "Holo-Chess Travel Set",
+          "95.0",
+          "GC",
+          "1",
+          "12",
+          "magnetic hardwood board, resin pieces",
+          "board=30 cm;pieces=8;magnets=yes",
+          "false",
+          "chess set;travel chess"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G19"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G19",
+          "Asteroid Field Stress Balls",
+          "11.0",
+          "GC",
+          "3",
+          "3",
+          "grey polyurethane foam",
+          "count=3;diameter=6 cm;squeeze=firm",
+          "false",
+          "stress balls"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G20"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G20",
+          "Bounty Board Cork Board",
+          "41.0",
+          "GC",
+          "1",
+          "8",
+          "oak frame, natural cork",
+          "size=60x40 cm;header=WANTED;frame=oak",
+          "false",
+          "cork board;notice board"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G21"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G21",
+          "Hyperlane Route Coffee Mug",
+          "15.0",
+          "GC",
+          "1",
+          "4",
+          "glazed stoneware",
+          "volume=350 ml;dishwasher=yes;microwave=yes",
+          "false",
+          "mug;coffee mug"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G22"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "unit_price",
+        "currency",
+        "min_order_qty",
+        "lead_days",
+        "material",
+        "specs",
+        "show_in_store",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-G22",
+          "Mechanic's Knee Pads",
+          "38.0",
+          "GC",
+          "1",
+          "7",
+          "closed-cell gel, neoprene straps",
+          "pair=1;strap=elastic;thickness=22 mm",
+          "false",
+          "knee pads"
         ]
       ],
       "total": 1

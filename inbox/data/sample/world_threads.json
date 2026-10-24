@@ -27,7 +27,7 @@
         ],
         [
           "T02",
-          "lira.venn@example.com",
+          "liravenn@email.com",
           "Lira Venn",
           "refund",
           "email",
@@ -43,7 +43,7 @@
           "refund",
           "contact-form",
           "2026-10-22T09:28:00Z",
-          "3",
+          "40",
           "escalate",
           "Refund over the limit"
         ],
@@ -55,7 +55,7 @@
           "email",
           "2026-10-22T09:36:00Z",
           "15",
-          "hold",
+          "escalate",
           "Refund and my card details"
         ],
         [
@@ -71,7 +71,7 @@
         ],
         [
           "T06",
-          "lira.venn@example.com",
+          "liravenn@email.com",
           "Lira Venn",
           "refund",
           "email",
@@ -87,7 +87,7 @@
           "complaint",
           "email",
           "2026-10-22T09:50:00Z",
-          "5",
+          "15",
           "hold",
           "Box arrived crushed"
         ],
@@ -98,7 +98,7 @@
           "complaint",
           "contact-form",
           "2026-10-22T10:02:00Z",
-          "5",
+          "15",
           "hold",
           "Rude delivery note"
         ],
@@ -109,7 +109,7 @@
           "complaint",
           "email",
           "2026-10-22T10:08:00Z",
-          "5",
+          "15",
           "hold",
           "Missing end cap"
         ],
@@ -120,8 +120,8 @@
           "complaint",
           "trustpilot",
           "2026-10-22T10:16:00Z",
-          "5",
-          "escalate",
+          "15",
+          "hold",
           "Do not buy from Jedi Pack"
         ],
         [
@@ -131,9 +131,9 @@
           "question",
           "contact-form",
           "2026-10-31T16:59:00Z",
-          "1",
+          "5",
           "",
-          "Care for my training saber"
+          "Care for my Arc Blade Trainer"
         ],
         [
           "T11",
@@ -142,7 +142,7 @@
           "question",
           "email",
           "2026-10-22T10:22:00Z",
-          "1",
+          "5",
           "hold",
           "Which colors can you ship"
         ],
@@ -153,7 +153,7 @@
           "question",
           "contact-form",
           "2026-10-22T10:30:00Z",
-          "1",
+          "5",
           "hold",
           "How long does shipping take"
         ],
@@ -164,7 +164,7 @@
           "question",
           "email",
           "2026-10-22T10:38:00Z",
-          "1",
+          "5",
           "hold",
           "Warranty length"
         ],
@@ -175,7 +175,7 @@
           "question",
           "email",
           "2026-10-22T11:12:00Z",
-          "1",
+          "5",
           "hold",
           "Re: Which colors can you ship"
         ],
@@ -186,7 +186,7 @@
           "question",
           "email",
           "2026-10-22T10:46:00Z",
-          "1",
+          "5",
           "hold",
           "Do you sell stands"
         ],
@@ -197,7 +197,7 @@
           "appreciation",
           "email",
           "2026-10-22T10:52:00Z",
-          null,
+          "15",
           "close",
           "Re: Engraving quote"
         ],
@@ -208,7 +208,7 @@
           "appreciation",
           "email",
           "2026-10-22T11:20:00Z",
-          null,
+          "15",
           "hold",
           "Re: Thank you"
         ],
@@ -219,7 +219,7 @@
           "appreciation",
           "trustpilot",
           "2026-10-22T11:28:00Z",
-          null,
+          "15",
           "send",
           "Beautiful saber"
         ],
@@ -230,7 +230,7 @@
           "appreciation",
           "contact-form",
           "2026-10-22T11:34:00Z",
-          null,
+          "15",
           "send",
           "Love the gift"
         ],
@@ -241,7 +241,7 @@
           "appreciation",
           "email",
           "2026-10-22T11:40:00Z",
-          null,
+          "15",
           "close",
           "Re: Blade color"
         ],
@@ -252,7 +252,7 @@
           "other",
           "email",
           "2026-10-22T11:48:00Z",
-          null,
+          "15",
           "hold",
           "Partnership proposal"
         ],
@@ -263,7 +263,7 @@
           "other",
           "contact-form",
           "2026-10-22T11:54:00Z",
-          null,
+          "15",
           "hold",
           "Are you hiring"
         ],
@@ -274,8 +274,8 @@
           "other",
           "email",
           "2026-10-22T12:02:00Z",
-          null,
-          "hold",
+          "15",
+          "escalate",
           "Internal price list"
         ],
         [
@@ -285,7 +285,7 @@
           "question",
           "email",
           "2026-10-22T10:24:00Z",
-          "1",
+          "5",
           "close",
           "Which colors can you ship"
         ],
@@ -307,7 +307,7 @@
           "other",
           "trustpilot",
           "2026-10-02T12:45:00Z",
-          null,
+          "15",
           "",
           "Partnership idea"
         ],
@@ -318,7 +318,7 @@
           "refund",
           "trustpilot",
           "2026-10-03T13:59:00Z",
-          "3",
+          "40",
           "",
           "Refund request JP-1880"
         ],
@@ -329,7 +329,7 @@
           "refund",
           "contact-form",
           "2026-10-03T14:42:00Z",
-          "3",
+          "40",
           "",
           "Refund request JP-1314"
         ],
@@ -340,7 +340,7 @@
           "refund",
           "email",
           "2026-10-04T10:08:00Z",
-          "3",
+          "40",
           "",
           "Refund for order JP-1652"
         ],
@@ -351,7 +351,7 @@
           "appreciation",
           "contact-form",
           "2026-10-04T14:21:00Z",
-          null,
+          "15",
           "",
           "Thank you"
         ],
@@ -362,9 +362,9 @@
           "refund",
           "email",
           "2026-10-04T15:19:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my utility belt"
+          "Money back for my Quartermaster Belt"
         ],
         [
           "T32",
@@ -373,7 +373,7 @@
           "appreciation",
           "email",
           "2026-10-04T17:43:00Z",
-          null,
+          "15",
           "",
           "Thank you"
         ],
@@ -384,7 +384,7 @@
           "question",
           "trustpilot",
           "2026-10-05T14:44:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -397,7 +397,7 @@
           "2026-10-05T16:13:00Z",
           "15",
           "",
-          "Money back for my padawan robe"
+          "Money back for my Initiate Robe"
         ],
         [
           "T35",
@@ -406,9 +406,9 @@
           "appreciation",
           "contact-form",
           "2026-10-06T14:41:00Z",
-          null,
+          "15",
           "",
-          "Love the pilgrim pack"
+          "Love the Pilgrim Pack"
         ],
         [
           "T36",
@@ -417,9 +417,9 @@
           "question",
           "contact-form",
           "2026-10-06T14:43:00Z",
-          "1",
+          "5",
           "",
-          "Care for my padawan robe"
+          "Care for my Initiate Robe"
         ],
         [
           "T37",
@@ -428,7 +428,7 @@
           "complaint",
           "email",
           "2026-10-06T15:41:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -439,7 +439,7 @@
           "question",
           "contact-form",
           "2026-10-07T09:21:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -452,7 +452,7 @@
           "2026-10-07T14:32:00Z",
           "15",
           "",
-          "Money back for my hilt"
+          "Money back for my Emitter Hilt"
         ],
         [
           "T40",
@@ -461,9 +461,9 @@
           "question",
           "email",
           "2026-10-08T08:16:00Z",
-          "1",
+          "5",
           "",
-          "Care for my hilt"
+          "Care for my Emitter Hilt"
         ],
         [
           "T41",
@@ -472,7 +472,7 @@
           "complaint",
           "trustpilot",
           "2026-10-08T08:42:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -483,7 +483,7 @@
           "complaint",
           "contact-form",
           "2026-10-08T08:42:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -494,7 +494,7 @@
           "refund",
           "contact-form",
           "2026-10-08T12:49:00Z",
-          "3",
+          "40",
           "",
           "Refund for order JP-1789"
         ],
@@ -516,7 +516,7 @@
           "other",
           "email",
           "2026-10-09T10:06:00Z",
-          null,
+          "15",
           "",
           "Partnership idea"
         ],
@@ -527,7 +527,7 @@
           "complaint",
           "contact-form",
           "2026-10-09T16:19:00Z",
-          "5",
+          "15",
           "",
           "Slow answers from support"
         ],
@@ -538,9 +538,9 @@
           "question",
           "contact-form",
           "2026-10-10T08:58:00Z",
-          "1",
+          "5",
           "",
-          "Care for my kyber crystal case"
+          "Care for my Core Crystal Case"
         ],
         [
           "T48",
@@ -549,9 +549,9 @@
           "refund",
           "email",
           "2026-10-10T11:44:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my saber stand"
+          "Money back for my Orbit Stand"
         ],
         [
           "T49",
@@ -560,7 +560,7 @@
           "question",
           "email",
           "2026-10-10T17:43:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -571,7 +571,7 @@
           "question",
           "contact-form",
           "2026-10-10T17:46:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ],
@@ -582,9 +582,9 @@
           "refund",
           "trustpilot",
           "2026-10-11T10:29:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my travel cloak"
+          "Money back for my Wayfarer Cloak"
         ],
         [
           "T52",
@@ -593,7 +593,7 @@
           "complaint",
           "contact-form",
           "2026-10-13T11:28:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -604,7 +604,7 @@
           "complaint",
           "trustpilot",
           "2026-10-13T13:49:00Z",
-          "5",
+          "15",
           "",
           "Slow answers from support"
         ],
@@ -615,7 +615,7 @@
           "appreciation",
           "trustpilot",
           "2026-10-13T15:11:00Z",
-          null,
+          "15",
           "",
           "Thank you"
         ],
@@ -626,9 +626,9 @@
           "refund",
           "contact-form",
           "2026-10-14T16:20:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my hilt"
+          "Money back for my Emitter Hilt"
         ],
         [
           "T56",
@@ -637,9 +637,9 @@
           "appreciation",
           "contact-form",
           "2026-10-15T12:47:00Z",
-          null,
+          "15",
           "",
-          "Love the boot set"
+          "Love the Drift Boots"
         ],
         [
           "T57",
@@ -648,9 +648,9 @@
           "question",
           "email",
           "2026-10-15T16:33:00Z",
-          "1",
+          "5",
           "",
-          "Care for my boot set"
+          "Care for my Drift Boots"
         ],
         [
           "T58",
@@ -659,9 +659,9 @@
           "refund",
           "email",
           "2026-10-16T08:45:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my padawan robe"
+          "Money back for my Initiate Robe"
         ],
         [
           "T59",
@@ -670,7 +670,7 @@
           "question",
           "contact-form",
           "2026-10-16T10:54:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -681,7 +681,7 @@
           "complaint",
           "contact-form",
           "2026-10-16T11:12:00Z",
-          "5",
+          "15",
           "",
           "Slow answers from support"
         ],
@@ -692,7 +692,7 @@
           "complaint",
           "trustpilot",
           "2026-10-16T11:15:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -703,7 +703,7 @@
           "other",
           "email",
           "2026-10-16T13:35:00Z",
-          null,
+          "15",
           "",
           "Wrong inbox maybe"
         ],
@@ -714,7 +714,7 @@
           "complaint",
           "email",
           "2026-10-16T13:59:00Z",
-          "5",
+          "15",
           "",
           "Slow answers from support"
         ],
@@ -725,7 +725,7 @@
           "complaint",
           "trustpilot",
           "2026-10-16T16:24:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -758,7 +758,7 @@
           "question",
           "email",
           "2026-10-18T13:43:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -769,7 +769,7 @@
           "other",
           "contact-form",
           "2026-10-18T14:57:00Z",
-          null,
+          "15",
           "",
           "Partnership idea"
         ],
@@ -780,7 +780,7 @@
           "question",
           "email",
           "2026-10-19T08:16:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ],
@@ -791,9 +791,9 @@
           "refund",
           "contact-form",
           "2026-10-19T11:34:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my training saber"
+          "Money back for my Arc Blade Trainer"
         ],
         [
           "T71",
@@ -802,9 +802,9 @@
           "appreciation",
           "contact-form",
           "2026-10-19T17:06:00Z",
-          null,
+          "15",
           "",
-          "Love the training saber"
+          "Love the Arc Blade Trainer"
         ],
         [
           "T72",
@@ -813,7 +813,7 @@
           "complaint",
           "trustpilot",
           "2026-10-20T14:52:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -824,7 +824,7 @@
           "other",
           "trustpilot",
           "2026-10-20T17:15:00Z",
-          null,
+          "15",
           "",
           "Partnership idea"
         ],
@@ -835,7 +835,7 @@
           "complaint",
           "email",
           "2026-10-21T11:03:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -857,7 +857,7 @@
           "question",
           "trustpilot",
           "2026-10-21T13:44:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -868,7 +868,7 @@
           "complaint",
           "email",
           "2026-10-22T10:00:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -890,7 +890,7 @@
           "other",
           "contact-form",
           "2026-10-23T15:20:00Z",
-          null,
+          "15",
           "",
           "Are you hiring"
         ],
@@ -901,7 +901,7 @@
           "question",
           "contact-form",
           "2026-10-24T08:58:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ],
@@ -923,7 +923,7 @@
           "complaint",
           "contact-form",
           "2026-10-25T09:41:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -934,7 +934,7 @@
           "complaint",
           "email",
           "2026-10-25T11:11:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -945,9 +945,9 @@
           "refund",
           "email",
           "2026-10-25T12:21:00Z",
-          "3",
+          "40",
           "",
-          "Money back for my hilt"
+          "Money back for my Emitter Hilt"
         ],
         [
           "T85",
@@ -956,7 +956,7 @@
           "complaint",
           "contact-form",
           "2026-10-25T12:39:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -967,7 +967,7 @@
           "question",
           "email",
           "2026-10-25T17:58:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -980,7 +980,7 @@
           "2026-10-26T10:18:00Z",
           "15",
           "",
-          "Money back for my padawan robe"
+          "Money back for my Initiate Robe"
         ],
         [
           "T88",
@@ -989,9 +989,9 @@
           "question",
           "contact-form",
           "2026-10-27T16:17:00Z",
-          "1",
+          "5",
           "",
-          "Care for my saber stand"
+          "Care for my Orbit Stand"
         ],
         [
           "T89",
@@ -1000,7 +1000,7 @@
           "question",
           "contact-form",
           "2026-10-29T10:59:00Z",
-          "1",
+          "5",
           "",
           "Do you ship to my region"
         ],
@@ -1022,7 +1022,7 @@
           "complaint",
           "contact-form",
           "2026-10-30T08:53:00Z",
-          "5",
+          "15",
           "",
           "Slow answers from support"
         ],
@@ -1033,7 +1033,7 @@
           "complaint",
           "contact-form",
           "2026-10-30T10:26:00Z",
-          "5",
+          "15",
           "",
           "Listing does not match"
         ],
@@ -1044,7 +1044,7 @@
           "question",
           "contact-form",
           "2026-10-30T12:18:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ],
@@ -1055,7 +1055,7 @@
           "other",
           "email",
           "2026-10-30T12:56:00Z",
-          null,
+          "15",
           "",
           "Are you hiring"
         ],
@@ -1066,7 +1066,7 @@
           "other",
           "contact-form",
           "2026-10-30T13:18:00Z",
-          null,
+          "15",
           "",
           "Wrong inbox maybe"
         ],
@@ -1077,7 +1077,7 @@
           "complaint",
           "contact-form",
           "2026-10-30T15:30:00Z",
-          "5",
+          "15",
           "",
           "Box arrived crushed"
         ],
@@ -1090,7 +1090,7 @@
           "2026-10-30T16:21:00Z",
           "15",
           "",
-          "Money back for my hilt"
+          "Money back for my Emitter Hilt"
         ],
         [
           "T98",
@@ -1099,7 +1099,7 @@
           "question",
           "trustpilot",
           "2026-10-30T16:44:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ],
@@ -1110,7 +1110,7 @@
           "question",
           "contact-form",
           "2026-10-31T12:20:00Z",
-          "1",
+          "5",
           "",
           "How long does shipping take"
         ]

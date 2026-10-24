@@ -1,0 +1,265 @@
+[
+  {
+    "params": {},
+    "result": {
+      "headers": [
+        "sku",
+        "name",
+        "aliases"
+      ],
+      "rows": [
+        [
+          "FS-A01",
+          "Wayfarer Cloak",
+          "travel cloak;cloak;P04"
+        ],
+        [
+          "FS-A02",
+          "Initiate Robe",
+          "padawan robe;robe;P07"
+        ],
+        [
+          "FS-A03",
+          "Drift Boots",
+          "boot set;boots;P10"
+        ],
+        [
+          "FS-A04",
+          "Quartermaster's Apron",
+          "apron"
+        ],
+        [
+          "FS-A05",
+          "Temple Slippers",
+          "slippers"
+        ],
+        [
+          "FS-A06",
+          "Outer Rim Scarf",
+          "scarf"
+        ],
+        [
+          "FS-A07",
+          "Hooded Training Tunic",
+          "tunic;training tunic"
+        ],
+        [
+          "FS-A08",
+          "Scoundrel's Vest",
+          "vest"
+        ],
+        [
+          "FS-A09",
+          "Bad Feeling About This Tee",
+          "tee;t-shirt"
+        ],
+        [
+          "FS-A10",
+          "Emitter-Print Socks",
+          "socks"
+        ],
+        [
+          "FS-B01",
+          "Arc Blade Trainer",
+          "training saber;training blade;P01"
+        ],
+        [
+          "FS-B02",
+          "Emitter Hilt",
+          "hilt;P02"
+        ],
+        [
+          "FS-B03",
+          "Sovereign Arc Duellist",
+          "duellist;collector blade"
+        ],
+        [
+          "FS-B04",
+          "Dual-Phase Practice Pole",
+          "practice pole;staff"
+        ],
+        [
+          "FS-B05",
+          "Pocket Emitter Keyring",
+          "keyring;mini hilt"
+        ],
+        [
+          "FS-B06",
+          "Hilt Grip Tape Roll",
+          "grip tape;tape"
+        ],
+        [
+          "FS-B07",
+          "Crimson Cadet Trainer",
+          "red trainer;cadet blade"
+        ],
+        [
+          "FS-B08",
+          "Blade Hum Tuning Kit",
+          "tuning kit;hum kit"
+        ],
+        [
+          "FS-B09",
+          "Ceremonial Display Blade",
+          "display blade;ceremonial blade"
+        ],
+        [
+          "FS-C01",
+          "Core Crystal Case",
+          "kyber crystal case;crystal case;P03"
+        ],
+        [
+          "FS-C02",
+          "Drift Vault Case",
+          "the case;vault case"
+        ],
+        [
+          "FS-C03",
+          "Orbit Stand",
+          "saber stand;stand;P08"
+        ],
+        [
+          "FS-C04",
+          "Core Crystal Polishing Cloth",
+          "polishing cloth;cloth"
+        ],
+        [
+          "FS-C05",
+          "Cracked Core Recycling Pouch",
+          "recycling pouch"
+        ],
+        [
+          "FS-C06",
+          "Twin Core Travel Tin",
+          "travel tin;tin"
+        ],
+        [
+          "FS-C07",
+          "Humidity-Controlled Core Cabinet",
+          "core cabinet;cabinet"
+        ],
+        [
+          "FS-C08",
+          "Carbonite-Style Ice Tray",
+          "ice tray"
+        ],
+        [
+          "FS-C09",
+          "Core Crystal Cleaning Solution",
+          "cleaning solution"
+        ],
+        [
+          "FS-G01",
+          "Quartermaster Belt",
+          "utility belt;belt;P05"
+        ],
+        [
+          "FS-G02",
+          "Sidearm Holster",
+          "holster;P06"
+        ],
+        [
+          "FS-G03",
+          "Pilgrim Pack",
+          "pilgrim pack;pack;P09"
+        ],
+        [
+          "FS-G04",
+          "Not-a-Moon Desk Globe",
+          "desk globe;globe"
+        ],
+        [
+          "FS-G05",
+          "Do or Do Not Planner",
+          "planner;diary"
+        ],
+        [
+          "FS-G06",
+          "Protocol Etiquette Flashcards",
+          "flashcards;etiquette cards"
+        ],
+        [
+          "FS-G07",
+          "Rolling Companion Cooler",
+          "cooler;rolling cooler"
+        ],
+        [
+          "FS-G08",
+          "Hangar Floor Mat",
+          "floor mat;mat"
+        ],
+        [
+          "FS-G09",
+          "Smuggler's Compartment Lunchbox",
+          "lunchbox"
+        ],
+        [
+          "FS-G10",
+          "Nav Chart Wall Poster",
+          "poster;chart"
+        ],
+        [
+          "FS-G11",
+          "Cantina Band Playlist Speaker",
+          "speaker"
+        ],
+        [
+          "FS-G12",
+          "Herd Animal Grooming Brush",
+          "grooming brush;brush"
+        ],
+        [
+          "FS-G13",
+          "Cerulean Milk Powder",
+          "blue milk;milk powder"
+        ],
+        [
+          "FS-G14",
+          "Desert Moisture Collector Kit",
+          "moisture collector;vaporator kit"
+        ],
+        [
+          "FS-G15",
+          "Speeder Parking Sign",
+          "parking sign;sign"
+        ],
+        [
+          "FS-G16",
+          "Pilot's Headset Stand",
+          "headset stand"
+        ],
+        [
+          "FS-G17",
+          "Emergency Escape Pod Blanket",
+          "blanket;escape blanket"
+        ],
+        [
+          "FS-G18",
+          "Holo-Chess Travel Set",
+          "chess set;travel chess"
+        ],
+        [
+          "FS-G19",
+          "Asteroid Field Stress Balls",
+          "stress balls"
+        ],
+        [
+          "FS-G20",
+          "Bounty Board Cork Board",
+          "cork board;notice board"
+        ],
+        [
+          "FS-G21",
+          "Hyperlane Route Coffee Mug",
+          "mug;coffee mug"
+        ],
+        [
+          "FS-G22",
+          "Mechanic's Knee Pads",
+          "knee pads"
+        ]
+      ],
+      "total": 50
+    }
+  }
+]

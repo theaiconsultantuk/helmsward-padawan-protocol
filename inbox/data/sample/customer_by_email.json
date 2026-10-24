@@ -1,0 +1,1742 @@
+[
+  {
+    "params": {
+      "email": "ardenashgrove@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C021",
+          "Arden Ashgrove",
+          "arden-ash",
+          "ardenashgrove@email.com",
+          "Alderaan",
+          "2024-05-27",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "ashlanwhitlock@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C047",
+          "Ashlan Whitlock",
+          "ashlan-whi",
+          "ashlanwhitlock@email.com",
+          "Alderaan",
+          "2024-07-01",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "aven.rho@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C016",
+          "Aven Rho",
+          "aven-6",
+          "aven.rho@example.com",
+          "Dantooine",
+          "2025-01-28",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "bexleyunderhill@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C022",
+          "Bexley Underhill",
+          "bexley-44",
+          "bexleyunderhill@email.com",
+          "Dantooine",
+          "2024-01-05",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "bram.solt@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C006",
+          "Bram Solt",
+          "bram-3",
+          "bram.solt@example.com",
+          "Dantooine",
+          "2025-02-10",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "brynnjuniper@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C048",
+          "Brynn Juniper",
+          "brynn-23",
+          "brynnjuniper@email.com",
+          "Kamino",
+          "2025-02-02",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "calderlowmere@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C049",
+          "Calder Lowmere",
+          "calder-low",
+          "calderlowmere@email.com",
+          "Corellia",
+          "2025-11-12",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "cass.holm@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C003",
+          "Cass Holm",
+          "cass-8",
+          "cass.holm@example.com",
+          "Kamino",
+          "2025-10-18",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "cleo.voss@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C017",
+          "Cleo Voss",
+          "cleo-7",
+          "cleo.voss@example.com",
+          "Coruscant",
+          "2025-06-15",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "corincopperfield@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C023",
+          "Corin Copperfield",
+          "corin-cop",
+          "corincopperfield@email.com",
+          "Bornem",
+          "2025-09-16",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "daliaravenscar@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C024",
+          "Dalia Ravenscar",
+          "dalia-56",
+          "daliaravenscar@email.com",
+          "Tatooine",
+          "2024-05-23",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "dorineastlake@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C050",
+          "Dorin Eastlake",
+          "dorin-13",
+          "dorineastlake@email.com",
+          "Tatooine",
+          "2024-09-16",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "elowenzephyrine@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C051",
+          "Elowen Zephyrine",
+          "elowen-zep",
+          "elowenzephyrine@email.com",
+          "Alderaan",
+          "2025-11-10",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "eskeljessamy@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C025",
+          "Eskel Jessamy",
+          "eskel-jes",
+          "eskeljessamy@email.com",
+          "Ryloth",
+          "2025-08-17",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "fabianoakhallow@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C052",
+          "Fabian Oakhallow",
+          "fabian-67",
+          "fabianoakhallow@email.com",
+          "Dantooine",
+          "2025-02-16",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "fennacoldharbour@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C026",
+          "Fenna Coldharbour",
+          "fenna-73",
+          "fennacoldharbour@email.com",
+          "Hoth",
+          "2025-09-22",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "gale.ivo@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C020",
+          "Gale Ivo",
+          "gale-9",
+          "gale.ivo@example.com",
+          "Ryloth",
+          "2025-07-17",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "garrickfairweather@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C027",
+          "Garrick Fairweather",
+          "garrick-fai",
+          "garrickfairweather@email.com",
+          "Bornem",
+          "2024-05-11",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "gwynbrightwater@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C053",
+          "Gwyn Brightwater",
+          "gwyn-bri",
+          "gwynbrightwater@email.com",
+          "Bornem",
+          "2025-10-20",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "halvardivyholt@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C054",
+          "Halvard Ivyholt",
+          "halvard-31",
+          "halvardivyholt@email.com",
+          "Tatooine",
+          "2024-10-17",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "henk.adler@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C011",
+          "Henk Adler",
+          "henk-8",
+          "henk.adler@example.com",
+          "Tatooine",
+          "2025-12-17",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "hespergreywell@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C028",
+          "Hesper Greywell",
+          "hesper-68",
+          "hespergreywell@email.com",
+          "Coruscant",
+          "2024-08-23",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "ilsahartwell@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C055",
+          "Ilsa Hartwell",
+          "ilsa-har",
+          "ilsahartwell@email.com",
+          "Ryloth",
+          "2024-07-20",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "isoldestillwater@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C029",
+          "Isolde Stillwater",
+          "isolde-sti",
+          "isoldestillwater@email.com",
+          "Kamino",
+          "2025-08-06",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "ivo.trent@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C004",
+          "Ivo Trent",
+          "ivo-9",
+          "ivo.trent@example.com",
+          "Coruscant",
+          "2025-10-15",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "jarekironwood@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C030",
+          "Jarek Ironwood",
+          "jarek-64",
+          "jarekironwood@email.com",
+          "Hoth",
+          "2025-02-21",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "jorenfoxglove@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C056",
+          "Joren Foxglove",
+          "joren-53",
+          "jorenfoxglove@email.com",
+          "Hoth",
+          "2025-10-08",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "joss.keller@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C015",
+          "Joss Keller",
+          "joss-4",
+          "joss.keller@example.com",
+          "Bornem",
+          "2025-11-23",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "kallablackmoor@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C057",
+          "Kalla Blackmoor",
+          "kalla-bla",
+          "kallablackmoor@email.com",
+          "Bornem",
+          "2024-09-13",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "kestramossfield@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C031",
+          "Kestra Mossfield",
+          "kestra-mos",
+          "kestramossfield@email.com",
+          "Naboo",
+          "2025-08-12",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "liravenn@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C002",
+          "Lira Venn",
+          "lira-3",
+          "liravenn@email.com",
+          "Corellia",
+          "2025-04-20",
+          "true",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "lorcangarnet@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C032",
+          "Lorcan Garnet",
+          "lorcan-22",
+          "lorcangarnet@email.com",
+          "Alderaan",
+          "2024-12-28",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "lysanderquarrymere@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C058",
+          "Lysander Quarrymere",
+          "lysander-14",
+          "lysanderquarrymere@email.com",
+          "Coruscant",
+          "2024-11-06",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "mirelaamberly@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C033",
+          "Mirela Amberly",
+          "mirela-amb",
+          "mirelaamberly@email.com",
+          "Kamino",
+          "2025-03-15",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "nessa.quill@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C005",
+          "Nessa Quill",
+          "nessa-5",
+          "nessa.quill@example.com",
+          "Bornem",
+          "2025-01-20",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "nima.pell@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C014",
+          "Nima Pell",
+          "nima-6",
+          "nima.pell@example.com",
+          "Coruscant",
+          "2025-05-15",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "nolanlarkspur@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C034",
+          "Nolan Larkspur",
+          "nolan-11",
+          "nolanlarkspur@email.com",
+          "Corellia",
+          "2024-01-15",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "oren.pell@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C008",
+          "Oren Pell",
+          "oren-9",
+          "oren.pell@example.com",
+          "Naboo",
+          "2025-11-11",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "orlakettlewick@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C035",
+          "Orla Kettlewick",
+          "orla-ket",
+          "orlakettlewick@email.com",
+          "Tatooine",
+          "2024-10-26",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "padme.amidala@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C001",
+          "Padmé Amidala",
+          "padme-3",
+          "padme.amidala@example.com",
+          "Tatooine",
+          "2025-06-17",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "perrinyarrow@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C036",
+          "Perrin Yarrow",
+          "perrin-35",
+          "perrinyarrow@email.com",
+          "Alderaan",
+          "2024-02-20",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "pim.lorne@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C012",
+          "Pim Lorne",
+          "pim-3",
+          "pim.lorne@example.com",
+          "Corellia",
+          "2025-12-11",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "quillonhollowby@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C037",
+          "Quillon Hollowby",
+          "quillon-hol",
+          "quillonhollowby@email.com",
+          "Dantooine",
+          "2024-09-09",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "quinn.dale@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C018",
+          "Quinn Dale",
+          "quinn-8",
+          "quinn.dale@example.com",
+          "Naboo",
+          "2025-02-13",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "remy.sol@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C019",
+          "Remy Sol",
+          "remy-9",
+          "remy.sol@example.com",
+          "Hoth",
+          "2025-02-14",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "rheakingsley@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C038",
+          "Rhea Kingsley",
+          "rhea-95",
+          "rheakingsley@email.com",
+          "Bornem",
+          "2025-03-01",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "sable.wren@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C009",
+          "Sable Wren",
+          "sable-5",
+          "sable.wren@example.com",
+          "Hoth",
+          "2025-07-09",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "sorenelmstead@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C039",
+          "Soren Elmstead",
+          "soren-elm",
+          "sorenelmstead@email.com",
+          "Tatooine",
+          "2025-11-19",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "tamsinpennywhistle@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C040",
+          "Tamsin Pennywhistle",
+          "tamsin-83",
+          "tamsinpennywhistle@email.com",
+          "Ryloth",
+          "2025-12-24",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "tilda.moss@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C010",
+          "Tilda Moss",
+          "tilda-7",
+          "tilda.moss@example.com",
+          "Ryloth",
+          "2025-06-26",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "ulricnorthcote@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C041",
+          "Ulric Northcote",
+          "ulric-nor",
+          "ulricnorthcote@email.com",
+          "Hoth",
+          "2024-09-08",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "una.grell@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C013",
+          "Una Grell",
+          "una-3",
+          "una.grell@example.com",
+          "Kamino",
+          "2025-09-18",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "vesnathornbury@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C042",
+          "Vesna Thornbury",
+          "vesna-70",
+          "vesnathornbury@email.com",
+          "Bornem",
+          "2024-10-23",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "wystandewhurst@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C043",
+          "Wystan Dewhurst",
+          "wystan-dew",
+          "wystandewhurst@email.com",
+          "Coruscant",
+          "2025-02-14",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "xanthedunmere@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C044",
+          "Xanthe Dunmere",
+          "xanthe-95",
+          "xanthedunmere@email.com",
+          "Kamino",
+          "2024-03-26",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "yara.kest@example.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C007",
+          "Yara Kest",
+          "yara-3",
+          "yara.kest@example.com",
+          "Coruscant",
+          "2025-08-01",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "yorrinvalemont@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C045",
+          "Yorrin Valemont",
+          "yorrin-val",
+          "yorrinvalemont@email.com",
+          "Hoth",
+          "2025-09-14",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "email": "zeldamarlowe@email.com"
+    },
+    "result": {
+      "headers": [
+        "customer_id",
+        "name",
+        "callsign",
+        "email",
+        "home_planet",
+        "since",
+        "seeded_prior_refund",
+        "fictional"
+      ],
+      "rows": [
+        [
+          "C046",
+          "Zelda Marlowe",
+          "zelda-59",
+          "zeldamarlowe@email.com",
+          "Naboo",
+          "2024-09-26",
+          "false",
+          "true"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]

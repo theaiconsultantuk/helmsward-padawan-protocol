@@ -37,6 +37,24 @@
   },
   {
     "params": {
+      "category": "other"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "label"
+      ],
+      "rows": [
+        [
+          "other",
+          "Other"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "category": "question"
     },
     "result": {

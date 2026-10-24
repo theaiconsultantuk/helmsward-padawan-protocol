@@ -73,6 +73,78 @@
   },
   {
     "params": {
+      "topic": "delivery"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "legal"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "other"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "topic": "product"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "limit_amount",
+        "currency",
+        "under_limit_owner_id",
+        "under_limit_backup_id",
+        "over_limit_owner_id",
+        "over_limit_backup_id"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
       "topic": "question"
     },
     "result": {
@@ -107,11 +179,11 @@
         [
           "refund",
           "150.00",
-          "USD",
+          "GC",
           "15",
-          "16",
-          "3",
-          "4"
+          "27",
+          "40",
+          "201"
         ]
       ],
       "total": 1
@@ -149,8 +221,18 @@
         "over_limit_owner_id",
         "over_limit_backup_id"
       ],
-      "rows": [],
-      "total": 0
+      "rows": [
+        [
+          "rfq",
+          "5000.00",
+          "GC",
+          "6",
+          "14",
+          "40",
+          "201"
+        ]
+      ],
+      "total": 1
     }
   }
 ]

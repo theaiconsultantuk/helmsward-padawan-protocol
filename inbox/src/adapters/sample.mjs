@@ -27,6 +27,24 @@ export function queryByName(name, params = {}, { cfg = config() } = {}) {
     const rows = (src.rows ?? src.data ?? []).filter((r) => String(r[0]) === String(params.employee_id) && r[1] === params.date);
     return { headers: src.headers ?? ["employee_id", "date"], rows, total: rows.length, timeUsed: 0 };
   }
+  // The new exhaustive caches (CP1) answer what live answers for a key they were not asked about, instead of failing:
+  const lc = (v) => String(v ?? "").toLowerCase();
+  const shape = (src, rows) => ({ headers: src?.headers ?? [], rows, total: rows.length, timeUsed: 0 });
+  if (!exact && name === "prior_refunds") {
+    // A new intake has its own thread id and time: take the sender's SENTINEL entry (all their refund threads, thread F0, year 2099)
+    // and apply the SQL's filter: a different thread, received strictly before this one. No sentinel = no refund thread = no rows.
+    const all = entries.find((e) => lc(e.params?.email) === lc(params.email) && e.params?.thread_id === "F0")?.result;
+    const rows = (all?.rows ?? []).filter((r) => r[0] !== params.thread_id && Date.parse(r[1]) < Date.parse(params.received_at));
+    return shape(all ?? entries[0]?.result, rows);
+  }
+  if (!exact && name === "shipping_rule") {
+    const own = entries.find((e) => lc(e.params?.planet) === lc(params.planet)) ?? entries.find((e) => e.params?.planet === "default");
+    if (own) return shape(own.result, own.result.rows ?? []);
+  }
+  if (!exact && ["customer_by_email", "order", "hierarchy", "team_head", "product_by_sku", "bom"].includes(name)) {
+    const ci = entries.find((e) => same(Object.fromEntries(Object.entries(e.params ?? {}).map(([k, v]) => [k, lc(v)])), Object.fromEntries(Object.entries(params).map(([k, v]) => [k, lc(v)]))));
+    return shape((ci ?? entries.find((e) => e.result?.headers?.length))?.result, ci ? ci.result.rows : []); // an unknown key: zero rows, as live
+  }
   const hit = exact
     ?? entries.find((e) => same(e.params ?? {}, {}));
   if (!hit) throw new Error(`no cached rows for ${name} ${JSON.stringify(canon(params))}`);

@@ -181,9 +181,30 @@ test("a local() result has the header of the committed cache for templates whose
   }
 });
 
-test("TODO(1.4c): local() reproduces every committed data/sample/<t>.json byte for byte after canonical JSON", { skip: "caches rebuilt in 1.4c" }, () => {
-  // 1.4c: for each template with local(), for each entry {params, result} in data/sample/<t>.json, assert
-  // canon(runLocal(t, params, tables)) deep-equals canon(result) (rows in order, total included), then remove this skip.
+// the invariant sweep: the committed caches never drift from the CSVs. Every entry of every local-capable cache equals runLocal on the
+// same params, after canonical JSON (sorted keys, rows in order, total included). Rebuild with `node scripts/export_sample_cache.mjs --from-csv`.
+const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+test("every local()-capable cache entry equals runLocal on the CSVs, byte for byte after canonical JSON", () => {
+  let checked = 0;
+  for (const [name, t] of Object.entries(TEMPLATES)) {
+    if (!t.local) continue;
+    assert.ok(existsSync(`${SAMPLE}${name}.json`), `${name}.json is committed`);
+    const entries = JSON.parse(readFileSync(`${SAMPLE}${name}.json`, "utf8"));
+    assert.ok(entries.length > 0, `${name} has entries`);
+    for (const e of entries) {
+      const got = runLocal(name, e.params, tables);
+      assert.equal(JSON.stringify(canon(e.result)), JSON.stringify(canon({ headers: got.headers, rows: got.rows, total: got.total })), `${name} ${JSON.stringify(e.params)}`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 600, `swept ${checked} entries`);
+});
+
+test("the exempt caches are present and keep the live-exported shape", () => {
+  for (const n of ["thread", "wiki", "table_count", "reviews", "world_threads", "ledger_adjust", "decision_counts"]) {
+    const entries = JSON.parse(readFileSync(`${SAMPLE}${n}.json`, "utf8"));
+    assert.ok(entries.length > 0 && entries.every((e) => e.params && e.result && Array.isArray(e.result.headers) && Array.isArray(e.result.rows) && e.result.total === e.result.rows.length), n);
+  }
 });
 
 test("validate still refuses params for the parameterless local templates", () => {
