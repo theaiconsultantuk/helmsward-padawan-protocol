@@ -1,0 +1,23 @@
+team: Billing = Ledger and Order
+team: Engineering = Wrench and Wizardry Workshop
+team: Finance = Vault of Counted Credits
+team: Fulfilment = Crate and Courier Corps
+team: People = Hall of Friendly Faces
+team: Product = Gizmo Forge
+team: Sales = Bargain Bazaar Brigade
+team: Support = Helpful Hands Hangar
+team: Executive = The High Council Balcony
+team: Legal = Fine Print Chambers Annex
+
+topic: refund = Department of Giving It Back
+topic: replacement = Second Chances Bureau
+topic: complaint = Grievance Hall
+topic: question = Ministry of Curious Inquiries
+topic: billing = Counting House of Galactic Credits
+topic: rfq = Bulk Bargains Bazaar
+topic: customer_service = Hearts and Hyperdrives Desk
+topic: appreciation = Wall of Warm Fuzzies
+topic: other = Office of Miscellaneous Matters
+topic: delivery = Parcels and Perils Dispatch
+topic: legal = Fine Print Chambers
+topic: product = Gadget Wrangling Guild

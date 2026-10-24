@@ -48,3 +48,23 @@ test("(d) sample mode serves the fingerprints from the cache with no network", a
     globalThis.fetch = realFetch;
   }
 });
+
+test("P13/H13 runtime intake rows: same sender_email + same body within 7 days is a duplicate, subject aside; later, other sender or stale is not", async () => {
+  const { earliestIntakeDuplicate } = await import("../src/queries.mjs");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { INTAKE_HEADER, appendIntake } = await import("../src/intake.mjs");
+  assert.ok(INTAKE_HEADER.includes("sender_email"));
+  const dir = mkdtempSync(join(tmpdir(), "dup-rt-"));
+  const a = await appendIntake({ message: "Where is my order?", from: "x@email.com", subject: "one", received_at: "2026-10-20T10:00:00Z" }, { runtimeDir: dir });
+  const b = await appendIntake({ message: "where is  my order?", from: "X@email.com", subject: "two", received_at: "2026-10-22T10:00:00Z" }, { runtimeDir: dir });
+  const c = await appendIntake({ message: "Where is my order?", from: "y@email.com", received_at: "2026-10-22T11:00:00Z" }, { runtimeDir: dir });
+  const old = await appendIntake({ message: "Where is my order?", from: "x@email.com", received_at: "2026-11-05T10:00:00Z" }, { runtimeDir: dir });
+  const stub = async () => ({ headers: HEADERS, rows: [], total: 0 });
+  assert.deepEqual(await findDuplicate(b.row, { sqlRunImpl: stub, runtimeDir: dir }), { thread_id: a.thread_id, received_at: "2026-10-20T10:00:00Z" });
+  assert.equal(await findDuplicate(a.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "the first message has no earlier twin");
+  assert.equal(await findDuplicate(c.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "another sender");
+  assert.equal(await findDuplicate(old.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "more than 7 days after the last twin");
+  assert.equal(earliestIntakeDuplicate({ thread_id: "F9", sender_email: "", body: "same", received_at: "2026-10-22T10:00:00Z" }, [{ thread_id: "F1", sender_email: "", body: "same", received_at: "2026-10-21T10:00:00Z" }]), null, "an empty sender never matches");
+});

@@ -61,10 +61,10 @@ test("unknown email: no earlier threads, empty provenance, ids: none", async () 
 
 test("product complaint count matches a direct count over the rows, and the fact", async () => {
   const w = await getWorld({ rows });
-  const counts = products.map((p) => [String(p.product_id), threads.filter((t) => t.category === "complaint" && mentionedProducts(t.subject, products).includes(String(p.product_id))).length]);
+  const counts = products.map((p) => [String(p.sku), threads.filter((t) => t.category === "complaint" && mentionedProducts(t.subject, products).includes(String(p.sku))).length]);
   const [pid, n] = counts.sort((a, b) => b[1] - a[1])[0];
   console.log(`most-complained product in the sample rows: ${pid} with ${n}`);
-  const c = complaintContext(w, { sender_email: "nobody@example.com", product_ids: [pid] });
+  const c = complaintContext(w, { sender_email: "nobody@example.com", skus: [pid] });
   assert.equal(c.summary.product_complaints[pid], n);
   const f = w.view("facts").about(`product:jedi:${pid}`).find((x) => x.predicate === "complaint_count");
   assert.equal(f.value, n);
@@ -76,20 +76,20 @@ test("product complaint count matches a direct count over the rows, and the fact
 test("a product mentioned in 2 complaint threads reports 2 (built rows)", async () => {
   const mk = (id, email, cat, subject) => ({ thread_id: id, sender_email: email, sender_name: email, category: cat, channel: "email", received_at: `2026-10-2${id}T09:00:00Z`, owner_id: "7", outcome: "hold", subject });
   const custom = {
-    world_threads: [mk("1", "a@example.com", "complaint", "My hilt is cracked"), mk("2", "b@example.com", "complaint", "Hilt arrived late"),
-      mk("3", "c@example.com", "refund", "Money back for my hilt"), mk("4", "a@example.com", "complaint", "Tell everyone: bad service")],
+    world_threads: [mk("1", "a@example.com", "complaint", "My Emitter Hilt is cracked"), mk("2", "b@example.com", "complaint", "Emitter Hilt arrived late"),
+      mk("3", "c@example.com", "refund", "Money back for my Emitter Hilt"), mk("4", "a@example.com", "complaint", "Tell everyone: bad service")],
     products,
     reviews: [],
   };
   const w = await getWorld({ rows: custom });
-  const c = complaintContext(w, { sender_email: "a@example.com", product_ids: ["P02"], thread_id: "4" });
-  assert.equal(c.summary.product_complaints.P02, 2);
+  const c = complaintContext(w, { sender_email: "a@example.com", skus: ["FS-B02"], thread_id: "4" });
+  assert.equal(c.summary.product_complaints["FS-B02"], 2);
   assert.equal(c.summary.earlier_threads, 1);
   assert.equal(c.summary.complaints, 1);
-  const other = complaintContext(w, { sender_email: "zed@example.com", product_ids: ["P02"], thread_id: "1" });
-  assert.equal(other.summary.product_complaints.P02, 1, "the current thread is excluded");
-  assert.equal(w.view("facts").about("product:jedi:P02").find((f) => f.predicate === "complaint_count").value, 2);
-  assert.match(worldLine(w, c), /product P02: 2 complaints/);
+  const other = complaintContext(w, { sender_email: "zed@example.com", skus: ["FS-B02"], thread_id: "1" });
+  assert.equal(other.summary.product_complaints["FS-B02"], 1, "the current thread is excluded");
+  assert.equal(w.view("facts").about("product:jedi:FS-B02").find((f) => f.predicate === "complaint_count").value, 2);
+  assert.match(worldLine(w, c), /product FS-B02: 2 complaints/);
   resetWorldCache();
 });
 

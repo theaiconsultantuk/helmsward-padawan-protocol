@@ -11,7 +11,7 @@ tags: [hackathon, inbox, zetaris, meterless, nvidia]
 
 A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
 
-Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". The company, its staff and its customers are fictional ("Jedi Pack Inc"); all data is synthetic.
+Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". The company, its staff and its customers are fictional ("Jedi Pack Inc"); all data is synthetic. Farstrand Supply Co. is the storefront, Helmsward the dispatch desk, Jedi Pack the team and the agent; the business is an off-world delivery contractor.
 
 ## The user and the problem
 
@@ -21,22 +21,31 @@ The agent does not send mail. It returns a decision, a draft when one is allowed
 
 ## Quick start
 
-Needs Node 22 or newer (`engines` in `package.json`; a teammate's run on Node 20 printed only an engines warning and sample mode worked). The service has no runtime dependencies; `npm ci` installs only dev tools (tsx, yaml). Everything below runs from the `inbox/` folder, so from the repository root:
+### Clean deploy
+
+Needs Node 22 or newer (`engines` in `package.json`). The service has no runtime dependencies, so there is no install step: `npm ci` is for the dev tools (tsx, yaml) behind `npm test` only. One script does the whole deploy, from the repository root:
 
 ```bash
-cd inbox
-npm ci
-SAMPLE_MODE=true npm start   # bundled data, no network, no keys: open http://127.0.0.1:8000
+bash inbox/scripts/clean_deploy.sh          # sample mode: bundled data, no key, no network; open http://127.0.0.1:8000/
+bash inbox/scripts/clean_deploy.sh --stop   # stop the server the script started
+bash inbox/scripts/clean_deploy.sh --live   # your own Zetaris: publish, register, verify, doctor, start
 ```
 
-That is the whole clean run: the one process serves the front end at `/`, the dashboard at `/dashboard` and the API, and nothing in it needs a key or another service. For the live stack:
+Sample mode starts the one process that serves the front end at `/`, the dashboard at `/dashboard` and the API, waits for `/health` and prints the URL. It is idempotent (a second run reuses the server it started) and `PORT=<free port>` moves it.
 
-```bash
-cp .env.example .env      # then fill in the Zetaris and Nightshift placeholders and set SAMPLE_MODE=false
-npm start                 # node src/server.mjs
-```
+`--live` needs `inbox/.env` (`cp .env.example .env`, then fill in your own `ZETARIS_REST_URL`, `ZETARIS_ORG_ID` and `ZETARIS_API_KEY`; you create the Zetaris key yourself, the script never creates or fetches one). `NIGHTSHIFT_*` and `METERLESS_*` are optional, and Nightshift runs on Mac and Windows only. It prints one line per step and stops at the first failure with the fix:
 
-A variable on the command line wins over `.env` (`SAMPLE_MODE=true npm start` runs on bundled data whatever the file says). `npm test` skips the live Zetaris tests, and says why, unless `.env` points at a Zetaris that answers.
+1. Node 22 or newer
+2. `inbox/.env` holds the Zetaris keys (names missing keys, never a value)
+3. the Zetaris driver container is running (`ZETARIS_CONTAINER`, default `zetaris-driver-1`)
+4. `scripts/zetaris_drop.sh` copies `data/synthetic` into the container (`SKIP_RUNTIME=1` leaves the runtime intake table alone)
+5. `node scripts/register_sources.mjs --apply` creates the tables (options `--refresh` and `--only a,b` exist; `scripts/register_zetaris_sources.sql` holds the same statements)
+6. `node scripts/register_usl.mjs --apply` builds the unified semantic layer
+7. each table's row count equals `data/sources.json`
+8. the doctor (`node src/cli.mjs doctor`, read from `package.json`; no npm)
+9. the server starts with `SAMPLE_MODE=false`
+
+A variable on the command line wins over `.env`. `npm test` skips the live Zetaris tests, and says why, unless `.env` points at a Zetaris that answers.
 
 Port: `PORT` defaults to `8000` and `HOST` to `127.0.0.1`. On the dev VM `.env` sets `8810` because `8000` is taken there. `.env` is gitignored; never commit it.
 
@@ -98,6 +107,8 @@ curl -s $B/openapi.yaml
 **Runs, journeys and the queue.** `GET /runs?limit=50` lists the stored runs newest first; `GET /runs/<run_id>/journey` returns how the information travelled (one node per trace step, what each step consulted and what the reply kept, and what reached a human); `GET /queue` lists what is waiting for a person.
 
 **The two pages.** The service also serves two reference pages, driven only by the API above: `GET /` is the unified front end (the "Why are you contacting us?" picker, a free-text field and the demo buttons, with the person's view on the left and "Under the hood" on the right) and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject). Their script, stylesheet and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names. Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
+
+**The 14 judge scenarios.** `GET /demo/scenarios`, `GET /demo/client` and `GET /faq` serve the demo data; every new field, the status lifecycle and the scenario table are in [docs/API-CONTRACT-judge-scenarios.md](docs/API-CONTRACT-judge-scenarios.md).
 
 **For the front end.** `docs/FRONTEND-SPEC.md` ([docs/FRONTEND-SPEC.md](docs/FRONTEND-SPEC.md)) says what each endpoint returns, how the journey is derived and what a replacement page must keep; `openapi.yaml` is the contract.
 
@@ -248,21 +259,20 @@ Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformanc
 
 ## Data sources
 
-Zetaris holds two layers. `JEDI_PACK` is the raw layer: one Lightning database over every source the company has (21 sources, seven formats including REST), each registered as a filestore table in its own format, read through one SQL surface. On top of it the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` is compiled from typed DDL with primary and foreign keys and read as live views. The scenario routes, the free-text intake read-back and the World Model build read the USL tables (`employee`, `customer`, `ticket`, `product`, `policy`, `responsibility`, `faq`, `holiday`, `intake`, `review`, `decision` and `wiki_page`); the legacy thread facts still read the raw tables. We wrote no adapter, no ETL and no mapping layer; the service even writes two tables back into the raw layer at runtime (`decisions` and `intake_runtime`). See [judging/zetaris-usl.md](judging/zetaris-usl.md).
+Zetaris holds two layers. `JEDI_PACK` is the raw layer: one Lightning database over every source the company has (28 sources, seven formats including REST), each registered as a filestore table in its own format, read through one SQL surface. On top of it the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` is compiled from typed DDL with primary and foreign keys and read as live views. The scenario routes, the free-text intake read-back and the World Model build read the USL tables (`employee`, `customer`, `ticket`, `product`, `policy`, `responsibility`, `faq`, `holiday`, `intake`, `review`, `decision` and `wiki_page`); the legacy thread facts still read the raw tables. We wrote no adapter, no ETL and no mapping layer; the service even writes two tables back into the raw layer at runtime (`decisions` and `intake_runtime`). See [judging/zetaris-usl.md](judging/zetaris-usl.md).
 
 All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic, CC0". Zetaris reads it as `JEDI_PACK.<table>`. The measured register is [judging/zetaris-register.md](judging/zetaris-register.md); the machine-readable list is [data/sources.json](data/sources.json).
 
-18 file sources in 6 formats, plus the runtime `decisions` and `intake_runtime` tables and the `intake_live` REST source: 21 entries in `data/sources.json`.
+25 file sources in 6 formats (seven new this build: `companyhierarchy`, `customers`, `orders`, `shipping_rules`, `bulk_pricing`, `bom`, `channels`), plus the runtime `decisions` and `intake_runtime` tables and the `intake_live` REST source: 28 entries in `data/sources.json`.
 
 | name (Zetaris table) | format | live rows |
 |---|---|---|
-| employees | CSV | 200 |
-| holiday_2026 | CSV | 1251 |
-| responsibility | CSV | 7 |
-| policy | CSV | 1 |
-| contacts | CSV | 1 |
+| employees | CSV | 207 |
+| holiday_2026 | CSV | 1263 |
+| responsibility | CSV | 12 |
+| policy | CSV | 2 |
 | categories | CSV | 5 |
-| trust_ledger | CSV | 5 |
+| trust_ledger | CSV | 12 |
 | automation_matrix | XML | 5 |
 | wiki_refund_policy | MARKDOWN | 1 (one row per file) |
 | wiki_replacement_policy | MARKDOWN | 1 (one row per file) |
@@ -274,9 +284,17 @@ All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic
 | escalation_notes | TEXT | 1 (one row per file) |
 | decisions (runtime) | CSV | 0 at registration; one row per completed `/run` |
 | intake_live (REST) | REST, JSON | 41 |
-| products | CSV | 10 (one `unit_price_usd` per product, no volume tiers) |
-| faq | CSV | 12 |
+| products | CSV | 50 (50 catalogue rows, FS skus, one `unit_price` in GC per product, plus `material` and `specs`) |
+| faq | CSV | 18 |
+| contacts | CSV | 1 |
 | intake_runtime (runtime) | CSV | 0 at registration; one row per free-text message, written by the service |
+| companyhierarchy | CSV | 207 |
+| customers | CSV | 58 |
+| orders | CSV | 82 |
+| shipping_rules | CSV | 12 |
+| bulk_pricing | CSV | 3 |
+| bom | CSV | 149 |
+| channels | CSV | 4 |
 
 ### Unified Semantic Layer
 
@@ -290,11 +308,8 @@ All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic
 
 The register records `intake_live` as read at query time, not cached: with the service stopped or bound to `127.0.0.1`, a query on it fails (HTTP 400). Start the service with `HOST=0.0.0.0` for Zetaris to reach it.
 
-Registering the sources:
+Registering the sources: `bash inbox/scripts/clean_deploy.sh --live` runs the publish and both register scripts in order (see Clean deploy under Quick start).
 
-- `bash scripts/zetaris_drop.sh` copies `data/synthetic` into the Zetaris driver container.
-- `node scripts/register_sources.mjs --apply` creates the tables (options `--refresh` and `--only a,b` exist).
-- `scripts/register_zetaris_sources.sql` holds the same statements as SQL.
 - `src/decisions.mjs` publishes `data/runtime/decisions.csv` after each run and each feedback; `src/intake.mjs` publishes `data/runtime/intake.csv` the same way.
 
 All SQL comes from named templates in `src/queries.mjs` with whitelisted parameters (a thread id must match `T<n>`, a category must be one of five). Customer text never reaches SQL.
@@ -367,7 +382,7 @@ Agent frameworks: none. The service has zero runtime dependencies (Node standard
 
 Sponsor technology:
 
-- Zetaris: serves all company data (18 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
+- Zetaris: serves all company data (25 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
 - Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`, and the World Model, vendored and bundled (see Engines). Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, the Scout eval harness, `world` and the World Model conformance suite (8/8).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
 - NVIDIA: Nemotron lanes through Nightshift for drafting, critique and the complaint read; DiffusionGemma (OpenJev) for typed gates and the complaint severity.
@@ -394,7 +409,7 @@ Sample mode:
 ## Limitations
 
 - Retrieval is lexical (Scout word overlap, H-MEM Jaccard). It will miss paraphrases an embedder would catch.
-- All data is synthetic and small (100 threads, 200 employees).
+- All data is synthetic and small (100 threads, 207 employees).
 - The Scout evals are a 32-example v1 smoke set, not a benchmark.
 - Nightshift must run on a Mac or Windows PC. Here it is reached through an SSH tunnel to Thor (`scripts/thor-tunnels.sh`).
 - The handled model is reported as Nightshift's response says. Nightshift can serve a request from a local lane even when a Nemotron route is requested (the first probe did); `doctor` reports and warns.
@@ -434,7 +449,7 @@ The evidence files are indexed in [judging/README.md](judging/README.md), regene
 - [judging/engine-world-model.md](judging/engine-world-model.md) and [judging/engine-world-model-conformance.md](judging/engine-world-model-conformance.md): the World Model feature, its tests and the 8/8 scorecards.
 - [judging/scenarios.md](judging/scenarios.md): examples 4 to 8 run live and in sample mode, with their traces.
 - [judging/padme-chain.md](judging/padme-chain.md): the T01 chain, run live.
-- [judging/refund-chain.md](judging/refund-chain.md): one customer, two refund requests, run live (`node inbox/scripts/refund_chain.mjs`; `--sample` writes the deterministic twin): 40 USD held under the trust floor with the owner on holiday and the backup named, then 400 USD over the limit, escalated for approval after H-MEM read step 1's memory.
+- [judging/refund-chain.md](judging/refund-chain.md): one customer, two refund requests, run live (`node inbox/scripts/refund_chain.mjs`; `--sample` writes the deterministic twin): 40 GC held under the trust floor with the owner on holiday and the backup named, then 400 GC over the limit, escalated for approval after H-MEM read step 1's memory.
 - [judging/zetaris-register.md](judging/zetaris-register.md): every source registered, with row counts.
 - [judging/nightshift-models.json](judging/nightshift-models.json) and [judging/nightshift-first-call.json](judging/nightshift-first-call.json): Nightshift routes and the first probe.
 - [judging/traces/](judging/traces/trace-padme-live_1.jsonl): the five committed traces.

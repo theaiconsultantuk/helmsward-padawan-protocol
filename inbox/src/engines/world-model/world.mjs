@@ -4,12 +4,12 @@
 //
 // Id grammar (the engine's `type:system:id`, see engines/world-model/docs/stable-ids.md):
 //   customer  customer:email:<email lower-case>
-//   product   product:jedi:<product_id>            e.g. product:jedi:P01
+//   product   product:jedi:<sku>            e.g. product:jedi:FS-B01
 //   employee  employee:jedi:emp-<owner_id>         e.g. employee:jedi:emp-7
 //   thread    thread:jedi:<thread_id>              (an entity, so edges can point at it)
 //   channel   channel:jedi:<name>                  (a context)
 //   thread ctx thread-ctx:jedi:<thread_id>         (a context, parent = the channel context; carries wrote / owned_by)
-//   mention ctx mention:jedi:<thread_id>:<product_id> (a context, parent = thread ctx; carries mentions / complained_about)
+//   mention ctx mention:jedi:<thread_id>:<sku> (a context, parent = thread ctx; carries mentions / complained_about)
 // One context per edge target because the engine closes an open edge with the same from+type+context and a different target.
 // Facts carry the engine's content-addressed ids (fact_<hex>). Names live in attrs, never in a key.
 import path from "node:path";
@@ -62,7 +62,7 @@ export function mentionedProducts(subject, products) {
   products.forEach((p, i) => {
     const ts = nameToks[i];
     if (!ts.length) return;
-    if (ts.every((t) => st.has(t)) || ts.some((t) => st.has(t) && owners.get(t).size === 1)) out.push(String(p.product_id));
+    if (ts.every((t) => st.has(t)) || ts.some((t) => st.has(t) && owners.get(t).size === 1)) out.push(String(p.sku));
   });
   return out;
 }
@@ -78,16 +78,16 @@ async function build({ rows, clock, storage, persistDir, namespace }) {
   const baseAt = firstAt === "9999" ? EPOCH : firstAt;
   const src = (at) => ({ kind: "pipeline", by: "inbox", at, runId: RUN_ID });
   const reviewed = new Set(reviews.map((r) => String(r.thread_id)));
-  const pById = new Map(products.map((p) => [String(p.product_id), p]));
+  const pById = new Map(products.map((p) => [String(p.sku), p]));
 
   for (const p of products) {
-    await world.upsertEntity({ type: "product", externalKey: { system: SYSTEM, id: String(p.product_id) }, name: p.name,
+    await world.upsertEntity({ type: "product", externalKey: { system: SYSTEM, id: String(p.sku) }, name: p.name,
       attrs: { name: p.name, currency: p.currency, min_order_qty: Number(p.min_order_qty), lead_days: Number(p.lead_days) }, source: src(baseAt) });
-    await world.assertFact({ about: productId(p.product_id), predicate: "unit_price_usd", value: Number(p.unit_price_usd), confidence: 1, source: src(baseAt) });
+    await world.assertFact({ about: productId(p.sku), predicate: "unit_price", value: Number(p.unit_price), confidence: 1, source: src(baseAt) });
   }
   const channelsSeen = new Set();
   const cust = new Map(); // email -> {at, threads, complaints, publics}
-  const prod = new Map(); // product_id -> {at, complaints}
+  const prod = new Map(); // sku -> {at, complaints}
   const employees = new Set();
   for (const t of threads) {
     const at = iso(t.received_at, baseAt);
@@ -108,7 +108,7 @@ async function build({ rows, clock, storage, persistDir, namespace }) {
     for (const pid of pids) {
       // One context per (thread, product): the engine closes an open edge with the same from+type+context and a different target.
       const mctx = mentionCtxId(t.thread_id, pid);
-      await world.upsertContext({ type: "mention", externalKey: { system: SYSTEM, id: `${t.thread_id}:${pid}` }, attrs: { thread_id: t.thread_id, product_id: pid }, parent: threadCtxId(t.thread_id), source: src(at) });
+      await world.upsertContext({ type: "mention", externalKey: { system: SYSTEM, id: `${t.thread_id}:${pid}` }, attrs: { thread_id: t.thread_id, sku: pid }, parent: threadCtxId(t.thread_id), source: src(at) });
       await world.relate({ from: threadId(t.thread_id), type: "mentions", to: productId(pid), context: mctx, validFrom: at, source: src(at) });
       if (isComplaint) {
         await world.relate({ from: customerId(email), type: "complained_about", to: productId(pid), context: mctx, validFrom: at, source: src(at) });
@@ -134,8 +134,8 @@ async function build({ rows, clock, storage, persistDir, namespace }) {
     await world.assertFact({ about: customerId(email), predicate: "public_complaints", value: c.publics, confidence: 1, source: s });
   }
   for (const p of products) {
-    const n = prod.get(String(p.product_id));
-    await world.assertFact({ about: productId(p.product_id), predicate: "complaint_count", value: n ? n.complaints : 0, confidence: 1, source: src(n ? n.at : baseAt) });
+    const n = prod.get(String(p.sku));
+    await world.assertFact({ about: productId(p.sku), predicate: "complaint_count", value: n ? n.complaints : 0, confidence: 1, source: src(n ? n.at : baseAt) });
   }
   const graph = world.view("graph");
   META.set(world, {
@@ -151,7 +151,7 @@ function fingerprint(rows) {
   const h = createHash("sha256");
   const f = (...v) => h.update(v.map((x) => String(x ?? "")).join("|") + "\n");
   for (const t of toObjects(rows.world_threads)) f("t", t.thread_id, t.sender_email, t.category, t.outcome, t.owner_id);
-  for (const p of toObjects(rows.products)) f("p", p.product_id);
+  for (const p of toObjects(rows.products)) f("p", p.sku);
   for (const r of toObjects(rows.reviews)) f("r", r.review_id);
   return h.digest("hex");
 }
@@ -182,11 +182,11 @@ function factValue(world, id, predicate) {
 }
 
 /** Read the record of a sender (and the products in play); earlier threads exclude `thread_id`. */
-export function complaintContext(world, { sender_email, product_ids = [], thread_id, channel } = {}) {
+export function complaintContext(world, { sender_email, skus = [], thread_id, channel } = {}) {
   const graph = world.view("graph");
   const cid = sender_email ? customerId(sender_email) : null;
   const customer = cid ? graph.entity(cid) : undefined;
-  const prodIds = [...new Set((product_ids ?? []).map(String))].filter((p) => graph.entity(productId(p)));
+  const prodIds = [...new Set((skus ?? []).map(String))].filter((p) => graph.entity(productId(p)));
   const provenance = [];
   const summary = { earlier_threads: 0, complaints: 0, public_before: false, product_complaints: {} };
   const skip = thread_id ? threadId(thread_id) : null;
@@ -222,14 +222,14 @@ export function complaintContext(world, { sender_email, product_ids = [], thread
   }
   const seen = new Set();
   const prov = provenance.filter((x) => (seen.has(x.id) ? false : seen.add(x.id)));
-  return { text, provenance: prov, summary, customer_id: customer ? cid : null, product_ids: prodIds };
+  return { text, provenance: prov, summary, customer_id: customer ? cid : null, skus: prodIds };
 }
 
 /** The `output_summary` of the trace line; the `ids:` tail is what the journey parses. */
 export function worldLine(world, ctx) {
   const { entities, relationships } = worldStats(world);
   const s = ctx.summary;
-  const pids = ctx.product_ids ?? Object.keys(s.product_complaints);
+  const pids = ctx.skus ?? Object.keys(s.product_complaints);
   const prod = pids.length ? pids.map((p) => `${p}: ${s.product_complaints[p] ?? 0} complaints`).join(", ") : "none: 0 complaints";
   const ids = ctx.provenance.length ? ctx.provenance.map((p) => p.id).join(",") : "none";
   return `${entities} entities, ${relationships} relationships; customer ${ctx.customer_id ?? "none"}: ${s.earlier_threads} earlier threads, ${s.complaints} complaints, public ${s.public_before ? "yes" : "no"}; product ${prod}; ids: ${ids}`;
@@ -247,7 +247,7 @@ export function worldIngestObservations(rows, productRows = []) {
     source: { kind: "pipeline", by: "inbox", at: iso(t.received_at, EPOCH), runId: "world-ingest" },
     entities: [
       ...(t.sender_email ? [{ type: "customer", name: t.sender_email }] : []),
-      ...mentionedProducts(t.subject, products).map((pid) => ({ type: "product", name: products.find((p) => String(p.product_id) === pid).name })),
+      ...mentionedProducts(t.subject, products).map((pid) => ({ type: "product", name: products.find((p) => String(p.sku) === pid).name })),
     ],
   }));
 }

@@ -58,7 +58,7 @@ test("unknown topic: GENERAL with a cautious answer", async () => {
 });
 
 test("a customer with an open thread: where is my refund cites their own ticket", async () => {
-  const { r } = await ask("where is my refund?", { customer: "lira.venn@example.com" });
+  const { r } = await ask("where is my refund?", { customer: "liravenn@email.com" });
   assert.ok(r.cited_rows.includes("threads_parquet:T02"), r.cited_rows.join());
   assert.ok(r.cited_rows.includes("policy:refund"));
   assert.match(r.answer, /T0[26]/);
@@ -66,8 +66,8 @@ test("a customer with an open thread: where is my refund cites their own ticket"
 
 test("a stubbed drafter phrases the answer from the rows and its model id lands on the line", async () => {
   let seen = null;
-  const { r, t } = await ask("Can I get a refund on my lightsaber?", { drafter: async (m, o) => { seen = { m, o }; return { text: "Up to 150 USD, see the Refund policy page.", model: "nvidia/nemotron-test" }; } });
-  assert.equal(r.answer, "Up to 150 USD, see the Refund policy page.");
+  const { r, t } = await ask("Can I get a refund on my lightsaber?", { drafter: async (m, o) => { seen = { m, o }; return { text: "Up to 150 GC, see the Refund policy page.", model: "nvidia/nemotron-test" }; } });
+  assert.equal(r.answer, "Up to 150 GC, see the Refund policy page.");
   assert.equal(r.model, "nvidia/nemotron-test");
   assert.equal(seen.o.purpose, "ask");
   assert.match(seen.m[0].content, /ONLY from the rows/);

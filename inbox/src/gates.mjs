@@ -2,7 +2,7 @@
 import { config, sampleMode as isSampleMode } from "./config.mjs";
 import { systemone } from "./adapters/openjev.mjs";
 import * as sample from "./adapters/sample.mjs";
-import { SEVERITY_QUESTION, refundRuleReason } from "./prompts.mjs";
+import { SEVERITY_QUESTION, LEGAL_QUESTION, refundRuleReason } from "./prompts.mjs";
 
 const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
 
@@ -32,7 +32,7 @@ function factsSummary(facts = {}) {
   const parts = [];
   if (facts.owner_out !== undefined) parts.push(`owner ${facts.owner_out ? "out" : "in"}`);
   if (facts.backup_out !== undefined) parts.push(`backup ${facts.backup_out ? "out" : "in"}`);
-  if (facts.policy_limit_usd != null) parts.push(`policy limit ${facts.policy_limit_usd} USD`);
+  if (facts.policy_limit != null) parts.push(`policy limit ${facts.policy_limit} GC`);
   if (facts.category_weight != null) parts.push(`category weight ${facts.category_weight}`);
   return parts.join("; ");
 }
@@ -87,26 +87,32 @@ export async function typedGates(ticket, facts = {}, { trace = null, cfg = confi
 }
 
 // Severity 0..10 (S2.2): one OpenJev score question; score = round(index into the 10 levels) + 1.
+// Returns { score, legend, confidence, model, gate_source, legal: boolean, kind }. `legal` is the typed legal_threat yes/no read
+// (OpenJev), or the code rule sample.LEGAL_WORDS when OpenJev is skipped or does not answer it; `kind` echoes the input kind
+// ("vent" | "genuine" | "channel_public"; channel_public makes the sample fallback treat the ticket as on a public channel).
 export async function severityGate(ticket, facts = {}, worldLine = "", { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl, kind = "vent", signal } = {}) {
   const log = (f) => trace?.line({ step: "nvidia.model", agent_name: "Severity", action: "severity_gate", sponsor: "nvidia", input_summary: `severity for ${ticket.thread_id ?? "ticket"}`, ...f });
-  const done = (r, skipped = false) => {
+  const done0 = (r, skipped = false) => {
     const body = `severity ${r.score} (${r.legend}), raw ${r.raw ?? "n/a"}, confidence ${r.confidence}, source ${r.gate_source}`;
     log({ status: skipped ? "skipped" : "success", model: r.model, confidence: r.confidence, gate_source: r.gate_source, output_summary: skipped ? `sample mode, OpenJev not called; severity by code rules (sample.severity): ${body}` : body });
     return r;
   };
+  const done = (r, skipped = false) => done0({ ...r, legal: Boolean(r.legal), kind }, skipped);
   const fallback = (skipped = false) => {
-    const s = sample.severity(ticket, { kind, repeat: facts.repeat === true, publicChannel: facts.publicChannel === true || ticket.channel === "trustpilot" });
-    return done({ score: s.score, legend: s.legend, confidence: 0.5, model: "rules", gate_source: "rules" }, skipped);
+    const s = sample.severity(ticket, { kind, repeat: facts.repeat === true, publicChannel: facts.publicChannel === true || ticket.channel === "trustpilot" || kind === "channel_public" });
+    return done({ score: s.score, legend: s.legend, confidence: 0.5, model: "rules", gate_source: "rules", legal: s.legal }, skipped);
   };
   if (sampleMode) return fallback(true);
   try {
     const state = `Subject: ${ticket.subject ?? ""}\n\n${ticket.body ?? ""}${worldLine ? `\n\nRecord: ${worldLine}` : ""}\n\nkind: ${kind}`;
-    const r = await systemone(state, { severity: SEVERITY_QUESTION }, { cfg, ...(fetchImpl ? { fetchImpl } : {}), ...(signal ? { signal } : {}) });
+    const r = await systemone(state, { severity: SEVERITY_QUESTION, legal_threat: LEGAL_QUESTION }, { cfg, ...(fetchImpl ? { fetchImpl } : {}), ...(signal ? { signal } : {}) });
     const a = r.answers?.severity;
     if (!a || !Number.isFinite(a.score)) throw Object.assign(new Error("severity answer missing"), { name: "BadResponse" });
     const score = Math.min(10, Math.max(1, Math.round(a.score) + 1));
+    const lp = num(r.answers?.legal_threat);
+    const legal = Number.isFinite(lp) ? lp >= 0.5 : sample.legalThreat(ticket);
     const served = typeof r.model === "string" && r.model && r.model !== "openjev-latest" ? ` (${r.model})` : "";
-    return done({ score, raw: a.score, legend: SEVERITY_QUESTION.criteria[score - 1], confidence: Number.isFinite(a.confidence) ? a.confidence : 0.5, model: `openjev-0.1${served}`, gate_source: "openjev" });
+    return done({ score, raw: a.score, legend: SEVERITY_QUESTION.criteria[score - 1], confidence: Number.isFinite(a.confidence) ? a.confidence : 0.5, model: `openjev-0.1${served}`, gate_source: "openjev", legal });
   } catch (e) {
     if (signal?.aborted) throw e;
     log({ status: "error", model: "openjev-0.1", gate_source: "openjev", output_summary: `OpenJev failed (${e.name ?? "Error"}): ${e.message}` });
@@ -126,8 +132,8 @@ export function trustFloor(facts, gates, { ledgerAdjust = { affirmed: 0, rejecte
 
 export function hardRisk(facts, draft = null) {
   const reasons = [];
-  const limit = facts.policy_limit_usd;
-  if (facts.amount_usd != null && limit != null && facts.amount_usd > limit) reasons.push(`amount ${facts.amount_usd} over the policy limit ${limit}`);
+  const limit = facts.policy_limit;
+  if (facts.amount != null && limit != null && facts.amount > limit) reasons.push(`amount ${facts.amount} over the policy limit ${limit}`);
   const low = String(draft?.text ?? "").toLowerCase();
   const leaked = (facts.restricted_terms ?? []).find((t) => t && low.includes(String(t).toLowerCase()));
   if (facts.may_leave === false) reasons.push("fact may not leave");

@@ -8,7 +8,7 @@ import { liveZetaris } from "./helpers/live_zetaris.mjs";
 
 const INBOX = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SQL = join(INBOX, "scripts", "zetaris_usl.sql");
-const EXPECTED = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"];
+const EXPECTED = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page", "hierarchy", "client", "sales_order", "shipping_rule", "bulk_tier", "bom_part", "channel"];
 const NS = "lightning.metastore.jedi_pack";
 
 test("committed SQL declares the expected tables and every foreign key resolves", () => {

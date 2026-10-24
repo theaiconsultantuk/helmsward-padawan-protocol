@@ -1,0 +1,11 @@
+{
+  "run_id": "example-12",
+  "input": {
+    "message": "I would like a refund of 400 GC for my Sovereign Arc Duellist, the blade will not ignite.",
+    "from": "camrencobbleton@email.com",
+    "name": "Camren Cobbleton",
+    "channel": "contact-form",
+    "scenario": "refund",
+    "as_of": "2026-10-25"
+  }
+}

@@ -17,10 +17,11 @@ const WEIGHT = { refund: 0.55, replacement: 0.6, complaint: 0.62, question: 0.71
 function factsFor(id, patch = {}) {
   const t = { ...THREADS[id], ...patch };
   return {
-    thread_id: id, category: t.category, amount_usd: t.amount_usd, policy_limit_usd: 150, category_weight: WEIGHT[t.category] ?? 0.4, floor: 0.8,
+    thread_id: id, category: t.category, amount: t.amount, policy_limit: 150, category_weight: WEIGHT[t.category] ?? 0.4, floor: 0.8,
     owner_id: t.owner_id, backup_id: t.backup_id, owner_name: `Employee ${t.owner_id}`, backup_name: `Employee ${t.backup_id}`,
     owner_out: Boolean(t.owner_out), backup_out: Boolean(patch.backup_out), may_leave: t.may_leave, restricted_terms: ["card number"],
     cited_rows: [`threads_parquet:${id}`, `policy:${t.category}`, `trust_ledger:${t.category}`], received_at: t.received_at, as_of: String(t.received_at).slice(0, 10),
+    channel_autonomous: t.channel !== "trustpilot", // channels.csv: trustpilot autonomous_reply=false
     subject: t.subject, body: t.body, sender_name: t.sender_name, sender_email: t.sender_email, channel: t.channel,
     follow_up_kind: t.follow_up_kind || null, follow_up_body: t.follow_up_body || null, parent_thread_id: t.parent_thread_id || null, ticket: t,
   };
@@ -97,11 +98,15 @@ test("T02: hold on under-floor, all 15 steps, then a second run reads the first 
   assert.equal(b.result.output.decision, "hold");
 });
 
-test("T18: send, both critics pass on round 1, no retry", async () => {
+test("T18: Trustpilot appreciation, both critics pass on round 1, no retry, held for Support with the draft (channels:trustpilot is a person-sent channel)", async () => {
   const t = await run("T18");
   assertWholeTrace(t);
-  assert.equal(THREADS.T18.outcome, "send");
-  assert.equal(t.result.output.decision, "send");
+  assert.equal(THREADS.T18.outcome, "hold");
+  assert.match(THREADS.T18.outcome_reason, /channels:trustpilot/);
+  assert.equal(t.result.output.decision, "hold");
+  assert.equal(t.result.output.auto_reply, false);
+  assert.ok(t.result.output.draft?.text, "the draft is kept");
+  assert.match(t.result.output.reasons.join(" "), /channels:trustpilot: replies on this channel are sent by a person/);
   assert.equal(t.result.branch_id, "send-ok");
   assert.equal(t.result.rounds.length, 1);
   assert.equal(t.lines.find((l) => l.step === "retry").status, "skipped");
@@ -117,7 +122,7 @@ test("T03: over the limit, Risk refuses on round 1 (approval), no retry, escalat
   assert.equal(t.result.branch_id, "over-limit");
   const seq = pairs(t.lines);
   const order = ["memory.read:success", "planner.plan:success", "delegate:success", "zetaris.query:success", "executor.act:success",
-    "meterless.engine:success", "branch:success", "nvidia.model:skipped", "critique:needs_revision", "risk.signoff:refused", "retry:skipped", "escalate_or_fallback:success"];
+    "meterless.engine:success", "branch:success", "nvidia.model:skipped", "critique:success", "risk.signoff:refused", "retry:skipped", "escalate_or_fallback:success"];
   let pos = -1;
   for (const o of order) { const i = seq.indexOf(o, pos + 1); assert.ok(i > pos, `${o} after position ${pos}: ${seq.join(" ")}`); pos = i; }
   assert.equal(seq.filter((s) => s.startsWith("planner.plan")).length, 1, "no second plan: no retry");
@@ -126,6 +131,7 @@ test("T03: over the limit, Risk refuses on round 1 (approval), no retry, escalat
   assert.match(risk.output_summary, /needs approval by .* \(policy over-limit owner\)/);
   assert.match(t.lines.find((l) => l.step === "retry").input_summary, /hard refusal: amount needs approval/);
   assert.equal(t.result.rounds.length, 1);
+  assert.match(t.result.output.queued_for.draft?.text ?? JSON.parse(readFileSync(t.result.output.queued_for.queue_file, "utf8")).ticket.draft.text, /routed for approval/, "P11: the over-limit draft says routed for approval");
   assert.equal(t.result.rounds[0].risk.pass, false);
   assert.equal(t.result.rounds[0].risk.hard, true);
   const esc = t.lines.find((l) => l.step === "escalate_or_fallback");
@@ -133,9 +139,9 @@ test("T03: over the limit, Risk refuses on round 1 (approval), no retry, escalat
   const qf = t.result.output.queued_for;
   assert.ok(existsSync(qf.queue_file));
   assert.equal(qf.approval.kind, "amount");
-  assert.equal(qf.approval.amount_usd, 400);
-  assert.equal(qf.approval.limit_usd, 150);
-  assert.ok([3, 4].includes(qf.approval.approver_id));
+  assert.equal(qf.approval.amount, 400);
+  assert.equal(qf.approval.limit, 150);
+  assert.ok([40, 201].includes(qf.approval.approver_id));
   assert.match(esc.output_summary, /draft is attached for approval/);
   assert.match(esc.output_summary, /T03\.json/);
   const q = JSON.parse(readFileSync(qf.queue_file, "utf8"));
@@ -183,7 +189,7 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   const live = config({ SAMPLE_MODE: "false" });
   const seen = [];
   const replies = [
-    "```json\n" + JSON.stringify({ reply_text: "We will refund 400 USD.", promises: { refund_amount: 400, replacement: false, other: null } }) + "\n```",
+    "```json\n" + JSON.stringify({ reply_text: "We will refund 400 GC.", promises: { refund_amount: 400, replacement: false, other: null } }) + "\n```",
     "sorry, here is the thing",       // round 2, first try: not JSON
     JSON.stringify({ reply_text: "We cannot approve that amount today; Employee 4 will follow up.", promises: { refund_amount: null, replacement: false, other: null } }),
   ];
@@ -196,8 +202,8 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
     return { answers: { is_follow_up: 0.1, category: { choice: "refund", confidence: 0.9 } }, model: "openjev-test", gate_source: "openjev", confidence: 0.9 };
   };
   const critic = async ({ draft }) => (draft.promises.refund_amount > 150 ? { pass: false, reason: "refund above the limit", model: "nvidia/nemotron-test" } : { pass: true, reason: "ok", model: "nvidia/nemotron-test" });
-  // 140 USD is under the 150 limit, so the bad first draft is a retryable round, not the over-limit approval refusal
-  const t = await run("T03", { cfg: live, patch: { T03: { amount_usd: 140 } }, extra: { drafter, gates, critic, reader: readerStub } });
+  // 140 GC is under the 150 limit, so the bad first draft is a retryable round, not the over-limit approval refusal
+  const t = await run("T03", { cfg: live, patch: { T03: { amount: 140 } }, extra: { drafter, gates, critic, reader: readerStub } });
   assertWholeTrace(t);
   const drafts = t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action));
   assert.equal(drafts.length, 2);
@@ -311,13 +317,13 @@ test("a sample-mode FAQ message: question, faq-hit, send, cited, every step trac
 });
 
 test("an RFQ message escalates to sales with the one unit price attached, no price in the draft", async () => {
-  const { result } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 training sabers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
+  const { result } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
   assert.equal(result.scenario, "rfq");
   assert.equal(result.resolved_how, "declared");
   assert.equal(result.output.decision, "escalate");
   assert.equal(result.output.queued_for.owner_id, 6);
-  assert.ok(result.output.queued_for.attachments.cited.includes("products:P01"));
-  assert.match(result.output.recommendation, /one unit price/);
+  assert.ok(result.output.queued_for.attachments.cited.includes("products:FS-B01"));
+  assert.match(result.output.recommendation, /a unit price/);
   assert.ok(!/189/.test(result.output.draft?.text ?? ""));
 });
 
@@ -387,7 +393,7 @@ test("S5.3-2: a FAQ message with the duplicate check down is held, never sent; t
 });
 
 test("S5.3-5: the queue file keeps the RFQ attachments", async () => {
-  const { d } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 training sabers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
+  const { d } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
   const q = JSON.parse(readFileSync(join(d.memoryDir, "queue", "F1.json"), "utf8"));
-  assert.ok(q.attachments.cited.includes("products:P01"));
+  assert.ok(q.attachments.cited.includes("products:FS-B01"));
 });

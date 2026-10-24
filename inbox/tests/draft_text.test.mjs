@@ -13,8 +13,8 @@ import * as sample from "../src/adapters/sample.mjs";
 const ROW_ID = /holiday_2026:|threads_parquet:|employees:\d|policy rows:|responsibility:|trust_ledger:/;
 
 test("a sample draft never prints a row id to the customer", () => {
-  const ticket = { thread_id: "X1", category: "refund", subject: "Refund for order JP-1042", sender_name: "Lira Venn", amount_usd: 40 };
-  const facts = { category: "refund", cited_rows: ["threads_parquet:T02", "policy:refund", "holiday_2026:15@2026-10-22"], policy_limit_usd: 150, backup: "Soren Adey" };
+  const ticket = { thread_id: "X1", category: "refund", subject: "Refund for order JP-1042", sender_name: "Lira Venn", amount: 40 };
+  const facts = { category: "refund", cited_rows: ["threads_parquet:T02", "policy:refund", "holiday_2026:15@2026-10-22"], policy_limit: 150, backup: "Soren Adey" };
   for (const seed of ["correct", "revised", "misread"]) assert.doesNotMatch(sample.draft(ticket, facts, { seed }).text, ROW_ID, seed);
   assert.doesNotMatch(sample.draft({ ...ticket, category: "question" }, { ...facts, category: "question" }).text, ROW_ID, "question");
 });

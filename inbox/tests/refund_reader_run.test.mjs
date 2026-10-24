@@ -43,21 +43,21 @@ const seq = (lines) => lines.map((l) => `${l.step}:${l.status}`);
 const riskLines = (lines) => lines.filter((l) => l.step === "risk.signoff");
 const readerLines = (lines) => lines.filter((l) => l.agent_name === "RefundReader");
 
-const VENT = { category: "complaint", amount_usd: null, body: "the box was dented, I am annoyed, just so you know", cited_rows: ["threads_parquet:X1"] };
-const QUESTION = { category: "question", policy_limit_usd: 150, cited_rows: ["policy:refund"] };
+const VENT = { category: "complaint", amount: null, body: "the box was dented, I am annoyed, just so you know", cited_rows: ["threads_parquet:X1"] };
+const QUESTION = { category: "question", policy_limit: 150, cited_rows: ["policy:refund"] };
 const POLICY_QUOTE = "Refunds are handled by our refund owner within 14 days.";
 
 test("(a) euphemism on a complaint: the reader's money catch refuses round 1 with (reader:) on the money reason, round 2 clean signs off", async () => {
-  const reader = readerScript([{ mentions_money_back: true, offers_money: true, reason: "credit your account with 40 USD" }, {}]);
+  const reader = readerScript([{ mentions_money_back: true, offers_money: true, reason: "credit your account with 40 GC" }, {}]);
   const { tb, lines } = toolbox({ f: VENT, reader });
   tb.S.branch = { branch_id: "complaint-vent" };
-  tb.io.drafter = scripted(["We will credit your account with 40 USD.", "We are sorry the box arrived dented and have noted it."]);
+  tb.io.drafter = scripted(["We will credit your account with 40 GC.", "We are sorry the box arrived dented and have noted it."]);
   const r = await replyLoop(tb, {});
-  assert.equal(refundRuleReason({ ...tb.f }, { text: "We will credit your account with 40 USD.", promises: {} }), null, "the word test passes the euphemism");
+  assert.equal(refundRuleReason({ ...tb.f }, { text: "We will credit your account with 40 GC.", promises: {} }), null, "the word test passes the euphemism");
   const first = riskLines(lines)[0];
   assert.equal(first.status, "needs_revision");
   assert.match(first.output_summary, /draft promises a refund on a complaint message/);
-  assert.match(first.output_summary, /\(reader: credit your account with 40 USD\)/);
+  assert.match(first.output_summary, /\(reader: credit your account with 40 GC\)/);
   assert.equal(lines.filter((l) => l.step === "retry").length, 1);
   assert.equal(r.ok, true);
   assert.equal(r.rounds, 2);
@@ -90,8 +90,8 @@ for (const [label, body] of [
 
 test("(d) the word test refuses first: the reader is never called and the reasons are the word test's own", async () => {
   const reader = readerScript([{ mentions_money_back: true, offers_money: true }]);
-  const { tb, lines } = toolbox({ f: { ...VENT, amount_usd: 400 }, reader });
-  tb.io.drafter = scripted(["We will refund your 400 USD."]);
+  const { tb, lines } = toolbox({ f: { ...VENT, amount: 400 }, reader });
+  tb.io.drafter = scripted(["We will refund your 400 GC."]);
   tb.maxRounds = 1;
   const r = await replyLoop(tb, {});
   assert.equal(reader.calls, 0);
@@ -120,8 +120,8 @@ test("(e) reader down: an error line and a recovery line, the word test stands, 
 
 test("(f) refund category: the reader is never called", async () => {
   const reader = readerScript([{ mentions_money_back: true, offers_money: true }]);
-  const { tb, lines } = toolbox({ f: { category: "refund", amount_usd: 100, policy_limit_usd: 150, cited_rows: ["policy:refund"] }, reader });
-  tb.io.drafter = scripted(["We will refund your 100 USD this week."]);
+  const { tb, lines } = toolbox({ f: { category: "refund", amount: 100, policy_limit: 150, cited_rows: ["policy:refund"] }, reader });
+  tb.io.drafter = scripted(["We will refund your 100 GC this week."]);
   await replyLoop(tb, {});
   assert.equal(reader.calls, 0);
   assert.equal(readerLines(lines).length, 0);
@@ -182,7 +182,7 @@ test("(j) the blocker: a critic that throws escalates the run while a slow reade
   const facts = async (tid, { trace }) => {
     trace?.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:thread", input_summary: "the thread row", output_summary: `1 rows: threads_parquet:${tid}`, status: "success", sponsor: "zetaris" });
     return {
-      thread_id: tid, category: t.category, amount_usd: t.amount_usd, policy_limit_usd: 150, category_weight: 0.84, floor: 0.8,
+      thread_id: tid, category: t.category, amount: t.amount, policy_limit: 150, category_weight: 0.84, floor: 0.8,
       owner_id: 4, backup_id: 5, owner_name: "Employee 4", backup_name: "Employee 5", owner_out: false, backup_out: false, may_leave: t.may_leave, restricted_terms: ["card number"],
       cited_rows: [`threads_parquet:${tid}`, "policy:appreciation", "trust_ledger:appreciation"], received_at: t.received_at, as_of: String(t.received_at).slice(0, 10),
       subject: t.subject, body: t.body, sender_name: t.sender_name, sender_email: t.sender_email, channel: t.channel, follow_up_kind: null, follow_up_body: null, parent_thread_id: null, ticket: t,

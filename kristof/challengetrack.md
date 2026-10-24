@@ -1,6 +1,6 @@
 ---
 title: "Jedi Pack inbox"
-description: "Track 3 brief for a fictional Jedi Pack Inc mailbox that decides send, hold, or escalate from Zetaris rows."
+description: "Track 3 brief for a fictional Jedi Pack Inc mailbox that decides send, hold, escalate or close from Zetaris rows."
 date: "2026-10-22"
 tags: [jedi-pack, inbox, kristof]
 ---
@@ -127,7 +127,7 @@ intent: proposal.assess
 parameters:
   primaryTrack: 3
   company: Jedi Pack Inc (fictional)
-  decision: send | hold | escalate
+  decision: send | hold | escalate | close
   backup1: dropped
 risk: medium
 capabilities:
@@ -201,15 +201,16 @@ The decision is:
 - **Send**, when the fact may leave, the amount is within the employee's limit, that employee or their backup is in, the trust floor is met, and the reply loop has exited as correct: Evaluator passed and Risk signed off on the same round.
 - **Hold**, when the floor is missed. Nightshift's "24/7" story is this hold, not an always-on model. A held reply has still left the loop as correct, or it has not been drafted yet.
 - **Escalate**, when the reply loop hits the escalate gate. The gate is 2 negative rounds on that ticket, or a hard fact Risk cannot rewrite (amount over the limit, a fact that may not leave, owner and backup both out).
+- **Close**, when nothing further is owed on the ticket and it ends there.
 
-Track 2's published sentence is an investigation that ends in an evidence-backed answer. The demo can show that answer for free. The action the architecture exists to take is still send, hold, or escalate, which is track 3.
+Track 2's published sentence is an investigation that ends in an evidence-backed answer. The demo can show that answer for free. The action the architecture exists to take is still send, hold, escalate or close, which is track 3.
 
 ## One sentence
 
-We are building an agent that helps a Jedi Pack Inc mailbox owner decide whether a customer message can be answered, held, or escalated, by joining holiday, policy, responsibility, and backup data in Zetaris with a trust floor, producing a reply that cites those rows or a ticket a human can take.
+We are building an agent that helps a Jedi Pack Inc mailbox owner decide whether a customer message can be answered, held, escalated or closed, by joining holiday, policy, responsibility, and backup data in Zetaris with a trust floor, producing a reply that cites those rows or a ticket a human can take.
 
 User: the employee who owns that topic, and their backup when the owner is away.
-Decision: send, hold, or escalate.
+Decision: send, hold, escalate or close.
 Output: the reply or the escalation file, plus the four counters.
 
 ## The challenge to the framing
@@ -315,14 +316,14 @@ Yes, as the web app at meterless.ai/gaia. Chat, H-MEM, tools, and WebLLM. Deskto
 
 ## Dataset sketch
 
-Fictional files are in `kristof/data/`. They are not loaded into a Zetaris instance. The refund limit used in the files is 150.00 USD. Each source sits in a different container so a Zetaris filestore can register them side by side.
+Fictional files are in `kristof/data/`. They are not loaded into a Zetaris instance. The refund limit used in the files is 150.00 GC. Each source sits in a different container so a Zetaris filestore can register them side by side.
 
 | Source | Container | Demo fact |
 |---|---|---|
 | Employees | `employees.csv`, and the `employees` table in `jedipack.sqlite` | 4 double given names, emails `given.family@jedipack.com` with a hyphen where the name has one |
 | Holiday | `holiday-2026.xlsx`, with `holiday-2026.csv` beside it | On 2026-10-22 employees 8, 15, 17, and 20 are out. Backup 16 is in. |
-| Responsibility | `responsibility.csv`, and the same table in `jedipack.sqlite` | Refund is employee 15, backup 16. Replacement is employee 8, backup 9. |
-| Policy | `policy.csv`, plus `wiki/refund-policy.md`, `wiki/replacement-policy.md`, and `wiki/what-may-leave.md` | Under 150.00 USD: employee 15 / 16. Over: employee 3 / 4. A replacement is not a refund. |
+| Responsibility | `responsibility.csv`, and the same table in `jedipack.sqlite` | Refund is employee 15, backup 27. Replacement is employee 8, backup 9. |
+| Policy | `policy.csv`, plus `wiki/refund-policy.md`, `wiki/replacement-policy.md`, and `wiki/what-may-leave.md` | Under 150.00 GC: employee 15 / 27. Over: the Sales head, employee 40, and the CEO, employee 201, when the head is out. A replacement is not a refund. |
 | Categories | `categories.csv` | complaint, refund, question, appreciation, other. Rules first. |
 | Trust ledger | `trust-ledger.csv` | Weights are the stored seeds. Affirm raises a weight. Reject lowers it. The 24 threads do not recompute the numbers. |
 | Automation matrix | `automation-matrix.xml` | Autonomous only when the category weight is at or above the floor 0.80. Only appreciation qualifies. |
@@ -359,7 +360,7 @@ Filled only from his words, the published docs, and the search below. A missing 
 
 | Name | Link | What it does | How this differs | Licence |
 |---|---|---|---|---|
-| Zendesk AI agents | https://www.zendesk.com/service/ai/ai-agents/ | Resolves support work across channels and learns from outcomes | We decide send, hold, or escalate from holiday, limit, and backup rows, and we show the contract | Proprietary SaaS. Software licence not stated |
+| Zendesk AI agents | https://www.zendesk.com/service/ai/ai-agents/ | Resolves support work across channels and learns from outcomes | We decide send, hold, escalate or close from holiday, limit, and backup rows, and we show the contract | Proprietary SaaS. Software licence not stated |
 | Intercom Fin | https://www.intercom.com/learning-center/ai-agents-that-take-action | Takes refund and cancel actions through connectors | We do not issue the refund. We decide who may answer | Proprietary. $0.99 per outcome stated at https://www.intercom.com/learning-center/intercom-vs-gorgias . Software licence not stated |
 | Gorgias AI | https://www.gorgias.com/comparison/zendesk | Autonomous Shopify refunds, cancels, reships | Ecommerce order actions, not an internal coverage matrix | Proprietary SaaS. Software licence not stated |
 | Nylas email support recipe | https://developer.nylas.com/docs/cookbook/agents/email-support-agent/ | Confidence plus risk tier. The agent never hits send | Our floor allows a send when the rows and the evaluator agree. Theirs always queues | Not stated |

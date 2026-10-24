@@ -1,0 +1,190 @@
+{
+ "_source": "live runs on https://jedi.blastworks.ai, 24 Oct 2026, freetext probe stamp mvmojs4r (receipt _local/hackathon/deploy/receipts/freetext-probe-20261024); one real line per distinct (step, agent, sponsor, model, gate_source, skipped); summaries dropped",
+ "lines": [
+  {
+   "step": "memory.read",
+   "agent_name": "Memory",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "planner.plan",
+   "agent_name": "Planner",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "delegate",
+   "agent_name": "Planner",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "zetaris.query",
+   "agent_name": "Executor",
+   "sponsor": "zetaris",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "zetaris.query",
+   "agent_name": "Scout",
+   "sponsor": "zetaris",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "executor.act",
+   "agent_name": "Executor",
+   "sponsor": "zetaris",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "meterless.engine",
+   "agent_name": "Scout",
+   "sponsor": "meterless",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "branch",
+   "agent_name": "Planner",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "nvidia.model",
+   "agent_name": "Gates",
+   "sponsor": "nvidia",
+   "model": "openjev-0.1 (openjev-0.1)",
+   "gate_source": "openjev",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "nvidia.model",
+   "agent_name": "Drafter",
+   "status": "skipped",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "critique",
+   "agent_name": "Evaluator",
+   "status": "skipped",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "risk.signoff",
+   "agent_name": "Risk",
+   "sponsor": "meterless",
+   "status": "needs_revision",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "retry",
+   "agent_name": "Planner",
+   "status": "skipped",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "escalate_or_fallback",
+   "agent_name": "Escalator",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "memory.write",
+   "agent_name": "Memory",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "recovery",
+   "agent_name": "Planner",
+   "status": "skipped",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "synthesis",
+   "agent_name": "Planner",
+   "status": "success",
+   "run_id": "probe-h05-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:35:54Z"
+  },
+  {
+   "step": "nvidia.model",
+   "agent_name": "Drafter",
+   "sponsor": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "status": "success",
+   "run_id": "probe-h08-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:36:14Z"
+  },
+  {
+   "step": "nvidia.model",
+   "agent_name": "RefundReader",
+   "sponsor": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "gate_source": "nightshift",
+   "status": "success",
+   "run_id": "probe-h08-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:36:23Z"
+  },
+  {
+   "step": "critique",
+   "agent_name": "Evaluator",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "status": "success",
+   "run_id": "probe-h08-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:36:30Z"
+  },
+  {
+   "step": "escalate_or_fallback",
+   "agent_name": "Escalator",
+   "status": "skipped",
+   "run_id": "probe-h08-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:36:30Z"
+  },
+  {
+   "step": "risk.signoff",
+   "agent_name": "Risk",
+   "status": "skipped",
+   "run_id": "probe-h13-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:37:05Z"
+  },
+  {
+   "step": "meterless.engine",
+   "agent_name": "WorldModel",
+   "sponsor": "meterless",
+   "status": "success",
+   "run_id": "probe-h17-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:38:55Z"
+  },
+  {
+   "step": "nvidia.model",
+   "agent_name": "Recommender",
+   "sponsor": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "status": "success",
+   "run_id": "probe-h17-l1-mvmojs4r",
+   "timestamp": "2026-10-24T17:40:01Z"
+  }
+ ]
+}

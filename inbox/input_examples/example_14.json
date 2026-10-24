@@ -1,0 +1,11 @@
+{
+  "run_id": "example-14",
+  "input": {
+    "message": "What is the primary material used in the Sovereign Arc Duellist?",
+    "from": "dessadunmarrow@email.com",
+    "name": "Dessa Dunmarrow",
+    "channel": "contact-form",
+    "scenario": "free_text",
+    "as_of": "2026-10-25"
+  }
+}

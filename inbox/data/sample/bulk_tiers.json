@@ -1,0 +1,34 @@
+[
+  {
+    "params": {},
+    "result": {
+      "headers": [
+        "tier",
+        "min_qty",
+        "max_qty",
+        "discount_pct"
+      ],
+      "rows": [
+        [
+          "crew",
+          "1",
+          "10",
+          "0.0"
+        ],
+        [
+          "squad",
+          "11",
+          "100",
+          "10.0"
+        ],
+        [
+          "fleet",
+          "101",
+          null,
+          "20.0"
+        ]
+      ],
+      "total": 3
+    }
+  }
+]

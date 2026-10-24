@@ -5,7 +5,7 @@ Everything is fictional and labelled synthetic. Deterministic from --seed:
 no wall-clock, no set iteration order, seeded random only.
 Run: uv run --with pyarrow python gen_company.py --out <dir> --seed 42
 """
-import argparse, csv, datetime as dt, io, json, os, quopri, random, shutil
+import argparse, csv, datetime as dt, io, json, os, quopri, random, re
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -14,7 +14,7 @@ DEFAULT_SRC = os.path.normpath(os.path.join(HERE, "..", "..", "kristof", "data")
 
 FIELDS = ["thread_id", "parent_thread_id", "channel", "category", "agent_category", "sender_name",
           "sender_email", "subject", "body", "follow_up_body", "follow_up_kind", "received_at",
-          "amount_usd", "may_leave", "owner_id", "backup_id", "owner_out", "outcome",
+          "amount", "may_leave", "owner_id", "backup_id", "owner_out", "outcome",
           "outcome_reason", "ledger_effect", "source_id", "fictional"]
 
 GIVEN_A = ["Ar", "Bel", "Cor", "Dal", "El", "Fen", "Gal", "Hal", "Ive", "Jor", "Kal", "Lor", "Mer",
@@ -34,8 +34,8 @@ TEAMS = {
     "Finance": ["Accountant", "Finance Analyst"],
 }
 TEAM_NAMES = sorted(TEAMS)
-PRODUCTS = ["training saber", "hilt", "kyber crystal case", "travel cloak", "utility belt", "holster",
-            "padawan robe", "saber stand", "pilgrim pack", "boot set"]
+LEGAL_NAMES = [("Mara", "Quillfeather"), ("Teo", "Brandlewick"), ("Ysolde", "Fenwarden"),
+               ("Corvin", "Ashgrove"), ("Neva", "Thistledown")]
 FIRST = ["Aldo", "Brenna", "Cato", "Dessa", "Edric", "Fenna", "Garo", "Hale", "Isolde", "Jarek", "Kessa",
          "Lorn", "Mina", "Nolan", "Orla", "Pavo", "Quill", "Rhea", "Sorin", "Tavi", "Ulric", "Vesna",
          "Wex", "Xara", "Yoren", "Zeda"]
@@ -51,7 +51,15 @@ def read_bytes(p):
         return f.read()
 
 
+# --dry-run: write_bytes records the path and writes nothing.
+DRY_RUN = False
+WRITES = []
+
+
 def write_bytes(p, data):
+    WRITES.append(p)
+    if DRY_RUN:
+        return
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "wb") as f:
         f.write(data)
@@ -64,6 +72,20 @@ def write_text(p, s):
 def read_csv(p):
     with open(p, newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def load_products(src):
+    """The ten product names the template threads pick from, in the old P01..P10 order, read from the
+    products.csv seed (its aliases column carries P01..P10). Same count and order as before, so the rng stream is unchanged."""
+    rows = read_csv(os.path.join(src, "products.csv"))
+    out = []
+    for i in range(1, 11):
+        tag = "P%02d" % i
+        hit = [r for r in rows if tag in [a.strip() for a in r["aliases"].split(";")]]
+        if len(hit) != 1:
+            raise SystemExit("products.csv: alias %s must match exactly one product" % tag)
+        out.append(hit[0]["name"])
+    return out
 
 
 def jarray(objs):
@@ -100,6 +122,60 @@ def gen_employees(src, rng):
     return head, rows
 
 
+CEO_ID = 201
+LEGAL_HEAD_ID = 202
+HEAD_RE = re.compile(r"lead|head|manager|director", re.I)
+
+
+def append_fixed(rows):
+    """CEO and Legal appended as fixed rows 201-207 after generation, outside the rng stream."""
+    rows = list(rows)
+    rows.append([str(CEO_ID), "Paul", "Jedi", "paul.jedi@jedipack.com", "Executive", "CEO", "0.50"])
+    for i, (g, f) in enumerate(LEGAL_NAMES):
+        eid = LEGAL_HEAD_ID + 1 + i
+        rows.append([str(eid), g, f, "%s.%s@jedipack.com" % (g.lower(), f.lower()), "Legal",
+                     "Legal Counsel", "0.50"])
+    rows.insert(len(rows) - 5, [str(LEGAL_HEAD_ID), "Ilsa", "Wrenmoor", "ilsa.wrenmoor@jedipack.com", "Legal",
+                                "Head of Legal", "0.50"])
+    return rows
+
+
+def read_labels(src):
+    labels = {}
+    for line in read_bytes(os.path.join(src, "labels.md")).decode("utf-8").splitlines():
+        m = re.match(r"^team:\s*(.+?)\s*=\s*(.+?)\s*$", line)
+        if m:
+            labels[m.group(1)] = m.group(2)
+    return labels
+
+
+def gen_hierarchy(src, erows):
+    """companyhierarchy.csv over the generated employee rows. One head per team (the ONE place heads are chosen)."""
+    labels = read_labels(src)
+    teams = sorted({r[4] for r in erows})
+    missing = [t for t in teams if t not in labels]
+    if missing:
+        raise SystemExit("labels.md has no 'team: <Team> = <label>' line for: %s" % ", ".join(missing))
+    heads = {}
+    for t in teams:
+        members = sorted((r for r in erows if r[4] == t), key=lambda r: int(r[0]))
+        pick = [r for r in members if HEAD_RE.search(r[5])]
+        heads[t] = int((pick or members)[0][0])
+    heads["Executive"] = CEO_ID
+    heads["Legal"] = LEGAL_HEAD_ID
+    out = ["employee_id,name,role,team,team_label,manager_id"]
+    for r in sorted(erows, key=lambda r: int(r[0])):
+        eid, team = int(r[0]), r[4]
+        if eid == CEO_ID:
+            role, mgr = "CEO", CEO_ID
+        elif eid == heads[team]:
+            role, mgr = "Head of %s" % team, CEO_ID
+        else:
+            role, mgr = r[5], heads[team]
+        out.append(",".join([str(eid), "%s %s" % (r[1], r[2]), role, team, labels[team], str(mgr)]))
+    return "\n".join(out) + "\n", heads
+
+
 def weekdays(year):
     d = dt.date(year, 1, 1)
     out = []
@@ -110,14 +186,25 @@ def weekdays(year):
     return out
 
 
-def gen_holidays(src, rng, protected):
+def gen_holidays(src, rng, protected, seed):
     """Original bytes first; then generated vacation rows for employees NOT in protected
     (the authored owner/backup pairs), so authored availability is never changed."""
     raw = read_bytes(os.path.join(src, "holiday-2026.csv"))
     days = weekdays(2026)
     out = []
     for emp in range(21, 201):
-        for d in sorted(rng.sample(days, 4)):
+        picked = sorted(rng.sample(days, 4))  # always drawn, so the rng stream (and every other employee's rows) is unchanged
+        if emp in protected:
+            continue
+        for d in picked:
+            out.append("%d,%s,vacation," % (emp, d.isoformat()))
+    # 201-207 from a separate stream, after every other rng use
+    rng7 = random.Random(seed + 7)
+    for emp in range(201, 208):
+        picked = sorted(rng7.sample(days, 4))
+        if emp in protected:  # the CEO and the Head of Legal are heads: always in
+            continue
+        for d in picked:
             out.append("%d,%s,vacation," % (emp, d.isoformat()))
     extra = "".join(l + "\r\n" for l in out).encode("utf-8")
     return raw + extra, len(raw.decode("utf-8").splitlines()) - 1 + len(out)
@@ -129,9 +216,9 @@ def person(rng):
 
 TEMPLATES = {
     "refund": [
-        ("Refund for order JP-{o}", "Please refund order JP-{o}. The {p} was not what I ordered. The charge was {a} USD."),
-        ("Money back for my {p}", "I want my money back for order JP-{o}. The {p} never fit. I paid {a} USD."),
-        ("Refund request JP-{o}", "Order JP-{o} was a mistake on my side. Could I get a refund of {a} USD for the {p}?"),
+        ("Refund for order JP-{o}", "Please refund order JP-{o}. The {p} was not what I ordered. The charge was {a} GC."),
+        ("Money back for my {p}", "I want my money back for order JP-{o}. The {p} never fit. I paid {a} GC."),
+        ("Refund request JP-{o}", "Order JP-{o} was a mistake on my side. Could I get a refund of {a} GC for the {p}?"),
     ],
     "complaint": [
         ("Box arrived crushed", "My {p} arrived in a crushed box and the courier left it outside. Order JP-{o}. Please have a person look at this."),
@@ -163,78 +250,51 @@ def rfc_date(ts):
 
 def eml(t):
     body = quopri.encodestring(t["body"].encode("utf-8")).decode("ascii")
-    head = ("From: %s <%s>\nTo: inbox@jedipack.com\nSubject: %s\nDate: %s\nMessage-ID: <%s@example.com>\n"
+    head = ("From: %s <%s>\nTo: info@jedipack.com\nSubject: %s\nDate: %s\nMessage-ID: <%s@example.com>\n"
             "Content-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: quoted-printable\n"
             "MIME-Version: 1.0\n\n") % (t["sender_name"], t["sender_email"], t["subject"], rfc_date(t["received_at"]), t["thread_id"])
     return head + body
 
 
-FAQ = [
-    ("Q01", "How long does shipping take?",
-     "Shipping time depends on your region and the product. Your order confirmation shows the estimate for your address, and customer service can tell you where your order is.",
-     "shipping delivery time long arrive ship days", "authored"),
-    ("Q02", "Which regions do you ship to, and do you ship to post boxes?",
-     "We ship to most regions. Some remote regions and post boxes cannot take a courier delivery, so give a street address where you can. Customer service confirms your region before the order ships.",
-     "regions region country countries post box pobox ship international", "authored"),
-    ("Q03", "How do I care for my gear?",
-     "Wipe it with a soft dry cloth, keep it out of long direct sun, and store it in its case or bag. Do not use solvents on the hilt or the crystal case.",
-     "care clean cleaning wash maintain store storage", "authored"),
-    ("Q04", "How long is the warranty?",
-     "Every product carries a warranty against manufacturing faults. The length is stated on your order confirmation, and a faulty item is handled as a replacement, not a refund.",
-     "warranty guarantee fault faulty defect length covered", "wiki/replacement-policy.md"),
-    ("Q05", "Which colours do you ship?",
-     "The colours shown on each product page are the colours we ship. If a colour is not shown, it is not in stock, and customer service can tell you if it is coming back.",
-     "colour colours color colors shade available stock", "authored"),
-    ("Q06", "Do you sell stands for the sabers?",
-     "Yes, the saber stand is in our product list, and it fits the training saber and the hilt.",
-     "stand stands display holder saber hilt", "products.csv"),
-    ("Q07", "Can you engrave my gear?",
-     "Engraving is not offered at the moment. Customer service can note a request, but we do not promise it.",
-     "engrave engraving engraved personalise personalize name custom", "authored"),
-    ("Q08", "What is your returns and refund policy?",
-     "A refund at or under 150 USD can be approved by our refund owner. Above 150 USD it goes to the manager. A replacement is not a refund. Write to us with your order reference.",
-     "return returns refund refunds money back policy", "wiki/refund-policy.md"),
-    ("Q09", "Where is my order?",
-     "Send us your order reference and customer service will check its status and reply to you. We never ask for a card number.",
-     "order status track tracking where parcel package reference", "wiki/what-may-leave.md"),
-    ("Q10", "Which payment methods do you accept?",
-     "We accept the payment methods shown at checkout. We never ask for a card number by email or chat.",
-     "payment pay payments card methods checkout invoice", "wiki/what-may-leave.md"),
-    ("Q11", "Do you offer gift wrapping?",
-     "Gift wrapping is not offered at the moment. Customer service can add a gift note to the order.",
-     "gift wrapping wrap present note", "authored"),
-    ("Q12", "Can I place a bulk order?",
-     "Yes. Sales quotes bulk orders: tell us the product and the quantity and sales will reply with a quote.",
-     "bulk order quote quotes wholesale quantity volume units", "authored"),
-]
+# Seeds in kristof/data/ that the generator byte-copies to the output. Adding a seed is one line.
+COPIED = ["responsibility.csv", "policy.csv", "categories.csv", "trust-ledger.csv", "automation-matrix.xml",
+          "products.csv", "customers.csv", "orders.csv", "shipping_rules.csv", "bulk_pricing.csv", "bom.csv", "channels.csv", "faq.csv"]
+
+
+def merge_sources(path, owned, header, csv_counts=None):
+    """Replace the generator-owned entries by name, keep every other entry; owned first, then kept in existing order.
+    No churn in `rows`: an owned CSV table gets the generator's data-row count, every other owned entry (json, eml, parquet,
+    markdown, xml, text) keeps the `rows` it already had; a kept CSV entry for a file the generator copies gets its count too."""
+    old = {}
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            old = json.load(f)
+    names = {e["name"] for e in owned}
+    before = {e.get("name"): e for e in old.get("sources", [])}
+    owned = [dict(e) for e in owned]
+    for e in owned:
+        if e["format"] != "CSV" and "rows" in before.get(e["name"], {}):
+            e["rows"] = before[e["name"]]["rows"]
+    kept = [dict(e) for e in old.get("sources", []) if e.get("name") not in names]
+    for e in kept:
+        if e.get("format") == "CSV" and e.get("path") in (csv_counts or {}):
+            e["rows"] = csv_counts[e["path"]]
+    sj = dict(old)
+    sj.update(header)
+    sj["sources"] = list(owned) + kept
+    return sj
 
 
 def gen_only(out, a):
     """--only: write just the named files and refresh their sources.json rows; nothing else is touched."""
     only = {x.strip() for x in a.only.split(",") if x.strip()}
-    bad = only - {"products", "faq", "responsibility"}
+    bad = only - {"responsibility"}
     if bad:
         raise SystemExit("unknown --only: %s" % ",".join(sorted(bad)))
     if not os.path.isdir(out):
         raise SystemExit("--only needs an existing --out (no rmtree)")
     rng2 = random.Random(a.seed + 1)
     counts = {}
-    if "products" in only:
-        prices = [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]
-        rng2.shuffle(prices)
-        rows = ["product_id,name,unit_price_usd,currency,min_order_qty,lead_days\n"]
-        for i, (n, pr) in enumerate(zip(PRODUCTS, prices), 1):
-            rows.append("P%02d,%s,%d,USD,1,%d\n" % (i, n, pr, rng2.randint(3, 14)))
-        write_text(os.path.join(out, "products.csv"), "".join(rows))
-        counts["products"] = len(rows) - 1
-    if "faq" in only:
-        buf = io.StringIO()
-        w = csv.writer(buf, lineterminator="\n")
-        w.writerow(["faq_id", "question", "answer", "keywords", "source"])
-        for r in FAQ:
-            w.writerow(r)
-        write_text(os.path.join(out, "faq.csv"), buf.getvalue())
-        counts["faq"] = len(FAQ)
     if "responsibility" in only:
         p = os.path.join(out, "responsibility.csv")
         txt = read_bytes(p).decode()
@@ -255,9 +315,7 @@ def gen_only(out, a):
     # The intake table is written by the service with doubled quotes and embedded newlines (decisions.q):
     # Spark's CSV reader escapes with a backslash by default, so the table says escape + multiLine.
     runtime_opts = {"header": "true", "escape": "\"", "multiLine": "true"}
-    new = {"products": ent("products", "products.csv", "products", counts.get("products", 0)),
-           "faq": ent("faq", "faq.csv", "faq", counts.get("faq", 0)),
-           "intake_runtime": {**ent("intake_runtime", "runtime/intake.csv", "intake_runtime", 0),
+    new = {"intake_runtime": {**ent("intake_runtime", "runtime/intake.csv", "intake_runtime", 0),
                               "options": runtime_opts, "licence": "runtime, written by the service", "runtime": True}}
     for k, e in new.items():
         if k == "intake_runtime" or k in only:
@@ -276,38 +334,44 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--src", default=DEFAULT_SRC)
-    ap.add_argument("--only", default="", help="comma list of products,faq,responsibility: write only those files, keep the rest")
+    ap.add_argument("--dry-run", action="store_true", help="list the files a full run would write; write nothing")
+    ap.add_argument("--only", default="", help="comma list (responsibility): write only those files, keep the rest")
     a = ap.parse_args()
     out, src = os.path.abspath(a.out), os.path.abspath(a.src)
     if a.only:
         return gen_only(out, a)
-    if os.path.isdir(out):
-        shutil.rmtree(out)
-    os.makedirs(out)
+    global DRY_RUN
+    DRY_RUN = a.dry_run
+    # Non-destructive: every generated file is overwritten in place; nothing else in out is touched or deleted.
     rng = random.Random(a.seed)
     counts = {}
 
     # employees
     head, erows = gen_employees(src, rng)
+    erows = append_fixed(erows)  # CEO 201 and Legal 202-207: fixed rows, outside the rng stream
     write_text(os.path.join(out, "employees.csv"), head + "\n" + "".join(",".join(r) + "\n" for r in erows))
     counts["employees.csv"] = len(erows)
+    hier, heads = gen_hierarchy(src, erows)
+    write_text(os.path.join(out, "companyhierarchy.csv"), hier)
+    counts["companyhierarchy.csv"] = len(erows)
+    PRODUCTS = load_products(src)
 
     # unchanged copies
-    for n in ["responsibility.csv", "policy.csv", "categories.csv", "trust-ledger.csv", "automation-matrix.xml"]:
+    for n in COPIED:
         write_bytes(os.path.join(out, n), read_bytes(os.path.join(src, n)))
-    counts["responsibility.csv"] = len(read_csv(os.path.join(src, "responsibility.csv")))
-    counts["policy.csv"] = len(read_csv(os.path.join(src, "policy.csv")))
-    counts["categories.csv"] = len(read_csv(os.path.join(src, "categories.csv")))
-    counts["trust-ledger.csv"] = len(read_csv(os.path.join(src, "trust-ledger.csv")))
+    for n in COPIED:
+        if n.endswith(".csv"):
+            counts[n] = len(read_csv(os.path.join(src, n)))
     counts["automation-matrix.xml"] = read_bytes(os.path.join(src, "automation-matrix.xml")).decode().count("<category ")
 
     # holidays
-    protected = {1, 2, 3, 4, 5, 6, 8, 9, 15, 16}
-    hol, hn = gen_holidays(src, rng, protected)
+    # 27 (the refund backup) and every department head keep their authored availability: no generated rows.
+    protected = {27} | set(heads.values())
+    hol, hn = gen_holidays(src, rng, protected, a.seed)
     write_bytes(os.path.join(out, "holiday-2026.csv"), hol)
     counts["holiday-2026.csv"] = hn
     absent = set()
-    for r in read_csv(os.path.join(out, "holiday-2026.csv")):
+    for r in csv.DictReader(io.StringIO(hol.decode("utf-8"), newline="")):
         if r["employee_id"]:
             absent.add((int(r["employee_id"]), r["date"]))
 
@@ -367,7 +431,7 @@ def main():
             "thread_id": tid, "parent_thread_id": "", "channel": ch, "category": cat, "agent_category": "",
             "sender_name": "%s %s" % (g, f), "sender_email": "%s.%s%d@example.com" % (g.lower(), f.lower(), i + 1),
             "subject": subject, "body": body, "follow_up_body": "", "follow_up_kind": "",
-            "received_at": stamps[i], "amount_usd": amount,
+            "received_at": stamps[i], "amount": amount,
             # Every generated ticket may be answered: no template asks for a card number, a staff price list or a staff home address
             # (what-may-leave.md). Until 24 Oct this read "refund within the limit", so 64 of the 76 generated threads held as
             # data-block and T27, an over-limit refund, held instead of escalating (Paul, 24 Oct). Only authored threads carry false.
@@ -387,7 +451,7 @@ def main():
     cols = {}
     for k in FIELDS:
         vals = [r[k] for r in allrows]
-        if k == "amount_usd":
+        if k == "amount":
             cols[k] = pa.array(vals, type=pa.float64())
         elif k in ("may_leave", "owner_out", "fictional"):
             cols[k] = pa.array(vals, type=pa.bool_())
@@ -395,7 +459,9 @@ def main():
             cols[k] = pa.array(vals, type=pa.int64())
         else:
             cols[k] = pa.array(["" if v is None else str(v) for v in vals], type=pa.string())
-    pq.write_table(pa.table(cols), os.path.join(out, "threads", "threads.parquet"), compression="snappy")
+    pbuf = io.BytesIO()
+    pq.write_table(pa.table(cols), pbuf, compression="snappy")
+    write_bytes(os.path.join(out, "threads", "threads.parquet"), pbuf.getvalue())
     counts["threads/threads.parquet"] = 100
 
     # intakes
@@ -426,14 +492,14 @@ def main():
     # notes
     notes = """Jedi Pack Inc escalation notes (synthetic, fictional company)
 1. These notes are a synthetic runbook. Nothing here describes a real business.
-2. Refunds at or under 150.00 USD go to employee 15, backup employee 16.
-3. Refunds above 150.00 USD go to employee 3, backup employee 4.
+2. Refunds at or under 150.00 GC (Galactic Credits) go to employee 15, backup employee 27.
+3. Refunds above 150.00 GC go to the Sales head, employee 40, backup the CEO, employee 201.
 4. Replacements go to employee 8, backup employee 9.
-5. Complaints go to employee 5, backup employee 6.
-6. Questions go to employee 1, backup employee 2.
+5. Complaints go to employee 15, backup employee 27.
+6. Questions go to employee 5, backup employee 13.
 7. Check who is out on the day the message was received, not on the day you read it.
 8. If the owner is out and the backup is in, hold the draft for the backup.
-9. If both are out, escalate to the manager, employee 3.
+9. If both are out, escalate to the CEO, employee 201.
 10. Never promise a refund the customer did not ask for.
 11. A replacement is not a refund.
 12. Appreciation messages may be answered without a person once trust passes the floor of 0.80.
@@ -471,11 +537,18 @@ def main():
         src_("trustpilot_reviews", "intakes/trustpilot/reviews.json", "JSON", "trustpilot_reviews", J, len(tp)),
         src_("escalation_notes", "notes/escalation-notes.txt", "TEXT", "escalation_notes", {}, 20),
     ]
-    sj = {"synthetic": True, "generated_by": "scripts/gen_company.py --seed %d" % a.seed, "sources": S}
-    # sources.json lives in the parent of the synthetic dir (data/)
-    write_text(os.path.join(os.path.dirname(out), "sources.json") if os.path.basename(out) == "synthetic"
-               else os.path.join(out, "..", os.path.basename(out) + "-sources.json"),
-               json.dumps(sj, indent=2) + "\n")
+    csv_counts = {e["path"]: e["rows"] for e in S if e["format"] == "CSV"}
+    csv_counts.update({n: c for n, c in counts.items() if n.endswith(".csv")})  # incl. copied seeds and the hierarchy (its entry is Task 1.4a's)
+    # sources.json lives in the parent of the synthetic dir (data/); entries the generator does not own are kept
+    mp = (os.path.join(os.path.dirname(out), "sources.json") if os.path.basename(out) == "synthetic"
+          else os.path.join(out, "..", os.path.basename(out) + "-sources.json"))
+    sj = merge_sources(mp, S, {"synthetic": True, "generated_by": "scripts/gen_company.py --seed %d" % a.seed}, csv_counts)
+    write_text(mp, json.dumps(sj, indent=2) + "\n")
+    if DRY_RUN:
+        print("dry-run: would write %d files into %s" % (len(WRITES), out))
+        for w in WRITES:
+            print("  " + os.path.relpath(w, out))
+        return
     print("wrote", out, counts)
 
 

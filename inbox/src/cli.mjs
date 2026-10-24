@@ -195,14 +195,14 @@ async function gatesCmd(args) {
   const pol = csv("policy.csv").find((p) => p.topic === "refund") ?? csv("policy.csv")[0];
   const limit = Number(pol.limit_amount);
   const led = csv("trust-ledger.csv").find((r) => r.category === ticket.category);
-  const over = ticket.amount_usd != null && ticket.amount_usd > limit;
+  const over = ticket.amount != null && ticket.amount > limit;
   const ownerId = Number(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
   const backupId = Number(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
   const day = String(ticket.received_at).slice(0, 10);
   const hol = csv("holiday-2026.csv");
   const out = (e) => hol.some((h) => Number(h.employee_id) === e && h.date === day);
   const facts = {
-    thread_id: id, category: ticket.category, amount_usd: ticket.amount_usd, policy_limit_usd: limit,
+    thread_id: id, category: ticket.category, amount: ticket.amount, policy_limit: limit,
     category_weight: led ? Number(led.weight) : 0, floor: led ? Number(led.floor) : 0.8,
     owner_id: ownerId, backup_id: backupId, owner_out: out(ownerId), backup_out: out(backupId),
     may_leave: ticket.may_leave, restricted_terms: [], cited_rows: [], received_at: ticket.received_at,

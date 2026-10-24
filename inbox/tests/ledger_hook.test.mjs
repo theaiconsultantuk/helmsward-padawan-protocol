@@ -10,7 +10,7 @@ import { TEMPLATES, validate, ledgerAdjustFor } from "../src/queries.mjs";
 
 // a refund just above the floor: weight 0.82 vs floor 0.80, so two rejects (-0.10) push it under
 const facts = () => ({
-  thread_id: "T02", category: "refund", amount_usd: 40, policy_limit_usd: 150, category_weight: 0.82, floor: 0.8,
+  thread_id: "T02", category: "refund", amount: 40, policy_limit: 150, category_weight: 0.82, floor: 0.8,
   owner_id: 3, backup_id: 4, owner_out: false, backup_out: false, may_leave: true, restricted_terms: [], cited_rows: ["threads_parquet:T02"],
   received_at: "2026-10-22T09:00:00Z", as_of: "2026-10-22", subject: "Refund for the saber", body: "Please refund me.", sender_name: "Lira Venn",
   sender_email: "lira.venn@example.com", channel: "email", follow_up_kind: null, ticket: { thread_id: "T02", category: "refund" },
