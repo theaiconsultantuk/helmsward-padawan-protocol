@@ -54,7 +54,15 @@ curl -s http://127.0.0.1:8000/health
 curl -s -X POST http://127.0.0.1:8000/run -H 'Content-Type: application/json' -d @input_examples/example_1.json
 ```
 
-Inside the container the server binds `0.0.0.0:8000` even when `.env` says `HOST=127.0.0.1` (the Dockerfile sets `JEDI_IN_CONTAINER=1`; the start-up line says when it ignored `HOST`), so `-p` reaches it. Inside a container `localhost` is the container itself: on Docker Desktop point `ZETARIS_REST_URL` and `METERLESS_BASE_URL` at `host.docker.internal` instead of `127.0.0.1`; on Linux add `--add-host=host.docker.internal:host-gateway` or run with `--network host`. The container has no `docker` CLI, so the two Zetaris publishes fall back to local files and say `published: false` (Limitations).
+Inside the container the server binds `0.0.0.0:8000` even when `.env` says `HOST=127.0.0.1` (the Dockerfile sets `JEDI_IN_CONTAINER=1`; the start-up line says when it ignored `HOST`), so `-p` reaches it. The marker alone does this: `JEDI_IN_CONTAINER=1` exported before a native `npm start` also turns a loopback `HOST` into `0.0.0.0`, so set it only in a container.
+
+Reaching Zetaris and Nightshift from inside the container: `localhost` there is the container itself.
+
+- Docker Desktop (Mac, Windows): point `ZETARIS_REST_URL` and `METERLESS_BASE_URL` at `host.docker.internal` instead of `127.0.0.1`.
+- Linux, bridge network: add `--add-host=host.docker.internal:host-gateway` and use that name in the URLs. That only resolves the name; the host service must also listen on an address the bridge can reach (`0.0.0.0`, or the `docker0` address), not on `127.0.0.1` alone.
+- Linux, simplest: `--network host` with the URLs left at `127.0.0.1`, and no `-p` (the container shares the host's ports, so the app is on `http://127.0.0.1:8000` directly).
+
+The container has no `docker` CLI, so the two Zetaris publishes fall back to local files and say `published: false` (Limitations).
 
 Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, Nightshift, OpenJev and the optional local lane), `npm run cli -- run --thread T02`.
 

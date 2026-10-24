@@ -350,21 +350,31 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   return server;
 }
 
-// Inside the shipped container (Dockerfile sets JEDI_IN_CONTAINER=1) a loopback HOST would make the port mapping dead-end,
-// so the server binds 0.0.0.0 there and says so. Anywhere else HOST is honoured as given.
-const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+// With JEDI_IN_CONTAINER=1 (the Dockerfile sets it; setting it by hand has the same effect) a loopback HOST would make
+// `docker run -p` dead-end, so the server binds 0.0.0.0 and says so. Without the marker HOST is honoured as given.
+// Loopback: localhost, any 127.x.x.x, ::1 in any spelling (also bracketed, also the IPv4-mapped ::ffff:127.x.x.x).
+export function isLoopback(host) {
+  let h = String(host ?? "").trim().toLowerCase();
+  if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
+  if (h === "localhost") return true;
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  if (h.startsWith("::ffff:")) return isLoopback(h.slice(7));
+  if (!h.includes(":") || /[^0-9a-f:]/.test(h)) return false;
+  const [head, tail = ""] = h.split("::"); // expand one "::" to the full eight groups
+  const groups = (head ? head.split(":") : []).concat(h.includes("::") ? Array(8 - (head ? head.split(":").length : 0) - (tail ? tail.split(":").length : 0)).fill("0") : [], tail ? tail.split(":") : []);
+  return groups.length === 8 && groups.slice(0, 7).every((g) => /^0{1,4}$/.test(g)) && /^0{0,3}1$/.test(groups[7]);
+}
 export function listenHost(cfg, env = globalThis.process?.env ?? {}) {
   const host = String(cfg.HOST ?? "127.0.0.1");
-  if (env.JEDI_IN_CONTAINER === "1" && LOOPBACK.has(host)) return { host: "0.0.0.0", overrode: host };
+  if (env.JEDI_IN_CONTAINER === "1" && isLoopback(host)) return { host: "0.0.0.0", overrode: host };
   return { host, overrode: null };
 }
 
-export function main() {
-  const cfg = config();
+export function main({ cfg = config(), log = console.log } = {}) {
   const port = Number(cfg.PORT);
   const { host, overrode } = listenHost(cfg);
   const server = createServer({ cfg });
-  server.listen(port, host, () => console.log(`jedi-pack-inbox listening on http://${host}:${port} (sample_mode ${sampleMode(cfg)})${overrode ? ` (HOST=${overrode} ignored inside the container)` : ""}`));
+  server.listen(port, host, () => log(`jedi-pack-inbox listening on http://${host}:${port} (sample_mode ${sampleMode(cfg)})${overrode ? ` (HOST=${overrode} ignored: JEDI_IN_CONTAINER=1)` : ""}`));
   return server;
 }
 
