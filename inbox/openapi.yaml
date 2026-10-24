@@ -526,6 +526,7 @@ components:
         agent: { type: string, nullable: true }
         label: { type: string }
         route: { type: string, nullable: true }
+        detail: { type: string, nullable: true, description: "The rows in words when a Zetaris query read a record a person would want to see (an employee's name, role and team; a policy's limit and owners; a topic's owner and backup), else null." }
         consulted: { type: array, items: { type: string } }
         retained: { type: array, description: Always a subset of consulted., items: { type: string } }
         reached_human: { type: boolean }

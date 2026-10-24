@@ -96,6 +96,7 @@ mark.blank::before { content: "fill: "; font-size: .75em; opacity: .7; }
 .badge-error, .badge-incomplete { color: var(--bad); }
 .badge.human { background: var(--accent); color: var(--accent-text); }
 .route { margin: 4px 0; }
+.detail { margin: 0 0 4px; color: var(--muted); font-size: .92rem; }
 .list-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
 .chips { display: flex; flex-wrap: wrap; }
 .chip.seen { opacity: .85; }

@@ -156,6 +156,27 @@ test("G1: a successful wiki read leaves disclosure_unknown false", async () => {
   assert.equal((await factsForTicket("T18", { cfg: live, sqlRunImpl: empty })).disclosure_unknown, false);
 });
 
+test("detail: the employee, policy and responsibility reads put the rows in words on the trace line; the id line and other reads are unchanged", async () => {
+  const lines = [];
+  const trace = { line: (l) => lines.push(l) };
+  const emp = async () => ({ headers: ["employee_id", "given_name", "family_name", "email", "team", "role"], rows: [[15, "Soren", "Adey", "s@x", "Support", "Support Agent"]] });
+  await run("employee", { employee_id: 15 }, { trace, cfg: live, sqlRunImpl: emp, why: "owner for refund: under the refund limit 150 (policy:refund)" });
+  assert.equal(lines[0].output_summary, "1 rows: employees:15");
+  assert.equal(lines[0].detail, "Soren Adey · Support Agent · Support");
+  assert.equal(lines[0].input_summary, 'the employee record {"employee_id":15} · owner for refund: under the refund limit 150 (policy:refund)');
+  await run("policy", { topic: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [["refund", "150.00", "USD", 15, 16, 3, 4]] }) });
+  assert.equal(lines[1].detail, "limit 150.00 USD · under: owner 15, backup 16 · over: owner 3, backup 4");
+  await run("responsibility", { topic: "rfq" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["topic", "owner_id", "backup_id"], rows: [["rfq", 6, 14]] }) });
+  assert.equal(lines[2].detail, "owner 6, backup 14");
+  assert.match(lines[2].input_summary, /^who owns the topic \{"topic":"rfq"\} via the USL$/);
+  await run("employee", { employee_id: 15 }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["employee_id"], rows: [] }) });
+  assert.equal(lines[3].output_summary, "0 rows: none");
+  assert.equal(lines[3].detail, undefined);
+  assert.equal(lines[3].input_summary, 'the employee record {"employee_id":15}');
+  await run("trust", { category: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["category", "weight", "floor"], rows: [["refund", 0.55, 0.8]] }) });
+  assert.equal(lines[4].detail, undefined);
+});
+
 test("G2: run() forwards the trace to sqlRunImpl and writes one line of its own on a throw", async () => {
   const trace = { line: () => {} };
   let got;
