@@ -350,12 +350,21 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   return server;
 }
 
+// Inside the shipped container (Dockerfile sets JEDI_IN_CONTAINER=1) a loopback HOST would make the port mapping dead-end,
+// so the server binds 0.0.0.0 there and says so. Anywhere else HOST is honoured as given.
+const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+export function listenHost(cfg, env = globalThis.process?.env ?? {}) {
+  const host = String(cfg.HOST ?? "127.0.0.1");
+  if (env.JEDI_IN_CONTAINER === "1" && LOOPBACK.has(host)) return { host: "0.0.0.0", overrode: host };
+  return { host, overrode: null };
+}
+
 export function main() {
   const cfg = config();
   const port = Number(cfg.PORT);
-  const host = cfg.HOST;
+  const { host, overrode } = listenHost(cfg);
   const server = createServer({ cfg });
-  server.listen(port, host, () => console.log(`jedi-pack-inbox listening on http://${host}:${port} (sample_mode ${sampleMode(cfg)})`));
+  server.listen(port, host, () => console.log(`jedi-pack-inbox listening on http://${host}:${port} (sample_mode ${sampleMode(cfg)})${overrode ? ` (HOST=${overrode} ignored inside the container)` : ""}`));
   return server;
 }
 
