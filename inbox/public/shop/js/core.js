@@ -10,7 +10,7 @@
   const reduced = matchMedia(MQ.reduced).matches;
   const hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
   const usd = n => `${n} GC`;
-  const ROOT = location.pathname.includes("/concepts/") ? "../.." : ".";
+  const ROOT = (!location.pathname.includes("/shop/") && !location.pathname.includes("/store/") && location.pathname.includes("/concepts/")) ? "../.." : ".";
 
   /* ---------- intergalactic languages: reversible text, stable word ciphers ---------- */
   const languages = [

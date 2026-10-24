@@ -807,3 +807,37 @@ mark.blank{background:color-mix(in srgb,var(--hold) 18%,transparent);color:var(-
 @media (max-width:520px){
   .pc,.scene{gap:20px}
 }
+
+/* ---------- Decision Feedback Bar (POST /feedback) ---------- */
+.ds-feedback{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;
+  padding:14px 20px;background:rgba(13,14,18,.92);border:1px solid var(--hair);
+  border-left:2px solid var(--ember);
+}
+.ds-feedback[hidden]{display:none !important}
+.ds-fb-label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ash);
+}
+.ds-fb-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ds-fb-btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  padding:8px 14px;border:1px solid var(--hair-hi);background:var(--obsidian);color:var(--bone);
+  cursor:pointer;transition:border-color .18s var(--ease-snap),background .18s var(--ease-snap),color .18s var(--ease-snap),transform .18s var(--ease-snap);
+}
+.ds-fb-btn:hover:not(:disabled){transform:translateY(-1px)}
+.ds-fb-btn:disabled{opacity:.6;cursor:wait}
+.ds-fb-btn--affirm{border-color:rgba(76,195,138,.45);color:var(--ok)}
+.ds-fb-btn--affirm:hover:not(:disabled),.ds-fb-btn--affirm.is-active{
+  background:rgba(76,195,138,.16);border-color:var(--ok);color:#7be3b0;box-shadow:0 0 16px rgba(76,195,138,.18);
+}
+.ds-fb-btn--reject{border-color:rgba(239,68,68,.45);color:var(--stop)}
+.ds-fb-btn--reject:hover:not(:disabled),.ds-fb-btn--reject.is-active{
+  background:rgba(239,68,68,.16);border-color:var(--stop);color:#fca5a5;box-shadow:0 0 16px rgba(239,68,68,.18);
+}
+.ds-fb-status{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--bone);
+  flex:1 1 100%;padding-top:2px;
+}
+.ds-fb-status:empty{display:none}
+.ds-fb-status--affirm{color:var(--ok)}
+.ds-fb-status--reject{color:var(--stop)}

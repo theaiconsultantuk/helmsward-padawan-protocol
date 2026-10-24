@@ -1,6 +1,6 @@
 {
-  "brand": "{{SHOP_NAME}}",
-  "inbox_agent": "{{AGENT_NAME}}",
+  "brand": "Farstrand Supply Co.",
+  "inbox_agent": "Helmsward",
   "brand_file": "brand.json",
   "refund_limit_usd": 150,
   "refund_limit_source": "kristof/data/policy.csv + wiki/refund-policy.md",

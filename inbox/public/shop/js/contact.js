@@ -11,6 +11,8 @@
   var AS_OF = "2026-10-20";
   var timer = null;
   var selected = null;
+  var currentRunId = null;
+  var currentSource = "sample";
   var stacked = window.matchMedia("(max-width: 1023px)");
 
   /* ---------- Presets: three judge outcomes ---------- */
@@ -366,9 +368,24 @@
     return out;
   }
 
+  function fetchWithTimeout(url, opts) {
+    var timeoutMs = (opts && opts.timeoutMs) || 12000;
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var tid = ctrl ? setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, timeoutMs) : null;
+    var fetchOpts = Object.assign({}, opts || {});
+    delete fetchOpts.timeoutMs;
+    if (ctrl) fetchOpts.signal = ctrl.signal;
+    return fetch(url, fetchOpts).finally(function () {
+      if (tid) clearTimeout(tid);
+    });
+  }
+
   function getJson(path, opts) {
-    return fetch(base + path, withAuth(opts))
-      .catch(function () { return fetch("/api" + path, withAuth(opts)); })
+    return fetchWithTimeout(base + path, withAuth(opts))
+      .catch(function () {
+        if (!base) throw new Error("Same-origin request failed");
+        return fetchWithTimeout(path, withAuth(opts));
+      })
       .then(function (r) {
         return r.json().catch(function () { return null; }).then(function (body) {
           return { ok: r.ok, code: r.status, body: body };
@@ -378,12 +395,224 @@
 
   function pollRunUntilDone(id, triesLeft) {
     if (triesLeft <= 0) return Promise.reject(new Error("Gateway timeout waiting for run " + id));
-    return new Promise(function (resolve) { setTimeout(resolve, 3000); }).then(function () {
-      return getJson("/runs/" + encodeURIComponent(id), { noAuth: true }).then(function (r) {
+    return new Promise(function (resolve) { setTimeout(resolve, 2500); }).then(function () {
+      return getJson("/runs/" + encodeURIComponent(id), { noAuth: true, timeoutMs: 6000 }).then(function (r) {
+        if (r.code === 502 || r.code === 503 || r.code === 504 || r.code === 530 || r.code === 404) {
+          return Promise.reject(new Error("Server offline (HTTP " + r.code + ")"));
+        }
         if (r.ok && r.body && (r.body.status === "completed" || r.body.output)) return r;
         return pollRunUntilDone(id, triesLeft - 1);
       });
     });
+  }
+
+  /* ---------- Full 12-Product Farstrand Catalogue for Offline & Extra-Product Fallback ---------- */
+  var CATALOGUE_PRODUCTS = [
+    { id: "FS-B01", slug: "arc-blade-trainer", name: "Vanta Arc Trainer", price_usd: 189, stock_status: "in_stock", category: "Arc Blades", keywords: ["vanta", "arc trainer", "arc-blade-trainer", "fs-b01"] },
+    { id: "FS-B02", slug: "emitter-hilt", name: "Strand Emitter Hilt", price_usd: 39, stock_status: "in_stock", category: "Arc Blades", keywords: ["emitter hilt", "strand emitter", "emitter-hilt", "fs-b02"] },
+    { id: "FS-B03", slug: "sovereign-arc-duellist", name: "Sovereign Arc Duellist", price_usd: 420, stock_status: "low_stock", category: "Arc Blades", keywords: ["sovereign", "duellist", "duelist", "sovereign-arc-duellist", "fs-b03"] },
+    { id: "FS-C01", slug: "core-crystal-case", name: "Ember Core Reliquary", price_usd: 99, stock_status: "in_stock", category: "Cores & Cases", keywords: ["ember core", "reliquary", "core-crystal-case", "fs-c01"] },
+    { id: "FS-C02", slug: "drift-vault-case", name: "Drift Vault Case", price_usd: 400, stock_status: "in_stock", category: "Cores & Cases", keywords: ["drift vault", "vault case", "drift-vault-case", "fs-c02"] },
+    { id: "FS-C03", slug: "orbit-stand", name: "Orbit Display Stand", price_usd: 49, stock_status: "in_stock", category: "Cores & Cases", keywords: ["orbit display", "orbit stand", "orbit-stand", "fs-c03"] },
+    { id: "FS-A01", slug: "wayfarer-cloak", name: "Wayfarer Long Cloak", price_usd: 119, stock_status: "in_stock", category: "Wayfarer Apparel", keywords: ["wayfarer", "long cloak", "wayfarer-cloak", "fs-a01"] },
+    { id: "FS-A02", slug: "initiate-robe", name: "Initiate Training Robe", price_usd: 59, stock_status: "in_stock", category: "Wayfarer Apparel", keywords: ["initiate robe", "training robe", "initiate-robe", "fs-a02"] },
+    { id: "FS-A03", slug: "drift-boots", name: "Drift Boot Wraps", price_usd: 29, stock_status: "in_stock", category: "Wayfarer Apparel", keywords: ["drift boot", "boot wraps", "drift-boots", "fs-a03"] },
+    { id: "FS-G01", slug: "quartermaster-belt", name: "Quartermaster Utility Belt", price_usd: 249, stock_status: "in_stock", category: "Field Gear", keywords: ["quartermaster", "utility belt", "quartermaster-belt", "fs-g01"] },
+    { id: "FS-G02", slug: "sidearm-holster", name: "Ranger Hilt Holster", price_usd: 149, stock_status: "in_stock", category: "Field Gear", keywords: ["ranger hilt", "hilt holster", "sidearm-holster", "fs-g02"] },
+    { id: "FS-G03", slug: "pilgrim-pack", name: "Pilgrim Field Pack", price_usd: 79, stock_status: "out_of_stock", category: "Field Gear", keywords: ["pilgrim", "field pack", "pilgrim-pack", "fs-g03"] }
+  ];
+
+  function matchCatalogueProduct(text) {
+    var t = String(text || "").toLowerCase();
+    for (var i = 0; i < CATALOGUE_PRODUCTS.length; i++) {
+      var prod = CATALOGUE_PRODUCTS[i];
+      if (t.indexOf(prod.slug) >= 0 || t.indexOf(prod.name.toLowerCase()) >= 0 || t.indexOf(prod.id.toLowerCase()) >= 0) {
+        return prod;
+      }
+      for (var k = 0; k < prod.keywords.length; k++) {
+        if (t.indexOf(prod.keywords[k]) >= 0) return prod;
+      }
+    }
+    try {
+      var slugParam = new URLSearchParams(location.search).get("product");
+      if (slugParam) {
+        for (var j = 0; j < CATALOGUE_PRODUCTS.length; j++) {
+          if (CATALOGUE_PRODUCTS[j].slug === slugParam) return CATALOGUE_PRODUCTS[j];
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function extractQuantity(text, unitPrice) {
+    var re = /\b(\d+)\s*(?:units?|x|×|pieces?|items?|blades?|cases?|cloaks?|packs?|hilts?|belts?|holsters?|robes?|stands?)?\b/gi;
+    var m;
+    while ((m = re.exec(String(text || ""))) !== null) {
+      var n = parseInt(m[1], 10);
+      if (n > 0 && n !== unitPrice && n < 5000) return n;
+    }
+    return 15;
+  }
+
+  function sampleForProduct(prod, input) {
+    var msg = String(input.message || "");
+    var scen = input.scenario || "free_text";
+    var stockLabel = prod.stock_status.replace(/_/g, " ");
+    var customerGreeting = "Hi" + (input.name ? " " + input.name.split(" ")[0] : "") + ",";
+    var isRfq = scen === "rfq" || /\b(quote|rfq|bulk|cohort|crew|wholesale|\d+\s*(?:units?|x|×|pieces?|blades?|cases?))\b/i.test(msg);
+    var isRefund = !isRfq && (scen === "refund" || /\b(refund|return|send back|exchange|broken|faulty|damaged|crack|split)\b/i.test(msg));
+    var isComplaint = !isRfq && (scen === "complaint" || /\b(lawyer|legal|injur|hurt|cut|unacceptable|furious|sue)\b/i.test(msg));
+
+    if (isRfq) {
+      var qty = extractQuantity(msg, prod.price_usd);
+      var listTotal = qty * prod.price_usd;
+      return {
+        run_id: "sample-rfq-" + prod.slug,
+        latency_ms: 1410,
+        human: {
+          path: ["Intake & triage", "Zetaris catalogue lookup", "Bulk rule & sales owner", "Auto-reply sent"],
+          why: [
+            "Classified as a bulk quote request (" + qty + " units of " + prod.name + ").",
+            "Zetaris confirmed " + prod.name + " (" + prod.id + ") at " + prod.price_usd + " GC (USD), status: " + stockLabel + " (list total " + listTotal.toLocaleString("en-US") + " GC).",
+            "Policy R05 routes orders of 10+ units to Tomas Keller in Sales and sends an immediate acknowledgement to the customer."
+          ],
+          reply: {
+            kind: "auto_reply",
+            to: { name: "Tomas Keller", role: "Sales" },
+            text: customerGreeting + "\n\nWe've received your quote request for " + qty + " × " + prod.name + " (" + prod.id + ", listed at " + prod.price_usd + " GC (USD) each · " + stockLabel + "). Orders of 10 or more units are priced by our Sales team — Tomas Keller has your brief (list value " + listTotal.toLocaleString("en-US") + " GC) and will send a custom quote within one business cycle.\n\n— Farstrand Supply Co.",
+            attachments: ["catalogue:" + prod.id, "policy:R05", "employees:E01"]
+          }
+        },
+        nodes: [
+          { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4", ms: 290,
+            route: "RFQ · " + qty + " units of " + prod.name + " (" + prod.slug + ").", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:rfq"] },
+          { n: "02", label: "Zetaris catalogue lookup", status: "success", agent: "zetaris-catalogue-agent", step: "query_catalogue", model: "zetaris-mcp", ms: 460,
+            route: prod.name + " is " + prod.price_usd + " GC (USD), " + stockLabel + ".",
+            sql: "SELECT sku, name, price_usd, stock_status\nFROM catalogue\nWHERE slug = '" + prod.slug + "';",
+            rows: { headers: ["sku", "name", "price_usd", "stock_status"], rows: [[prod.id, prod.name, String(prod.price_usd), prod.stock_status]] },
+            consulted: ["catalogue:" + prod.id], retained: ["catalogue:" + prod.id] },
+          { n: "03", label: "Bulk rule & sales owner", status: "success", reached_human: true, agent: "helmsward-policy", step: "route_rfq", model: "rules", ms: 260,
+            route: "Quantity ≥ 10 → Tomas Keller (Sales).",
+            sql: "SELECT e.name, e.role, p.min_units\nFROM employees e JOIN policy p ON p.owner_id = e.id\nWHERE p.rule_id = 'R05';",
+            rows: { headers: ["name", "role", "min_units"], rows: [["Tomas Keller", "Sales", "10"]] },
+            consulted: ["policy:R05", "employees:E01"], retained: ["policy:R05", "employees:E01"] },
+          { n: "04", label: "Auto-reply sent", status: "success", agent: "helmsward-dispatch", step: "ack_and_route", model: "claude-sonnet-4", ms: 400,
+            route: "Acknowledgement sent; quote packet queued for Tomas Keller.", consulted: ["wiki/what-may-leave.md"], retained: [] }
+        ]
+      };
+    }
+
+    if (isComplaint) {
+      return {
+        run_id: "sample-complaint-" + prod.slug,
+        latency_ms: 1760,
+        human: {
+          path: ["Intake & triage", "Zetaris catalogue lookup", "Safety & escalation rule", "Escalated to operator"],
+          why: [
+            "Flagged as a high-severity product complaint regarding " + prod.name + " (" + prod.id + ").",
+            "Zetaris retrieved the product record (" + prod.name + ", " + prod.price_usd + " GC (USD)) for the incident brief.",
+            "Policy S01–S02 forbids automated commitments on safety or legal complaints and pages Elena Vance."
+          ],
+          reply: {
+            kind: "escalation",
+            to: { name: "Elena Vance", role: "Operations Manager" },
+            text: "Thank you for contacting Farstrand Supply Co. Your message regarding the " + prod.name + " has been passed directly to our Operations Manager, Elena Vance, who will respond to you personally.",
+            recommendation: "High-priority complaint for " + prod.name + " (" + prod.id + ", " + prod.price_usd + " GC). Review customer account before replying.",
+            attachments: ["catalogue:" + prod.id, "policy:S01", "policy:S02", "employees:E02"]
+          }
+        },
+        nodes: [
+          { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4", ms: 320,
+            route: "Complaint · high-priority handling for " + prod.name + ".", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:complaint"] },
+          { n: "02", label: "Zetaris catalogue lookup", status: "success", agent: "zetaris-catalogue-agent", step: "query_catalogue", model: "zetaris-mcp", ms: 440,
+            route: "Matched " + prod.name + " (" + prod.id + ", " + prod.price_usd + " GC).",
+            sql: "SELECT sku, name, price_usd, stock_status\nFROM catalogue\nWHERE slug = '" + prod.slug + "';",
+            rows: { headers: ["sku", "name", "price_usd", "stock_status"], rows: [[prod.id, prod.name, String(prod.price_usd), prod.stock_status]] },
+            consulted: ["catalogue:" + prod.id], retained: ["catalogue:" + prod.id] },
+          { n: "03", label: "Safety & escalation rule", status: "success", reached_human: true, agent: "helmsward-policy", step: "check_escalation", model: "rules", ms: 480,
+            route: "Matched S01 + S02 → escalate to Operations Manager.",
+            sql: "SELECT rule_id, trigger, owner, auto_reply_allowed\nFROM policy\nWHERE rule_id IN ('S01','S02');",
+            rows: { headers: ["rule_id", "trigger", "owner", "auto_reply_allowed"], rows: [["S01", "injury_report", "Elena Vance", "false"], ["S02", "legal_threat", "Soren Lind", "false"]] },
+            consulted: ["policy:S01", "policy:S02", "employees:E02"], retained: ["policy:S01", "policy:S02", "employees:E02"] },
+          { n: "04", label: "Escalated to operator", status: "success", reached_human: true, agent: "helmsward-dispatch", step: "page_operator", model: "system", ms: 520,
+            route: "Incident brief queued for Elena Vance.", consulted: ["wiki/what-may-leave.md"], retained: [] }
+        ]
+      };
+    }
+
+    if (isRefund) {
+      var ownerName = prod.price_usd >= 200 ? "Elena Vance" : "Mina Sato";
+      var ownerRole = prod.price_usd >= 200 ? "Operations Manager" : "Customer Service";
+      var empId = prod.price_usd >= 200 ? "employees:E02" : "employees:E04";
+      return {
+        run_id: "sample-refund-" + prod.slug,
+        latency_ms: 1580,
+        human: {
+          path: ["Intake & triage", "Zetaris catalogue lookup", "Return policy check", "Draft for " + ownerName],
+          why: [
+            "Classified as a return and refund request for " + prod.name + " (" + prod.price_usd + " GC (USD)).",
+            "Zetaris verified catalogue item " + prod.id + " (" + prod.name + ", " + prod.price_usd + " GC). Order reference and delivery window must be verified before issuing a refund.",
+            "Policy R01/R04 holds a draft for " + ownerName + " (" + ownerRole + ") with blanks for the order reference and return authorisation."
+          ],
+          reply: {
+            kind: "draft_for_human",
+            to: { name: ownerName, role: ownerRole },
+            text: customerGreeting + "\n\nThank you for reaching out regarding your " + prod.name + " (" + prod.price_usd + " GC (USD)). Once we confirm your order reference [[blank: order_id]] is within our 30-day return window, we will issue [[blank: return_label_or_refund_authorisation]].\n\n— " + ownerName + ", Farstrand Supply Co.",
+            blanks: ["order_id", "return_label_or_refund_authorisation"],
+            recommendation: "Verify customer order for " + prod.name + " (" + prod.id + ", " + prod.price_usd + " GC) and confirm 30-day window under R01.",
+            attachments: ["catalogue:" + prod.id, "policy:R01", empId]
+          }
+        },
+        nodes: [
+          { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4", ms: 300,
+            route: "Return/refund request for " + prod.name + " (" + prod.price_usd + " GC).", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:refund"] },
+          { n: "02", label: "Zetaris catalogue lookup", status: "success", agent: "zetaris-catalogue-agent", step: "query_catalogue", model: "zetaris-mcp", ms: 470,
+            route: "Verified " + prod.name + " (" + prod.id + ") at " + prod.price_usd + " GC (USD).",
+            sql: "SELECT sku, name, price_usd, stock_status\nFROM catalogue\nWHERE slug = '" + prod.slug + "';",
+            rows: { headers: ["sku", "name", "price_usd", "stock_status"], rows: [[prod.id, prod.name, String(prod.price_usd), prod.stock_status]] },
+            consulted: ["catalogue:" + prod.id], retained: ["catalogue:" + prod.id] },
+          { n: "03", label: "Return policy check", status: "success", reached_human: true, agent: "helmsward-policy", step: "evaluate_return", model: "rules", ms: 390,
+            route: "Order reference needed to verify 30-day window → hold draft for " + ownerName + ".",
+            sql: "SELECT rule_id, window_days, condition, action\nFROM policy\nWHERE rule_id IN ('R01', 'R04');",
+            rows: { headers: ["rule_id", "window_days", "condition", "action"], rows: [["R01", "30", "standard_return_window", "verify_order_date"], ["R04", "30", "high_value_or_exception", "route_to_owner"]] },
+            consulted: ["policy:R01", "policy:R04", empId], retained: ["policy:R01", empId] },
+          { n: "04", label: "Draft for " + ownerName, status: "success", reached_human: true, agent: "helmsward-drafter", step: "compose_draft", model: "claude-sonnet-4", ms: 420,
+            route: "Draft held with 2 blanks for " + ownerName + ".", consulted: ["wiki/what-may-leave.md"], retained: [] }
+        ]
+      };
+    }
+
+    // Default: product question / availability / specs
+    return {
+      run_id: "sample-question-" + prod.slug,
+      latency_ms: 1290,
+      human: {
+        path: ["Intake & triage", "Zetaris catalogue & FAQ lookup", "Policy check", "Auto-reply sent"],
+        why: [
+          "Classified as a product & dispatch question about " + prod.name + " (" + prod.id + ").",
+          "Zetaris matched " + prod.name + " in the catalogue (" + prod.price_usd + " GC (USD), status: " + stockLabel + ") and retrieved standard dispatch FAQ Q01 + Q08.",
+          "All facts are backed by verified catalogue and FAQ records, so Helmsward sends the answer directly."
+        ],
+        reply: {
+          kind: "auto_reply",
+          text: customerGreeting + "\n\nThe " + prod.name + " (" + prod.id + ") is listed at " + prod.price_usd + " GC (USD) and is currently " + stockLabel + ". Standard orbital dispatch leaves within 3–5 cycles to a verified street address, and every piece is covered by our 30-day return window (orders of 10+ units qualify for a custom crew quote from Sales).\n\n— Farstrand Supply Co.",
+          attachments: ["catalogue:" + prod.id, "faq:Q01", "faq:Q08"]
+        }
+      },
+      nodes: [
+        { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4", ms: 280,
+          route: "Product question · " + prod.name + " (" + prod.slug + ").", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:question"] },
+        { n: "02", label: "Zetaris catalogue & FAQ lookup", status: "success", agent: "zetaris-catalogue-agent", step: "query_catalogue", model: "zetaris-mcp", ms: 450,
+          route: prod.name + " (" + prod.id + ") is " + prod.price_usd + " GC (USD), " + stockLabel + ".",
+          sql: "SELECT sku, name, price_usd, stock_status\nFROM catalogue\nWHERE slug = '" + prod.slug + "';",
+          rows: { headers: ["sku", "name", "price_usd", "stock_status"], rows: [[prod.id, prod.name, String(prod.price_usd), prod.stock_status]] },
+          consulted: ["catalogue:" + prod.id, "faq:Q01", "faq:Q08"], retained: ["catalogue:" + prod.id, "faq:Q01", "faq:Q08"] },
+        { n: "03", label: "Policy check", status: "success", agent: "helmsward-policy", step: "verify_safe_send", model: "rules", ms: 210,
+          route: "All claims backed by catalogue:" + prod.id + " and faq:Q01/Q08.", consulted: ["policy.csv"], retained: [] },
+        { n: "04", label: "Auto-reply sent", status: "success", agent: "helmsward-dispatch", step: "compose_reply", model: "claude-sonnet-4", ms: 350,
+          route: "Sent directly to the customer.", consulted: ["wiki/what-may-leave.md"], retained: [] }
+      ]
+    };
   }
 
   /* ---------- Sample journey for any input ---------- */
@@ -395,35 +624,40 @@
     if (key) {
       j = clone(SAMPLES[key]);
     } else {
-      var scen = input.scenario || "free_text";
-      j = {
-        latency_ms: 1530,
-        human: {
-          path: ["Intake & triage", "Owner routing", "Draft for customer service"],
-          why: [
-            "Helmsward read your message as '" + scen + "'. This offline sample can't query Zetaris, so no record backs a reply.",
-            "Without a matching record, Helmsward never sends on its own.",
-            "It holds a draft for Customer Service with a blank for what it couldn't verify."
-          ],
-          reply: {
-            kind: "draft_for_human",
-            to: { name: "Mina Sato", role: "Customer Service" },
-            text: "Hi" + (input.name ? " " + input.name : "") + ",\n\nThanks for getting in touch with Farstrand Supply Co. We've logged your message and a member of our team will follow up. If this is about an order, please reply with your order reference: [[blank: order_id]].\n\n— Farstrand Supply Co.",
-            blanks: ["order_id"],
-            recommendation: "Offline sample: connect the live API (add ?token=…) to see the real decision for this text."
-          }
-        },
-        nodes: [
-          { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4",
-            route: "Classified under scenario '" + scen + "'.", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:" + scen] },
-          { n: "02", label: "Zetaris records check", status: "skipped", agent: "zetaris-crm-agent", step: "query_records", model: "zetaris-mcp",
-            route: "Not run in the offline sample.", consulted: [], retained: [] },
-          { n: "03", label: "Owner routing", status: "success", reached_human: true, agent: "helmsward-policy", step: "route_owner", model: "rules",
-            route: "No verified record → Customer Service owner.", consulted: ["employees.csv", "policy.csv"], retained: ["owner:Mina Sato"] },
-          { n: "04", label: "Draft for customer service", status: "success", reached_human: true, agent: "helmsward-drafter", step: "compose_draft", model: "claude-sonnet-4",
-            route: "Draft with one blank.", consulted: ["wiki/what-may-leave.md"], retained: [] }
-        ]
-      };
+      var matchedProd = matchCatalogueProduct(input.message);
+      if (matchedProd) {
+        j = sampleForProduct(matchedProd, input);
+      } else {
+        var scen = input.scenario || "free_text";
+        j = {
+          latency_ms: 1530,
+          human: {
+            path: ["Intake & triage", "Owner routing", "Draft for customer service"],
+            why: [
+              "Helmsward read your message as '" + scen + "'. This offline sample can't query Zetaris, so no record backs a reply.",
+              "Without a matching record, Helmsward never sends on its own.",
+              "It holds a draft for Customer Service with a blank for what it couldn't verify."
+            ],
+            reply: {
+              kind: "draft_for_human",
+              to: { name: "Mina Sato", role: "Customer Service" },
+              text: "Hi" + (input.name ? " " + input.name : "") + ",\n\nThanks for getting in touch with Farstrand Supply Co. We've logged your message and a member of our team will follow up. If this is about an order, please reply with your order reference: [[blank: order_id]].\n\n— Farstrand Supply Co.",
+              blanks: ["order_id"],
+              recommendation: "Offline sample: connect the live API (add ?token=…) to see the real decision for this text."
+            }
+          },
+          nodes: [
+            { n: "01", label: "Intake & triage", status: "success", agent: "helmsward-router", step: "classify", model: "claude-sonnet-4",
+              route: "Classified under scenario '" + scen + "'.", consulted: ["inbox/schema.json", "policy.csv"], retained: ["scenario:" + scen] },
+            { n: "02", label: "Zetaris records check", status: "skipped", agent: "zetaris-crm-agent", step: "query_records", model: "zetaris-mcp",
+              route: "Not run in the offline sample.", consulted: [], retained: [] },
+            { n: "03", label: "Owner routing", status: "success", reached_human: true, agent: "helmsward-policy", step: "route_owner", model: "rules",
+              route: "No verified record → Customer Service owner.", consulted: ["employees.csv", "policy.csv"], retained: ["owner:Mina Sato"] },
+            { n: "04", label: "Draft for customer service", status: "success", reached_human: true, agent: "helmsward-drafter", step: "compose_draft", model: "claude-sonnet-4",
+              route: "Draft with one blank.", consulted: ["wiki/what-may-leave.md"], retained: [] }
+          ]
+        };
+      }
     }
     j.run_id = j.run_id || "sample-custom";
     j.input = { name: input.name || "", from: input.from, channel: "chat", text: input.message };
@@ -524,6 +758,8 @@
   }
 
   function showRunning(t0, runId) {
+    var fb = $("feedback-bar");
+    if (fb) fb.hidden = true;
     var v = $("verdict");
     v.dataset.kind = "running";
     v.textContent = "";
@@ -569,12 +805,12 @@
     setBusy(true);
     showRunning(t0, runId);
 
-    // No API token on remote host: skip the live POST (it would 401) and play the built-in trace.
-    var isLocalHost = (location.hostname === "127.0.0.1" || location.hostname === "localhost");
-    if (!token && !isLocalHost && !window.FORCE_LIVE_API) {
+    // No API token when targeting remote jedi.blastworks.ai: skip the unauthenticated POST (which would 401) and play the cached sample fallback.
+    var isSameOriginServer = (base === "");
+    if (!token && !isSameOriginServer && !window.FORCE_LIVE_API) {
       var j = sampleFor(input);
-      setStatus("Offline sample trace · add ?token=… to run live on " + hostLabel);
-      setTimeout(function () { finish(j, "sample", j.latency_ms); }, T_reduced() ? 0 : 650);
+      setStatus("Sample fallback · cached trace ready (add ?token=… for live server)");
+      setTimeout(function () { finish(j, "sample", j.latency_ms); }, T_reduced() ? 0 : 450);
       return;
     }
 
@@ -591,13 +827,17 @@
     getJson("/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      timeoutMs: 15000
     })
       .then(function (r) {
-        if (r.code === 401 || r.code === 403) throw { fallback: "API token rejected" };
-        if (r.code === 502 || r.code === 504 || r.code === 524) {
+        if (r.code === 401 || r.code === 403) throw { fallback: "API token required" };
+        if (r.code === 404 || r.code === 502 || r.code === 503 || r.code === 530) {
+          throw { fallback: "Server offline (HTTP " + r.code + ")" };
+        }
+        if (r.code === 504 || r.code === 524) {
           setStatus("Gateway timeout on POST /run · polling GET /runs/" + runId + "…");
-          return pollRunUntilDone(runId, 30);
+          return pollRunUntilDone(runId, 12);
         }
         if (!r.ok || !r.body || r.body.status === "error") throw new Error(errText(r.body, r.code));
         return r;
@@ -605,7 +845,7 @@
       .then(function (r) {
         var runData = r.body || {};
         var id = runData.run_id || runId;
-        return getJson("/runs/" + encodeURIComponent(id) + "/journey", { noAuth: true }).then(function (jr) {
+        return getJson("/runs/" + encodeURIComponent(id) + "/journey", { noAuth: true, timeoutMs: 8000 }).then(function (jr) {
           if (!jr.ok || !jr.body) {
             setStatus("Live run " + id);
             finish(reconcileLive(selected, runData, null, input), "live", Date.now() - t0);
@@ -618,7 +858,7 @@
       .catch(function (e) {
         var why = (e && e.fallback) || (e && e.message) || "API unreachable";
         var j = sampleFor(input);
-        setStatus("Live API unavailable (" + why + ") · showing sample trace", true);
+        setStatus("Sample fallback · offline cached trace (" + why + ")");
         finish(j, "sample", j.latency_ms);
       });
   }
@@ -639,7 +879,10 @@
     var inp = input || (journey && journey.input) || (data && data.input) || {};
     var msgText = inp.message || inp.text || "";
     var p = preset || presetByMessage(msgText);
-    var sample = (p && SAMPLES[p.id]) ? clone(SAMPLES[p.id]) : null;
+    var matchedCatProd = !p ? matchCatalogueProduct(msgText) : null;
+    var liveStr = JSON.stringify(journey || data || {});
+    var serverMissedProduct = matchedCatProd && /no product in the records matches|not in the FAQ or the records|no product matched/i.test(liveStr);
+    var sample = (p && SAMPLES[p.id]) ? clone(SAMPLES[p.id]) : (serverMissedProduct ? sampleForProduct(matchedCatProd, inp) : null);
     if (!journey && !data) return sample || sampleFor(inp);
 
     var liveJ = journey && typeof journey === "object" ? clone(journey) : null;
@@ -845,12 +1088,14 @@
     } else sub = "Paged " + (r.to && r.to.name ? r.to.name + (r.to.role ? " (" + r.to.role + ")" : "") : "an operator") + " · nothing sent without sign-off";
     v.appendChild(el("p", sub, "ds-verdict__sub"));
     var tags = el("p", null, "ds-verdict__tags");
-    tags.appendChild(el("span", source === "live" ? "Live · " + hostLabel : "Sample trace · offline", "ds-tag ds-tag--" + source));
+    tags.appendChild(el("span", source === "live" ? "Live · " + hostLabel : "Sample fallback · offline", "ds-tag ds-tag--" + source));
     if (j.run_id) tags.appendChild(el("span", j.run_id, "ds-tag"));
     v.appendChild(tags);
   }
 
   function render(j, source, ms) {
+    currentRunId = (j && j.run_id) || "sample-custom";
+    currentSource = source || "sample";
     var h = j.human || {}, inp = j.input || {}, nodes = j.nodes || [];
     var r = h.reply || { kind: "none" };
     var kind = kindOf(r);
@@ -1045,6 +1290,7 @@
     });
 
     selectTab("reply");
+    resetFeedbackBar();
   }
 
   /* ---------- Tabs ---------- */
@@ -1071,21 +1317,94 @@
     });
   }
 
+  /* ---------- Decision Feedback (POST /feedback) ---------- */
+  function resetFeedbackBar() {
+    var fb = $("feedback-bar");
+    if (!fb) return;
+    fb.hidden = false;
+    document.querySelectorAll(".ds-fb-btn").forEach(function (b) {
+      b.disabled = false;
+      b.classList.remove("is-active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    var st = $("ds-fb-status");
+    if (st) {
+      st.textContent = "";
+      st.className = "ds-fb-status";
+    }
+  }
+
+  function applyFeedbackUI(verdict, text) {
+    document.querySelectorAll(".ds-fb-btn").forEach(function (b) {
+      var on = b.getAttribute("data-feedback") === verdict;
+      b.disabled = false;
+      b.classList.toggle("is-active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var st = $("ds-fb-status");
+    if (st) {
+      st.textContent = text;
+      st.className = "ds-fb-status ds-fb-status--" + verdict;
+    }
+  }
+
+  function submitFeedback(verdict) {
+    if (verdict !== "affirm" && verdict !== "reject") return;
+    var runId = currentRunId || "sample-custom";
+    document.querySelectorAll(".ds-fb-btn").forEach(function (b) { b.disabled = true; });
+    var st = $("ds-fb-status");
+    if (st) {
+      st.textContent = "Recording " + verdict + "…";
+      st.className = "ds-fb-status";
+    }
+    var sampleMsg = "Recorded (sample ledger): " + (verdict === "affirm" ? "AFFIRM (+1 trust)" : "REJECT (-1 trust)");
+    var isSameOriginServer = (base === "");
+    if (currentSource === "sample" && !token && !isSameOriginServer && !window.FORCE_LIVE_API) {
+      setTimeout(function () { applyFeedbackUI(verdict, sampleMsg); }, T_reduced() ? 0 : 120);
+      return;
+    }
+    getJson("/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: runId, verdict: verdict }),
+      timeoutMs: 6000
+    })
+      .then(function (r) {
+        if (r.ok && r.body && typeof r.body.delta === "number") {
+          var d = r.body.delta;
+          var dStr = d >= 0 ? "+" + d : String(d);
+          applyFeedbackUI(verdict, "Recorded on server: " + verdict.toUpperCase() + " (delta " + dStr + ")");
+          return;
+        }
+        applyFeedbackUI(verdict, sampleMsg);
+      })
+      .catch(function () {
+        applyFeedbackUI(verdict, sampleMsg);
+      });
+  }
+
+  function initFeedback() {
+    document.querySelectorAll(".ds-fb-btn").forEach(function (b) {
+      b.addEventListener("click", function () {
+        submitFeedback(b.getAttribute("data-feedback"));
+      });
+    });
+  }
+
   /* ---------- Prefill from product pages (?scenario=&product=) ---------- */
   function applyUrlPrefill() {
     var params = new URLSearchParams(location.search);
     var scen = params.get("scenario");
     var prodSlug = params.get("product");
     if (scen) setRadio(scen);
-    if (prodSlug && window.T && window.T.data) {
-      window.T.data.then(function (cat) {
-        var p = (cat.products || []).find(function (x) { return x.slug === prodSlug; });
-        if (p && !$("message").value) {
-          if (scen === "refund") $("message").value = "Hi, I would like to request a return and refund for my " + p.name + " (" + p.price_usd + " GC).";
-          else if (scen === "rfq") $("message").value = "Hello, we would like a crew quote for 15 units of the " + p.name + ".";
-          else $("message").value = "Hi, I have a question regarding the " + p.name + ": ";
-        }
-      });
+    var p = prodSlug ? matchCatalogueProduct(prodSlug) : null;
+    if (p && !$("message").value) {
+      if (scen === "refund") $("message").value = "Hi, I would like to request a return and refund for my " + p.name + " (" + p.price_usd + " GC).";
+      else if (scen === "rfq") $("message").value = "Hello, we would like a crew quote for 15 units of the " + p.name + ".";
+      else $("message").value = "Hi, I have a question regarding the " + p.name + " (" + p.price_usd + " GC).";
+      var j = sampleFor(readInput());
+      render(j, "sample", j.latency_ms);
+      setStatus("Sample trace loaded for " + p.name + " · click Send to Helmsward to run");
     }
     return !!(scen || prodSlug);
   }
@@ -1103,6 +1422,7 @@
     if (form) form.addEventListener("submit", function (ev) { ev.preventDefault(); run(); });
     renderPresets();
     initTabs();
+    initFeedback();
     var sampleBtn = $("run-sample");
     if (sampleBtn) sampleBtn.addEventListener("click", function () { showSample("faq"); });
 
