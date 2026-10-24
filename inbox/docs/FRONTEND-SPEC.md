@@ -108,6 +108,15 @@ What is waiting for a human, newest first (queue files plus runs that ended on `
 { "ticket_id": "F2", "file": "F2.json", "category": "rfq", "decision_reason": "rfq: one unit price (189 GC), no volume tiers. Sales to quote.", "owner": { "employee_id": 6, "name": "Tomas Keller" }, "has_draft": true, "critiques": [], "mtime": "2026-10-23T05:17:41.690Z" }
 ```
 
+`POST /runs/{id}/send`
+
+Records that the reply on a held or escalated run went out. Body (optional): `{ "by": "Tomas Keller", "text": "..." }` (`by` up to 120 characters; `text` 1 to 4000, absent means the run's own draft).
+Needs the bearer token when `API_TOKEN` is set, like the other POST routes.
+Status rule: `hold` gives `handled`; `escalate` with `queued_for.approval` gives `handled`; `escalate` without an approval gives `follow_up`.
+It writes the ticket's queue file under `data/memory/queue/`.
+Returns `{ "run_id": "demo-1", "ticket_id": "F2", "status": "follow_up", "sent": { "run_id": "demo-1", "by": "Tomas Keller", "at": "...", "body": "...", "status": "follow_up", "ticket_id": "F2" }, "queue_file": "data/memory/queue/F2.json" }`.
+400 when the run is not a hold or escalation, has no draft and no `text`, has no ticket id, or `text` is too long; 401 on a bad token; 404 on an unknown run; 405 for any other method; 409 when the run was already sent.
+
 `GET /counters`
 
 `{ "send": 0, "hold": 1, "escalate": 0, "close": 0, "queued": 0, "affirmed": 1, "rejected": 0 }` (`queued` is the escalate count).
@@ -141,6 +150,19 @@ The full table, as built, is in [API-CONTRACT-judge-scenarios.md](API-CONTRACT-j
 A GENERATED client on every call, so a repeated demo never meets a prior refund: `{ "name": "Emeric Kettleby", "email": "emerickettleby@email.com", "generated": true }` (a fictional given and family name from two fixed lists of 40, lower-case `<given><family>@email.com`).
 With `scenario=s04` it returns the seeded customer whose earlier refunds are on record: `{ "customer_id": "C002", "name": "Lira Venn", "email": "liravenn@email.com", "generated": false, "seeded_prior_refund": true }`.
 Sent with `Cache-Control: no-store`; an unknown scenario id answers 400.
+
+`GET /inbox`
+
+The reference form (html), the page `GET /` used to be.
+
+`GET /shop`
+
+A 302 to `/shop/index.html`.
+
+`GET /shop/{path}`
+
+The storefront static files.
+Closed extension list: `.html .css .js .json .svg .webp .png .jpg .woff2 .glb .mp4 .ico`; anything else, or any traversal, is a 404.
 
 Also available, not needed by a front end:
 
@@ -181,6 +203,8 @@ Each node gains `duration_ms` (since the previous line, 0 for the first), `tech`
 Trace lines carry `duration_ms` and `elapsed_ms` (since the run's first line) and millisecond timestamps.
 Money is in GC (Galactic Credits): `amount`, `policy_limit`, `limit`, `unit_price`, `total`; SKUs are `FS-...`.
 A quote rides `queued_for.attachments.quote`: `{ sku, quantity, tier, unit_price, discount_pct, total, currency: "GC", parts: [{ part_id, part_name, needed, stock, short }] }`.
+The storefront build adds `sent` (null until a reply is sent; then `{ by, at, body, status, ticket_id, queue_file }`) and `ticket_status` to the journey, and `status` and `sent_at` (both nullable) to each `GET /queue` row.
+A send overrides the journey `status`: once `POST /runs/{id}/send` succeeds, `status` is `handled` or `follow_up` by the rule in section 2, whatever the run said before.
 Full field meanings and the status lifecycle: [API-CONTRACT-judge-scenarios.md](API-CONTRACT-judge-scenarios.md).
 
 The derivation, in plain words:
@@ -203,6 +227,7 @@ Closed enums:
 ## 4. The two views
 
 Left, titled **"How a person sees it"** (Kristof's wording; keep it): reads `human`.
+On the storefront this is the contact page (`/shop/contact.html`), the member-facing front end: the customer submits the form there and reads the thread; the reference form at `/inbox` shows the same view.
 
 - Input: `human.input` (or `input.text`, with `input.from` and `input.name`).
 - Path: `human.path`, one chip per entry, in order.
@@ -280,11 +305,16 @@ Generate the `run_id` yourself if you want to poll `GET /runs/{id}/trace` for pr
 
 ## 9. The reference pages and what a replacement must keep
 
-The service serves two reference pages, which have landed:
+The service serves the storefront and two reference pages, which have landed.
+The storefront pages are `/shop/index.html`, `/shop/shop.html`, `/shop/product.html`, `/shop/faq.html` and `/shop/contact.html`.
 
 `GET /`
 
-The unified front end: picker, name, email, message, demo buttons, the two views.
+A redirect page to the storefront (`/shop/index.html`).
+
+`GET /inbox`
+
+The reference form: picker, name, email, message, demo buttons, the two views.
 
 `GET /dashboard`
 

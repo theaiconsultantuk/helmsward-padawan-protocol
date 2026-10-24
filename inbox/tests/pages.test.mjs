@@ -2,6 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
+import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -104,8 +105,19 @@ test("GET / is html with a correct Content-Length", async () => {
   for (const m of html.matchAll(/<script[^>]*\ssrc=["']([^"']+)["']/gi)) assert.match(m[1], /^\/static\//, m[0]);
 });
 
-test("the front page has the five radio values, both titles, the api-base meta and no inline handlers", async () => {
+test("GET / is the redirect page: no script, no external url, links to the storefront and /inbox", async () => {
   const html = await (await get("/")).text();
+  assert.match(html, /\/shop\/index\.html/);
+  assert.match(html, /href="\/inbox"/);
+  assert.ok(!/<script/i.test(html));
+  assert.ok(!/https?:\/\//i.test(html));
+});
+
+test("the reference form at /inbox has the five radio values, both titles, the api-base meta and no inline handlers", async () => {
+  const r = await get("/inbox");
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
+  const html = await r.text();
   for (const v of ["refund", "question", "rfq", "complaint", "free_text"]) assert.ok(html.includes(`value="${v}"`), v);
   assert.equal((html.match(/type="radio"/g) || []).length, 5);
   assert.match(html, /<input type="radio" name="scenario" value="free_text" checked>/);
@@ -141,4 +153,66 @@ test("demo-scenarios.json parses; fourteen entries s01..s14, known scenarios, as
     const ex = JSON.parse(readFileSync(join(inboxRoot, "input_examples", `example_${i + 10}.json`), "utf8")).input;
     assert.equal(d.message, ex.message, d.label);
   });
+});
+
+// --- the storefront directory route
+test("GET /shop and /shop/ redirect to /shop/index.html", async () => {
+  for (const p of ["/shop", "/shop/"]) {
+    const r = await fetch(base + p, { redirect: "manual" });
+    assert.equal(r.status, 302, p);
+    assert.equal(r.headers.get("location"), "/shop/index.html", p);
+  }
+  assert.equal((await post("/shop", {})).status, 405);
+});
+
+test("storefront files carry their content type, no-store and CORS", async () => {
+  const h = await get("/shop/index.html");
+  assert.equal(h.status, 200);
+  assert.equal(h.headers.get("content-type"), "text/html; charset=utf-8");
+  assert.equal(h.headers.get("cache-control"), "no-store");
+  assert.equal(h.headers.get("access-control-allow-origin"), "*");
+  const buf = Buffer.from(await h.arrayBuffer());
+  assert.equal(Number(h.headers.get("content-length")), buf.length);
+  const css = await get("/shop/css/totality.css");
+  assert.equal(css.status, 200);
+  assert.match(css.headers.get("content-type"), /^text\/css/);
+});
+
+test("the first .glb in the models manifest is model/gltf-binary", async (t) => {
+  const manifest = JSON.parse(readFileSync(join(inboxRoot, "public", "shop", "models", "manifest.json"), "utf8"));
+  const first = Object.values(manifest).find((v) => typeof v === "string" && v.endsWith(".glb"));
+  if (!first) { t.skip("the manifest lists no .glb"); return; }
+  const r = await get(`/shop/${first}`);
+  assert.equal(r.status, 200, first);
+  assert.equal(r.headers.get("content-type"), "model/gltf-binary");
+});
+
+test("storefront: dot-leading, folder, unknown-extension and missing paths are a structured 404; POST is 405", async () => {
+  for (const p of ["/shop/.hidden", "/shop/js/", "/shop/README.exe", "/shop/nope.html", "/shop/js//x.js", "/shop/%zz", "/shop/DESIGN.md"]) await notFound(p);
+  const r = await post("/shop/index.html", {});
+  assert.equal(r.status, 405);
+});
+
+// fetch() and new URL() normalise ".." away before the server sees it, so traversal goes out as raw bytes
+const raw = (path) => new Promise((resolve, reject) => {
+  const u = new URL(base);
+  const req = http.request({ host: u.hostname, port: u.port, path, method: "GET" }, (res) => {
+    const chunks = [];
+    res.on("data", (c) => chunks.push(c));
+    res.on("end", () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString("utf8") }));
+  });
+  req.on("error", reject);
+  req.end();
+});
+
+test("storefront traversal sent as raw paths is always a structured 404, never a file", async () => {
+  for (const p of ["/shop/..%2fpackage.json", "/shop/%2e%2e%2f%2e%2e%2fsrc%2fserver.mjs", "/shop/js%5c..%5cx.js", "/shop/%00.html", "/shop/css/%2e%2e/%2e%2e/package.json",
+    "/shop/../package.json", "/shop/css/../../src/server.mjs", "/shop/%252e%252e%252fpackage.json"]) {
+    const r = await raw(p);
+    assert.notEqual(r.status, 200, p);
+    assert.equal(r.status, 404, p);
+    const b = JSON.parse(r.text);
+    assert.equal(b.status, "error", p);
+    assert.equal(b.error.type, "NotFound", p);
+  }
 });

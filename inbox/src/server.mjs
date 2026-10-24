@@ -2,8 +2,8 @@
 // JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, join } from "node:path";
+import { readFileSync, readdirSync, statSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { basename, join, relative, resolve, sep, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
 import { mask } from "./trace.mjs";
@@ -46,6 +46,14 @@ function runList(limit) {
   });
 }
 
+// the queue file path for a ticket id: sanitised like hmem's queueForHuman, never read from stored data
+const queueFileOf = (memoryDir, tid) => join(memoryDir, "queue", `${String(tid).replace(/[^A-Za-z0-9._-]/g, "_")}.json`);
+function readQueue(memoryDir, tid) {
+  try { return JSON.parse(readFileSync(queueFileOf(memoryDir, tid), "utf8")); } catch { return null; }
+}
+// einh's ruling (24 Oct 2026): a send settles the ticket on a hold, or on an escalation that carries an approval; any other escalation stays open
+const sendStatus = (output) => (output?.decision === "hold" || (output?.decision === "escalate" && output?.queued_for?.approval) ? "handled" : "follow_up");
+
 // GET /queue rows: every queue file under memoryDir/queue plus held results from the runs map, newest first
 function queueList(memoryDir) {
   const out = [];
@@ -66,6 +74,8 @@ function queueList(memoryDir) {
         const qf = hit?.output?.queued_for;
         row.owner = personOf(own?.owner_id ?? qf?.owner_id ?? t.owner_id, own?.owner_name ?? qf?.owner_name ?? t.owner_name);
       }
+      row.status = t.status ?? q.sent?.status ?? null;
+      row.sent_at = q.sent?.at ?? null;
       row.has_draft = Boolean(t.draft?.text);
       row.critiques = Array.isArray(q.critiques) ? q.critiques : (q.critiques ? [q.critiques] : []);
       row.mtime = mtime;
@@ -74,13 +84,15 @@ function queueList(memoryDir) {
   }
   for (const [id, r] of runs) {
     if (r.output?.decision !== "hold") continue;
+    // a hold already sent shows once, from its queue file (HANDLED), not again as waiting
+    if (r.input?.thread_id && readQueue(memoryDir, r.input.thread_id)?.sent) continue;
     const hasDraft = Boolean(r.output?.draft?.text ?? r.output?.draft);
     const qf = r.output.queued_for;
     // a hold with no draft (the customer-service withheld draft) is still waiting on a human when it carries a recommendation
     if (!hasDraft && !(qf?.recommendation ?? r.output.recommendation)) continue;
     out.push({ run_id: id, ticket_id: r.input?.thread_id ?? null, kind: "held", scenario: r.scenario ?? null,
       owner: personOf(qf?.owner_id, qf?.owner_name), has_draft: hasDraft,
-      recommendation: qf?.recommendation ?? r.output.recommendation ?? null, at: atOf(id) });
+      recommendation: qf?.recommendation ?? r.output.recommendation ?? null, status: null, at: atOf(id) });
   }
   const when = (x) => Date.parse(x.mtime ?? x.at ?? "") || 0;
   return out.sort((a, b) => when(b) - when(a));
@@ -94,7 +106,22 @@ function traceExists(logsDir, id) {
 // Static pages: a CLOSED list. The request only picks an entry; the file path is built from the entry, never from request input.
 const STATIC_TYPES = { ".html": "text/html; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8" };
 export const STATIC_NAMES = ["app.js", "dashboard.js", "style.css", "demo-scenarios.json"];
-const PAGES = { "/": "index.html", "/dashboard": "dashboard.html" };
+const PAGES = { "/": "index.html", "/inbox": "inbox.html", "/dashboard": "dashboard.html" };
+// The storefront folder: a directory route with a CLOSED extension list. Every segment is vetted and the resolved path must stay inside public/shop.
+const SHOP_TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "application/javascript; charset=utf-8", ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".woff2": "font/woff2", ".glb": "model/gltf-binary", ".mp4": "video/mp4", ".ico": "image/x-icon" };
+function shopFile(path) {
+  let raw;
+  try { raw = decodeURIComponent(path.slice("/shop/".length)); } catch { return null; }
+  if (raw.includes("\\") || raw.includes("%") || raw.includes("\0")) return null;
+  const segs = raw.split("/");
+  if (segs.some((x) => x === "" || x === "." || x === ".." || x.startsWith("."))) return null;
+  const root = resolve(INBOX_ROOT, "public", "shop");
+  const full = resolve(root, ...segs);
+  if (!full.startsWith(root + sep)) return null;
+  const type = Object.hasOwn(SHOP_TYPES, extname(full).toLowerCase()) ? SHOP_TYPES[extname(full).toLowerCase()] : null;
+  return type ? { file: full, type } : null;
+}
 function staticFile(path) {
   let entry = Object.hasOwn(PAGES, path) ? PAGES[path] : null;
   if (!entry && path.startsWith("/static/")) {
@@ -191,6 +218,72 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   const publishLater = () => { queue(); };
   const publishNow = () => queue();
   const settled = () => pending;
+  // Opt-in token for a shared instance (API_TOKEN set): the POST routes need "Authorization: Bearer <token>".
+  // Reads, the pages and /health stay open; unset means the loopback default, no token anywhere.
+  const requireBearer = (req) => {
+    if (!cfg.API_TOKEN) return;
+    const got = Buffer.from(String(req.headers.authorization ?? "")), want = Buffer.from(`Bearer ${cfg.API_TOKEN}`);
+    if (got.length !== want.length || !timingSafeEqual(got, want)) throw new HttpError(401, "Unauthorized", "this instance needs Authorization: Bearer <API_TOKEN> on POST /run, /ask, /feedback and /runs/{id}/send");
+  };
+  // queue-file writes have a chain of their own: decisions.serial also carries the Zetaris publishes, and a send must not wait behind an upload
+  let queueChain = Promise.resolve();
+  const handleSend = (m, req, send, t0) => {
+    const job = queueChain.then(() => doSend(m, req, send, t0));
+    queueChain = job.catch(() => {});
+    return job;
+  };
+  async function doSend(m, req, send, t0) {
+    let id;
+    try { id = decodeURIComponent(m[1]); } catch { id = ""; }
+    let body;
+    try { body = JSON.parse(await readBody(req) || "{}"); }
+    catch (e) {
+      if (e instanceof HttpError) throw e;
+      throw new HttpError(400, "BadRequest", "body is not valid JSON");
+    }
+    if (body === null) body = {};
+    if (typeof body !== "object" || Array.isArray(body)) throw new HttpError(400, "BadRequest", "body must be a JSON object");
+    const stored = runs.get(id);
+    if (!stored) throw new HttpError(404, "NotFound", `no stored run ${id}`);
+    if (body.by !== undefined && (typeof body.by !== "string" || body.by.length > 120)) throw new HttpError(400, "BadRequest", "by must be a string of at most 120 characters");
+    if (body.text !== undefined && (typeof body.text !== "string" || body.text.trim().length < 1 || body.text.length > 4000)) throw new HttpError(400, "BadRequest", "text must be 1 to 4000 characters");
+    const out = stored.output;
+    if (stored.status !== "success" || (out?.decision !== "hold" && out?.decision !== "escalate")) {
+      throw new HttpError(400, "BadRequest", `only a held or escalated ticket can be sent; this run decided ${out?.decision ?? "nothing"}`);
+    }
+    const draftText = typeof out.draft?.text === "string" ? out.draft.text : (typeof out.draft === "string" ? out.draft : "");
+    const reply = body.text?.trim() || draftText;
+    if (!reply) throw new HttpError(400, "BadRequest", "no draft to send; supply text");
+    const rawTid = stored.input?.thread_id;
+    if (rawTid === undefined || rawTid === null || rawTid === "") throw new HttpError(400, "BadRequest", "this run has no ticket id");
+    const ticket_id = String(rawTid).replace(/[^A-Za-z0-9._-]/g, "_");
+    const file = queueFileOf(memoryDir, rawTid);
+    let q = null;
+    try { q = JSON.parse(readFileSync(file, "utf8")); }
+    catch (e) { if (e?.code !== "ENOENT") throw new HttpError(500, "InternalError", `queue file for ${ticket_id} is not readable`); }
+    if (q?.sent) throw new HttpError(409, "Conflict", `ticket ${ticket_id} was already sent at ${q.sent.at}`);
+    const qf = out.queued_for ?? {};
+    const status = sendStatus(out);
+    const by = body.by?.trim() || qf.approval?.approver_name || qf.owner_name || "a person";
+    const at = new Date().toISOString();
+    if (!q) {
+      const inp = stored.input ?? {};
+      q = {
+        ticket: { thread_id: rawTid, id: rawTid, channel: inp.channel ?? null, sender_name: inp.name ?? "", sender_email: inp.from ?? "", subject: inp.subject ?? String(inp.text ?? "").slice(0, 60),
+          body: inp.text ?? "", scenario: stored.scenario ?? null, category: stored.scenario ?? null, decision_reason: out.decision_reason ?? out.reason ?? null, ...(out.draft ? { draft: typeof out.draft === "object" ? out.draft : { text: out.draft } } : {}) },
+        critiques: [], queuedAt: Date.now(),
+        ...(qf.owner_id != null || qf.owner_name ? { owner: { owner_id: qf.owner_id ?? null, owner_name: qf.owner_name ?? null, backup_id: qf.backup_id ?? null, backup_name: qf.backup_name ?? null } } : {}),
+        scenario: stored.scenario ?? null,
+      };
+    }
+    q.ticket = { ...(q.ticket ?? {}), status };
+    q.sent = { run_id: id, by, at, body: reply, status, ticket_id };
+    mkdirSync(join(memoryDir, "queue"), { recursive: true });
+    const tmp = `${file}.${process.pid}.tmp`;
+    writeFileSync(tmp, JSON.stringify(q, null, 2) + "\n");
+    renameSync(tmp, file);
+    send(200, { run_id: id, ticket_id, status, sent: q.sent, queue_file: relative(INBOX_ROOT, file) });
+  }
   const inflight = new Set(); // run ids being run now: a concurrent reuse is a 409 too
   const server = httpServer(async (req, res) => {
     const send = (status, body) => {
@@ -214,7 +307,23 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         send(200, { ok: true, sample_mode: sampleMode(cfg), version: VERSION, uptime_s: Math.round((Date.now() - started) / 1000) });
         return;
       }
-      if (path === "/" || path === "/dashboard" || path.startsWith("/static/")) {
+      if (path === "/shop" || path === "/shop/") {
+        if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
+        res.writeHead(302, { ...CORS, Location: "/shop/index.html", "Content-Length": 0, "Cache-Control": "no-store" });
+        res.end();
+        return;
+      }
+      if (path.startsWith("/shop/")) {
+        if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
+        const f = shopFile(path);
+        let buf = null;
+        if (f) { try { buf = readFileSync(f.file); } catch { buf = null; } }
+        if (!f || !buf) { send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0)); return; }
+        res.writeHead(200, { ...CORS, "Content-Type": f.type, "Content-Length": buf.length, "Cache-Control": "no-store" });
+        res.end(buf);
+        return;
+      }
+      if (path === "/" || path === "/inbox" || path === "/dashboard" || path.startsWith("/static/")) {
         if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
         const f = staticFile(path);
         let buf = null;
@@ -273,20 +382,23 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         let text;
         try { text = readFileSync(tracePath, "utf8"); } catch { send(404, errBody(id, "NotFound", `trace file for ${id} is gone`, false, t0)); return; }
         const traceLines = text.split("\n").filter(Boolean).map((l) => JSON.parse(l));
-        send(200, runsM[2] === "/journey" ? deriveJourney(stored, traceLines) : traceLines);
+        if (runsM[2] === "/journey") {
+          const tid = stored.input?.thread_id;
+          const q = tid ? readQueue(memoryDir, tid) : null;
+          send(200, deriveJourney(stored, traceLines, { sent: q?.sent ? { ...q.sent, queue_file: relative(INBOX_ROOT, queueFileOf(memoryDir, tid)) } : null }));
+        } else send(200, traceLines);
+        return;
+      }
+      const sendM = /^\/runs\/([^/]+)\/send$/.exec(path);
+      if (sendM) {
+        if (req.method !== "POST") { send(405, errBody(null, "BadRequest", `use POST ${path}`, false, t0)); return; }
+        requireBearer(req);
+        await handleSend(sendM, req, send, t0);
         return;
       }
       if (!["/run", "/ask", "/feedback"].includes(path)) { send(404, errBody(null, "NotFound", `no route ${req.method} ${path}`, false, t0)); return; }
       if (req.method !== "POST") { send(405, errBody(null, "BadRequest", `use POST ${path}`, false, t0)); return; }
-      // Opt-in token for a shared instance (API_TOKEN set): the three POST routes need "Authorization: Bearer <token>".
-      // Reads, the pages and /health stay open; unset means the loopback default, no token anywhere.
-      if (cfg.API_TOKEN) {
-        const got = Buffer.from(String(req.headers.authorization ?? "")), want = Buffer.from(`Bearer ${cfg.API_TOKEN}`);
-        if (got.length !== want.length || !timingSafeEqual(got, want)) {
-          send(401, errBody(null, "Unauthorized", "this instance needs Authorization: Bearer <API_TOKEN> on POST /run, /ask and /feedback", false, t0));
-          return;
-        }
-      }
+      requireBearer(req);
 
       let body;
       try { body = JSON.parse(await readBody(req) || "null"); }
