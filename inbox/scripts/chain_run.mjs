@@ -10,6 +10,7 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { config, sampleMode, INBOX_ROOT } from "../src/config.mjs";
 import { runTicket } from "../src/loop.mjs";
+import { mentionsRefund } from "../src/prompts.mjs";
 import { factsForTicket } from "../src/queries.mjs";
 import * as sample from "../src/adapters/sample.mjs";
 
@@ -66,7 +67,7 @@ export async function runChain({ chain = "T01", sample: sampleOn = false, seed =
     const lines = readLines(join(logsDir ?? join(INBOX_ROOT, "logs"), `trace-${run_id}.jsonl`));
     const rec = {
       n: st.n, run_id, as_of_message: st.received_at, as_of_day: as_of, decision: result.output.decision, branch_id: result.branch_id,
-      draft: result.output.draft ? { text: result.output.draft.text, promises: result.output.draft.promises, model: result.output.draft.model } : null,
+      draft: result.output.draft ? { text: result.output.draft.text, promises: result.output.draft.promises, model: result.output.draft.model, cited_rows: result.output.cited_rows ?? [] } : null,
       memory_read: result.memory.read, memory_written: result.memory.written, log_file: result.log_file, queued_for: result.output.queued_for ?? null,
     };
     const s = JSON.parse(readFileSync(stateFile, "utf8"));
@@ -78,9 +79,14 @@ export async function runChain({ chain = "T01", sample: sampleOn = false, seed =
   const [r1, r2] = results;
   const carried = r2.result.memory.read.filter((id) => r1.result.memory.written.includes(id));
   const misread = r2.result.branch_id === "misread";
-  const outcome = !r2.priorUsed ? "other" : misread && r2.result.output.decision === "escalate" ? "a" : !misread ? "b" : "other";
+  // (c): step 1's first draft named a refund on her replacement ticket, Risk refused it on round 1 (refunds are mentioned only on refund
+  // requests), round 2 was signed off and the draft handed over carries no refund; each of the three is read from the trace or the draft
+  const riskAt = (n) => r1.lines.find((l) => l.step === "risk.signoff" && l.retry_count === n);
+  const caught = Boolean(riskAt(0)?.status === "needs_revision" && /refund wording on a/.test(String(riskAt(0).output_summary)) && riskAt(1)?.status === "success" && r1.rec.draft && !mentionsRefund(r1.rec.draft));
+  const evaluatorToo = r1.lines.some((l) => l.step === "critique" && l.retry_count === 0 && l.status === "needs_revision");
+  const outcome = !r2.priorUsed ? "other" : misread && r2.result.output.decision === "escalate" ? "a" : !misread ? (caught ? "c" : "b") : "other";
   const models = [...new Set(results.flatMap((r) => r.lines.filter((l) => l.model && l.status !== "skipped").map((l) => l.model)))];
-  return { name, memoryDir, stateFile, results, carried, outcome, models, sample: isSample, seed };
+  return { name, memoryDir, stateFile, results, carried, outcome, evaluatorToo, models, sample: isSample, seed };
 }
 
 const cell = (l) => `${l.step} ${l.status}${l.model ? ` [${l.model}]` : ""}`;
@@ -94,7 +100,9 @@ export function renderReport(c, extra = {}) {
     ? "(a) misread detected: step 1's draft promised a refund she did not ask for, step 2 compared that promise with her ask (a replacement), took the `misread` branch, failed the critique and queued the ticket for a human."
     : c.outcome === "b"
       ? "(b) correct: step 1's draft promised the replacement she asked for, so step 2 was not a misread and ended on its own decision."
-      : "neither (a) nor (b): step 1 produced no draft to hand over, so step 2 could only fall back to the authored misread rule; this run does not count as either outcome.";
+      : c.outcome === "c"
+        ? `(c) caught at step 1: step 1's first draft named a refund on her replacement ticket; Risk refused it on round 1 (refunds are mentioned only on refund requests)${c.evaluatorToo ? ", as did the Evaluator" : ""}; round 2 was signed off and the draft handed over carries no refund, so step 2 was not a misread and ended on its own decision.`
+        : "neither (a) nor (b): step 1 produced no draft to hand over, so step 2 could only fall back to the authored misread rule; this run does not count as either outcome.";
   return [
     "---",
     "title: Padmé email chain, run sequentially",

@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
 import { runTicket } from "../src/loop.mjs";
+import { mentionsRefund } from "../src/prompts.mjs";
 
 const cfg = { ...config(), SAMPLE_MODE: "true" };
 const example = (n) => JSON.parse(readFileSync(join(INBOX_ROOT, "input_examples", `example_${n}.json`), "utf8")).input;
@@ -146,3 +147,47 @@ test("owner out with no backup named: the branch reason names no absent employee
   assert.match(b.why, /owner 15 is out and no backup is named on 2026-01-27; routed to the default contact contact@jedipack.com/);
   assert.doesNotMatch(b.why, /null/);
 });
+
+// einh, 24 Oct 2026: refunds are mentioned only on refund requests (category). Through runTicket in sample mode, on the routes whose draft
+// can be injected: the legacy route (deps.sampleDrafter) and the FAQ (canonical text).
+const promiser = (texts) => { let i = 0; return () => ({ text: `Hello,\n\n${texts[Math.min(i++, texts.length - 1)]}\n\nBest regards,\nJedi Pack Support`, model: "test/promiser", route: "sample", promises: { refund_amount: null, replacement: false, other: null } }); };
+
+test("a replacement message whose draft mentions a refund is refused on round 1 and rewritten; the clean draft is kept", async () => {
+  const d = { ...mkDeps(), sampleDrafter: promiser(["We will look at a refund for the cracked saber.", "We will look at the cracked saber and a colleague will follow up."]) };
+  const { result, lines } = await go("rc-rewritten", msg("please replace my cracked saber, it arrived broken"), { d });
+  assert.equal(result.scenario, "legacy");
+  const r1 = lines.find((l) => l.step === "risk.signoff" && l.retry_count === 0);
+  assert.equal(r1.status, "needs_revision");
+  assert.equal(lines.find((l) => l.step === "branch")?.input_summary.match(/category (\w+)/)?.[1], "replacement", "a replacement request keeps Scout's category");
+  assert.match(r1.output_summary, /refund wording on a replacement message: refunds are mentioned only on refund requests/);
+  assert.ok(lines.some((l) => l.step === "retry" && l.status === "retrying"), "the draft is rewritten");
+  assert.equal(lines.find((l) => l.step === "risk.signoff" && l.retry_count === 1).status, "success");
+  assert.ok(!mentionsRefund(result.output.draft, result.output.cited_rows), "the kept draft says nothing about a refund");
+});
+
+test("a replacement message whose drafts keep mentioning a refund is never sent", async () => {
+  const d = { ...mkDeps(), sampleDrafter: promiser(["We will refund you for the cracked saber."]) };
+  const { result, lines } = await go("rc-kept", msg("please replace my cracked saber, it arrived broken"), { d });
+  assert.notEqual(result.output.decision, "send");
+  assert.deepEqual(lines.filter((l) => l.step === "risk.signoff").map((l) => l.status), ["needs_revision", "needs_revision"]);
+  assert.ok(lines.some((l) => l.step === "escalate_or_fallback" && l.status === "success"), "two negative rounds: a human takes it");
+});
+
+// einh's B (24 Oct 2026, verbatim "Questions may quote policy"): a question that itself asks about refunds may quote the policy.
+test("the returns-and-refund FAQ on a question sends: the question asks about refunds, so the canonical text may name them", async () => {
+  const { result, lines } = await go("rc-faq", msg("What is your returns and refund policy?"));
+  assert.equal(result.branch_id, "faq-hit");
+  assert.equal(result.output.decision, "send");
+  assert.equal(lines.find((l) => l.step === "risk.signoff").status, "success");
+  assert.ok(mentionsRefund(result.output.draft), "the sent FAQ text names refunds");
+});
+
+test("the refund-limit question is held for the question owner with the quoted policy as its draft", async () => {
+  const { result, lines } = await go("rc-limit", msg("What is the refund limit for orders?", "question"));
+  assert.equal(result.branch_id, "question-records");
+  assert.equal(result.output.decision, "hold");
+  assert.equal(result.output.queued_for.owner_id, 1);
+  assert.equal(lines.find((l) => l.step === "risk.signoff").status, "success");
+  assert.ok(mentionsRefund(result.output.draft, result.output.cited_rows), "the held draft quotes the refund policy");
+});
+

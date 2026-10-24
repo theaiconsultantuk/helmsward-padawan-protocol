@@ -123,3 +123,65 @@ test("S5.3-7: an aborted signal stops severityGate fast, with one fetch and no f
   assert.ok(Date.now() - t0 < 1000);
   assert.equal(calls, 1);
 });
+
+// einh, 24 Oct 2026: refunds are mentioned only on refund requests (category); his pick B: questions may quote policy. Outside the refund
+// category Risk and the sample critic refuse a promise of money on every category and refund wording on every category but a question that
+// itself asks about refunds; the approval limit stays a refund-category rule.
+test("hardRisk and the sample critic: money promised outside the refund category is refused; refund wording too, unless a question asks about refunds", async () => {
+  const sample = await import("../src/adapters/sample.mjs");
+  const base = { may_leave: true, restricted_terms: [], owner_out: false, backup_out: false };
+  const says = (text, refund_amount = null) => ({ text, promises: { refund_amount, replacement: false, other: null } });
+  const RULE = /refund wording on a (complaint|question|replacement|non-refund) message: refunds are mentioned only on refund requests/;
+  const MONEY = /draft promises a refund on a (complaint|question|replacement|non-refund) message: money is promised only on refund requests/;
+  // a vent that names an amount reads no policy row: the draft's words alone are refused
+  const vent = { ...base, category: "complaint", amount_usd: 400, policy_limit_usd: null, body: "the box was dented and I paid 400 USD, just so you know" };
+  assert.match(hardRisk(vent, says("We are sorry. We will refund your 400 USD.")).reasons.join("; "), RULE);
+  assert.deepEqual(hardRisk(vent, says("We are sorry. We will refund your 400 USD.", 400)).reasons,
+    ["draft promises a refund with no policy limit behind it", "draft promises a refund on a complaint message: money is promised only on refund requests"]);
+  assert.equal(sample.critique(says("We will refund you in full."), vent).pass, false);
+  assert.match(sample.critique(says("We will refund you in full."), vent).reason, RULE);
+  // a vent whose customer asks for money back: still a complaint, still refused (only a question may quote)
+  assert.match(hardRisk({ ...vent, body: "I want my money back, 400 USD, this is a disgrace" }, says("A refund is not something we can promise here.")).reasons.join("; "), RULE);
+  // a question that does not ask about refunds, whose draft names one: refused; a promise of money on it: refused as money
+  const q = { ...base, category: "question", policy_limit_usd: 150, body: "How long does shipping take?" };
+  assert.match(hardRisk(q, says("We can refund you 50 USD.", 50)).reasons.join("; "), MONEY);
+  assert.equal(sample.critique(says("We can refund you 50 USD.", 50), q).pass, false);
+  assert.match(hardRisk(q, says("Thank you; a colleague will reimburse the difference.")).reasons.join("; "), RULE);
+  // a question that asks about refunds may quote the policy (einh's B); money is still not promised on it
+  const qr = { ...q, body: "What is the refund limit for orders?" };
+  assert.deepEqual(hardRisk(qr, says("From our records: a refund at or under 150 USD can be approved by our refund owner.")).reasons, []);
+  assert.equal(sample.critique(says("A refund at or under 150 USD can be approved by our refund owner."), qr).pass, true);
+  assert.match(hardRisk(qr, says("We will refund you 50 USD.", 50)).reasons.join("; "), MONEY);
+  assert.match(hardRisk(qr, { text: "See our policy.", promises: { refund_amount: null, replacement: false, other: "a refund of the difference" } }).reasons.join("; "), MONEY);
+  assert.equal(sample.critique(says("We will refund you 50 USD.", 50), qr).pass, false);
+  // an incidental or negated mention is not a question about refunds (Codex review 16); a real one is, even beside a negation
+  for (const t of ["How long does shipping take? I'm not asking about refunds.", "How long does shipping take? I'm not asking you about refunds.", "I wouldn\u2019t\u2019ve asked for a refund; when will my replacement ship?", "I don\u2019t want a refund, how long does shipping take?", "We won\u2019t need a refund; when does it ship?", "I didn\u2019t ask for a refund; when will my replacement ship?", "We haven\u2019t asked about any refund, where is the order?", "It wasnt a refund query, just the colour options.", "Nothing about a refund here: which stands fit the saber?", "I am not at all interested in any kind of refund here, just the shipping time.", "No refund question, just the shipping time please.", "I don't want a refund, how long does shipping take?", "Without a refund in mind: when does it ship?"]) {
+    assert.match(hardRisk({ ...q, body: t }, says("Refunds are handled by our refund owner.")).reasons.join("; "), RULE, t);
+    assert.equal(sample.critique(says("Refunds are handled by our refund owner."), { ...q, body: t }).pass, false, t);
+  }
+  for (const t of ["What is your refund policy?", "Can I get a refund if it arrives late?", "Do you reimburse shipping on returns?", "Is money back possible after 30 days?", "Don't refund me yet, but what is the policy on refunds?"]) {
+    assert.deepEqual(hardRisk({ ...q, body: t }, says("Refunds are handled by our refund owner.")).reasons, [], t);
+  }
+  // the follow-up body counts as the customer's words on a follow-up
+  assert.deepEqual(hardRisk({ ...q, follow_up_kind: "follow-up", follow_up_body: "and what about refunds?" }, says("Refunds are handled by our refund owner.")).reasons, []);
+  assert.match(hardRisk({ ...base, category: "replacement", policy_limit_usd: 150, body: "please replace it" }, { text: "ok", promises: { refund_amount: null, replacement: true, other: "refund of the shipping fee" } }).reasons.join("; "), MONEY);
+  assert.match(hardRisk({ ...base, policy_limit_usd: null, body: "hello" }, says("We will refund you.")).reasons.join("; "), /non-refund message/);
+  // the row ids the sample twin cites in its reply are removed before the word test, each exactly as cited and only when cited (facts.cited_rows)
+  const qc = { ...q, cited_rows: ["policy:refund", "wiki_refund_policy:1", "refund_policy:x"] };
+  assert.deepEqual(hardRisk(qc, says("Thank you for getting in touch (policy rows: policy:refund, wiki_refund_policy:1, refund_policy:x).")).reasons, []);
+  assert.equal(sample.critique(says("Thank you for getting in touch (policy rows: policy:refund)."), qc).pass, true);
+  assert.match(hardRisk(q, says("See policy:refund for details.")).reasons.join("; "), RULE, "an id that was not cited is read as words");
+  assert.match(hardRisk(qc, says("Thank you (policy rows: policy:refund, we will refund you).")).reasons.join("; "), RULE, "words hidden inside a citation count");
+  // the word test is normalised (Codex review 14): a colon, Markdown emphasis, a hyphen inside the word, an accent
+  for (const t of ["Refunds are not possible here.", "Refund: unavailable.", "We offer no _refund_ on this.", "A re-fund is not on the table.", "No money-back here.", "Une réfund n'est pas possible.", "We will reimburse you."]) {
+    assert.match(hardRisk(q, says(t)).reasons.join("; "), RULE, t);
+    assert.equal(sample.critique(says(t), q).pass, false, t);
+  }
+  assert.equal(sample.critique(says("Thank you for getting in touch (policy rows: policy:refund)."), qc).pass, true);
+  // the refund category keeps its limit rules and nothing else
+  assert.deepEqual(hardRisk(facts02, says("We will refund 40 USD.", 40)).reasons, []);
+  assert.deepEqual(hardRisk({ ...facts02, owner_out: false }, says("We will refund 400 USD.", 400)).reasons, ["draft promises refund above the limit"]);
+  assert.equal(sample.critique(says("We will refund 40 USD.", 40), facts02).pass, true);
+  // a draft with no refund in it passes on any category
+  assert.deepEqual(hardRisk(vent, says("We are sorry the box arrived dented and have noted it.")).reasons, []);
+});

@@ -2,7 +2,7 @@
 import { config, sampleMode as isSampleMode } from "./config.mjs";
 import { systemone } from "./adapters/openjev.mjs";
 import * as sample from "./adapters/sample.mjs";
-import { SEVERITY_QUESTION } from "./prompts.mjs";
+import { SEVERITY_QUESTION, refundRuleReason } from "./prompts.mjs";
 
 const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
 
@@ -136,5 +136,8 @@ export function hardRisk(facts, draft = null) {
   if (draft?.promises?.refund_amount != null && limit != null && draft.promises.refund_amount > limit) reasons.push("draft promises refund above the limit");
   // a ticket whose scenario reads no policy row has no limit: a refund promised there has nothing behind it (Codex review 7, HIGH)
   if (draft?.promises?.refund_amount != null && limit == null) reasons.push("draft promises a refund with no policy limit behind it");
+  // refunds are mentioned only on refund requests (einh, 24 Oct 2026; questions may quote the policy): the reason, or null, from one place
+  const rr = refundRuleReason(facts, draft);
+  if (rr) reasons.push(rr);
   return { hard: reasons.length > 0, reasons };
 }
