@@ -34,70 +34,10 @@ const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|su
 const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open)\b/i;
 // a complaint about something other than where the parcel is
 const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
-const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
-// the words that ask for a quote outright, or for bulk/trade terms: enough on their own to make a request commercial
-const RFQ_CUES = /\b(quote|quotes|quotation|rfq|bulk|wholesale|tender)\b/i;
-// ONE normaliser for the text, the product names and aliases, and the purchase units: "Cases"/"Case", "pouches"/"pouch", "hilts"/"hilt" all agree
-const canon = (w) => String(w).toLowerCase().replace(/ies$/, "y").replace(/(?:ss|x|ch|sh|z)es$/, (m) => m.slice(0, -2)).replace(/(?<!s)s$/, "").replace(/e$/, "");
-// A current commercial request = a request act (quote / quotation / price / cost / how much for / buy / order / purchase) whose object is the product or a bound quantity,
-// in a clause that is not a historical statement and not an information or help request.
-// a price or purchase act; a bare "how much" is not one ("how much do 2 hilts weigh" asks about the product)
-const PRICE_ACT = /\b(price|prices|pricing|priced|cost|costs|quote|quotes|quotation|rfq|buy|purchase|how much (?:for|to|would|will)|(?:to|please|can we|could we|like to|want to|need to) order)\b|,\s*how much\s*\??\s*$/i;
-// an information or help request: it asks about the product, not to buy it
-const INFO_ASK = /\b(know|help|ask|asking|questions?|wonder\w*|tell me|information|info|details|warranty|curious)\b/i;
-// an affirmative past-tense purchase statement; negations ("haven't ordered yet", "never bought") are not history
-const PAST_VERB = /\b(bought|ordered|purchased|received|arrived|delivered|paid|charged|got)\b/i;
-const NEGATED = /\b(haven'?t|have not|hasn'?t|has not|never|not|didn'?t|did not|yet to|no)\b|\byet\b/i;
-// a question about the product itself, not about buying it
-const ATTRIBUTE_ASK = /\b(made of|made from|made out of|material\w*|weigh\w*|weights?|colou?rs?|sizes?|dimensions?|specs?|specifications?)\b/i;
-const UNIT_WORDS = new Set(["unit", "piece", "pc", "pcs", "item", "set", "copy", "pair", "box", "pack", "carton", "pallet", "crate", "lot", "each"].map((u) => canon(u)));
-// the only words that may sit between a quantity and the product it counts
-const QTY_FILLER = new Set(["x", "of", "the", "our", "your", "more", "extra", "additional", "new", "red", "blue", "green", "purple", "yellow", "white", "black", "orange", "pink", "grey", "gray", "silver", "gold", "crimson", "cerulean", "small", "medium", "large", "xs", "xl", "mini", "big"]);
-const NUM_WORD = "(?:a\\s+)?(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[-\\s](?:one|two|three|four|five|six|seven|eight|nine))?|hundred|thousand|dozen|dozens)";
-// a quantity: digits (not money, not part of a date or an order id) or a number word
-const QTY = new RegExp(`(?<![\\w./$€£-])(\\d[\\d,]*|${NUM_WORD})(?![\\w/-])(?!\\.\\d)(?!\\s*(?:gc|usd|eur|euro|euros|dollars?|credits?|%|percent)\\b)`, "gi");
-// ONE normaliser for the text, the product names and aliases, and the purchase units: "Cases"/"Case", "pouches"/"pouch", "hilts"/"hilt" all agree
-const words = (t) => String(t ?? "").toLowerCase().split(/[^a-z0-9']+/).filter(Boolean);
-// does the quantity at the start of `after` sit directly on a product (the matched products' names and aliases) or a purchase unit, past only recognised fillers, inside its own clause?
-function boundTo(after, phrases) {
-  const w = words(after.split(/[.?!;:,]/)[0]);
-  // the product or the unit is tried at every position BEFORE a modifier is skipped, so "Crimson Cadet Trainers", "red trainers" and "blue milk" keep their own words
-  for (let i = 0; i <= w.length; i++) {
-    const c = w.slice(i).map(canon);
-    if (c.length && UNIT_WORDS.has(c[0])) return true;
-    if (phrases.some((ph) => ph.length && ph.every((tok, j) => c[j] === tok))) return true;
-    if (!QTY_FILLER.has(w[i])) return false;
-  }
-  return false;
-}
+// The one RFQ test (einh, 25 Oct 2026, "simplest rule"): a quote / quotation / RFQ / bulk / wholesale word in the message. Nothing else makes a message an RFQ except a declared rfq scenario:
+// every other price or count question ("How much for 51 Strand Emitter Hilts?") takes the product or question road, whatever Scout read.
+const RFQ_WORD = /\b(quotes?|quotations?|rfqs?|bulk|wholesale)\b/i;
 const lookupRows = (productHit) => (productHit?.all ?? (productHit?.row ? [productHit] : [])).map((f) => f.row).filter(Boolean);
-// a counted quantity bound to a product or a purchase unit: not money ("189 GC"), not a date ("24/10"), not an order id, not an unrelated count ("2 questions")
-export function hasQuantity(text, productHit = null) {
-  const t = String(text ?? "").replace(/\bJP-\d{4}\b/gi, " ");
-  const phrases = [];
-  for (const r of lookupRows(productHit)) for (const n of [r.name, ...String(r.aliases ?? "").split(";")]) { const ph = words(n).map(canon); if (ph.length) phrases.push(ph); }
-  for (const m of t.matchAll(QTY)) if (boundTo(t.slice(m.index + m[0].length), phrases)) return true;
-  return false;
-}
-// The message with its affirmative past-tense purchase statements taken out ("I bought 50 hilts in bulk", "we received our order"): a history is not a request, and neither is its "bulk".
-// A piece that also carries a request act ("quote 30 hilts like the ones I ordered") is not history, and a negated one ("I haven't ordered yet") never was.
-function withoutHistory(text) {
-  return String(text ?? "").split(/(?<=[.?!;])\s+/).map((sentence) =>
-    sentence.split(/,|\band\b|\bbut\b/i).filter((piece) => !(PAST_VERB.test(piece) && !NEGATED.test(piece) && !PRICE_ACT.test(piece))).join(", ")).filter(Boolean).join(" ");
-}
-// wanting or needing counts only when its object is the counted items: "we need 50 hilts", never "we need help with 2 hilts"
-const WANT_QTY = new RegExp(`(?:need|want|require|would like|'d like|looking for)\\s+(?:to\\s+(?:buy|order|purchase)\\s+)?(?:about\\s+)?(?:\\d|${NUM_WORD}\\b)`, "i");
-// THE predicate: is this a current request for a quote or a price for something to buy? One rule for keeping an rfq.request read and for promoting an order.question / GENERAL read.
-// explicit: a current quote/quotation/RFQ or bulk/wholesale ask, with or without a number (the RFQ fallback asks for the quantity).
-// quantity: a quantity bound to a product or unit, with a price/purchase act on it.
-export function commercialRequest(text, productHit = null) {
-  const T = withoutHistory(text);
-  if (INFO_ASK.test(T) && !PRICE_ACT.test(T)) return { explicit: false, quantity: false, ok: false };
-  const quantity = hasQuantity(T, productHit);
-  const explicit = RFQ_CUES.test(T);
-  const buying = quantity && (PRICE_ACT.test(T) || (WANT_QTY.test(T) && !ATTRIBUTE_ASK.test(T)));
-  return { explicit, quantity, ok: explicit || buying };
-}
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
 
@@ -107,16 +47,15 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (declared && declared !== "free_text") return { scenario: declared, how: "declared" };
   if (kind === "thread") return { scenario: "legacy", how: "thread" };
   let id = decided?.intent?.primary?.id ?? "GENERAL";
-  // an rfq.request read with no quote cue (no quote word, no bulk/wholesale word, no buying cue on a quantity bound to a product or unit) is not a quote request: "What is the Vanta Arc Trainer made of?" shares a noun with an rfq example, nothing more.
-  // It is read as a plain message and falls through to the product and question roads.
   const T = String(text ?? "");
-  const com = commercialRequest(T, productHit);
-  if (id === "rfq.request" && text != null && !com.ok) id = "GENERAL";
   const conf = decided?.intent?.confidence ?? 0;
   const cat = gates?.answers?.category;
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
+  // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
+  if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
+  if (id === "rfq.request" && text != null) id = "GENERAL";
+  else if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
   // a pure product question ("What is the Cracked Core Recycling Pouch made of?", "...etiquette cards...") is a product question even when a word of the product's own name reads as a refund or a replacement:
   // take the product's name and aliases out of the text, and if what is left asks what it is made of or costs and carries no refund, return, order or account word, the catalogue row answers it
   if (["refund.request", "replacement.request", "appreciation", "follow_up"].includes(id) && productHit && PRODUCT_WORDS.test(T) && T.includes("?")) {
@@ -128,9 +67,6 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (id === "complaint") return { scenario: "complaint", how: "scout" };
   // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
   if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  // a quote asked for a counted product ("could you quote 25 Vanta Arc Trainers", "quote 20 ... same as my order JP-1008", "how much for 51 Strand Emitter Hilts", "a price for fifty ...")
-  // is an RFQ even when Scout read a plain order question or scored it under its floor. Read before the delivery road and independent of Scout's score.
-  if ((id === "order.question" || id === "GENERAL") && com.ok && (productHit || QUOTE_WORDS.test(T)) && (com.quantity || !(ORDER_ID.test(T) && DELIVERY_WORDS.test(T)))) return { scenario: "rfq", how: "scout" };
   // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order").
   // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.
   // Safety cues and the complaint cues have already gone by, so a delivery question that threatens or names an injury never gets here.

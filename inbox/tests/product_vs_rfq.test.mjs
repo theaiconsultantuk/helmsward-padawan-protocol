@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runMessage, msg } from "./helpers/route_run.mjs";
-import { resolveScenario, hasQuantity, matchProductLookup } from "../src/scenarios.mjs";
+import { resolveScenario, matchProductLookup } from "../src/scenarios.mjs";
 
 const ask = (text) => runMessage(msg(text, "contact-form", "q@email.com", { scenario: "free_text" }));
 const products = JSON.parse(readFileSync(new URL("../public/shop/data/catalogue.json", import.meta.url), "utf8")).products;
@@ -34,7 +34,7 @@ test("a quote for a counted number of flagships is still an RFQ", async () => {
   }
 });
 
-test("resolveScenario: an rfq.request read with no quote cue and no count does not take the RFQ road", () => {
+test("resolveScenario: an rfq.request read without a quote / quotation / RFQ / bulk / wholesale word does not take the RFQ road", () => {
   const decided = { intent: { primary: { id: "rfq.request" }, confidence: 0.9 } };
   const productHit = { row: { sku: arc.id } };
   assert.equal(resolveScenario({ kind: "message", text: "What is the Vanta Arc Trainer made of?", decided, productHit }).scenario, "product");
@@ -74,76 +74,9 @@ test("sweep: every catalogue name, alias and plural, asked what it is made of, i
   assert.deepEqual(bad, []);
 });
 
-test("a quantity-bound price request is an RFQ whatever number it carries, and whether or not Scout scores it", async () => {
-  for (const q of ["How much for 51 Strand Emitter Hilts?", "How much for 50 Strand Emitter Hilts?", "What is the price for 73 Quartermaster Utility Belts?", "I want to order 12 Vanta Arc Trainers", "What would 300 Wayfarer Long Cloaks cost?"]) {
-    const { result } = await ask(q);
-    assert.equal(result.scenario, "rfq", q);
-  }
-});
-
-test("spelled-out quantities count: a price for fifty, twenty-five, a dozen", async () => {
-  for (const q of ["We need a price for fifty Vanta Arc Trainers for the new academy wing", "Please quote twenty-five Vanta Arc Trainers", "How much for a dozen Strand Emitter Hilts?", "price for two hundred hilts"]) {
-    const { result } = await ask(q);
-    assert.equal(result.scenario, "rfq", q);
-  }
-});
-
-test("money, dates and unrelated counts are not quantities; a lone attribute word needs commercial context", async () => {
-  const hit = { all: [{ row: { sku: "FS-B01", name: "Vanta Arc Trainer", aliases: "" } }] };
-  for (const t of ["189 GC", "on 24/10", "on 2026/10/24", "2 questions about the Vanta Arc Trainer", "JP-1008", "costs 189 GC for the Vanta Arc Trainer"]) assert.equal(hasQuantity(t, hit), false, t);
-  for (const t of ["50 Vanta Arc Trainers", "fifty vanta arc trainers", "20 units", "a dozen units", "twenty-five Vanta Arc Trainers"]) assert.equal(hasQuantity(t, hit), true, t);
-  const decided = { intent: { primary: { id: "rfq.request" }, confidence: 0.9 } };
-  for (const q of ["What is the volume and price of the Core Crystal Cleaning Solution?", "Do you give a discount on the Vanta Arc Trainer?", "I have 2 questions about the Vanta Arc Trainer, it costs 189 GC on 24/10"]) {
-    assert.notEqual(resolveScenario({ kind: "message", text: q, decided, productHit: hit }).scenario, "rfq", q);
-  }
-  const { result } = await ask("What is the volume and price of the Core Crystal Cleaning Solution?");
-  assert.equal(result.scenario, "product");
-});
-
-// ---- the table: one row per phrase either Codex review named, plus counterexamples of my own for each rule ----
-// [text, expected scenario ("!x" = anything but x), rule]
-const TABLE = [
-  // A: one predicate for keeping and promoting
-  ["How much for 51 Strand Emitter Hilts?", "rfq", "A: price for a count, not in the examples"],
-  ["How much for 50 Strand Emitter Hilts?", "rfq", "A"],
-  ["How much for 51 Drift Vault Cases?", "rfq", "B: Cases/Case agree"],
-  ["What is the price for 73 Quartermaster Utility Belts?", "rfq", "A"],
-  ["What would 300 Wayfarer Long Cloaks cost?", "rfq", "A: cost with the count"],
-  ["50 Strand Emitter Hilts, how much?", "rfq", "A: the count first, how much after"],
-  ["We need a price for fifty Vanta Arc Trainers for the new academy wing", "rfq", "A+B: spelled-out count"],
-  ["Please quote twenty-five Vanta Arc Trainers", "rfq", "A: hyphenated number word"],
-  ["How much for a dozen Strand Emitter Hilts?", "rfq", "A"],
-  ["Please quote 20 Vanta Arc Trainers, same as my order JP-1008", "rfq", "A: explicit quote beats the past order"],
-  ["I want to order 12 Vanta Arc Trainers", "rfq", "A: order N"],
-  ["I bought 2 Vanta Arc Trainers, what are they made of?", "!rfq", "A: past purchase + attribute is not a quote"],
-  ["How much do 2 Vanta Arc Trainers weigh?", "product", "A: bare how much is an attribute question"],
-  ["How much do 3 Drift Vault Cases weigh?", "product", "A: same, another product"],
-  ["I received 4 Strand Emitter Hilts, what colour are they?", "!rfq", "A: past purchase"],
-  // B: binding
-  ["I have 2 questions: Vanta Arc Trainer price and materials?", "product", "B: no arbitrary skipped word, no clause crossing"],
-  ["I have 2 questions about the Vanta Arc Trainer, how much is it?", "product", "B"],
-  ["On 24/10 the Vanta Arc Trainer costs 189 GC, what is it made of?", "product", "3: date and money are not counts"],
-  // 3: attribute word needs commercial context
-  ["What is the volume and price of the Core Crystal Cleaning Solution?", "product", "3: volume alone"],
-  ["Do you give a discount on the Vanta Arc Trainer?", "product", "3: discount alone"],
-  // C: the override keeps complaint roads
-  ["The hilt is cracked and this is unacceptable, what is it made of?", "complaint", "C: complaint cue in the remainder"],
-  ["The hilt burned my hand, what is it made of?", "complaint", "C: safety cue"],
-  ["What is the Cracked Core Recycling Pouch made of?", "product", "C: the product's own name is not a complaint"],
-  ["What are the etiquette cards made of?", "product", "C: refund read, plain product question"],
-];
-
-test("table: every named phrase takes its expected road", async () => {
-  const bad = [];
-  for (const [text, want, rule] of TABLE) {
-    const { result } = await ask(text);
-    if (want.startsWith("!") ? result.scenario === want.slice(1) : result.scenario !== want) bad.push(`[${rule}] ${text} -> ${result.scenario}/${result.branch_id}, wanted ${want}`);
-  }
-  assert.deepEqual(bad, []);
-});
-
 // ---- the labelled corpus: families of phrases, each with the Scout read it arrives with and the road it must take ----
 // tests/fixtures/rfq_corpus.json: { family, text, scout_read, road }. Every phrase Codex reviews 34 to 36 named is in it.
+// Labelled to einh's simplest rule (25 Oct): RFQ only on a quote / quotation / RFQ / bulk / wholesale word; rows with a comment field are the blunt rule's accepted cost.
 const corpus = JSON.parse(readFileSync(new URL("./fixtures/rfq_corpus.json", import.meta.url), "utf8"));
 const lookup = catalogue.map((p) => ({ sku: p.sku, name: p.name, aliases: p.aliases.join(";") }));
 const ROADS = { rfq: ["rfq"], product: ["product"], refund: ["refund"], complaint: ["complaint"], "refund/legacy": ["refund", "legacy"], "question/other": ["question", "other", "customer_service"] };
@@ -158,17 +91,21 @@ test("corpus: at least 120 phrases, every family has at least 8 variants", () =>
 
 test("corpus: every phrase takes its labelled road through resolveScenario with the stated Scout read", () => {
   const bad = [];
+  // the rule does not look at Scout's read, so every row is driven under all three reads; a refund or replacement row keeps its own read as well
   for (const c of corpus) {
     const hit = matchProductLookup(c.text, lookup);
-    const r = resolveScenario({ kind: "message", text: c.text, productHit: hit.all.length ? hit : null, decided: { intent: { primary: { id: c.scout_read }, confidence: 0.9 } } });
-    if (!ROADS[c.road].includes(r.scenario)) bad.push(`[${c.family}] (${c.scout_read}) ${c.text} -> ${r.scenario}, wanted ${c.road}`);
+    for (const read of new Set(["rfq.request", "order.question", "GENERAL", c.scout_read])) {
+      if (/^(refund|replacement)\./.test(c.scout_read) && read !== c.scout_read) continue;
+      const r = resolveScenario({ kind: "message", text: c.text, productHit: hit.all.length ? hit : null, decided: { intent: { primary: { id: read }, confidence: 0.9 } } });
+      if (!ROADS[c.road].includes(r.scenario)) bad.push(`[${c.family}] (${read}) ${c.text} -> ${r.scenario}, wanted ${c.road}`);
+    }
   }
   assert.deepEqual(bad, []);
 });
 
 test("corpus: ten representative phrases through the real loop", async () => {
-  const pick = ["How much for 51 Strand Emitter Hilts?", "How much for 50 Crimson Cadet Trainers?", "What is the price for 50 pieces of the Vanta Arc Trainer?", "Please send a quotation for the Vanta Arc Trainer", "I haven't ordered yet. What is the price for 50 Vanta Arc Trainers?", "What is the price for 50 Wayfarer Long Cloaks in size XL?",
-    "I bought 50 Vanta Arc Trainers in bulk. What are they made of?", "I'd like to know the warranty on 2 Vanta Arc Trainers", "How much do 2 Vanta Arc Trainers weigh?", "I have 2 questions: Vanta Arc Trainer price and materials?"];
+  const pick = ["How much for 51 Strand Emitter Hilts?", "How much for 50 Crimson Cadet Trainers?", "Please quote 20 Vanta Arc Trainers, same as my order JP-1008", "Please send a quotation for the Vanta Arc Trainer", "What is the price for 50 Wayfarer Long Cloaks in size XL?",
+    "We would like a quote for your Drift Vault Cases", "I bought 50 Vanta Arc Trainers in bulk. What are they made of?", "I'd like to know the warranty on 2 Vanta Arc Trainers", "How much do 2 Vanta Arc Trainers weigh?", "I have 2 questions: Vanta Arc Trainer price and materials?"];
   const bad = [];
   for (const text of pick) {
     const c = corpus.find((x) => x.text === text);

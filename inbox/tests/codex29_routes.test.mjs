@@ -28,8 +28,8 @@ test("3: a quote naming an order id is an RFQ, not a delivery reply", async () =
   assert.notEqual(result.scenario, "delivery");
 });
 
-test("3: an order id alone is not a quantity, so a plain delivery question stays delivery", () => {
-  const r = resolveScenario({ kind: "message", text: "Please quote where is my order JP-1008", productHit: { row: {} }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
+test("3: a plain delivery question naming an order stays delivery", () => {
+  const r = resolveScenario({ kind: "message", text: "Where is my order JP-1008?", productHit: { row: {} }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
   assert.equal(r.scenario, "delivery");
 });
 
