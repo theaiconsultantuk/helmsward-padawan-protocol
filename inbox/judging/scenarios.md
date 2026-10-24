@@ -7,7 +7,7 @@ tags: [judging, scenarios]
 
 # Scenario proofs
 
-Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-25 00:20:31.
+Command: `node inbox/scripts/scenario_proofs.mjs` (starts its own server from `src/server.mjs` with the real `.env`; `B=<url>` uses an existing one). Run time (Europe/Brussels): 2026-10-25 00:50:41.
 
 Each example runs through `POST /run`: live (`options.sample_mode: false`) and sample (`options.sample_mode: true`). The traces are copied from `GET /runs/<id>/trace` as the service wrote them; the script writes no trace line. Both traces must contain the fixture's `step:status:branch_id` subsequence for the cell. Overall: all checks passed.
 
@@ -131,13 +131,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.850Z","duration_ms":32,"elapsed_ms":37,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.624Z","duration_ms":29,"elapsed_ms":34,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of new.customer@example.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.851Z","duration_ms":1,"elapsed_ms":38,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F4","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.625Z","duration_ms":1,"elapsed_ms":35,"run_id":"scenario-7-sample","trace_id":"scenario-7-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F4","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 4 (4), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`
@@ -168,13 +168,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.867Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and no product","output_summary":"250 entities, 228 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.643Z","duration_ms":1,"elapsed_ms":7,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and no product","output_summary":"250 entities, 228 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.867Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.643Z","duration_ms":1,"elapsed_ms":7,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `courtesy reply now, Legal reviews; the send marks follow-up`
@@ -303,7 +303,7 @@ This leg was skipped (no live config). It runs against the live service after th
 - decision: `send`; scenario `product`; resolved `scout`; branch `product-hit`; 0 s
 - branch line, why: the catalogue row products:FS-B03 (Sovereign Arc Duellist, matched by name) answers it: material; composed from the row, no model call
 - journey human.reply: kind `auto_reply`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Dessa Dunmarrow, The Sovereign Arc Duellist is made of tempered duralloy twin-core, hand-wrapped nerf-leather grip. Best regards, Jedi Pack Product team Sent automatically on behalf of the Produ`
+- reply text (first 200 chars): `Hello Dessa Dunmarrow, The Sovereign Arc Duellist is made of brass and blackened steel. Best regards, Jedi Pack Product team Sent automatically on behalf of the Product team.`
 - owner `5 Priya Raman (Product)`; cc `[]`; auto_reply `true`; status `handled`; memory_note `none`
 - trace: `judging/traces/trace-scenario-14-sample.jsonl` (27 lines); subsequence check: ok
 
@@ -380,13 +380,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.971Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of galengreystoke@email.com and FS-B01","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B01: 0 complaints; ids: product:jedi:FS-B01,fact_7b75921e9eb61e1b","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-B01","fact_7b75921e9eb61e1b"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.746Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of galengreystoke@email.com and FS-B01","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B01: 0 complaints; ids: product:jedi:FS-B01,fact_7b75921e9eb61e1b","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-B01","fact_7b75921e9eb61e1b"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.971Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F13","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 6 (6), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.746Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-17-sample","trace_id":"scenario-17-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F13","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 6 (6), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `safety report, small burn (self-described as mild): A person should own this, repair the failure and answer the customer directly.`
@@ -417,13 +417,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.982Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of havihollowell@email.com and FS-B02","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B02: 0 complaints; ids: product:jedi:FS-B02,fact_aa6e9086d79a5174","status":"success","branch_id":"complaint-legal","memory_ids":["product:jedi:FS-B02","fact_aa6e9086d79a5174"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.757Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of havihollowell@email.com and FS-B02","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-B02: 0 complaints; ids: product:jedi:FS-B02,fact_aa6e9086d79a5174","status":"success","branch_id":"complaint-legal","memory_ids":["product:jedi:FS-B02","fact_aa6e9086d79a5174"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:30.982Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F14","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.757Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-18-sample","trace_id":"scenario-18-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F14","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `courtesy reply now, Legal reviews; the send marks follow-up`
@@ -529,13 +529,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:31.022Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of leskalongmire@email.com and FS-A03","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-A03: 0 complaints; ids: product:jedi:FS-A03,fact_e112eada793824e9","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-A03","fact_e112eada793824e9"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.801Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of leskalongmire@email.com and FS-A03","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product FS-A03: 0 complaints; ids: product:jedi:FS-A03,fact_e112eada793824e9","status":"success","branch_id":"complaint-genuine","memory_ids":["product:jedi:FS-A03","fact_e112eada793824e9"],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:31.022Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F18","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 8 (8), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.801Z","duration_ms":1,"elapsed_ms":5,"run_id":"scenario-22-sample","trace_id":"scenario-22-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F18","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 8 (8), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-genuine","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `A person should own this, repair the failure and answer the customer directly.`
@@ -566,13 +566,13 @@ This leg was skipped (no live config). It runs against the live service after th
 - world_context line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:31.032Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of marekmarshgate@email.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T22:50:41.814Z","duration_ms":1,"elapsed_ms":6,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of marekmarshgate@email.com and no product","output_summary":"250 entities, 228 relationships; customer none: 0 earlier threads, 0 complaints, public no; product none: 0 complaints; ids: none","status":"success","branch_id":"complaint-vent","memory_ids":[],"sponsor":"meterless"}
 ```
 
 - severity_gate line (verbatim):
 
 ```json
-{"timestamp":"2026-10-24T22:20:31.032Z","duration_ms":1,"elapsed_ms":4,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F19","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 3 (3), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
+{"timestamp":"2026-10-24T22:50:41.815Z","duration_ms":1,"elapsed_ms":7,"run_id":"scenario-23-sample","trace_id":"scenario-23-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F19","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 3 (3), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-vent","sponsor":"nvidia","gate_source":"rules"}
 ```
 
 - journey human.reply: kind `draft_for_human`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `vent: a calm reply closes it; no action`

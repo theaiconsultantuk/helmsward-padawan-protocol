@@ -145,14 +145,15 @@
       "surfaces": ["email"],
       "roles": ["*"],
       "examples": [
-        "Please quote 100 training sabers",
-        "We need a quote for 50 trainers for the new academy wing",
+        "Please quote 100 pieces",
+        "Please quote 20 units, same as my order JP-1008",
+        "We need a quote for 50 units for the new academy wing",
         "Could you quote 25 units, we need them for a new school",
-        "What is your price for 100000 hilts",
-        "Request for quote: 250 utility belts delivered to Antwerp",
-        "bulk pricing for 500 holsters",
-        "RFQ for saber stands",
-        "how much for 1000 units of the padawan robe",
+        "What is your price for 100000 pieces",
+        "Request for quote: 250 units delivered to Antwerp",
+        "bulk pricing for 500 pieces",
+        "RFQ for 40 pieces",
+        "how much for 1000 units",
         "price difference between 100 and 100000 items"
       ],
       "version": 1

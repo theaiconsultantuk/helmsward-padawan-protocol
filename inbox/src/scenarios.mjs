@@ -35,6 +35,10 @@ const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|
 // a complaint about something other than where the parcel is
 const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
 const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
+// any cue that a message asks for a price for a quantity: a quote word, or a bulk/wholesale/volume word
+const RFQ_CUES = /\b(quote|quotes|quotation|rfq|bulk|wholesale|volume|tender|discount\w*)\b/i;
+// a counted quantity: a number that is not part of an order id
+const hasCount = (text) => /(?<![\w.-])\d[\d,]*(?![\w-])/.test(String(text ?? "").replace(/\bJP-\d{4}\b/gi, " "));
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
 
@@ -43,7 +47,10 @@ const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|acc
 export function resolveScenario({ kind, declared = null, decided = null, gates = null, faqHit = null, text = null, productHit = null } = {}) {
   if (declared && declared !== "free_text") return { scenario: declared, how: "declared" };
   if (kind === "thread") return { scenario: "legacy", how: "thread" };
-  const id = decided?.intent?.primary?.id ?? "GENERAL";
+  let id = decided?.intent?.primary?.id ?? "GENERAL";
+  // an rfq.request read with no quote cue (no quote word, no bulk/wholesale word, no counted quantity) is not a quote request: "What is the Vanta Arc Trainer made of?" shares a noun with an rfq example, nothing more.
+  // It is read as a plain message and falls through to the product and question roads.
+  if (id === "rfq.request" && text != null && !RFQ_CUES.test(String(text ?? "")) && !hasCount(text)) id = "GENERAL";
   const conf = decided?.intent?.confidence ?? 0;
   const cat = gates?.answers?.category;
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
@@ -55,7 +62,7 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
   // a quote asked for a counted product ("could you quote 25 Vanta Arc Trainers", "quote 20 ... same as my order JP-1008") is an RFQ even when Scout read a plain order question;
   // the count is a number that is not part of an order id, and it is checked before the delivery road
-  const counted = /(?<![\w.-])\d[\d,]*(?![\w-])/.test(String(text ?? "").replace(/\bJP-\d{4}\b/gi, " "));
+  const counted = hasCount(text);
   if ((id === "order.question" || id === "GENERAL") && QUOTE_WORDS.test(String(text ?? "")) && productHit && counted) return { scenario: "rfq", how: "scout" };
   // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order").
   // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.

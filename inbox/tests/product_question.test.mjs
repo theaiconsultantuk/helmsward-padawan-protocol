@@ -17,7 +17,7 @@ test("s05: the material sentence comes from the row, sent on behalf of the Produ
   assert.equal(o.status, "handled");
   assert.equal(o.team, "Product");
   assert.ok(o.cited_rows.includes("products:FS-B03"));
-  assert.ok(o.draft.text.includes("The Sovereign Arc Duellist is made of tempered duralloy twin-core, hand-wrapped nerf-leather grip."), o.draft.text);
+  assert.ok(o.draft.text.includes("The Sovereign Arc Duellist is made of brass and blackened steel."), o.draft.text);
   assert.ok(o.draft.text.endsWith("Best regards,\nJedi Pack Product team\nSent automatically on behalf of the Product team."), o.draft.text);
   assert.equal(o.draft.model, "catalogue/row");
   // no model was asked: every nvidia.model line of the branch is skipped, the Risk sign-off ran on the draft
@@ -42,10 +42,10 @@ test("a product named only by an alias is found, and the price comes from the ro
 });
 
 test("a spec key asked by name is read from the specs column", async () => {
-  const w = await ask("What is the weight of the Sovereign Arc Duellist?");
-  assert.match(w.result.output.draft.text, /The Sovereign Arc Duellist weight is 640 g\./);
-  const l = await ask("What is the length of the Sovereign Arc Duellist?");
-  assert.match(l.result.output.draft.text, /The Sovereign Arc Duellist length is 104 cm\./);
+  const w = await ask("What is the length of the Strand Emitter Hilt?");
+  assert.match(w.result.output.draft.text, /The Strand Emitter Hilt length is 26 cm, 410 g\./);
+  const l = await ask("What is the core of the Sovereign Arc Duellist?");
+  assert.match(l.result.output.draft.text, /The Sovereign Arc Duellist core is smooth-swing sound board, 24 colours, ignition flicker\./);
 });
 
 test("price and lead time in one question are both answered from the row", async () => {
