@@ -1,0 +1,22 @@
+[
+  {
+    "params": {
+      "topic": "default"
+    },
+    "result": {
+      "headers": [
+        "topic",
+        "email",
+        "label"
+      ],
+      "rows": [
+        [
+          "default",
+          "contact@jedipack.com",
+          "Jedi Pack contact desk"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]

@@ -26,6 +26,7 @@ for (const c of TOPICS) { want("policy", { topic: c }); want("responsibility", {
 for (const w of ["refund", "replacement", "leave"]) want("wiki", { wiki: w });
 for (const t of TABLES) want("table_count", { table: t });
 want("decision_counts", {});
+want("contact", { topic: "default" });
 want("faq", {}); want("products", {}); want("reviews", {}); want("world_threads", {}); want("holidays", {});
 for (let i = 1; i <= 10; i++) want("product_price", { product_id: "P" + String(i).padStart(2, "0") });
 want("thread_fingerprints", {});

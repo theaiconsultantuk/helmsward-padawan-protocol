@@ -12,7 +12,7 @@ export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
   "threads_parquet", "threads_json", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
-  "products", "faq", "intake_runtime",
+  "products", "faq", "intake_runtime", "contacts",
 ];
 // The Unified Semantic Layer (USL) Zetaris compiles over JEDI_PACK: live views, same facts. Scenario routes and the World Model read it;
 // the legacy thread road keeps the raw JEDI_PACK tables.
@@ -27,6 +27,7 @@ const V = {
   employee_id: (v) => (typeof v === "number" || (typeof v === "string" && /^\d{1,3}$/.test(v))) && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200,
   category: (v) => CATEGORIES.includes(v),
   topic: (v) => TOPICS.includes(v),
+  contact_topic: (v) => v === "default" || TOPICS.includes(v),
   date: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
   intent: (v) => INTENTS.includes(v),
   wiki: (v) => Object.keys(WIKI_TABLE).includes(v),
@@ -66,6 +67,13 @@ export const TEMPLATES = {
     params: { employee_id: V.employee_id, date: V.date }, cacheable: true, question: "is the employee out on the date",
     sql: (p) => `SELECT * FROM JEDI_PACK.holiday_2026 WHERE employee_id = ${id(p)} AND date = '${p.date}'`,
     cite: (p, o) => o.map((x) => `holiday_2026:${x.employee_id}@${x.date}`),
+  },
+  // The default contact desk: a raw table (no USL view), read only when nobody on the owner chain is in.
+  contact: {
+    params: { topic: V.contact_topic }, cacheable: true, question: "the contact desk for the topic",
+    sql: (p) => `SELECT * FROM JEDI_PACK.contacts WHERE topic = '${p.topic}'`,
+    cite: (p, o) => o.map((x) => `contacts:${x.topic}`),
+    detail: (p, o) => o.map((x) => `${x.label} \u00b7 ${x.email}`).join("; "),
   },
   category: {
     params: { category: V.category }, cacheable: true, question: "the category label",
@@ -282,7 +290,7 @@ export function parseRestricted(preview) {
 const todayLondon = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/London" });
 const OTHER_WEIGHT = 0.4, DEFAULT_FLOOR = 0.8; // rfq / customer_service / billing have no trust row: the "other" row's weight, the default floor
 
-export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published } = {}) {
+export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published, needs } = {}) {
   const o = { trace, cfg, ...(sqlRunImpl ? { sqlRunImpl } : {}) };
   const intake = ticketSource === "intake";
   let ticket, cited;
@@ -304,43 +312,66 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   if (intake && amountOpt != null && Number.isFinite(Number(amountOpt))) { amount = Number(amountOpt); cited.push("amount from the message"); }
   const topic = TOPICS.includes(ticket.category) ? ticket.category : "question";
 
-  const pol = (await run("policy", { topic }, o)).objects[0];
-  const resp = (await run("responsibility", { topic }, o)).objects[0];
-  let limit = pol ? Number(pol.limit_amount) : null;
   const valid = (n) => Number.isInteger(n) && n >= 1 && n <= 200;
   const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+  const scoped = Array.isArray(needs);
+  const wantLimit = scoped && needs.includes("limit");
   const notes = [];
-  let owner = null, backup = null, how = "";
-  if (pol) {
-    cited.push(`policy:${topic}`);
-  } else {
-    // a category with no policy row of its own is measured against the refund limit
-    const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
-    if (ref) { limit = Number(ref.limit_amount); cited.push("policy:refund"); }
-  }
-  const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
-  if (valid(tOwner) && valid(tBackup)) {
-    owner = tOwner; backup = tBackup; how = "named on the ticket";
-  } else if (pol) {
-    const over = amount != null && amount > limit;
-    owner = num(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
-    backup = num(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
-    how = `${over ? "over" : "under"} the ${topic} limit ${limit} (policy:${topic})`;
-  } else if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
-    cited.push(`responsibility:${topic}`);
-    owner = num(resp.owner_id); backup = num(resp.backup_id); how = `responsibility:${topic}`;
-  } else {
-    let gen = null;
-    for (const t of ["general", "support"]) {
-      const r = (await run("responsibility", { topic: t }, o).catch(() => ({ objects: [] }))).objects[0];
-      if (r && valid(num(r.owner_id)) && valid(num(r.backup_id))) { gen = r; cited.push(`responsibility:${t}`); how = `responsibility:${t} (no row for ${topic})`; break; }
+  let owner = null, backup = null, how = "", limit = null;
+  if (scoped) {
+    // Scoped gather: only the facts the scenario declared. No policy read unless it needs the limit; no general/support or refund-policy fallback.
+    const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
+    const pol = wantLimit ? (await run("policy", { topic }, o)).objects[0] : undefined;
+    if (pol) { limit = Number(pol.limit_amount); cited.push(`policy:${topic}`); }
+    if (valid(tOwner) && valid(tBackup)) {
+      owner = tOwner; backup = tBackup; how = "named on the ticket";
+    } else if (pol && valid(num(pol.under_limit_owner_id))) {
+      const over = amount != null && amount > limit;
+      owner = num(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
+      backup = num(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
+      how = `${over ? "over" : "under"} the ${topic} limit ${limit} (policy:${topic})`;
+    } else {
+      const resp = (await run("responsibility", { topic }, o)).objects[0];
+      if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
+        cited.push(`responsibility:${topic}`);
+        owner = num(resp.owner_id); backup = num(resp.backup_id); how = `responsibility:${topic}`;
+      }
     }
-    if (gen) { owner = num(gen.owner_id); backup = num(gen.backup_id); }
-    else {
+  } else {
+    const pol = (await run("policy", { topic }, o)).objects[0];
+    const resp = (await run("responsibility", { topic }, o)).objects[0];
+    limit = pol ? Number(pol.limit_amount) : null;
+    if (pol) {
+      cited.push(`policy:${topic}`);
+    } else {
+      // a category with no policy row of its own is measured against the refund limit
       const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
-      if (ref && valid(num(ref.under_limit_owner_id)) && valid(num(ref.under_limit_backup_id))) {
-        owner = num(ref.under_limit_owner_id); backup = num(ref.under_limit_backup_id);
-        cited.push("responsibility:fallback"); how = `the refund policy's under-limit owners (no row for ${topic})`;
+      if (ref) { limit = Number(ref.limit_amount); cited.push("policy:refund"); }
+    }
+    const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
+    if (valid(tOwner) && valid(tBackup)) {
+      owner = tOwner; backup = tBackup; how = "named on the ticket";
+    } else if (pol) {
+      const over = amount != null && amount > limit;
+      owner = num(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
+      backup = num(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
+      how = `${over ? "over" : "under"} the ${topic} limit ${limit} (policy:${topic})`;
+    } else if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
+      cited.push(`responsibility:${topic}`);
+      owner = num(resp.owner_id); backup = num(resp.backup_id); how = `responsibility:${topic}`;
+    } else {
+      let gen = null;
+      for (const t of ["general", "support"]) {
+        const r = (await run("responsibility", { topic: t }, o).catch(() => ({ objects: [] }))).objects[0];
+        if (r && valid(num(r.owner_id)) && valid(num(r.backup_id))) { gen = r; cited.push(`responsibility:${t}`); how = `responsibility:${t} (no row for ${topic})`; break; }
+      }
+      if (gen) { owner = num(gen.owner_id); backup = num(gen.backup_id); }
+      else {
+        const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
+        if (ref && valid(num(ref.under_limit_owner_id)) && valid(num(ref.under_limit_backup_id))) {
+          owner = num(ref.under_limit_owner_id); backup = num(ref.under_limit_backup_id);
+          cited.push("responsibility:fallback"); how = `the refund policy's under-limit owners (no row for ${topic})`;
+        }
       }
     }
   }
@@ -350,20 +381,42 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
 
   const day = as_of ?? (intake ? todayLondon() : String(ticket.received_at).slice(0, 10));
   const none = { out: false };
-  let ownerAv, backupAv;
-  if (intake) {
-    // parameterless holidays read, filtered in JS on the date
-    const hol = (await run("holidays", {}, o)).objects.filter((h) => h.date === day);
-    const avail = (e) => (e == null ? none : { out: hol.some((h) => Number(h.employee_id) === e) });
-    ownerAv = avail(owner); backupAv = avail(backup);
+  let ownerAv, backupAv, emps;
+  const nobodyIn = () => ownerAv.out && (backup == null || backupAv.out);
+  let contactCite = null, fallback_contact = null;
+  const readContact = async () => {
+    try {
+      const c = (await run("contact", { topic: "default" }, { ...o, why: `default contact: owner ${owner} and backup ${backup} both out on ${day}` })).objects[0];
+      if (c) { fallback_contact = { email: c.email, label: c.label, cited: "contacts:default" }; contactCite = "contacts:default"; }
+    } catch { fallback_contact = null; } // run() already traced the error line; the escalation falls back to the owner/backup form
+  };
+  if (scoped) {
+    // lazy, per employee, never the whole holidays table: owner first, the backup only when the owner is out
+    ownerAv = owner == null ? none : await employeeAvailability(owner, day, { ...o, why: `owner for ${topic}: ${how}` });
+    if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
+    backupAv = ownerAv.out && backup != null ? await employeeAvailability(backup, day, { ...o, why: `backup: owner ${owner} out on ${day}` }) : none;
+    if (ownerAv.out && backup != null) cited.push(`holiday_2026:${backup}@${day}`);
+    emps = [owner == null ? { objects: [] } : await run("employee", { employee_id: owner }, { ...o, why: `owner for ${topic}: ${how}` }),
+      ownerAv.out && backup != null ? await run("employee", { employee_id: backup }, { ...o, why: `backup: owner ${owner} out on ${day}` }) : { objects: [] }];
+    for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
+    if (nobodyIn()) await readContact();
   } else {
-    ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
-    backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+    if (intake) {
+      // parameterless holidays read, filtered in JS on the date
+      const hol = (await run("holidays", {}, o)).objects.filter((h) => h.date === day);
+      const avail = (e) => (e == null ? none : { out: hol.some((h) => Number(h.employee_id) === e) });
+      ownerAv = avail(owner); backupAv = avail(backup);
+    } else {
+      ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
+      backupAv = backup == null ? none : await employeeAvailability(backup, day, o);
+    }
+    if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
+    if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
+    emps = await Promise.all([owner, backup].map((e, i) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, { ...o, why: `${i ? "backup" : "owner"} for ${topic}: ${how}` }))));
+    for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
+    // einh's pick B (24 Oct): a stored thread with nobody in reads the default contact too, after the employee reads and before the trust row
+    if (nobodyIn()) await readContact();
   }
-  if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
-  if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
-  const emps = await Promise.all([owner, backup].map((e, i) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, { ...o, why: `${i ? "backup" : "owner"} for ${topic}: ${how}` }))));
-  for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 
   let weight = intake ? OTHER_WEIGHT : 0, floor = intake ? DEFAULT_FLOOR : 0.8;
@@ -380,10 +433,12 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
     if (restricted.length) cited.push("wiki_what_may_leave");
   } catch { restricted = []; disclosure_unknown = true; } // run() already traced the error line
 
+  if (contactCite) cited.push(contactCite);
+
   return {
     thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
-    owner_out: ownerAv.out, backup_out: backupAv.out, // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send
+    owner_out: ownerAv.out, backup_out: backupAv.out, fallback_contact, // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send
     may_leave: intake || ticket.may_leave === true || ticket.may_leave === "true",
     restricted_terms: restricted, disclosure_unknown, cited_rows: cited, notes, received_at: ticket.received_at, as_of: day,
     subject: ticket.subject, body: ticket.body, sender_name: ticket.sender_name, sender_email: ticket.sender_email,
