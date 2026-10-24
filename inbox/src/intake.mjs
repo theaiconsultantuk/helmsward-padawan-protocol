@@ -13,6 +13,17 @@ const EMAIL = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
 const path = (dir) => join(dir, INTAKE_FILE);
 const line = (r) => INTAKE_HEADER.map((h) => q(r[h])).join(",");
 
+// The runtime intake refunds the SQL (prior_refunds, second branch) counts: same sender (case-insensitive), a DIFFERENT thread, received STRICTLY
+// BEFORE this one, category or scenario refund. Rows come back as [thread_id, received_at, "intake_runtime"], oldest first. Pure over `rows`.
+export function intakeRefundRows(rows, { email, thread_id, received_at } = {}) {
+  const at = Date.parse(received_at);
+  return (rows ?? [])
+    .filter((r) => (r.category === "refund" || r.scenario === "refund") && String(r.sender_email ?? "").toLowerCase() === String(email ?? "").toLowerCase()
+      && r.thread_id !== thread_id && Date.parse(r.received_at) < at)
+    .sort((a, b) => Date.parse(a.received_at) - Date.parse(b.received_at) || (a.thread_id < b.thread_id ? -1 : a.thread_id > b.thread_id ? 1 : 0))
+    .map((r) => [String(r.thread_id), String(r.received_at), INTAKE_TABLE]);
+}
+
 export function readIntake({ runtimeDir = RUNTIME_DIR } = {}) {
   return existsSync(path(runtimeDir)) ? parseCsv(readFileSync(path(runtimeDir), "utf8")) : [];
 }

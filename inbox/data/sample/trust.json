@@ -23,6 +23,28 @@
   },
   {
     "params": {
+      "category": "billing"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "billing",
+          "0.4",
+          "0.8",
+          "seed-billing"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "category": "complaint"
     },
     "result": {
@@ -38,6 +60,116 @@
           "0.62",
           "0.8",
           "seed-complaint"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "customer_service"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "customer_service",
+          "0.4",
+          "0.8",
+          "seed-customer_service"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "delivery"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "delivery",
+          "0.85",
+          "0.8",
+          "seed-delivery"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "legal"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "legal",
+          "0.2",
+          "0.8",
+          "seed-legal"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "other"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "other",
+          "0.4",
+          "0.8",
+          "seed-other"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "product"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "product",
+          "0.71",
+          "0.8",
+          "seed-product"
         ]
       ],
       "total": 1
@@ -98,8 +230,37 @@
         "floor",
         "source_id"
       ],
-      "rows": [],
-      "total": 0
+      "rows": [
+        [
+          "replacement",
+          "0.5",
+          "0.8",
+          "seed-replacement"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "category": "rfq"
+    },
+    "result": {
+      "headers": [
+        "category",
+        "weight",
+        "floor",
+        "source_id"
+      ],
+      "rows": [
+        [
+          "rfq",
+          "0.4",
+          "0.8",
+          "seed-rfq"
+        ]
+      ],
+      "total": 1
     }
   }
 ]

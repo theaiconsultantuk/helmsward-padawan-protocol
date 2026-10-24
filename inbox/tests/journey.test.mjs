@@ -132,9 +132,9 @@ test("blank markers are extracted from the draft", () => {
 });
 
 test("queued_for owner fields and attachments map into reply.to", () => {
-  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, owner_name: "Tomas Keller", role: "rfq owner", attachments: ["products:P03", { id: "faq:Q01" }] } } });
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, owner_name: "Tomas Keller", role: "rfq owner", attachments: ["products:FS-C01", { id: "faq:Q01" }] } } });
   assert.deepEqual(r.to, { employee_id: 6, name: "Tomas Keller", role: "rfq owner" });
-  assert.deepEqual(r.attachments, ["products:P03", "faq:Q01"]);
+  assert.deepEqual(r.attachments, ["products:FS-C01", "faq:Q01"]);
   assert.equal(r.kind, "escalation");
 });
 
@@ -171,14 +171,14 @@ test("a malformed fallback contact is ignored and never throws", () => {
 });
 
 test("object attachments contribute their cited id strings", () => {
-  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ product_id: "P01" }], quantities: [100], cited: ["products:P01"] } } } });
-  assert.deepEqual(r.attachments, ["products:P01"]);
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ sku: "FS-B01" }], quantities: [100], cited: ["products:FS-B01"] } } } });
+  assert.deepEqual(r.attachments, ["products:FS-B01"]);
 });
 
 // ---- S5.3 review fixes (16, 18, 19) ----
 test("(16) an over-limit approval names the approver, not the owner, in reply.to and reached_human.who", () => {
   const result = { run_id: "syn", output: { decision: "escalate", draft: { text: "d" }, queued_for: {
-    owner_id: "E1", owner_name: "Away Owner", queue_file: "/q/x.json", approval: { approver_id: "E9", approver_name: "Backup Boss", amount_usd: 900, limit_usd: 500 } } } };
+    owner_id: "E1", owner_name: "Away Owner", queue_file: "/q/x.json", approval: { approver_id: "E9", approver_name: "Backup Boss", amount: 900, limit: 500 } } } };
   const lines = [{ step: "escalate_or_fallback", status: "success", output_summary: "escalated; both critiques stored" }];
   const j = deriveJourney(result, lines);
   assert.equal(j.human.reply.to.employee_id, "E9");
@@ -214,4 +214,136 @@ test("(19) the world line's 'ids: none' sentinel gives consulted []", () => {
   const lines = [{ step: "nvidia.model", action: "world_context", output_summary: "5 entities, 3 relationships; customer none: 0 earlier threads; ids: none", status: "success" }];
   const j = deriveJourney({ run_id: "syn", output: {} }, lines);
   assert.deepEqual(j.nodes[0].consulted, []);
+});
+
+// ---- S3.1: timing, tech, returned, top-level queue fields ----
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { config } from "../src/config.mjs";
+import { runTicket } from "../src/loop.mjs";
+import { techOf } from "../src/journey.mjs";
+
+const THREAD_IDS = readFileSync(`${ROOT}data/synthetic/threads/threads.jsonl`, "utf8")
+  .split("\n").filter(Boolean).map((l) => JSON.parse(l).thread_id).slice(0, 24);
+async function sampleRun(id) {
+  const d = { logsDir: mkdtempSync(join(tmpdir(), "jny-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "jny-mem-")), quiet: true };
+  const run_id = `jny-${id}`;
+  const result = await runTicket(id, { run_id, cfg: { ...config(), SAMPLE_MODE: "true" }, deps: d });
+  const lines = readFileSync(join(d.logsDir, `trace-${run_id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  return { result, lines };
+}
+
+test("invariant sweep: all 24 threads in sample mode, every node has a known tech, duration_ms >= 0, top-level fields present", async () => {
+  assert.equal(THREAD_IDS.length, 24);
+  for (const id of THREAD_IDS) {
+    const { result, lines } = await sampleRun(id);
+    const j = deriveJourney(result, lines);
+    assert.equal(j.nodes.length, lines.length, id);
+    for (const n of j.nodes) {
+      assert.notEqual(n.tech, "unknown", `${id} node ${n.n} ${n.step}`);
+      assert.ok(typeof n.duration_ms === "number" && n.duration_ms >= 0, `${id} node ${n.n}`);
+      if (n.tech === "Zetaris") assert.ok(n.returned === null || Array.isArray(n.returned), `${id} node ${n.n}`);
+    }
+    for (const k of ["team", "team_label", "topic_label", "cc", "also", "status", "auto_reply", "memory_note", "channel_label", "trusted_to_send"]) {
+      assert.ok(k in j, `${id} missing ${k}`);
+    }
+    assert.equal(typeof j.trusted_to_send, "boolean");
+    assert.equal(typeof j.auto_reply, "boolean");
+    assert.ok(Array.isArray(j.cc) && Array.isArray(j.also));
+    assert.equal(j.status, result.output.status, id);
+    // returned holds only cited hits
+    for (const n of j.nodes) {
+      if (n.tech !== "Zetaris" || !n.returned) continue;
+      for (const r of n.returned) assert.ok(result.output.cited_rows.includes(r.id) || JSON.stringify(result).includes(r.id), `${id}: ${r.id}`);
+    }
+  }
+});
+
+test("tech is read from the line's own step, agent, sponsor, model and gate_source, never guessed", () => {
+  assert.equal(techOf({ sponsor: "zetaris" }), "Zetaris");
+  assert.equal(techOf({ step: "meterless.engine", sponsor: "meterless", agent_name: "Scout" }), "Meterless (Scout contract)");
+  assert.equal(techOf({ step: "meterless.engine", sponsor: "meterless", agent_name: "WorldModel" }), "Meterless (World Model)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "nemotron-x", agent_name: "Drafter" }), "Nightshift (nemotron-x)");
+  assert.equal(techOf({ model: "nemotron-x", agent_name: "Evaluator" }), "Nightshift (nemotron-x)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "openjev-0.1 (openjev-0.1)", gate_source: "openjev", agent_name: "Severity" }), "OpenJev (openjev-0.1)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "rules", gate_source: "rules", agent_name: "Severity" }), "rules");
+  assert.equal(techOf({ step: "risk.signoff", sponsor: "meterless", agent_name: "Risk" }), "rules");
+  assert.equal(techOf({ sponsor: "nvidia", model: "sample/rules", agent_name: "Drafter" }), "rules");
+  assert.equal(techOf({ agent_name: "Memory", step: "memory.read" }), "H-MEM");
+  assert.equal(techOf({ agent_name: "Planner", step: "branch" }), "rules");
+  assert.equal(techOf({ step: "nvidia.model", agent_name: "Drafter", status: "skipped" }), "not run");
+  assert.equal(techOf({ step: "branch" }), "unknown");
+  assert.equal(techOf(null), "unknown");
+});
+
+test("every label on a real live trace (jedi.blastworks.ai, 24 Oct): Nemotron is Nightshift, the Scout contract and World Model are the Meterless engine, OpenJev only for the openjev gate", () => {
+  const { lines } = JSON.parse(readFileSync(new URL("./fixtures/live_trace_tech.json", import.meta.url), "utf8"));
+  // pinned by hand from what each step is, keyed step|agent|skipped
+  const want = {
+    "memory.read|Memory|": "H-MEM", "memory.write|Memory|": "H-MEM",
+    "planner.plan|Planner|": "rules", "delegate|Planner|": "rules", "branch|Planner|": "rules", "synthesis|Planner|": "rules",
+    "retry|Planner|skipped": "not run", "recovery|Planner|skipped": "not run",
+    "zetaris.query|Executor|": "Zetaris", "zetaris.query|Scout|": "Zetaris", "executor.act|Executor|": "Zetaris",
+    "meterless.engine|Scout|": "Meterless (Scout contract)", "meterless.engine|WorldModel|": "Meterless (World Model)",
+    "nvidia.model|Gates|": "OpenJev (openjev-0.1)",
+    "nvidia.model|Drafter|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|RefundReader|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|Recommender|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "critique|Evaluator|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|Drafter|skipped": "not run", "critique|Evaluator|skipped": "not run",
+    "risk.signoff|Risk|": "rules", "risk.signoff|Risk|skipped": "not run",
+    "escalate_or_fallback|Escalator|": "rules", "escalate_or_fallback|Escalator|skipped": "not run",
+  };
+  assert.ok(lines.length >= 20, "the fixture holds the live lines");
+  for (const l of lines) {
+    const k = `${l.step}|${l.agent_name}|${l.status === "skipped" ? "skipped" : ""}`;
+    assert.ok(k in want, `a live line kind with no pinned label: ${k}`);
+    assert.equal(techOf(l), want[k], k);
+  }
+});
+
+test("a Zetaris node returns only the hit row with its key fields; a model node returns its reply as recorded; a skipped node returns null", () => {
+  const z = { step: "zetaris.query", agent_name: "Executor", action: "sql:faq", input_summary: "the faq", output_summary: "3 rows: faq:Q01, faq:Q02, faq:Q03", status: "success", sponsor: "zetaris", timestamp: "2026-10-24T10:00:00.250Z", duration_ms: 250 };
+  const m = { step: "nvidia.model", agent_name: "Drafter", action: "draft_reply", input_summary: "round 1", output_summary: "Hello, seven days.", status: "success", sponsor: "nvidia", model: "nemotron-x", timestamp: "2026-10-24T10:00:01.000Z" };
+  const s = { ...m, status: "skipped", output_summary: "not called" };
+  const j = deriveJourney({ run_id: "r", output: { decision: "send", cited_rows: ["faq:Q02"] } }, [z, m, s]);
+  assert.deepEqual(j.nodes[0].returned, [{ id: "faq:Q02", table: "faq", key: "Q02" }]);
+  assert.equal(j.nodes[0].tech, "Zetaris");
+  assert.equal(j.nodes[0].duration_ms, 250);
+  assert.equal(j.nodes[1].returned, "Hello, seven days.");
+  assert.equal(j.nodes[1].tech, "Nightshift (nemotron-x)");
+  assert.equal(j.nodes[1].duration_ms, 750, "older trace without duration_ms: gap to the previous timestamp");
+  assert.equal(j.nodes[2].returned, null);
+});
+
+test("pairing with the stored example traces is tolerant of second vs millisecond timestamp precision", () => {
+  // judging/traces are regenerated later; until then they carry whole-second timestamps and no duration_ms, so the pairing
+  // asserts on run_id and node shape, never on the timestamp format.
+  for (const { result, lines } of cases) {
+    const j = deriveJourney(result, lines);
+    assert.equal(j.run_id, lines[0].run_id);
+    for (const [i, n] of j.nodes.entries()) {
+      assert.match(n.timestamp, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{3})?Z$/);
+      assert.ok(n.duration_ms === null || n.duration_ms >= 0);
+      assert.notEqual(n.tech, "unknown", `node ${i + 1}`);
+    }
+  }
+});
+
+test("FAQ question in sample mode: the faq node's returned is exactly the hit row, the scanned rows are not listed", async () => {
+  const d = { logsDir: mkdtempSync(join(tmpdir(), "jny-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "jny-mem-")), runtimeDir: mkdtempSync(join(tmpdir(), "jny-run-")), quiet: true };
+  const input = { message: "What is your returns and refund policy?", from: "new.customer@example.com", name: "Rey Kanata", channel: "chat", as_of: "2026-10-20" };
+  const result = await runTicket(null, { run_id: "jny-faq", cfg: { ...config(), SAMPLE_MODE: "true" }, as_of: input.as_of, input, deps: d });
+  const lines = readFileSync(join(d.logsDir, "trace-jny-faq.jsonl"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  assert.equal(result.branch_id, "faq-hit");
+  const j = deriveJourney(result, lines);
+  const node = j.nodes.find((n) => n.step === "zetaris.query" && n.action === undefined && /faq/.test(n.label)) ?? j.nodes.find((n) => n.label === "Zetaris: the FAQ");
+  assert.ok(node, "a faq node exists");
+  assert.ok(node.consulted.length > 1, "several faq rows were read");
+  const hit = result.output.cited_rows.filter((id) => id.startsWith("faq:"));
+  assert.equal(hit.length, 1);
+  assert.deepEqual(node.returned.map((r) => r.id), hit);
+  assert.equal(node.returned[0].table, "faq");
+  assert.equal(node.tech, "Zetaris");
 });

@@ -22,41 +22,41 @@ A message declared or classified as a complaint makes the loop ask the World Mod
 
 ## Tests
 
-Real run, 2026-10-24 08:21:33 (Europe/Brussels): `node --test` on the four files.
+Real run, 2026-10-24 20:19:59 (Europe/Brussels): `node --test` on the four files.
 
 | File | Tests | Pass | Fail | Skipped |
 |---|---|---|---|---|
 | `tests/world.test.mjs` | 10 | 10 | 0 | 0 |
-| `tests/world_model_bundle.test.mjs` | 1 | 0 | 0 | 1 |
-| `tests/world_model_conformance.test.mjs` | 1 | 0 | 0 | 1 |
-| `tests/complaint_route.test.mjs` | 5 | 5 | 0 | 0 |
+| `tests/world_model_bundle.test.mjs` | 1 | 1 | 0 | 0 |
+| `tests/world_model_conformance.test.mjs` | 1 | 1 | 0 | 0 |
+| `tests/complaint_route.test.mjs` | 6 | 6 | 0 | 0 |
 
-Combined run: 17 tests, 15 pass, 0 fail, 2 skipped, exit 0. The bundle and conformance tests skip themselves when esbuild or tsx is not on disk (the clean-clone image), and say so.
+Combined run: 18 tests, 18 pass, 0 fail, 0 skipped, exit 0. The bundle and conformance tests skip themselves when esbuild or tsx is not on disk (the clean-clone image), and say so.
 
 ## Conformance
 
 The Meterless conformance runner scores 8/8 on the reference TypeScript and 8/8 on our committed bundle. The scorecards are in [engine-world-model-conformance.md](engine-world-model-conformance.md).
 
-## Live trace: example 8
+## Trace: example 8, sample (the live leg was skipped: no live config)
 
-Trace: `judging/traces/trace-scenario-8-live.jsonl`. Input: Tilda Moss (`tilda.moss@example.com`) writes about the second saber whose hilt split and cut her son, a public review and a lawyer. Live decision `escalate`, branch `complaint-severe`; sample decision `escalate`, branch `complaint-severe`.
+Trace: `judging/traces/trace-scenario-8-sample.jsonl`. Input: Tilda Moss (`tilda.moss@example.com`) writes about the second saber whose hilt split and cut her son, a public review and a lawyer. Shown run decision `escalate`, branch `complaint-legal`; sample decision `escalate`, branch `complaint-legal`.
 
 The `world_context` line, verbatim:
 
 ```json
-{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and P01, P02","output_summary":"211 entities, 199 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product P01: 0 complaints, P02: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:P01,fact_e1ebf87d9f9ca986,product:jedi:P02,fact_c65a7d3bad61b045","status":"success","branch_id":"complaint-severe","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"],"sponsor":"meterless"}
+{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"meterless.engine","agent_name":"WorldModel","action":"world_context","input_summary":"history of tilda.moss@example.com and FS-A07","output_summary":"250 entities, 221 relationships; customer customer:email:tilda.moss@example.com: 3 earlier threads, 0 complaints, public no; product FS-A07: 0 complaints; ids: customer:email:tilda.moss@example.com,thread:jedi:T11,thread:jedi:T24,thread:jedi:T14,fact_7f40a4af1de84630,fact_5cd1152f7c761dab,product:jedi:FS-A07,fact_69c3bf75aaaf9511","status":"success","branch_id":"complaint-legal","memory_ids":["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:FS-A07","fact_69c3bf75aaaf9511"],"sponsor":"meterless"}
 ```
 
-Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:P01","fact_e1ebf87d9f9ca986","product:jedi:P02","fact_c65a7d3bad61b045"]`.
+Its `memory_ids`: `["customer:email:tilda.moss@example.com","thread:jedi:T11","thread:jedi:T24","thread:jedi:T14","fact_7f40a4af1de84630","fact_5cd1152f7c761dab","product:jedi:FS-A07","fact_69c3bf75aaaf9511"]`.
 
 ## OpenJev severity: ten levels
 
-The live severity gate asks OpenJev one `score` question with ten levels (1 to 10), because OpenJev accepts at most ten score levels. The score is an expected index, so severity = round(score) + 1. Escalation is at 9 or above. The live `severity_gate` line from example 8; its `output_summary` carries the integer, the raw float, the confidence and the source:
+The severity gate asks OpenJev one `score` question with ten levels (1 to 10), because OpenJev accepts at most ten score levels. The score is an expected index, so severity = round(score) + 1. Escalation is at 9 or above. The `severity_gate` line from example 8 (live when configured, else sample); its `output_summary` carries the integer, the raw float, the confidence and the source:
 
 ```json
-{"timestamp":"2026-10-24T06:20:06Z","run_id":"scenario-8-live","trace_id":"scenario-8-live","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F30","output_summary":"severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev","status":"success","model":"openjev-0.1 (openjev-0.1)","confidence":0.9859017201146587,"branch_id":"complaint-severe","sponsor":"nvidia","gate_source":"openjev"}
+{"timestamp":"2026-10-24T18:19:59.525Z","duration_ms":0,"elapsed_ms":4,"run_id":"scenario-8-sample","trace_id":"scenario-8-sample","step":"nvidia.model","agent_name":"Severity","action":"severity_gate","input_summary":"severity for F5","output_summary":"sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules","status":"skipped","model":"rules","confidence":0.5,"branch_id":"complaint-legal","sponsor":"nvidia","gate_source":"rules"}
 ```
 
-Reading: `severity 10 (10 legal or safety), raw 8.97745735813771, confidence 0.9859017201146587, source openjev`.
+Reading: `sample mode, OpenJev not called; severity by code rules (sample.severity): severity 10 (10 legal or safety), raw n/a, confidence 0.5, source rules`.
 
-See also [scenarios.md](scenarios.md) for all five examples live and in sample mode.
+See also [scenarios.md](scenarios.md) for examples 4 to 8 and 10 to 23 live and in sample mode.

@@ -14,8 +14,8 @@
       "trust_ledger:complaint",
       "wiki_what_may_leave",
       "world_threads",
-      "products:P01",
-      "products:P02"
+      "products:FS-B01",
+      "products:FS-B02"
     ],
     "recommendation": "A person should own this, repair the failure and answer the customer directly.",
     "draft": {
@@ -44,9 +44,9 @@
           "thread:jedi:T14",
           "fact_7f40a4af1de84630",
           "fact_5cd1152f7c761dab",
-          "product:jedi:P01",
+          "product:jedi:FS-B01",
           "fact_e1ebf87d9f9ca986",
-          "product:jedi:P02",
+          "product:jedi:FS-B02",
           "fact_c65a7d3bad61b045"
         ]
       },

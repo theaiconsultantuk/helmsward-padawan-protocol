@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // The refund chain: one customer, two free-text refund requests, processed one after the other through the real loop.
-// Step 1 (22 Oct): Cass Holm asks for 40 USD, under the 150 USD limit. Refund weight sits under the trust floor, so the
+// Step 1 (22 Oct): Cass Holm asks for 40 GC, under the 150 GC limit. Refund weight sits under the trust floor, so the
 //   draft is held for a person; on that day the under-limit owner (employee 15) is on holiday and the backup (16) is in.
-// Step 2 (27 Oct): the same customer asks for 400 USD, over the limit. Risk refuses the draft, the ticket is escalated to
+// Step 2 (27 Oct): the same customer asks for 400 GC, over the limit. Risk refuses the draft, the ticket is escalated to
 //   the policy's over-limit approver with the draft attached, and H-MEM has read step 1's memory first.
 // Every invocation runs in its own namespace (memory folder, run ids, trace files) so two invocations never erase or mix
 // each other's evidence; the judging copies get stable names only after both steps completed (Codex review, 23 Oct).
@@ -21,10 +21,10 @@ import { mask } from "../src/trace.mjs";
 const CHAIN = {
   customer: { name: "Cass Holm", from: "cass.holm@example.com", channel: "contact-form", scenario: "refund" },
   steps: [
-    { n: 1, label: "40 USD, under the limit; the owner is on holiday", as_of: "2026-10-22",
-      subject: "Refund for order JP-1187", message: "I would like a refund of 40 USD for order JP-1187. The case arrived damaged." },
-    { n: 2, label: "400 USD, over the limit; the same customer", as_of: "2026-10-27",
-      subject: "Refund for order JP-1190", message: "I want a refund of 400 USD for order JP-1190. The case never arrived." },
+    { n: 1, label: "40 GC, under the limit; the owner is on holiday", as_of: "2026-10-22",
+      subject: "Refund for order JP-1187", message: "I would like a refund of 40 GC for order JP-1187. The case arrived damaged." },
+    { n: 2, label: "400 GC, over the limit; the same customer", as_of: "2026-10-27",
+      subject: "Refund for order JP-1190", message: "I want a refund of 400 GC for order JP-1190. The case never arrived." },
   ],
 };
 
@@ -135,7 +135,7 @@ export function renderReport(c) {
     `| risk.signoff | ${a.rec.risk} | ${b.rec.risk} |`,
     `| escalate_or_fallback | ${a.rec.exit} | ${b.rec.exit} |`,
     `| queue file | ${a.rec.queued_for?.queue_file ?? "none"} | ${b.rec.queued_for?.queue_file ?? "none"} |`,
-    `| approval | ${a.rec.queued_for?.approval ? JSON.stringify(a.rec.queued_for.approval) : "none"} | ${appr ? `${appr.amount_usd} USD over the ${appr.limit_usd} USD limit, approver ${appr.approver_name ?? appr.approver_id} (employee ${appr.approver_id})` : "none"} |`,
+    `| approval | ${a.rec.queued_for?.approval ? JSON.stringify(a.rec.queued_for.approval) : "none"} | ${appr ? `${appr.amount} GC over the ${appr.limit} GC limit, approver ${appr.approver_name ?? appr.approver_id} (employee ${appr.approver_id})` : "none"} |`,
     `| draft promises | \`${prom(a)}\` | \`${prom(b)}\` |`,
     `| memory read | ${a.rec.memory_read.join(", ") || "none"} | ${b.rec.memory_read.join(", ") || "none"} |`,
     `| memory.read line | ${a.rec.memory_read_summary || "none"} | ${b.rec.memory_read_summary || "none"} |`,
@@ -148,7 +148,7 @@ export function renderReport(c) {
     "## What a judge sees here (each sentence is conditional on the run above)",
     "",
     w != null && fl != null
-      ? `- A refund never goes out on its own while its category sits under the trust floor: on this run the refund weight was ${w} against the floor ${fl}, so step 1 was held for a person even though 40 USD is under the limit. The weight is not the amount: it is the category's earned trust, +0.05 per affirmed decision and -0.05 per rejected one. The rule, the branch order and the numbers: [trust-floor.md](trust-floor.md).`
+      ? `- A refund never goes out on its own while its category sits under the trust floor: on this run the refund weight was ${w} against the floor ${fl}, so step 1 was held for a person even though 40 GC is under the limit. The weight is not the amount: it is the category's earned trust, +0.05 per affirmed decision and -0.05 per rejected one. The rule, the branch order and the numbers: [trust-floor.md](trust-floor.md).`
       : "- Step 1 did not take the under-floor branch on this run; see the branch line above.",
     c.ok.step1_owner_out
       ? "- The holiday calendar is read from Zetaris for the day of the message: on 22 Oct the under-limit owner is out and the backup is in; the branch line names both."

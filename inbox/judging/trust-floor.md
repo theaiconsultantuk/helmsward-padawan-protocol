@@ -1,6 +1,6 @@
 ---
 title: The trust floor
-description: Why a 40 USD refund is held even though it is within policy, how a category earns the right to send on its own, and where each number comes from.
+description: Why a 40 GC refund is held even though it is within policy, how a category earns the right to send on its own, and where each number comes from.
 date: 2026-10-23
 tags: [judging, trust, feedback, decisions]
 ---
@@ -21,13 +21,13 @@ The branch step runs once per message, after the facts have been read from Zetar
 | 1 | A cited fact may not leave the company | `data-block` | held for a person |
 | 2 | Same sender, subject and body as an earlier thread | `duplicate` | closed as a duplicate |
 | 3 | A complaint on a public channel (Trustpilot) | `public-channel` | held, public-image risk |
-| 4 | **Amount over the policy limit** (refund limit 150 USD, `policy.csv`) | `over-limit` | Risk refuses the draft; escalated to the over-limit owner, or the backup when the owner is out, with the draft attached |
+| 4 | **Amount over the policy limit** (refund limit 150 GC, `policy.csv`) | `over-limit` | Risk refuses the draft; escalated to the over-limit owner (the Sales head, employee 40; the CEO Paul Jedi, employee 201, when the head is out) with the draft attached |
 | 5 | Owner and backup both out that day (`holiday-2026.csv`) | `owner-out` | held |
 | 6 | **Category trust weight under the floor** | `under-floor` | held for the owner (backup named when the owner is out), draft attached |
 | 7 | A required check could not run (a policy or disclosure read failed) | `data-block` | held |
 | 8 | None of the above | `send-ok` | sent automatically |
 
-The 400 USD request stops at rule 4. The 40 USD request passes rule 4 and stops at rule 6.
+The 400 GC request stops at rule 4. The 40 GC request passes rule 4 and stops at rule 6.
 
 ## Where the weight comes from
 
@@ -59,11 +59,11 @@ FAQ hits are the one deliberate exception: a question that matches an FAQ row is
 ## What the video shows
 
 - Scene "Gone Fishin'": the branch line, copied verbatim from the live run, `refund weight 0.55 is under the floor 0.8; owner 15 out, backup 16 in`. Within the limit, still held, backup named.
-- Scene "A person decides": the backup affirms the held draft on the dashboard; the decision row gets `affirm, +0.05`; the counter ticks. That is the ledger learning. Five such affirms and the next 40 USD refund goes out on its own.
+- Scene "A person decides": the backup affirms the held draft on the dashboard; the decision row gets `affirm, +0.05`; the counter ticks. That is the ledger learning. Five such affirms and the next 40 GC refund goes out on its own.
 
 ## Evidence a judge can open
 
-- Live trace of the 40 USD step: [traces/trace-refund-live_1.jsonl](traces/trace-refund-live_1.jsonl), the `zetaris.query sql:trust` line (reads the ledger row) and the `branch` line quoted above. The whole chain: [refund-chain.md](refund-chain.md).
+- Live trace of the 40 GC step: [traces/trace-refund-live_1.jsonl](traces/trace-refund-live_1.jsonl), the `zetaris.query sql:trust` line (reads the ledger row) and the `branch` line quoted above. The whole chain: [refund-chain.md](refund-chain.md).
 - The ledger: `inbox/data/synthetic/trust-ledger.csv`; registered in Zetaris as described in [zetaris-register.md](zetaris-register.md).
 - The formula: `src/gates.mjs`, `trustFloor()`; the branch order: `src/loop.mjs`, the branch function; the verdict write: `src/decisions.mjs` and `POST /feedback` in `openapi.yaml`.
 - Tests: `tests/loop_core.test.mjs` (the under-floor hold and the branch order), `tests/api.test.mjs` (`POST /feedback`: verdict and delta), run with `npm test`.

@@ -1,0 +1,234 @@
+[
+  {
+    "params": {
+      "team": "Billing"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "32",
+          "Oldro Inkford",
+          "Head of Billing",
+          "Billing",
+          "Ledger and Order"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Engineering"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "1",
+          "Mara Solen",
+          "Head of Engineering",
+          "Engineering",
+          "Wrench and Wizardry Workshop"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Executive"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [],
+      "total": 0
+    }
+  },
+  {
+    "params": {
+      "team": "Finance"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "2",
+          "Owen Briggs",
+          "Head of Finance",
+          "Finance",
+          "Vault of Counted Credits"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Fulfilment"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "56",
+          "Fenek Thornwood",
+          "Head of Fulfilment",
+          "Fulfilment",
+          "Crate and Courier Corps"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Legal"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "202",
+          "Ilsa Wrenmoor",
+          "Head of Legal",
+          "Legal",
+          "Fine Print Chambers Annex"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "People"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "4",
+          "Nia Calder",
+          "Head of People",
+          "People",
+          "Hall of Friendly Faces"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Product"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "21",
+          "Merek Reedley",
+          "Head of Product",
+          "Product",
+          "Gizmo Forge"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Sales"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "40",
+          "Zanva Groveley",
+          "Head of Sales",
+          "Sales",
+          "Bargain Bazaar Brigade"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "team": "Support"
+    },
+    "result": {
+      "headers": [
+        "employee_id",
+        "name",
+        "role",
+        "team",
+        "team_label"
+      ],
+      "rows": [
+        [
+          "7",
+          "Mei-Ling Zhao",
+          "Head of Support",
+          "Support",
+          "Helpful Hands Hangar"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]

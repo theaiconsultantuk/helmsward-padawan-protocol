@@ -1,0 +1,4 @@
+tier,min_qty,max_qty,discount_pct
+crew,1,10,0
+squad,11,100,10
+fleet,101,,20

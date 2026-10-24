@@ -43,14 +43,17 @@ test("genuine: complaint-genuine holds the draft with the handling note", async 
 });
 
 test("severe: round 1 hard refusal, no retry, escalates to the complaint owner with the draft and the world", async () => {
-  const { result, lines, d } = await go("cr-severe", example(8));
+  // severe, not legal (the example 8 message names a lawyer, which is the complaint-legal route: tests/legal_complaint.test.mjs)
+  const severe = { ...example(8), message: example(8).message.replace(" and I am talking to a lawyer", "") };
+  assert.ok(!/lawyer/i.test(severe.message));
+  const { result, lines, d } = await go("cr-severe", severe);
   assert.equal(result.branch_id, "complaint-severe");
   const risk = find(lines, "risk.signoff");
   assert.equal(risk.status, "refused");
   assert.equal(risk.retry_count, 0);
   assert.equal(find(lines, "retry").status, "skipped");
   assert.equal(result.output.decision, "escalate");
-  assert.equal(result.output.queued_for.owner_id, 5);
+  assert.equal(result.output.queued_for.owner_id, 15);
   assert.ok(result.output.draft?.text, "the draft sits on output.draft (queued_for carries only the owner, queue file and escalation)");
   assert.ok(result.output.queued_for.escalation.severity >= 9);
   assert.ok(result.output.queued_for.escalation.world.length > 0);
@@ -67,11 +70,20 @@ test("severe: round 1 hard refusal, no retry, escalates to the complaint owner w
   assert.ok(q.escalation.severity >= 9);
 });
 
-test("a complaint on trustpilot is pre-empted by public-channel", async () => {
-  const { result, lines } = await go("cr-public", { ...example(8), channel: "trustpilot" });
-  assert.equal(result.branch_id, "public-channel");
+test("a legal threat is not the severe route: complaint-legal escalates to Support with Legal and the heads in copy", async () => {
+  const { result } = await go("cr-legal", example(8));
+  assert.equal(result.branch_id, "complaint-legal");
   assert.equal(result.output.decision, "escalate");
-  assert.equal(find(lines, "meterless.engine", "world_context"), undefined);
+  assert.equal(result.output.queued_for.owner_id, 15);
+  assert.equal(result.output.courtesy_reply, true);
+});
+
+// einh, 24 Oct 2026: "Draft to Support, escalate only on severity". The channel is a row (channels:trustpilot) that changes the severity score, never a branch.
+test("a complaint on trustpilot goes through the complaint route like any other: no public-channel branch, the channel row is cited", async () => {
+  const { result } = await go("cr-public", { ...example(8), channel: "trustpilot" });
+  assert.match(result.branch_id, /^complaint-/);
+  assert.notEqual(result.branch_id, "public-channel");
+  assert.ok(result.output.cited_rows.includes("channels:trustpilot"));
 });
 
 // S5.3-12 / 10: the complaint read repairs an incomplete answer with one traced nudge; a local-lane answer carries no sponsor.

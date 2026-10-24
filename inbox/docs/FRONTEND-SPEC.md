@@ -105,7 +105,7 @@ The stored runs and asks, newest first; `limit` 1 to 200, default 50; a bad `lim
 What is waiting for a human, newest first (queue files plus runs that ended on `hold` with a draft); `[]` when empty.
 
 ```json
-{ "ticket_id": "F2", "file": "F2.json", "category": "rfq", "decision_reason": "rfq: one unit price (189 USD), no volume tiers. Sales to quote.", "owner": { "employee_id": 6, "name": "Tomas Keller" }, "has_draft": true, "critiques": [], "mtime": "2026-10-23T05:17:41.690Z" }
+{ "ticket_id": "F2", "file": "F2.json", "category": "rfq", "decision_reason": "rfq: one unit price (189 GC), no volume tiers. Sales to quote.", "owner": { "employee_id": 6, "name": "Tomas Keller" }, "has_draft": true, "critiques": [], "mtime": "2026-10-23T05:17:41.690Z" }
 ```
 
 `GET /counters`
@@ -121,8 +121,26 @@ Returns the decision row, for example `{ "run_id": "demo-1", "thread_id": "T02",
 `POST /ask`
 
 A question about policy, owners or a customer: body `{ "question": "Can I get a refund on my lightsaber?", "customer": "optional email or name" }`.
-Returns `{ "run_id": "ask_...", "answer": "The refund limit is 150 USD: ...", "intent": "refund.request", "cited_rows": ["policy:refund"], "model": "sample/rules", "confidence": 0.294, "trace_id": "ask_..." }`.
+Returns `{ "run_id": "ask_...", "answer": "The refund limit is 150 GC: ...", "intent": "refund.request", "cited_rows": ["policy:refund"], "model": "sample/rules", "confidence": 0.294, "trace_id": "ask_..." }`.
 A blocked question carries a `refused` object instead of an answer.
+
+`GET /faq`
+
+The FAQ rows: `[{ "faq_id": "Q11", "question": "Do you offer gift wrapping?", "answer": "...", "keywords": "gift wrap wrapping present" }]`, ordered by `faq_id`.
+The internal `source` column is never returned.
+Open on a token instance: the token applies to POST only.
+
+`GET /demo/scenarios`
+
+The 14 judge demo scenarios (the content of `public/demo-scenarios.json`): `{ id: "s01".."s14", label, scenario, reason (Refund|Question|Quote|Complaint|Other|Review|Email), channel, name, email, message, as_of, expected, client: "random" | "seeded-second-refund" }`.
+`scenario` is what to POST as `input.scenario`; `expected` is `{ decision, branch, owner_id, team, auto_reply, status, draft, memory_note?, cc? }`.
+The full table, as built, is in [API-CONTRACT-judge-scenarios.md](API-CONTRACT-judge-scenarios.md).
+
+`GET /demo/client?scenario=s01`
+
+A GENERATED client on every call, so a repeated demo never meets a prior refund: `{ "name": "Emeric Kettleby", "email": "emerickettleby@email.com", "generated": true }` (a fictional given and family name from two fixed lists of 40, lower-case `<given><family>@email.com`).
+With `scenario=s04` it returns the seeded customer whose earlier refunds are on record: `{ "customer_id": "C002", "name": "Lira Venn", "email": "liravenn@email.com", "generated": false, "seeded_prior_refund": true }`.
+Sent with `Cache-Control: no-store`; an unknown scenario id answers 400.
 
 Also available, not needed by a front end:
 
@@ -153,9 +171,17 @@ Trimmed from `openapi.yaml`:
   "input": { "kind": "message", "thread_id": "F2", "text": "Incoming RFQ for price difference ...", "from": "buyer@example.com", "name": null, "channel": "chat", "received_at": "...", "as_of": "2026-10-20" },
   "nodes": [ { "n": 1, "step": "memory.read", "agent": "Memory", "label": "Memory read", "route": "empty (cold first run)", "detail": null, "consulted": [], "retained": [], "reached_human": false, "status": "success", "model": null, "timestamp": "..." } ],
   "human": { "input": "...", "path": ["Memory read", "Plan", "Branch: rfq", "Hand-off", "Reply"],
-             "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:P01"], "blanks": [], "recommendation": "..." } },
-  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:P01"], "queue_file": "data/memory/queue/F2.json" } }
+             "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:FS-B01"], "blanks": [], "recommendation": "..." } },
+  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:FS-B01"], "queue_file": "data/memory/queue/F2.json" } }
 ```
+
+The judge-scenarios build adds these fields, here and on `GET /runs/{id}` (`output`, `output.queued_for`).
+Top level of the journey and of `output`: `team`, `team_label` (display name, fiction), `topic_label`, `cc[]` and `also[]` (`{ id, name, role, email }`, empty arrays when none), `status` (`open` | `handled` | `follow_up`), `auto_reply` (boolean), `memory_note` (H-MEM's sentence or `null`), `channel_label`, `trusted_to_send` (boolean, the trust-floor yes or no), `courtesy_reply` (true only on the legal route).
+Each node gains `duration_ms` (since the previous line, 0 for the first), `tech` (`Zetaris` | `Meterless (Scout contract)` | `Meterless (World Model)` | `Nightshift (<model>)` | `OpenJev (<model>)` | `H-MEM` | `rules` | `not run`; see the contract page) and `returned` (Zetaris: the rows that hit, `[{ id, table, key, detail }]`; a model: its reply text; else `null`).
+Trace lines carry `duration_ms` and `elapsed_ms` (since the run's first line) and millisecond timestamps.
+Money is in GC (Galactic Credits): `amount`, `policy_limit`, `limit`, `unit_price`, `total`; SKUs are `FS-...`.
+A quote rides `queued_for.attachments.quote`: `{ sku, quantity, tier, unit_price, discount_pct, total, currency: "GC", parts: [{ part_id, part_name, needed, stock, short }] }`.
+Full field meanings and the status lifecycle: [API-CONTRACT-judge-scenarios.md](API-CONTRACT-judge-scenarios.md).
 
 The derivation, in plain words:
 
@@ -209,11 +235,12 @@ Each demo is `{label, scenario, name, email, message, as_of}`; the buttons only 
 | 5 | Not in the records | question | "Do you have a shop in Antwerp I can visit on Saturday?" | `escalate`, branch `question-unanswered`, to the question owner |
 | 6 | RFQ price difference | rfq | "Incoming RFQ for price difference between ordering 100000 items and 100 (we only have 1 price ..." | `escalate` to Tomas Keller (sales, employee 6), acknowledgement draft, no quote to the customer |
 | 7 | Complaint, just venting | complaint | "the box was dented, I am annoyed, just so you know" (Rey Kanata) | `hold`, branch `complaint-vent`, calm draft for the complaint owner |
-| 8 | Complaint, severe | complaint | "This is the second training saber ... hilt split open ... I am talking to a lawyer ..." (Tilda Moss) | `escalate`, branch `complaint-severe`, severity 10, draft attached |
+| 8 | Complaint, severe | complaint | "This is the second training saber ... hilt split open ... I am talking to a lawyer ..." (Tilda Moss) | `escalate`, branch `complaint-legal` (it names a lawyer; it was `complaint-severe` before the legal route), severity 10, courtesy draft attached |
 | 9 | Free text to customer service | absent (free text) | "Hi, I bought something from you last month for my nephew and now I need to change the delivery address, can you help?" | `hold`, branch `customer-service`, a recommendation and a draft with blanks |
 
-The shipped `demo-scenarios.json` (reference page) is the machine-readable copy of this table.
-Example 9 is built in the same checkpoint as this page: if its output differs from this row, the output file wins.
+Examples 4 to 9 are the original six reference-page scenarios.
+The shipped `demo-scenarios.json` is now the 14 judge scenarios (s01 to s14, served by `GET /demo/scenarios`; their messages are `input_examples/example_10.json` to `example_23.json`), and the table is in [API-CONTRACT-judge-scenarios.md](API-CONTRACT-judge-scenarios.md).
+If an output differs from a row here, the output file wins.
 
 ## 6. The blanks convention
 

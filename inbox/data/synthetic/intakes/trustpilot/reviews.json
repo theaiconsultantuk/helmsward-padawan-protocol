@@ -50,7 +50,7 @@
     "reviewer_name": "Pavo Rowan",
     "stars": 3,
     "title": "Refund request JP-1880",
-    "text": "Order JP-1880 was a mistake on my side. Could I get a refund of 180.00 USD for the travel cloak?",
+    "text": "Order JP-1880 was a mistake on my side. Could I get a refund of 180.00 GC for the Wayfarer Cloak?",
     "source": "fictional",
     "live_api": false
   },
@@ -61,7 +61,7 @@
     "reviewer_name": "Brenna Calloway",
     "stars": 4,
     "title": "Do you ship to my region",
-    "text": "Can a training saber be sent to a post box? I could not find it on the site.",
+    "text": "Can a Arc Blade Trainer be sent to a post box? I could not find it on the site.",
     "source": "fictional",
     "live_api": false
   },
@@ -72,7 +72,7 @@
     "reviewer_name": "Vesna Wren",
     "stars": 1,
     "title": "Listing does not match",
-    "text": "The photo of the travel cloak does not match what I received in order JP-1249.",
+    "text": "The photo of the Wayfarer Cloak does not match what I received in order JP-1249.",
     "source": "fictional",
     "live_api": false
   },
@@ -82,8 +82,8 @@
     "created_at": "2026-10-11T10:29:00Z",
     "reviewer_name": "Tavi Bright",
     "stars": 2,
-    "title": "Money back for my travel cloak",
-    "text": "I want my money back for order JP-1274. The travel cloak never fit. I paid 260.00 USD.",
+    "title": "Money back for my Wayfarer Cloak",
+    "text": "I want my money back for order JP-1274. The Wayfarer Cloak never fit. I paid 260.00 GC.",
     "source": "fictional",
     "live_api": false
   },
@@ -105,7 +105,7 @@
     "reviewer_name": "Kessa Jessop",
     "stars": 5,
     "title": "Thank you",
-    "text": "Order JP-1589 arrived early and the saber stand is great. Thank you to the packers.",
+    "text": "Order JP-1589 arrived early and the Orbit Stand is great. Thank you to the packers.",
     "source": "fictional",
     "live_api": false
   },
@@ -116,7 +116,7 @@
     "reviewer_name": "Ulric Bright",
     "stars": 1,
     "title": "Box arrived crushed",
-    "text": "My training saber arrived in a crushed box and the courier left it outside. Order JP-1736. Please have a person look at this.",
+    "text": "My Arc Blade Trainer arrived in a crushed box and the courier left it outside. Order JP-1736. Please have a person look at this.",
     "source": "fictional",
     "live_api": false
   },
@@ -127,7 +127,7 @@
     "reviewer_name": "Pavo Vance",
     "stars": 1,
     "title": "Box arrived crushed",
-    "text": "My training saber arrived in a crushed box and the courier left it outside. Order JP-1699. Please have a person look at this.",
+    "text": "My Arc Blade Trainer arrived in a crushed box and the courier left it outside. Order JP-1699. Please have a person look at this.",
     "source": "fictional",
     "live_api": false
   },
@@ -138,7 +138,7 @@
     "reviewer_name": "Pavo Ivers",
     "stars": 2,
     "title": "Listing does not match",
-    "text": "The photo of the hilt does not match what I received in order JP-1247.",
+    "text": "The photo of the Emitter Hilt does not match what I received in order JP-1247.",
     "source": "fictional",
     "live_api": false
   },
@@ -160,7 +160,7 @@
     "reviewer_name": "Hale Slate",
     "stars": 3,
     "title": "Refund request JP-1598",
-    "text": "Order JP-1598 was a mistake on my side. Could I get a refund of 35.00 USD for the pilgrim pack?",
+    "text": "Order JP-1598 was a mistake on my side. Could I get a refund of 35.00 GC for the Pilgrim Pack?",
     "source": "fictional",
     "live_api": false
   },
@@ -171,7 +171,7 @@
     "reviewer_name": "Xara Lowell",
     "stars": 4,
     "title": "Do you ship to my region",
-    "text": "Can a hilt be sent to a post box? I could not find it on the site.",
+    "text": "Can a Emitter Hilt be sent to a post box? I could not find it on the site.",
     "source": "fictional",
     "live_api": false
   },
@@ -181,8 +181,8 @@
     "created_at": "2026-10-26T10:18:00Z",
     "reviewer_name": "Edric Calloway",
     "stars": 2,
-    "title": "Money back for my padawan robe",
-    "text": "I want my money back for order JP-1371. The padawan robe never fit. I paid 55.00 USD.",
+    "title": "Money back for my Initiate Robe",
+    "text": "I want my money back for order JP-1371. The Initiate Robe never fit. I paid 55.00 GC.",
     "source": "fictional",
     "live_api": false
   },
@@ -193,7 +193,7 @@
     "reviewer_name": "Mina Kestrel",
     "stars": 3,
     "title": "Refund request JP-1650",
-    "text": "Order JP-1650 was a mistake on my side. Could I get a refund of 150.00 USD for the holster?",
+    "text": "Order JP-1650 was a mistake on my side. Could I get a refund of 150.00 GC for the Sidearm Holster?",
     "source": "fictional",
     "live_api": false
   },
@@ -204,7 +204,7 @@
     "reviewer_name": "Quill Wren",
     "stars": 3,
     "title": "How long does shipping take",
-    "text": "How many days from order to delivery for a pilgrim pack?",
+    "text": "How many days from order to delivery for a Pilgrim Pack?",
     "source": "fictional",
     "live_api": false
   }

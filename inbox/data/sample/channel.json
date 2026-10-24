@@ -1,0 +1,98 @@
+[
+  {
+    "params": {
+      "channel": "chat"
+    },
+    "result": {
+      "headers": [
+        "channel",
+        "public",
+        "autonomous_reply",
+        "intake_address",
+        "label"
+      ],
+      "rows": [
+        [
+          "chat",
+          "false",
+          "true",
+          null,
+          "Chat"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "channel": "contact-form"
+    },
+    "result": {
+      "headers": [
+        "channel",
+        "public",
+        "autonomous_reply",
+        "intake_address",
+        "label"
+      ],
+      "rows": [
+        [
+          "contact-form",
+          "false",
+          "true",
+          null,
+          "Contact form"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "channel": "email"
+    },
+    "result": {
+      "headers": [
+        "channel",
+        "public",
+        "autonomous_reply",
+        "intake_address",
+        "label"
+      ],
+      "rows": [
+        [
+          "email",
+          "false",
+          "true",
+          "info@jedipack.com",
+          "Direct email"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "channel": "trustpilot"
+    },
+    "result": {
+      "headers": [
+        "channel",
+        "public",
+        "autonomous_reply",
+        "intake_address",
+        "label"
+      ],
+      "rows": [
+        [
+          "trustpilot",
+          "true",
+          "false",
+          null,
+          "Trustpilot review"
+        ]
+      ],
+      "total": 1
+    }
+  }
+]
