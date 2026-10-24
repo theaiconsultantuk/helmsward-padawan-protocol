@@ -32,6 +32,8 @@ const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs
 const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
 // the cues that put ANY message on the complaint road, whatever intent Scout read: a legal threat, an injury, an unsafe product
 const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open)\b/i;
+// a complaint about something other than where the parcel is
+const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
 const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
@@ -59,6 +61,8 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.
   // Safety cues and the complaint cues have already gone by, so a delivery question that threatens or names an injury never gets here.
   const oid = ORDER_ID.test(String(text ?? "")) || ORDER_ID.test(String(decided?.parameters?.id ?? ""));
+  // only a PURE delivery enquiry overrides a gate's complaint read: a message that also complains about something else (staff, an apology, a refund, a damaged item) stays a complaint
+  if (cat?.choice === "complaint" && cat.confidence >= 0.6 && OTHER_COMPLAINT.test(String(text ?? ""))) return { scenario: "complaint", how: "gates" };
   if (oid && DELIVERY_WORDS.test(String(text ?? "")) && !["replacement.request", "appreciation", "follow_up"].includes(id)) return { scenario: "delivery", how: "scout" };
   if (cat?.choice === "complaint" && cat.confidence >= 0.6) return { scenario: "complaint", how: "gates" };
   // a product named (by name or alias) or a material/spec/price question: the catalogue row answers it
@@ -240,7 +244,11 @@ async function probeQuestion(tb) {
   // and for a caller who declared the scenario "question" (the caller's choice stands; only a resolved message is re-routed).
   let namesProduct = true;
   if (!answerable && tb.scenario?.how !== "declared") {
-    try { namesProduct = matchProductLookup(text, (await tb.queries.run("product_lookup", {}, o)).objects).all.length > 0; } catch { namesProduct = true; }
+    try {
+      const lookup = (await tb.queries.run("product_lookup", {}, o)).objects;
+      // a product is named by its name, an alias or its SKU id (FS-A01)
+      namesProduct = matchProductLookup(text, lookup).all.length > 0 || lookup.some((x) => x.sku && new RegExp(`(?<![\\w-])${String(x.sku).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w-])`, "i").test(text));
+    } catch { namesProduct = true; }
   }
   if (!answerable && !namesProduct) {
     const oo = await ownerOf(tb, "other", o);
@@ -591,13 +599,34 @@ const LEGAL_TEXT = /lawyer|attorney|legal|sue\b|court/i;
 // A legal word, or anything that says it was not mild (hospital, stitches, permanent), keeps the severity rule.
 const INJURY = "burns?|burned|burnt|cuts?|bruises?|bruised|scratch(?:es|ed)?|grazes?|grazed|blisters?|nicks?|scrapes?|stings?|rash";
 const MILD_INJURY_BEFORE = new RegExp(`\\b(?:small|minor|slight|little|mild|tiny|light|superficial)\\s+(?:[a-z]+\\s+)?(${INJURY})\\b`, "i");
-const MILD_INJURY_AFTER = new RegExp(`\\b(${INJURY})\\s+(?:was|is|were|looks?|seems?)\\s+(?:only\\s+|just\\s+|quite\\s+|very\\s+)?(?:small|minor|slight|mild|superficial)\\b`, "i");
+const MILD_INJURY_AFTER = new RegExp(`\\b(${INJURY})(?:\\s+(?:on|to|in)\\s+(?:his|her|my|the|their)\\s+[a-z]+)?\\s+(?:was|is|were|looks?|seems?)\\s+(?:only\\s+|just\\s+|quite\\s+|very\\s+)?(?:small|minor|slight|mild|superficial)\\b`, "i");
 const NOT_MILD = /\b(hospital|a&e|emergency|stitches|surgery|ambulance|paramedic|fracture\w*|broken bone|third.degree|scar\w*|permanent\w*|disfigur\w*|serious\w*|severe\w*)\b/i;
+// words that put the injury word to a person or a body part ("a small burn on his hand"); without one the word may be a price cut or a burn mark on a carpet
+const PERSON_OR_BODY = /\b(son|daughter|child|children|kid|kids|boy|girl|baby|wife|husband|partner|brother|sister|hand|hands|finger|fingers|thumb|palm|wrist|arm|arms|leg|legs|knee|elbow|foot|feet|toe|toes|face|skin|neck|shoulder|chest|me|him|her|hurt|injur\w*|wound\w*)\b/i;
+// between the qualifier and the injury word, a word that makes it something else ("small price cut", "minor hair cut")
+const NOT_INJURY_NOUN = /^(price|prices|pricing|discount|budget|tax|rate|rates|cost|costs|hair|paper|power|fabric|cloth|corner|corners|tax|profit|margin|staff|job|jobs)$/i;
+const NEGATOR = /\b(not|no|never|none|without|isn['’]?t|wasn['’]?t|weren['’]?t|aren['’]?t|didn['’]?t|doesn['’]?t|don['’]?t|hardly|nothing)\b/i;
+const negatedBefore = (t, index) => {
+  const sentence = t.slice(0, index).split(/[.!?;\n]/).pop();
+  return NEGATOR.test(sentence.trim().split(/\s+/).slice(-4).join(" "));
+};
+// An affirmative description of an actual injury to a person. Negation before the qualifier or the injury ("not a small burn"), a non-injury use of the word
+// ("small price cut", "a cut in the budget") and a sentence with no person or body part in it are all not mild injuries.
 export function mildInjury(text) {
   const t = String(text ?? "");
   if (LEGAL_TEXT.test(t) || NOT_MILD.test(t)) return null;
-  const m = MILD_INJURY_BEFORE.exec(t) ?? MILD_INJURY_AFTER.exec(t);
-  return m ? m[0].replace(/\s+/g, " ").toLowerCase() : null;
+  for (const re of [new RegExp(MILD_INJURY_BEFORE.source, "gi"), new RegExp(MILD_INJURY_AFTER.source, "gi")]) {
+    for (const m of t.matchAll(re)) {
+      const sentence = t.slice(0, m.index).split(/[.!?;\n]/).pop() + t.slice(m.index).split(/[.!?;\n]/)[0];
+      const between = m[0].split(/\s+/);
+      if (between.length === 3 && NOT_INJURY_NOUN.test(between[1])) continue;
+      if (negatedBefore(t, m.index)) continue;
+      if (new RegExp(`\\b(?:${INJURY})\\s+(?:in|on|to|of)\\s+(?:the\\s+)?(?:price|prices|cost|budget|rate|rates|bill|tax)\\b`, "i").test(t.slice(m.index))) continue;
+      if (!PERSON_OR_BODY.test(sentence)) continue;
+      return m[0].replace(/\s+/g, " ").toLowerCase();
+    }
+  }
+  return null;
 }
 
 // The courtesy reply of a legal threat: a template, no model, Support's name on it. It acknowledges and promises nothing; Legal reviews the case.

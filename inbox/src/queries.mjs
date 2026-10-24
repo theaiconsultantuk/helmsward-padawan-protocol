@@ -151,7 +151,7 @@ export const TEMPLATES = {
     params: { category: V.topic }, cacheable: true, question: "the trust weight and floor",
     sql: (p) => `SELECT * FROM JEDI_PACK.trust_ledger WHERE category = '${p.category}'`,
     cite: (p, o) => o.map((x) => `trust_ledger:${x.category}`),
-    detail: (p, o) => o.map((x) => `${x.category}: trust weight ${x.weight}, floor ${x.floor} (a send needs the weight at or above the floor)`).join("; "),
+    detail: (p, o) => o.map((x) => `${x.category}: trust weight ${x.weight}, floor ${x.floor}`).join("; "),
     local: (t, p) => proj(need(t, "trust_ledger").filter((r) => r.category === p.category), [["category", "str"], ["weight", "str"], ["floor", "str"], ["source_id", "str"]]),
   },
   wiki: {

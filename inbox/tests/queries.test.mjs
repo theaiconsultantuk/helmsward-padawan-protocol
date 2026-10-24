@@ -177,7 +177,7 @@ test("detail: the employee, policy and responsibility reads put the rows in word
   assert.equal(lines[3].detail, undefined);
   assert.equal(lines[3].input_summary, 'the employee record {"employee_id":15}');
   await run("trust", { category: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["category", "weight", "floor"], rows: [["refund", 0.55, 0.8]] }) });
-  assert.equal(lines[4].detail, "refund: trust weight 0.55, floor 0.8 (a send needs the weight at or above the floor)");
+  assert.equal(lines[4].detail, "refund: trust weight 0.55, floor 0.8");
 });
 
 test("G2: run() forwards the trace to sqlRunImpl and writes one line of its own on a throw", async () => {

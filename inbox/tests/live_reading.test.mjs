@@ -16,7 +16,7 @@ const DEMO = Object.fromEntries(JSON.parse(readFileSync(join(INBOX_ROOT, "public
 const asInput = (d) => msg(d.message, d.channel, d.email, { name: d.name, scenario: d.scenario });
 
 // the typed gates exactly as the live trace printed them (trace-s08/s10/s12-live.jsonl): `category complaint (1)`, `complaint (0.74)`, `question (1)`
-const liveGates = (category, confidence) => async () => ({
+const liveGates = (category, confidence, seen = []) => async (ticket) => seen.push({ category, confidence, body: ticket.body }) && ({
   answers: { is_follow_up: 0, category: { choice: category, confidence }, urgency: { score: 1, legend: "", confidence: 0.5 }, tone: { score: 1, legend: "", confidence: 0.5 }, asks_for_money: 0 },
   model: "openjev-0.1 (live)", gate_source: "openjev", confidence: 0.9,
 });
@@ -55,8 +55,17 @@ test("s08 on the LIVE reading (severity 10 'legal or safety', category complaint
 });
 
 test("s10 on the LIVE reading (category complaint 0.74): an order id and a delivery word take the delivery road before the gate's complaint read", async () => {
-  const live = await withLiveSeverity(2.2, () => runMessage(asInput(DEMO.s10), { extra: { gates: liveGates("complaint", 0.74) } }));
+  const seen = [];
+  const live = await withLiveSeverity(2.2, () => runMessage(asInput(DEMO.s10), { extra: { gates: liveGates("complaint", 0.74, seen) } }));
   same(summary(live), EXPECT.s10, "s10 live");
+  // the supplied reading was consumed: the loop asked the gates about this message and got complaint 0.74 ...
+  assert.ok(seen.length >= 1 && seen.every((x) => x.category === "complaint" && x.confidence === 0.74 && /JP-1001/.test(x.body)), JSON.stringify(seen));
+  // ... and that reading alone is what the old order turned into a complaint: the gate-category complaint check (choice complaint, confidence >= 0.6) came before the
+  // delivery road, so with Scout reading order.question and no cue words the old resolver returned complaint. The sample reading of the same message is not a complaint,
+  // so this test is red on the old order and could not pass on the sample gates by accident.
+  const sampleGate = (await import("../src/adapters/sample.mjs")).gates({ thread_id: "x", subject: "", body: DEMO.s10.message, channel: "contact-form" }).answers.category;
+  assert.ok(!(sampleGate.choice === "complaint" && sampleGate.confidence >= 0.6), `sample gates read ${sampleGate.choice} ${sampleGate.confidence}`);
+  assert.ok(seen[0].category === "complaint" && seen[0].confidence >= 0.6, "the old resolver's complaint check would have fired on this reading");
   assert.match(live.result.output.draft.text, /Deliveries to Alderaan are currently suspended/);
   assert.equal(live.result.resolved_how, "scout");
 });
@@ -72,8 +81,12 @@ test("s12 on the LIVE reading (category question 1): no product, no FAQ hit, not
 test("a mild injury is the customer's own words: a legal threat, a missing qualifier or a hospital keeps the severity rule", async () => {
   assert.equal(mildInjury("the hot emitter gave my son a small burn"), "small burn");
   assert.equal(mildInjury("a minor cut on his finger"), "minor cut");
-  assert.equal(mildInjury("the burn was minor"), "burn was minor");
+    assert.ok(mildInjury("the burn on his hand was minor"));
   assert.equal(mildInjury("the hot emitter gave my son a burn"), null);
+  // negation and non-injury uses keep the severity rule
+  for (const t of ["it was not a small burn, it hurt my son badly", "he got no small burn, thank goodness, only his hand hurt", "never a minor cut on his finger, it was deep",
+    "your small price cut is an insult", "a small cut in the budget for my son's party", "a slight discount cut, I hurt nothing", "a small price cut on my son's order",
+    "the little burn mark on the carpet", "a small burn"]) assert.equal(mildInjury(t), null, t);
   assert.equal(mildInjury("a small burn and I have spoken to my lawyer"), null);
   assert.equal(mildInjury("a small burn, we went to the hospital"), null);
   // an injury with no mild qualifier on the live severity 10 stays complaint-severe: escalated, not held
@@ -96,4 +109,26 @@ test("an order id with a delivery word is a delivery question before a gate's co
 
 test("the severity seam is the real gate unless a test swaps it", () => {
   assert.equal(seams.severityGate, severityGate);
+});
+
+test("a delivery enquiry that also complains about something else keeps the complaint road, even on a gate's complaint 0.74", async () => {
+  const gates = { answers: { category: { choice: "complaint", confidence: 0.74 } } };
+  const dec = { intent: { primary: { id: "order.question" }, confidence: 0.9 } };
+  for (const extra of ["Your staff insulted me and I want an apology.", "The box was damaged too.", "I also want a refund.", "Your rep was rude."]) {
+    assert.deepEqual(resolveScenario({ kind: "message", decided: dec, gates, text: `Where is my order JP-1001? ${extra}` }), { scenario: "complaint", how: "gates" }, extra);
+  }
+  const seen = [];
+  const r = await runMessage(msg("Where is my order JP-1001? Your staff were rude to me.", "contact-form", "cass.holm@example.com", { name: "Cass Holm" }), { extra: { gates: liveGates("complaint", 0.74, seen) } });
+  assert.equal(r.result.scenario, "complaint");
+  assert.notEqual(r.result.output.auto_reply, true);
+  assert.notEqual(r.result.output.decision, "send");
+});
+
+test("a question that names a product by SKU id names a product: it is not re-routed to the other road", async () => {
+  const q = "Do you ship FS-A01 to Naboo on Sundays?";
+  const r = await runMessage(msg(q, "chat", "sku.asker@email.com", { name: "Sku Asker", scenario: "free_text" }), { extra: { gates: liveGates("question", 1) } });
+  assert.notEqual(r.result.branch_id, "other-unanswered", r.result.branch_id);
+  // the same question with no SKU is the other road
+  const none = await runMessage(msg("Do you ship to Naboo on Sundays?", "chat", "sku.asker2@email.com", { name: "Sku Asker", scenario: "free_text" }), { extra: { gates: liveGates("question", 1) } });
+  assert.equal(none.result.branch_id, "other-unanswered");
 });

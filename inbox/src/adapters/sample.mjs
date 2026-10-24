@@ -96,8 +96,18 @@ export function quotable(ticket) {
   const derived = Boolean(stem) && Boolean(body) && body.startsWith(stem) && (subject !== stem || body.length > stem.length);
   let text = subject;
   if (derived) {
-    const m = /^(.+?[.!?])(?:\s|$)/.exec(body);
-    text = m ? m[1] : body;
+    // A sentence boundary is certain only when the word before the full stop is not an abbreviation or an initial ("Mr.", "Dr.", "St.", "e.g.", "J.").
+    // When it is not certain, the whole message is quoted if it fits the limit, else nothing (the length check below).
+    const ABBR = /^(?:mr|mrs|ms|mx|dr|prof|st|sr|jr|vs|etc|no|nr|inc|ltd|co|fig|approx|e\.g|i\.e|a\.m|p\.m)$/i;
+    const re = /([^\s]*?)([.!?])(?=\s|$)/g;
+    let end = -1, uncertain = false, m;
+    while ((m = re.exec(body))) {
+      const word = m[1].replace(/^[("'\u201c]+/, "");
+      if (m[2] === "." && (ABBR.test(word) || /^[A-Za-z]$/.test(word))) { uncertain = true; break; }
+      end = m.index + m[0].length;
+      break;
+    }
+    text = uncertain || end < 0 ? body : body.slice(0, end);
   } else if (subject.endsWith("\u2026")) return null;
   text = text.replace(/[.!?]+$/, "").trim();
   return text && text.length <= QUOTE_MAX ? text : null;
