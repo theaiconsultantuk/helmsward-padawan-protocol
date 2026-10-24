@@ -127,6 +127,12 @@ test("a quote word does not turn a complaint into a quote: burns, injuries and S
   assert.deepEqual(readsOf("Please quote 20 Cracked Core Recycling Pouches", ["complaint", "rfq.request", "GENERAL", "order.question"]), ["rfq", "rfq", "rfq", "rfq"]);
 });
 
+test("a quote word inside a complaint does not make an RFQ: the complaint cues are read before it, under every read", () => {
+  for (const t of ["Your quote is unacceptable. I want to complain to your manager.", "Your quote never arrived, this is terrible"]) {
+    assert.deepEqual(readsOf(t, ["complaint", "rfq.request", "GENERAL", "order.question"]), ["complaint", "complaint", "complaint", "complaint"], t);
+  }
+});
+
 test("the product name is stripped as whole words only: 'tin' inside 'insulting' is not the Twin Core Travel Tin", () => {
   const text = "What is the Twin Core Travel Tin made of? Your replies are insulting.";
   const hit = matchProductLookup(text, lookup);
