@@ -15,7 +15,7 @@ import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
-import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF } from "./scenarios.mjs";
+import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE } from "./prompts.mjs";
 
 // The 15 ids, in the methodology table order. (The actual trace order is the demo order: branch comes before nvidia.model.)
@@ -73,6 +73,12 @@ export function promisedKind(d) {
 
 // Pure. gates and memory may be null (the planner calls it before the gates have run).
 export function decideBranch(facts, gates, memory, extra = {}) {
+  const b = decideBranchCore(facts, gates, memory, extra);
+  const fc = facts?.fallback_contact;
+  return fc && b?.why ? { ...b, why: `${b.why}; routed to the default contact ${fc.email} (${fc.cited})` } : b;
+}
+
+function decideBranchCore(facts, gates, memory, extra = {}) {
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
   const followUp = Number(g.is_follow_up ?? 0);
@@ -337,11 +343,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const backupId = owner?.backup_id ?? f?.backup_id ?? null;
     const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}),
       ...(approval ? { approval } : {}), ...(draft ? { draft: { text: draft.text, promises: draft.promises } } : {}) };
+    const fc = owner?.fallback_contact ?? f?.fallback_contact ?? null;
     let memId = null;
     let queueFailed = false;
     try {
       memId = hmem.queueForHuman(ticketObj, critiques, {
-        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? null },
+        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? (fc ? "default contact" : null), ...(fc ? { fallback_contact: fc } : {}) },
         scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null, attachments: attachments ?? null, escalation: escalation ?? null,
       });
     } catch (e) {
@@ -354,12 +361,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.queued = { owner_id: ownerId, backup_id: backupId, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
       ...(attachments !== undefined ? { attachments } : {}), ...(recommendation !== undefined ? { recommendation } : {}), ...(escalation !== undefined ? { escalation } : {}),
       ...(owner?.owner_name !== undefined ? { owner_name: owner.owner_name } : {}), ...(owner?.backup_name !== undefined ? { backup_name: owner.backup_name } : {}),
-      ...(owner?.role !== undefined ? { role: owner.role } : {}) };
+      ...(owner?.role !== undefined ? { role: owner.role } : {}),
+      ...(fc ? { fallback_contact: fc, role: "default contact" } : {}) };
     if (memId) S.memWritten.push(memId);
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
         ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount_usd} USD over the ${approval.limit_usd} USD limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
+        : fc ? `escalated to the default contact ${fc.email} (owner ${ownerId ?? "?"} and backup ${backupId ?? "?"} both out); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
         : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
@@ -423,7 +432,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       } catch { faqHit = null; }
       S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit });
       const params = preDecided?.parameters ?? {};
-      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? "question",
+      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
         amount: params.currency === "USD" ? params.amount : undefined });
     } else {
       S.scenario = resolveScenario({ kind: "thread", declared: input?.scenario });

@@ -23,6 +23,7 @@ const SQL_LABELS = {
   policy: "Zetaris: the policy",
   responsibility: "Zetaris: who owns it",
   holiday: "Zetaris: availability",
+  contact: "Zetaris: the contact desk",
   holidays: "Zetaris: availability",
   employee: "Zetaris: the employee",
   trust: "Zetaris: the trust ledger",
@@ -133,6 +134,10 @@ function looksLikeAsk(result) {
 function recipientOf(q) {
   const a = isObj(q?.approval) ? q.approval : null;
   if (a && a.approver_id !== undefined && a.approver_id !== null) return { id: a.approver_id, name: a.approver_name ?? null };
+  const fc = isObj(q?.fallback_contact) ? q.fallback_contact : null;
+  if (fc && typeof fc.email === "string" && fc.email) {
+    return { id: null, name: typeof fc.label === "string" && fc.label ? fc.label : fc.email, email: fc.email, role: q.role ?? "default contact" };
+  }
   return { id: q?.owner_id ?? null, name: q?.owner_name ?? null };
 }
 
@@ -151,9 +156,9 @@ export function replyFor(result) {
     kind = "answer";
     outText = r.answer ?? r.output?.answer ?? null;
   }
-  const { id: ownerId, name: ownerName } = recipientOf(q);
-  const to = q && (ownerId !== null || ownerName !== null)
-    ? { employee_id: ownerId, name: ownerName, role: q.role ?? null }
+  const { id: ownerId, name: ownerName, email, role: deskRole } = recipientOf(q);
+  const to = q && (ownerId !== null || ownerName !== null || email)
+    ? { employee_id: ownerId, name: ownerName, role: email ? deskRole : (q.role ?? null), ...(email ? { email } : {}) }
     : null;
   return {
     kind,
@@ -259,7 +264,7 @@ export function deriveJourney(result, lines) {
     }
     const who = recipientOf(q);
     reached = {
-      who: { employee_id: who.id, name: who.name },
+      who: { employee_id: who.id, name: who.name, ...(who.email ? { email: who.email } : {}) },
       what,
       queue_file: failed ? null : (q?.queue_file ?? res.queue_file ?? null),
     };

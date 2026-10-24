@@ -12,6 +12,9 @@ import * as sample from "./adapters/sample.mjs";
 
 export const SCENARIOS = ["refund", "question", "rfq", "complaint", "free_text"];
 export const TOPIC_OF = { refund: "refund", question: "question", rfq: "rfq", complaint: "complaint", customer_service: "customer_service" };
+// What a scenario's facts gather may read beyond the ticket row, the owner chain, the trust row and the what-may-leave page.
+// `legacy` is absent on purpose: a typed message resolved to legacy gets `[]` from the loop (scoped, no borrowed limit); a stored thread passes no needs and keeps the full read.
+export const FACT_NEEDS = { refund: ["limit"], question: [], rfq: [], complaint: [], customer_service: [] };
 
 const one = (s, n = 160) => { const t = String(s ?? "").replace(/\s+/g, " ").trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
 const NO_PROMISES = () => ({ refund_amount: null, replacement: false, other: null });
