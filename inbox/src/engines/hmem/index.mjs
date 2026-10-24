@@ -20,10 +20,11 @@ export function tokenize(text) {
   return out.filter((t) => !STOP.has(t));
 }
 
+// case-insensitive, so an email entity matches however it was written
 function overlap(requested, have) {
   if (!requested.length) return 0;
-  const h = new Set(have);
-  return requested.filter((r) => h.has(r)).length / requested.length;
+  const h = new Set(have.map((x) => String(x).toLowerCase()));
+  return requested.filter((r) => h.has(String(r).toLowerCase())).length / requested.length;
 }
 
 function atomicWrite(file, data) {
@@ -146,7 +147,7 @@ export class HMEM {
     fs.mkdirSync(qdir, { recursive: true });
     const now = this.#clock();
     const tid = String(ticket.thread_id ?? ticket.id).replace(/[^A-Za-z0-9._-]/g, "_");
-    atomicWrite(path.join(qdir, `${tid}.json`), JSON.stringify({ ticket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}), ...(extra?.attachments != null ? { attachments: extra.attachments } : {}), ...(extra?.escalation != null ? { escalation: extra.escalation } : {}) }, null, 2) + "\n");
+    atomicWrite(path.join(qdir, `${tid}.json`), JSON.stringify({ ticket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}), ...(extra?.attachments != null ? { attachments: extra.attachments } : {}), ...(extra?.escalation != null ? { escalation: extra.escalation } : {}), ...(extra?.cc != null ? { cc: extra.cc } : {}), ...(extra?.also != null ? { also: extra.also } : {}), ...(extra?.status != null ? { status: extra.status } : {}) }, null, 2) + "\n");
     const reason = (Array.isArray(critiques) ? critiques : [critiques])
       .map((c) => (typeof c === "string" ? c : c?.reason)).filter(Boolean).join("; ");
     const rec = this.add({

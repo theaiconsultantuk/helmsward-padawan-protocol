@@ -91,8 +91,24 @@ test("severityGate: openjev answer 9 with the nvidia.model line", async () => {
   const g = await withMockFetch([{ match: isOj, reply: (u, i) => { sent = JSON.parse(i.body); return { status: 200, body: { model: "openjev-0.1", answers: { severity: { score: 8, confidence: 0.8 } } } }; } }],
     () => severityGate(SEV, {}, "3 earlier threads", { trace: t, cfg, kind: "genuine" }));
   assert.equal(g.score, 9); assert.equal(g.gate_source, "openjev"); assert.equal(g.confidence, 0.8);
-  assert.deepEqual(Object.keys(sent.questions), ["severity"]); assert.match(sent.state, /kind: genuine/);
+  assert.deepEqual(Object.keys(sent.questions), ["severity", "legal_threat"]); assert.match(sent.state, /kind: genuine/);
   assert.equal(t.lines[0].action, "severity_gate"); assert.equal(t.lines[0].status, "success"); assert.equal(t.lines[0].agent_name, "Severity");
+});
+
+test("severityGate: legal_threat parsed (yes, no, missing falls to the code rule); kind echoed", async () => {
+  const ask = async (legal_threat, ticket = SEV, kind = "genuine") => withMockFetch([{ match: isOj, reply: () => ({ status: 200, body: { model: "openjev-0.1", answers: { severity: { score: 9, confidence: 0.8 }, ...(legal_threat === undefined ? {} : { legal_threat }) } } }) }],
+    () => severityGate(ticket, {}, "", { cfg, kind }));
+  const yes = await ask(0.9); assert.equal(yes.legal, true); assert.equal(yes.kind, "genuine"); assert.equal(yes.score, 10);
+  assert.equal((await ask({ noul: 0.1 })).legal, false);
+  assert.equal((await ask(undefined, { ...SEV, body: "my lawyer will write" })).legal, true);
+  assert.equal((await ask(undefined)).legal, false);
+});
+
+test("severityGate (sample/fallback): legal from the legal words only; channel_public kind; injury alone holds", async () => {
+  const run = (body, kind = "vent", extra = {}) => severityGate({ thread_id: "S", subject: "x", body, channel: "chat" }, extra, "", { cfg, sampleMode: true, kind });
+  const a = await run("I will sue you"); assert.equal(a.legal, true); assert.equal(a.score, 10);
+  const b = await run("it cut my hand badly"); assert.equal(b.legal, false); assert.equal(b.score, 6);
+  const c = await run("the box was dented, I am annoyed", "channel_public"); assert.equal(c.kind, "channel_public"); assert.ok(c.score <= 8);
 });
 
 test("severityGate: score is round(index) + 1, clamped", async () => {

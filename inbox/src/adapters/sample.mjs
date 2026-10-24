@@ -56,14 +56,18 @@ export function queryByName(name, params = {}, { cfg = config() } = {}) {
 const REFUND = /refund|money back|my money|reimburse/i;
 const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
-export function draft(ticket, facts, { seed = "correct" } = {}) {
+// opts.overLimit (true when the refund is over the policy limit; 2.1d wires it from the loop): the draft says the request is
+// routed for approval and promises no refund, amount or date.
+export function draft(ticket, facts, { seed = "correct", overLimit = false } = {}) {
   const cat = facts.category ?? ticket.category;
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   const ask = `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
-  if (seed === "revised") {
+  if (overLimit && (cat === "refund" || seed === "revised")) {
+    mid = "Your refund request is routed for approval. We are not promising an amount or a date yet, and a colleague will follow up with you.";
+  } else if (seed === "revised") {
     const lim = facts.policy_limit == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit} GC, so we are not promising it today`;
     mid = `${lim}. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
@@ -78,7 +82,7 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
   } else {
     mid = "Thank you for getting in touch.";
   }
-  return { text: `${hi}\n\n${ask} ${mid}\n\nBest regards,\nJedi Pack Support`, model: MODEL, route: "sample", promises };
+  return { text: frame(ticket, `${ask} ${mid}`), model: MODEL, route: "sample", promises };
 }
 
 export function critique(d, facts) {
@@ -121,9 +125,11 @@ export function gates(ticket) {
   };
 }
 
-// The greeting and sign-off every sample reply wears (same two lines as draft()).
-export function frame(ticket, body) {
-  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
+// The ONE greeting and sign-off every sample reply wears. team defaults to Support; onBehalf adds the automatic-reply line, and is
+// only for replies composed from rows (never model drafts, which a human sends).
+export function frame(ticket, body, { team = "Support", onBehalf = false } = {}) {
+  const sign = `Best regards,\nJedi Pack ${team} team`;
+  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\n${sign}${onBehalf ? `\nSent automatically on behalf of the ${team} team.` : ""}`;
 }
 
 // The RFQ acknowledgement: ACKNOWLEDGEMENT_TEMPLATE filled with the quantities. Code, no model call; never a price.
@@ -146,18 +152,27 @@ export function complaintRead(ticket, { worldText = "" } = {}) {
   };
 }
 
+// The legal read in code: only the words of a legal threat (injury alone is not one).
+export const LEGAL_WORDS = /lawyer|attorney|legal action|sue\b|court/i;
+export const legalThreat = (ticket) => LEGAL_WORDS.test(`${ticket?.subject ?? ""} ${ticket?.body ?? ""}`);
+
+// Injury is split from legal (auditor fold 3): legal words score 10; injury alone is a genuine 6 that holds with a draft; the
+// public-channel and repeat bumps are capped at 8 so a plain Trustpilot complaint never escalates by channel alone.
 export function severity(ticket, { kind = "vent", repeat = false, publicChannel = false } = {}) {
   const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const legal = legalThreat(ticket);
+  const pub = publicChannel || kind === "channel_public";
   let score;
-  if (/lawyer|unsafe|injur/i.test(text)) score = 10;
+  if (/lawyer|attorney|legal|sue\b|court|unsafe/i.test(text)) score = 10;
   else if (/never again|everyone/i.test(text)) score = 9;
   else {
-    score = /furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
-    if (publicChannel) score += 4;
+    score = /injur|cut|hurt|burn|furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
+    if (pub) score += 4;
     if (repeat) score += 2;
+    score = Math.min(8, score);
   }
   score = Math.max(1, Math.min(10, score));
-  return { score, legend: SEVERITY_LEVELS[score - 1] };
+  return { score, legend: SEVERITY_LEVELS[score - 1], legal };
 }
 
 // Customer-service twin (S3.1): a rules recommendation and a draft with two [[blank: …]] markers. No model call.

@@ -192,6 +192,37 @@ export function parseComplaintReadJson(text) {
 
 export const SEVERITY_LEVELS = ["1 nothing to handle", "2", "3", "4", "5", "6", "7", "8", "9 public damage or a broken promise", "10 legal or safety"];
 export const SEVERITY_QUESTION = { type: "score", instructions: "How severe is this complaint for the company (1 nothing to handle, 10 legal or safety)?", criteria: SEVERITY_LEVELS };
+// The typed legal_threat read (Task 2.2): a yes/no to OpenJev, parsed by severityGate. Injury alone is not a legal threat.
+export const LEGAL_QUESTION = {
+  type: "noul", instructions: "Does the customer threaten legal action (a lawyer, an attorney, a lawsuit, a court)?",
+  criteria: { true: "the message threatens legal action", false: "it does not threaten legal action" },
+};
+
+// Plain templates for replies composed from rows (no model). Fill with fillQuote / fillCourtesy, then wrap with sample.frame
+// (team "Sales" for the quote, default Support for the courtesy reply) so there is one greeting and one sign-off.
+export const QUOTE_TEMPLATE = [
+  "Thank you for your request. Here is your quote.",
+  "Product: {product}",
+  "Quantity: {quantity}",
+  "Tier: {tier}",
+  "Unit price: {unit_price} GC",
+  "Total: {total} GC",
+  "Lead time: {lead_days} days",
+  "Parts needed:\n{parts}",
+  "This quote is valid 14 days.",
+].join("\n");
+export const COURTESY_TEMPLATE = "We are sorry to read what happened with {situation}. We are looking into it now and will come back to you within two working days.";
+
+const fillTpl = (tpl, vals) => tpl.replace(/\{(\w+)\}/g, (m, k) => (vals[k] == null ? "" : String(vals[k])));
+// fillQuote({ product, quantity, tier, unit_price, total, lead_days, parts }): parts is an array of strings or { part_name, needed } or a string.
+export function fillQuote({ product, quantity, tier, unit_price, total, lead_days, parts = [] } = {}) {
+  const list = Array.isArray(parts)
+    ? parts.map((p) => (typeof p === "string" ? p : `${p.part_name ?? p.part_id} x ${p.needed}${p.short ? " (short on stock)" : ""}`)).map((l) => `- ${l}`).join("\n")
+    : String(parts);
+  return fillTpl(QUOTE_TEMPLATE, { product, quantity, tier, unit_price, total, lead_days, parts: list || "- none listed" });
+}
+// fillCourtesy({ situation }): the customer's name comes from the greeting that sample.frame adds.
+export const fillCourtesy = ({ situation = "your order" } = {}) => fillTpl(COURTESY_TEMPLATE, { situation });
 
 // Customer-service handler (S3.1): a recommendation for the support lead and a draft with [[blank: …]] markers.
 export const RECOMMENDATION_SYSTEM = [
