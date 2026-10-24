@@ -19,7 +19,7 @@ Hero demo thread: owner on holiday, refund over the limit, reply held, backup pe
 | T2 | 24 seed threads incl. the hero thread, with the expected outcome (send/hold/escalate) for each | Kristof wrote them; Dean reviews and adds expected outcomes | | review | In `kristof/data/threads/` and `kristof/data/intakes/` (email, contact form, Trustpilot). Also the test set |
 | T3 | Decision gates in code: classify, trust floor, risk check, send/hold/escalate, retry max 2 rounds, trace to JSONL and stdout | Paul + Claude | | open | Deterministic checks, not only an AI reviewer. At least two named agents plus a critique/retry |
 | T4 | Engines: H-MEM read/write and queueForHuman; Nightshift as provider with direct NVIDIA fallback | Kristof | | open | Minimum is one engine plus Nightshift as a provider. Add World Model/Scout only after the core runs |
-| T5 | `POST /run`, `SAMPLE_MODE=true` with no keys, one screen with four counters (Zetaris query), approve/reject | Jocke | | open | Agree the JSON in/out with T3 first. Backup owner: Dean, then Paul |
+| T5 | Storefront (`Farstrand Supply Co.`) + `Helmsward` Live Dispatch Desk (`contact.html` wired to `POST /run` + `GET /runs/{id}/journey`, `SAMPLE_MODE` & `?token=` support) | Jocke | `jocke/farstrand-storefront` | done | Live at `farstrand-concepts.pages.dev/concepts/2-totality/` and staged in `inbox/public/store/` |
 | T6 | README, 1-4 min video of the hero thread, deck, sponsor explanations, fresh-clone test | Dean + Paul | | open | Start the skeleton now, fill in as T1-T5 land |
 
 ## Rules for today

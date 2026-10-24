@@ -1,0 +1,14 @@
+{
+  "arc-blade-trainer": "models/arc-blade-trainer.glb",
+  "emitter-hilt": "models/emitter-hilt.glb",
+  "sovereign-arc-duellist": "models/sovereign-arc-duellist.glb",
+  "core-crystal-case": "models/core-crystal-case.glb",
+  "drift-vault-case": "models/drift-vault-case.glb",
+  "orbit-stand": "models/orbit-stand.glb",
+  "wayfarer-cloak": "models/wayfarer-cloak.glb",
+  "initiate-robe": "models/initiate-robe.glb",
+  "drift-boots": "models/drift-boots.glb",
+  "quartermaster-belt": "models/quartermaster-belt.glb",
+  "sidearm-holster": "models/sidearm-holster.glb",
+  "pilgrim-pack": "models/pilgrim-pack.glb"
+}
