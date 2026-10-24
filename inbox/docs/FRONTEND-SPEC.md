@@ -142,7 +142,7 @@ The contract.
 ## 3. The journey shape
 
 `GET /runs/{id}/journey` is derived from the stored result and the trace file.
-No model call; every field comes from a stored line.
+No model call; every field is derived from the stored result and the trace lines.
 Trimmed from `openapi.yaml`:
 
 ```json
