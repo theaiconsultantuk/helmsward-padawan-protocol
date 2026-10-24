@@ -34,7 +34,7 @@ async function go(run_id, input, { thread_id = null, as_of, d = mkDeps(), cfg: r
 const find = (lines, step, action) => lines.find((l) => l.step === step && (!action || l.action === action));
 const count = (q, a) => q.filter((x) => x === a).length;
 const msg = (message, scenario, as_of = "2026-10-20") => ({ message, from: "new.customer@example.com", name: "Rey Kanata", channel: "chat", ...(scenario ? { scenario } : {}), as_of });
-const LEGACY_T02 = ["sql:thread", "sql:policy", "sql:responsibility", "sql:holiday", "sql:holiday", "sql:employee", "sql:employee", "sql:trust", "sql:wiki", "sql:thread_fingerprints"];
+const LEGACY_T02 = ["sql:thread", "sql:policy", "sql:responsibility", "sql:holiday", "sql:holiday", "sql:employee", "sql:employee", "sql:hierarchy", "sql:hierarchy", "sql:channel", "sql:prior_refunds", "sql:trust", "sql:wiki", "sql:thread_fingerprints"];
 const DESK = "contact@jedipack.com";
 
 test("vent (example_7): no policy, one holiday, one employee", async () => {

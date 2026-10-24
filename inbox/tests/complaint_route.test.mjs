@@ -67,11 +67,12 @@ test("severe: round 1 hard refusal, no retry, escalates to the complaint owner w
   assert.ok(q.escalation.severity >= 9);
 });
 
-test("a complaint on trustpilot is pre-empted by public-channel", async () => {
-  const { result, lines } = await go("cr-public", { ...example(8), channel: "trustpilot" });
-  assert.equal(result.branch_id, "public-channel");
-  assert.equal(result.output.decision, "escalate");
-  assert.equal(find(lines, "meterless.engine", "world_context"), undefined);
+// einh, 24 Oct 2026: "Draft to Support, escalate only on severity". The channel is a row (channels:trustpilot) that changes the severity score, never a branch.
+test("a complaint on trustpilot goes through the complaint route like any other: no public-channel branch, the channel row is cited", async () => {
+  const { result } = await go("cr-public", { ...example(8), channel: "trustpilot" });
+  assert.match(result.branch_id, /^complaint-/);
+  assert.notEqual(result.branch_id, "public-channel");
+  assert.ok(result.output.cited_rows.includes("channels:trustpilot"));
 });
 
 // S5.3-12 / 10: the complaint read repairs an incomplete answer with one traced nudge; a local-lane answer carries no sponsor.

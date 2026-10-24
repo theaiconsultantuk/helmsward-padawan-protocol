@@ -494,6 +494,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   const wantLimit = scoped && needs.includes("limit");
   const notes = [];
   let owner = null, backup = null, how = "", limit = null;
+  let respSeen; // undefined until the responsibility row is read; then the row or null
   if (scoped) {
     // Scoped gather: only the facts the scenario declared. No policy read unless it needs the limit; no general/support or refund-policy fallback.
     const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
@@ -508,6 +509,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
       how = `${over ? "over" : "under"} the ${topic} limit ${limit} (policy:${topic})`;
     } else {
       const resp = (await run("responsibility", { topic }, o)).objects[0];
+      respSeen = resp ?? null;
       if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
         cited.push(`responsibility:${topic}`);
         owner = num(resp.owner_id); backup = num(resp.backup_id); how = `responsibility:${topic}`;
@@ -516,6 +518,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   } else {
     const pol = (await run("policy", { topic }, o)).objects[0];
     const resp = (await run("responsibility", { topic }, o)).objects[0];
+    respSeen = resp ?? null;
     limit = pol ? Number(pol.limit_amount) : null;
     if (pol) {
       cited.push(`policy:${topic}`);
@@ -551,6 +554,34 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
       }
     }
   }
+  // hierarchy rows read so far, by employee id: the Sales head, their manager, then whoever holds or backs the ticket
+  const hier = new Map();
+  const readHier = async (eid, why) => {
+    if (!valid(eid)) return null;
+    if (hier.has(eid)) return hier.get(eid);
+    const r = (await run("hierarchy", { employee_id: eid }, { ...o, why })).objects[0] ?? null;
+    hier.set(eid, r);
+    if (r) cited.push(`companyhierarchy:${r.employee_id}`);
+    return r;
+  };
+  // Over the limit the approver is the Sales head and the backup is the head's manager (the CEO), read from the hierarchy (companyhierarchy.csv).
+  // The policy row's over-limit ids are still read and must agree; a ticket that names its own owners keeps them (a note says when they differ).
+  const isOver = limit != null && amount != null && amount > limit;
+  if (isOver && (how.startsWith("over") || how === "named on the ticket")) {
+    const head = (await run("team_head", { team: "Sales" }, { ...o, why: `${topic} amount ${amount} is over the limit ${limit}: the Sales head approves` })).objects[0];
+    const hid = head ? num(head.employee_id) : NaN;
+    const hrow = valid(hid) ? await readHier(hid, `Sales head ${hid}: who approves and who they report to`) : null;
+    const mid = hrow ? num(hrow.manager_id) : NaN;
+    if (hrow && valid(mid)) {
+      const named = how === "named on the ticket";
+      if (!(owner === hid && backup === mid)) notes.push(`${named ? "the ticket's" : "the policy's over-limit"} owners ${owner}/${backup} disagree with the hierarchy (Sales head ${hid}, manager ${mid})${named ? "; the ticket's ids stand" : "; the hierarchy wins"}`);
+      if (!named) {
+        owner = hid; backup = mid;
+        how = `over the ${topic} limit ${limit}: ${hrow.role} per companyhierarchy:${hid}, backup their manager ${mid}`;
+      }
+      await readHier(mid, `backup ${mid}: the Sales head's manager`);
+    } else notes.push("hierarchy: no Sales head row, the policy's over-limit owners stand");
+  }
   if (!valid(owner)) owner = null;
   if (!valid(backup)) backup = null;
   if (owner == null && backup == null) notes.push("owner: none (no responsibility row)");
@@ -580,7 +611,8 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
     if (intake) {
       // parameterless holidays read, filtered in JS on the date
       const hol = (await run("holidays", {}, o)).objects.filter((h) => h.date === day);
-      const avail = (e) => (e == null ? none : { out: hol.some((h) => Number(h.employee_id) === e) });
+      // a blank employee_id is a company-wide day (P15): it takes everyone out
+      const avail = (e) => (e == null ? none : { out: hol.some((h) => h.employee_id === null || h.employee_id === undefined || h.employee_id === "" || Number(h.employee_id) === e) });
       ownerAv = avail(owner); backupAv = avail(backup);
     } else {
       ownerAv = owner == null ? none : await employeeAvailability(owner, day, o);
@@ -593,7 +625,39 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
     // einh's pick B (24 Oct): a stored thread with nobody in reads the default contact too, after the employee reads and before the trust row
     if (nobodyIn()) await readContact();
   }
-  const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
+  const empRow = (i) => emps[i]?.objects?.[0] ?? null;
+  const empName = (e) => (e ? `${e.given_name} ${e.family_name}` : null);
+  // team, label and name of the owner and the backup. The CEO and Legal (201-207) have no employees row: the hierarchy template answers for them.
+  // Scoped, the backup is read only when the owner is out or the over-limit path already read it.
+  const backupWanted = backup != null && (!scoped || ownerAv.out || hier.has(backup));
+  const ownerH = owner == null ? null : await readHier(owner, `owner ${owner}: team and place in the hierarchy`);
+  const backupH = backupWanted ? await readHier(backup, `backup ${backup}: team and place in the hierarchy`) : null;
+  const name = (e, h) => empName(e) ?? h?.name ?? null;
+
+  // the channel's rules (channels.csv): public or not, whether the agent may answer on its own, its label
+  let chan = null;
+  if (INTAKE_CHANNELS.includes(ticket.channel)) {
+    try {
+      chan = (await run("channel", { channel: ticket.channel }, { ...o, why: `the rules of the ${ticket.channel} channel` })).objects[0] ?? null;
+      if (chan) cited.push(`channels:${chan.channel}`);
+    } catch { notes.push(`channels:unavailable:${ticket.channel}`); } // run() already traced the error line
+  }
+  const asBool = (v) => v === true || String(v).toLowerCase() === "true";
+
+  // the topic's department label (responsibility.label): read once, by the owner chain when it came from there
+  if (respSeen === undefined) {
+    try { respSeen = (await run("responsibility", { topic }, { ...o, why: `the department label for ${topic}` })).objects[0] ?? null; } catch { respSeen = null; }
+  }
+
+  // earlier refund tickets from the same sender (case-insensitive), strictly before this one, never this one
+  let prior = null;
+  if (topic === "refund" && ticket.sender_email && ticket.received_at) {
+    try {
+      const pr = await run("prior_refunds", { email: String(ticket.sender_email), thread_id, received_at: String(ticket.received_at) }, { ...o, why: "an earlier refund request from this client?" });
+      prior = { count: pr.objects.length, thread_ids: pr.objects.map((x) => x.thread_id) };
+      for (const c of TEMPLATES.prior_refunds.cite({}, pr.objects)) cited.push(c);
+    } catch (e) { notes.push(`prior_refunds:unavailable (${e?.name ?? "Error"})`); } // run() already traced the error line
+  }
 
   // the trust row for EVERY category/topic (the ledger has all twelve); a category outside TOPICS reads the "other" row.
   // Only when no row exists does the weight fall back to OTHER_WEIGHT, and the note says so.
@@ -615,7 +679,13 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
 
   return {
     thread_id, category: ticket.category, amount, policy_limit: limit,
-    category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
+    category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(empRow(0), ownerH), backup_name: name(empRow(1), backupH),
+    owner_role: empRow(0)?.role ?? ownerH?.role ?? null, backup_role: empRow(1)?.role ?? backupH?.role ?? null,
+    owner_team: ownerH?.team ?? empRow(0)?.team ?? null, backup_team: backupH?.team ?? empRow(1)?.team ?? null,
+    owner_team_label: ownerH?.team_label ?? null, backup_team_label: backupH?.team_label ?? null,
+    topic_label: respSeen?.label ?? null,
+    channel_public: asBool(chan?.public), channel_autonomous: chan ? asBool(chan.autonomous_reply) : null, channel_label: chan?.label ?? null,
+    prior_refunds: prior,
     owner_out: ownerAv.out, backup_out: backupAv.out || (ownerAv.out && backup == null), fallback_contact, // an absent backup counts as out when the owner is out, so nobody-in is one predicate everywhere (Codex review 7, MEDIUM)
     // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send
     may_leave: intake || ticket.may_leave === true || ticket.may_leave === "true",

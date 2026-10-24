@@ -34,8 +34,8 @@ const WHO = {
   "memory.write": ["Memory", "memory_write"], synthesis: ["Planner", "synthesis"], recovery: ["Planner", "recover"],
 };
 
-// Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's data-block,
-// follow-up, duplicate and public-channel.
+// Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's fact-block (a fact that
+// may not leave: escalate), data-block (a check unavailable or a restricted fact in the message: hold), follow-up and duplicate.
 // The duplicate lookup is queries.findDuplicate (the thread_fingerprints template through Zetaris).
 // FAULT_ZETARIS_REFUSE_ONCE in sample mode: the first Zetaris call of the run goes through the real adapter with
 // sample mode off and a loopback port that was bound and released, so the refusal is a genuine ECONNREFUSED.
@@ -80,6 +80,19 @@ export function decideBranch(facts, gates, memory, extra = {}) {
   return fc && b?.why ? { ...b, why: `${b.why}; routed to the default contact ${fc.email} (${fc.cited})` } : b;
 }
 
+// A restricted term from the what-may-leave page written in the customer's own message, or a card number when that page restricts card numbers.
+// Pure; returns a short phrase or null. The authored may_leave flag is a different thing (fact-block).
+const CARD_NUMBER = /(?<![\d-])(?:\d[ -]?){13,19}(?![\d-])/;
+export function restrictedInMessage(facts) {
+  const text = `${facts?.subject ?? ""}\n${facts?.body ?? ""}`;
+  const low = text.toLowerCase();
+  const terms = (facts?.restricted_terms ?? []).filter(Boolean);
+  const hit = terms.find((t) => low.includes(String(t).toLowerCase()));
+  if (hit) return `"${hit}"`;
+  if (terms.some((t) => /card/i.test(t)) && CARD_NUMBER.test(text.replace(/\b(?:JP|FS)-[A-Z]?\d+\b/g, ""))) return "a card number";
+  return null;
+}
+
 function decideBranchCore(facts, gates, memory, extra = {}) {
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
@@ -100,14 +113,17 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   if (facts.follow_up_kind === "follow-up") {
     return { branch_id: "follow-up", why: "a follow-up on an open ticket: the ticket stays open, nothing new is sent" };
   }
+  // einh, 24 Oct 2026 (challengetrack wins): a fact that may not leave is ESCALATED to the owner, not held. It outranks every check below.
   if (facts.may_leave === false) {
-    return { branch_id: "data-block", why: "the cited fact may not leave the company: external-data block" };
+    return { branch_id: "fact-block", why: "the cited fact may not leave the company: external-data block, escalated to the owner" };
   }
   if (extra.duplicate_of) {
     return { branch_id: "duplicate", why: `the same sender, subject and body as earlier thread ${extra.duplicate_of.thread_id}: closed as a duplicate` };
   }
-  if (facts.category === "complaint" && facts.channel === "trustpilot") {
-    return { branch_id: "public-channel", why: "a complaint on a public channel (trustpilot): public image risk" };
+  // a restricted fact (a card number, a staff price list) in the customer's own message wins over the trust floor: held for a person, no draft (H16)
+  const sensitive = restrictedInMessage(facts);
+  if (sensitive) {
+    return { branch_id: "data-block", restricted: sensitive, why: `the message carries ${sensitive}, which may not leave the company: external-data block, held for a person` };
   }
   if (facts.amount != null && facts.policy_limit != null && facts.amount > facts.policy_limit) {
     return { branch_id: "over-limit", why: `amount ${facts.amount} GC is over the ${facts.policy_limit} GC policy limit` };
@@ -118,7 +134,8 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, ${facts.backup_id == null ? "no backup named" : `backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}`}` : `owner ${facts.owner_id} in`;
-    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
+    const noAmount = facts.amount == null && /refund/.test(String(facts.category)) ? `; no amount stated${facts.channel_public ? ` on a public channel (channels:${facts.channel})` : ""}` : "";
+    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${noAmount}${memory?.length ? "; memory consulted" : ""}` };
   }
   const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
   if (unavailable.length) {
@@ -288,6 +305,32 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     aborted: false, facts: null, recovered: [], decision: null, reasons: [], draft: null, rounds: [], models: {},
     memRead: [], memWritten: [], branch: null, queued: null, current: "memory.read", scoutRisk: null,
     scenario: { scenario: "legacy", how: "thread" }, recommendation: undefined, extraCited: [], msg: null,
+    meta: {}, emailRecall: 0, autoReply: false, gates: null, ledger: { affirmed: 0, rejected: 0 },
+  };
+  // ---- what the queue entry and the output say about who holds the ticket, and what memory knows (item 10) ----
+  const emailKey = (e) => String(e ?? "").trim().toLowerCase();
+  // einh's sentence, for ANY count of 1 or more, never a second wording
+  const secondRefund = () => {
+    const p = S.facts?.prior_refunds;
+    return p && p.count >= 1 ? `Second Refund Request from this client (${p.count} earlier: ${p.thread_ids.join(", ")}).` : null;
+  };
+  const memoryNote = () => [secondRefund(), S.emailRecall > 0 ? `H-MEM recalls ${S.emailRecall} earlier decision(s) for this client.` : null].filter(Boolean).join(" ") || null;
+  // the person who actually holds the ticket: the backup when the owner is out and the backup is in, else the owner
+  const queueMeta = (over = {}) => {
+    const f = S.facts;
+    const backupHolds = Boolean(f?.owner_out && !f?.backup_out && f?.backup_id != null);
+    const ov = { ...S.meta, ...over };
+    return {
+      team: ov.team ?? (backupHolds ? f?.backup_team : f?.owner_team) ?? null,
+      team_label: ov.team_label ?? (backupHolds ? f?.backup_team_label : f?.owner_team_label) ?? null,
+      backup_team: ov.backup_team ?? f?.backup_team ?? null,
+      topic_label: ov.topic_label ?? f?.topic_label ?? null,
+      cc: ov.cc ?? [], also: ov.also ?? [],
+      status: ov.status ?? "open",
+      auto_reply: false,
+      memory_note: memoryNote(),
+      channel_label: f?.channel_label ?? null,
+    };
   };
   // The one choke point: every line (direct, buffered-then-flushed, finalisation) is written here, then handed to deps.onLine.
   const W = (f) => {
@@ -351,19 +394,23 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   };
 
   // owner: { owner_id, backup_id, owner_name, backup_name, role } lets a handler name who it escalates to (default: the facts' owner and backup).
-  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null, owner = null, attachments, recommendation, escalation } = {}) => {
+  // Options also carry the queue-entry fields a handler decides: team, team_label, backup_team, topic_label, cc[], also[], status.
+  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null, owner = null, attachments, recommendation, escalation, team, team_label, backup_team, topic_label, cc, also, status } = {}) => {
     const f = S.facts;
     const ownerId = owner?.owner_id ?? f?.owner_id ?? null;
     const backupId = owner?.backup_id ?? f?.backup_id ?? null;
     const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}),
       ...(approval ? { approval } : {}), ...(draft ? { draft: { text: draft.text, promises: draft.promises } } : {}) };
     const fc = owner?.fallback_contact ?? f?.fallback_contact ?? null;
+    S.meta = { ...S.meta, ...Object.fromEntries(Object.entries({ team: team ?? owner?.team, team_label: team_label ?? owner?.team_label, backup_team, topic_label, cc, also, status }).filter(([, v]) => v !== undefined)) };
+    const meta = queueMeta();
     let memId = null;
     let queueFailed = false;
     try {
       memId = hmem.queueForHuman(ticketObj, critiques, {
-        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? (fc ? "default contact" : null), ...(fc ? { fallback_contact: fc } : {}) },
+        owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? (fc ? "default contact" : null), team: meta.team, team_label: meta.team_label, ...(fc ? { fallback_contact: fc } : {}) },
         scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null, attachments: attachments ?? null, escalation: escalation ?? null,
+        cc: meta.cc, also: meta.also, status: meta.status,
       });
     } catch (e) {
       queueFailed = true;
@@ -372,11 +419,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
     S.decision = "escalate";
-    S.queued = { owner_id: ownerId, backup_id: backupId, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
+    S.queued = { owner_id: ownerId, backup_id: backupId, owner_name: f?.owner_name ?? null, backup_name: f?.backup_name ?? null, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
       ...(attachments !== undefined ? { attachments } : {}), ...(recommendation !== undefined ? { recommendation } : {}), ...(escalation !== undefined ? { escalation } : {}),
       ...(owner?.owner_name !== undefined ? { owner_name: owner.owner_name } : {}), ...(owner?.backup_name !== undefined ? { backup_name: owner.backup_name } : {}),
       ...(owner?.role !== undefined ? { role: owner.role } : {}),
-      ...(fc ? { fallback_contact: fc, role: "default contact" } : {}) };
+      ...(fc ? { fallback_contact: fc, role: "default contact" } : {}), ...meta };
     if (memId) S.memWritten.push(memId);
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
@@ -497,29 +544,34 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let memCtx = "";
     try {
       if (hmemInitErr) throw hmemInitErr;
-      const q = f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id);
-      const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [f.sender_name] } : {}) });
+      // keyed by the sender's email as well as the name: the same client under another name is still the same client
+      const q = f ? `${f.sender_name} ${emailKey(f.sender_email)} ${f.category} ${thread_id}` : String(thread_id);
+      const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [f.sender_name, emailKey(f.sender_email)].filter(Boolean) } : {}) });
       memories = r.memories;
       memCtx = r.context;
     } catch (e) {
       soft("memory.read", e, hmemInitErr ? "memory unavailable, continuing without it" : "continued without memory");
     }
     S.memRead = memories.map((m) => m.memory.id);
+    const mail = emailKey(f?.sender_email);
+    const byEmail = mail ? memories.filter((m) => (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) : [];
+    S.emailRecall = byEmail.length;
     L({
       step: "memory.read", agent_name: "Memory", action: "memory_read", input_summary: f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id),
-      output_summary: S.memRead.length ? `${S.memRead.length} memories: ${memories.map((m) => `${m.memory.id} (${one(m.memory.content, 70)})`).join("; ")}` : "empty (cold first run)",
+      output_summary: S.memRead.length ? `${S.memRead.length} memories: ${memories.map((m) => `${m.memory.id} (${one(m.memory.content, 70)})`).join("; ")}${byEmail.length ? `; ${byEmail.map((m) => m.memory.id).join(", ")} recalled by the client's email ${mail}` : ""}` : "empty (cold first run)",
       status: "success", memory_ids: S.memRead, sponsor: undefined,
     });
 
     // 2. planner.plan
     S.current = "planner.plan";
-    const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || String(m.memory.content).includes(thread_id));
+    const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
     const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
-        + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : ""),
+        + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : "")
+        + (secondRefund() ? `. ${secondRefund()}` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -583,6 +635,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       }
     }
 
+    S.gates = gates;
+    S.ledger = ledger;
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
@@ -628,8 +682,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       if (a.reasons?.length) S.reasons = [...a.reasons];
       if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model, ...(a.draft.blanks ? { blanks: a.draft.blanks } : {}) };
       if (a.recommendation !== undefined) S.recommendation = a.recommendation;
+      // queue-entry fields a handler decides (team, cc, also, status ...), and whether the reply goes out by itself
+      S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
+      if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
-      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role };
+      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...queueMeta() };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
       return;
     }
@@ -641,15 +698,16 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.reasons.push(S.branch.why);
       return;
     }
-    if (["data-block", "follow-up", "duplicate", "public-channel"].includes(B)) {
-      const refusal = B === "data-block" ? (S.branch.checks_unavailable ? `${S.branch.checks_unavailable.join(" and ")} unavailable` : "fact may not leave") : B === "public-channel" ? "public image risk: no autonomous reply" : null;
+    if (["fact-block", "data-block", "follow-up", "duplicate"].includes(B)) {
+      const refusal = B === "fact-block" ? "fact may not leave" : B === "data-block" ? (S.branch.checks_unavailable ? `${S.branch.checks_unavailable.join(" and ")} unavailable` : `${S.branch.restricted ?? "a restricted fact"} may not leave`) : null;
       skipped("nvidia.model", `${B}: no draft`);
       skipped("critique", `${B}: no draft to critique`);
       if (refusal) {
         L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: 0, input_summary: S.branch.why, output_summary: `Refused: ${refusal}`, status: "refused" });
       } else skipped("risk.signoff", `${B}: nothing to sign`);
       skipped("retry", `${B}: a rewrite cannot change it`);
-      if (B === "public-channel") {
+      if (B === "fact-block") {
+        // Risk's refusal is the critique the owner reads; no draft exists, so none is attached
         escalate([{ source: "Risk", reason: refusal }], `${S.branch.why}; ${refusal}`);
       } else {
         S.decision = B === "duplicate" ? "close" : "hold";
@@ -734,7 +792,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     written = hmem.add({
       content: `${thread_id} ${S.decision}: ${f ? `${f.sender_name} ${f.category}. ` : ""}${reason}`,
       source: "loop", type: "factual", tags: [f?.category ?? "unknown", S.decision],
-      entities: [f?.sender_name, thread_id].filter(Boolean), provenance: { origin: "loop", run_id, learnedAt: clock(), label: "factual" },
+      entities: [f?.sender_name, emailKey(f?.sender_email), thread_id].filter(Boolean), provenance: { origin: "loop", run_id, learnedAt: clock(), label: "factual" },
     });
     S.memWritten.push(written.id);
   } catch (e) {
@@ -758,12 +816,22 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
   const out = trace.close();
   const unrecovered = timedOut;
+  // who holds it and what memory says (item 10). A send is handled at once; every hold and escalate is open; `follow_up` is never set here.
+  const decision = S.decision;
+  const meta = queueMeta({ status: S.meta.status ?? (decision === "send" || decision === "close" ? "handled" : "open") });
+  // an automatic reply: a handler says so, or the branch is one that answers from the rows (faq-hit, product-hit, delivery-*); never without a sent draft
+  const autoBranch = /^(faq-hit|product-hit|delivery-)/.test(S.branch?.branch_id ?? "");
+  meta.auto_reply = (S.autoReply === true || autoBranch) && decision === "send" && Boolean(S.draft?.text);
+  const trusted = f ? !trustFloor(f, S.gates ?? undefined, { ledgerAdjust: S.ledger }).under : false;
+  if (S.queued) Object.assign(S.queued, meta);
   const result = {
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",
     output: {
       decision: S.decision, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],
       ...(S.recommendation !== undefined ? { recommendation: S.recommendation } : {}),
       ...(S.draft ? { draft: S.draft } : {}), ...(S.queued ? { queued_for: S.queued } : {}),
+      status: meta.status, auto_reply: meta.auto_reply, memory_note: meta.memory_note, team: meta.team, team_label: meta.team_label, backup_team: meta.backup_team,
+      topic_label: meta.topic_label, cc: meta.cc, also: meta.also, channel_label: meta.channel_label, trusted_to_send: trusted,
     },
     agents: [
       { name: "Planner", role: "plan and delegate" }, { name: "Executor", role: "facts from Zetaris" },

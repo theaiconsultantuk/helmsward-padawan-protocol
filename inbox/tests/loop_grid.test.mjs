@@ -26,14 +26,10 @@ function assertSubsequence(actual, expected, label) {
   assert.equal(i, expected.length, `${label}: expected order not found; matched ${i}/${expected.length}, next wanted ${expected[i]}; actual ${actual.join(" ")}`);
 }
 
-// CP2 2.1a builds these three outcomes: T04/T23 escalate through the new fact-block branch, T10 (Trustpilot, severity 7) holds by severity
-// instead of escalating on the public channel. They are tracked by the todo test below, so the strict grid still guards the other 21.
-const CP2_PENDING = new Set(["T04", "T10", "T23"]);
-
 test("the grid: all 24 authored threads decide to their authored outcome", async () => {
   assert.equal(THREADS.length, 24);
   const rows = [];
-  for (const t of THREADS.filter((x) => !CP2_PENDING.has(x.thread_id))) {
+  for (const t of THREADS) {
     const { result } = await go(t.thread_id);
     rows.push({ id: t.thread_id, authored: t.outcome, got: result.output.decision, branch_id: result.branch_id });
   }
@@ -44,34 +40,85 @@ test("the grid: all 24 authored threads decide to their authored outcome", async
   assert.deepEqual(bad, []);
 });
 
-test("the grid, CP2 outcomes: T04 and T23 escalate (fact-block), T10 holds by severity", { todo: "CP2 2.1a: fact-block branch and Trustpilot hold-by-severity are not built yet" }, async () => {
-  for (const t of THREADS.filter((x) => CP2_PENDING.has(x.thread_id))) {
-    const { result } = await go(t.thread_id);
-    assert.equal(result.output.decision, t.outcome, `${t.thread_id} (${result.branch_id})`);
-  }
-});
-
 test("branch ids for the new rules", async () => {
-  const want = { T04: "data-block", T23: "data-block", T06: "follow-up", T14: "follow-up", T17: "follow-up", T10: "public-channel", T24: "duplicate", T18: "send-ok", T16: "thank-you", T01: "misread" };
+  const want = { T04: "fact-block", T23: "fact-block", T06: "follow-up", T14: "follow-up", T17: "follow-up", T10: "under-floor", T24: "duplicate", T18: "send-ok", T16: "thank-you", T01: "misread" };
   for (const [id, b] of Object.entries(want)) assert.equal((await go(id)).result.branch_id, b, id);
 });
 
-test("data-block and public-channel log risk.signoff refused with their reasons; no draft is made", async () => {
-  for (const [id, text] of [["T04", "fact may not leave"], ["T10", "public image risk: no autonomous reply"]]) {
+test("fact-block escalates (T04, T23): Risk refuses 'fact may not leave', no draft, a queue entry for the owner; data-block does not escalate", async () => {
+  for (const id of ["T04", "T23"]) {
     const { lines, result } = await go(id);
     const r = lines.find((l) => l.step === "risk.signoff");
     assert.equal(r.status, "refused");
-    assert.match(r.output_summary, new RegExp(text));
+    assert.match(r.output_summary, /fact may not leave/);
+    assert.equal(result.output.decision, "escalate");
     assert.ok(!result.output.draft, `${id} has no draft`);
+    assert.ok(existsSync(result.output.queued_for.queue_file), `${id} has a queue file`);
+    const q = JSON.parse(readFileSync(result.output.queued_for.queue_file, "utf8"));
+    assert.ok(q.critiques.some((c) => c.source === "Risk" && /fact may not leave/.test(c.reason)), "the critique is Risk's refusal");
     assert.ok(lines.filter((l) => l.step === "nvidia.model" && l.action !== "typed_gates").every((l) => l.status === "skipped"));
   }
-  assert.ok(!existsSync((await go("T04")).result.output.queued_for?.queue_file ?? "/nonexistent"), "data-block does not escalate");
+  // data-block: only an unavailable check or a restricted fact in the message; it holds, no queue entry
+  const facts = async (id, { trace }) => {
+    const { factsForTicket } = await import("../src/queries.mjs");
+    return { ...(await factsForTicket(id, { trace, cfg: cfgOf() })), disclosure_unknown: true };
+  };
+  const d = dirs();
+  const r = await runTicket("T18", { run_id: "grid-T18-datablock", cfg: cfgOf(), deps: { ...d, facts } });
+  assert.equal(r.branch_id, "data-block");
+  assert.equal(r.output.decision, "hold");
+  assert.ok(!r.output.queued_for, "data-block does not escalate");
+  assert.ok(!r.output.draft);
+});
+
+test("T10 (Trustpilot complaint, severity 7) holds with a draft and cites the channel; no branch is keyed on a channel name", async () => {
+  const { result } = await go("T10");
+  assert.equal(result.output.decision, "hold");
+  assert.ok(result.output.draft?.text);
+  assert.ok(result.output.cited_rows.includes("channels:trustpilot"));
+  assert.notEqual(result.branch_id, "public-channel");
+});
+
+test("no 24-thread run cites responsibility:fallback; every run cites its channel row", async () => {
+  for (const t of THREADS) {
+    const { result } = await go(t.thread_id);
+    assert.ok(!result.output.cited_rows.includes("responsibility:fallback"), t.thread_id);
+    assert.ok(result.output.cited_rows.includes(`channels:${t.channel}`), `${t.thread_id} cites channels:${t.channel}`);
+  }
+});
+
+test("T21 and T22 (category other) read the 0.40 trust row", async () => {
+  const { factsForTicket } = await import("../src/queries.mjs");
+  for (const id of ["T21", "T22"]) {
+    const f = await factsForTicket(id, { cfg: cfgOf() });
+    assert.equal(f.category_weight, 0.4, id);
+    assert.ok(f.cited_rows.includes("trust_ledger:other"));
+    assert.ok(!f.notes.some((n) => /trust_ledger:missing/.test(n)));
+  }
+});
+
+test("invariant: auto_reply implies decision send and a draft text, in every output of the 24", async () => {
+  for (const t of THREADS) {
+    const { result } = await go(t.thread_id);
+    const o = result.output;
+    assert.equal(typeof o.auto_reply, "boolean", t.thread_id);
+    if (o.auto_reply) { assert.equal(o.decision, "send", t.thread_id); assert.ok(o.draft?.text, t.thread_id); }
+    if (o.queued_for) assert.equal(o.queued_for.auto_reply, o.auto_reply, `${t.thread_id} queued_for agrees`);
+    assert.equal(typeof o.trusted_to_send, "boolean");
+    assert.equal(o.status, o.decision === "send" || o.decision === "close" ? "handled" : "open", t.thread_id);
+    assert.ok(Array.isArray(o.cc) && Array.isArray(o.also));
+  }
+});
+
+test("trusted_to_send is the trust floor as a boolean, beside the weight", async () => {
+  assert.equal((await go("T18")).result.output.trusted_to_send, true);   // appreciation 0.84 >= 0.80
+  assert.equal((await go("T02")).result.output.trusted_to_send, false);  // refund 0.55 < 0.80
 });
 
 test("T05 holds with 'no amount stated'; T24 close names the earlier thread", async () => {
   const t5 = await go("T05");
   assert.equal(t5.result.output.decision, "hold");
-  assert.match(t5.lines.find((l) => l.step === "branch").output_summary, /no amount stated/);
+  assert.match(t5.lines.find((l) => l.step === "branch").output_summary, /no amount stated on a public channel \(channels:trustpilot\)/);
   const t24 = await go("T24");
   assert.equal(t24.result.output.decision, "close");
   assert.match(t24.result.output.reasons.join(" "), /T11/);

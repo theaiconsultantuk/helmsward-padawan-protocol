@@ -177,16 +177,18 @@
       "expect": {
         "scenario": "complaint",
         "resolved_how": "declared",
-        "branch_id": "public-channel",
-        "decision": "escalate",
+        "branch_id": "complaint-genuine",
+        "decision": "hold",
         "owner_id": 15,
-        "draft_absent": true
+        "draft_present": true,
+        "cited_includes": ["channels:trustpilot"]
       },
       "sequence": [
-        "branch:success:public-channel",
-        "risk.signoff:refused:public-channel",
-        "escalate_or_fallback:success:public-channel",
-        "synthesis:success:public-channel"
+        "branch:success:complaint-genuine",
+        "critique:success:complaint-genuine",
+        "risk.signoff:success:complaint-genuine",
+        "escalate_or_fallback:skipped:complaint-genuine",
+        "synthesis:success:complaint-genuine"
       ]
     },
     {

@@ -24,7 +24,7 @@ const scoped = (topic, as_of, needs, extra = {}, s = spy()) =>
 
 test("scoped complaint, owner in: one holiday, one employee, no policy, no holidays", async () => {
   const { facts: f, s } = await scoped("complaint", "2026-10-20", []);
-  assert.deepEqual(s.names(), ["responsibility", "holiday", "employee", "trust", "wiki"]);
+  assert.deepEqual(s.names(), ["responsibility", "holiday", "employee", "hierarchy", "channel", "trust", "wiki"]);
   assert.ok(!f.cited_rows.some((c) => c.startsWith("policy:")));
   assert.equal(f.policy_limit, null);
   assert.equal(f.owner_id, 15); assert.equal(f.backup_id, 27);
@@ -35,7 +35,7 @@ test("scoped complaint, owner in: one holiday, one employee, no policy, no holid
 
 test("scoped complaint, owner out, backup in: backup holiday and record read lazily", async () => {
   const { facts: f, s } = await scoped("complaint", "2026-01-27", []); // 15 is out; 27 has no holiday rows at all
-  assert.deepEqual(s.names(), ["responsibility", "holiday", "holiday", "employee", "employee", "trust", "wiki"]);
+  assert.deepEqual(s.names(), ["responsibility", "holiday", "holiday", "employee", "employee", "hierarchy", "hierarchy", "channel", "trust", "wiki"]);
   const hols = s.calls.filter((c) => c.name === "holiday");
   assert.equal(hols[0].params.employee_id, 15);
   assert.equal(hols[1].params.employee_id, 27);
@@ -46,7 +46,7 @@ test("scoped complaint, owner out, backup in: backup holiday and record read laz
 
 test("scoped complaint, both out: the default contact is read once, after both holidays", async () => {
   const { facts: f, s } = await scoped("question", "2026-10-01", []); // question is 5 / 13, and both are out on 1 Oct (the support pair 15 / 27 is never both out: 27 has no rows)
-  assert.deepEqual(s.names(), ["responsibility", "holiday", "holiday", "employee", "employee", "contact", "trust", "wiki"]);
+  assert.deepEqual(s.names(), ["responsibility", "holiday", "holiday", "employee", "employee", "contact", "hierarchy", "hierarchy", "channel", "trust", "wiki"]);
   assert.deepEqual(s.calls.find((c) => c.name === "contact").params, { topic: "default" });
   assert.deepEqual(f.fallback_contact, { email: "contact@jedipack.com", label: "Jedi Pack contact desk", cited: "contacts:default" });
   assert.equal(f.cited_rows.at(-1), "contacts:default");
@@ -95,7 +95,7 @@ test("scoped rfq (needs []): no policy read, owner 6 / backup 14", async () => {
 test("legacy T02 (needs undefined): the query order is pinned, fallback_contact null", async () => {
   const s = spy();
   const f = await factsForTicket("T02", { cfg, sqlRunImpl: s.sqlRunImpl });
-  assert.deepEqual(s.names(), ["thread", "policy", "responsibility", "holiday", "holiday", "employee", "employee", "trust", "wiki"]);
+  assert.deepEqual(s.names(), ["thread", "policy", "responsibility", "holiday", "holiday", "employee", "employee", "hierarchy", "hierarchy", "channel", "prior_refunds", "trust", "wiki"]);
   assert.equal(f.fallback_contact, null);
 });
 
