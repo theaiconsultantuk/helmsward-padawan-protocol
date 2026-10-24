@@ -5,7 +5,7 @@
 // tb is the loop's toolbox ({ f, ticket, inputText, L, skipped, escalate, replyLoop, hardRisk, queries, o, cfg, decided, ... }).
 import { tokens, extractParams } from "./engines/scout/index.mjs";
 import { rowsForIntent } from "./ask.mjs";
-import { draftMessages, complaintReadMessages, parseComplaintReadJson, recommendationMessages, parseRecommendationJson, NUDGE } from "./prompts.mjs";
+import { draftMessages, complaintReadMessages, parseComplaintReadJson, recommendationMessages, parseRecommendationJson, fillQuote, fillCourtesy, NUDGE } from "./prompts.mjs";
 import { severityGate } from "./gates.mjs";
 import { getWorld, toObjects, complaintContext, worldLine, mentionedProducts } from "./engines/world-model/world.mjs";
 import * as sample from "./adapters/sample.mjs";
@@ -24,6 +24,8 @@ const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track
 const ORDER_ID = /\bJP-\d{4}\b/i;
 // a question about what a product is, made of or costs, with or without the product named
 const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
+const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
+const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
 
@@ -38,9 +40,13 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
   if (id === "complaint" || (cat?.choice === "complaint" && cat.confidence >= 0.6)) return { scenario: "complaint", how: id === "complaint" ? "scout" : "gates" };
+  // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
+  if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
   // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order")
   const oid = ORDER_ID.test(String(text ?? "")) || ORDER_ID.test(String(decided?.parameters?.id ?? ""));
   if (oid && DELIVERY_WORDS.test(String(text ?? "")) && !["replacement.request", "appreciation", "follow_up"].includes(id)) return { scenario: "delivery", how: "scout" };
+  // a quote asked for a counted product ("could you quote 25 Arc Blade Trainers") is an RFQ even when Scout read a plain order question
+  if ((id === "order.question" || id === "GENERAL") && QUOTE_WORDS.test(String(text ?? "")) && productHit && /\d/.test(String(text ?? ""))) return { scenario: "rfq", how: "scout" };
   // a product named (by name or alias) or a material/spec/price question: the catalogue row answers it
   if ((id === "order.question" || id === "GENERAL") && (productHit || PRODUCT_WORDS.test(String(text ?? "")))) return { scenario: "product", how: "scout" };
   if (id === "order.question" || (cat?.choice === "question" && cat.confidence >= 0.6)) return { scenario: "question", how: id === "order.question" ? "scout" : "gates" };
@@ -273,6 +279,20 @@ async function probeRfq(tb) {
     if (r) prices.push(r);
   }
   const owner = await ownerOf(tb, "rfq", o);
+  // a quote needs ONE product in the catalogue and ONE quantity; two quantities ("the price difference between 100000 and 100") stay the acknowledgement road
+  if (!matched.length) {
+    try {
+      const hit = matchProductLookup(text, (await tb.queries.run("product_lookup", {}, o)).objects).hit;
+      if (hit) { const r = (await tb.queries.run("product_price", { sku: hit.row.sku }, o)).objects[0]; if (r) { matched.push(r); prices.push(r); } }
+    } catch { /* the acknowledgement road below stands */ }
+  }
+  if (matched.length === 1 && prices.length === 1) {
+    const qty = quantities.length === 1 ? quantities[0] : quantities.length === 0 ? quantityBeforeProduct(text, prices[0].name) : null;
+    if (Number.isInteger(qty) && qty > 0) {
+      const quote = await probeQuote(tb, { o, lines, qty, price: prices[0], owner });
+      if (quote) return quote;
+    }
+  }
   const ids = prices.map((x) => `products:${x.sku}`);
   const q = said(quantities);
   const recommendation = prices.length
@@ -284,6 +304,7 @@ async function probeRfq(tb) {
 }
 
 async function actRfq(tb, p) {
+  if (p.data.quote) return actQuote(tb, p);
   const { quantities, products, prices, owner, recommendation, ids } = p.data;
   const B = p.branch_id;
   skipLine(tb, "nvidia.model", "acknowledgement template, no model call");
@@ -298,6 +319,113 @@ async function actRfq(tb, p) {
   const reason = `rfq: ${recommendation}${sig.pass ? "" : ` (acknowledgement not signed off: ${sig.reasons.join("; ")})`}`;
   tb.escalate(sig.pass ? [] : [{ source: "Risk", reason: sig.reasons.join("; ") }], reason, {}, { owner, draft: sig.pass ? draft : null, attachments, recommendation });
   return { decision: "escalate", reasons: [reason], draft: sig.pass ? draft : undefined, queued: owner, recommendation, attachments, cited: p.cited };
+}
+
+
+// ---- bulk quote (P29): tiers AND parts. The quote is composed from rows; a human sends it. ----
+
+const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const num = (v) => (v === "" || v == null ? NaN : Number(v));
+const cut = (v) => round2(v).toFixed(2);
+
+// "50 Arc Blade Trainers": the integer written directly before the product's name (Scout counts a quantity only before a unit word)
+function quantityBeforeProduct(text, name) {
+  const words = String(name ?? "").split(/\s+/).filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!words.length) return null;
+  // two numbers in the message ("the difference between 100000 Arc Blade Trainers and 100") is a comparison, not an order
+  if ((String(text ?? "").match(/(?<![\w.-])\d[\d,]*(?![\w-])/g) ?? []).length !== 1) return null;
+  const m = new RegExp(`(?<![\\w.,-])(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\s*x)?\\s+(?:of\\s+(?:the\\s+)?)?${words.join("\\s+")}s?\\b`, "i").exec(String(text ?? ""));
+  return m ? parseInt(m[1].replace(/,/g, ""), 10) : null;
+}
+
+// A person for a queue entry: { id, name, role, email, team }. Name and role from the hierarchy (it answers for the CEO and Legal),
+// the email from employees (a row missing there leaves email null, never invented).
+async function personOf(tb, id, o) {
+  const one1 = async (name) => { try { return (await tb.queries.run(name, { employee_id: Number(id) }, o)).objects[0] ?? null; } catch { return null; } };
+  const h = await one1("hierarchy");
+  const e = await one1("employee");
+  return { id: Number(id), name: h?.name ?? (e ? `${e.given_name} ${e.family_name}` : null), role: h?.role ?? e?.role ?? null, email: e?.email ?? null, team: h?.team ?? e?.team ?? null, team_label: h?.team_label ?? null, manager_id: h?.manager_id != null ? Number(h.manager_id) : null };
+}
+const headOf = async (tb, team, o) => {
+  const r = (await tb.queries.run("team_head", { team }, o)).objects[0];
+  return r ? personOf(tb, Number(r.employee_id), o) : null;
+};
+
+async function probeQuote(tb, { o, lines, qty, price, owner }) {
+  const run = (n, params, why) => tb.queries.run(n, params, why ? { ...o, why } : o);
+  const tiers = (await run("bulk_tiers", {}, "volume tiers: the tier is picked by quantity")).objects;
+  const tierRow = tiers.find((t) => qty >= num(t.min_qty) && (Number.isNaN(num(t.max_qty)) || qty <= num(t.max_qty))) ?? null;
+  const discount = tierRow ? Number(tierRow.discount_pct) : 0;
+  const unit = round2(Number(price.unit_price) * (1 - discount / 100));
+  const total = round2(unit * qty);
+  const lead = Number(price.lead_days);
+  const parts = (await run("bom", { sku: price.sku }, `parts of ${price.sku}: needed for ${qty} units against stock`)).objects.map((b) => {
+    const needed = Number(b.qty_per_unit) * qty, stock = Number(b.stock);
+    return { part_id: b.part_id, part_name: b.part_name, needed, stock, short: needed > stock };
+  });
+  const short = parts.filter((x) => x.short);
+  let limit = null;
+  try { const pr = (await run("policy", { topic: "rfq" }, "the quote limit")).objects[0]; limit = pr ? Number(pr.limit_amount) : null; } catch { limit = null; }
+  const over = limit != null && Number.isFinite(limit) && total > limit;
+  const quote = { sku: price.sku, quantity: qty, tier: tierRow?.tier ?? "list", unit_price: unit, discount_pct: discount, total, currency: "GC", parts };
+  // over the limit: the Sales head approves, the CEO when the head is out that day
+  let approver = null, headOut = false;
+  const cited = [`products:${price.sku}`, ...(tierRow ? [`bulk_pricing:${tierRow.tier}`] : []), ...parts.map((x) => `bom:${price.sku}:${x.part_id}`), ...(limit != null ? ["policy:rfq"] : []), ...(owner.looked_up ? ["responsibility:rfq"] : [])];
+  if (over) {
+    const head = await headOf(tb, "Sales", o);
+    if (head) {
+      cited.push(`companyhierarchy:${head.id}`);
+      const day = tb.f?.as_of ?? tb.o?.as_of;
+      if (day) {
+        try {
+          headOut = (await run("holiday", { employee_id: head.id, date: day }, `Sales head ${head.id}: in on ${day}?`)).objects.length > 0;
+          cited.push(`holiday_2026:${head.id}@${day}`);
+        } catch { headOut = false; }
+      }
+      approver = headOut && head.manager_id != null ? await personOf(tb, head.manager_id, o) : head;
+      if (approver) cited.push(`companyhierarchy:${approver.id}`);
+      approver = approver && { ...approver, head, headOut };
+    }
+  }
+  const partsText = parts.map((x) => `${x.part_name} ${x.needed} of ${x.stock}${x.short ? " (short)" : ""}`).join(", ");
+  const branch_id = over ? "rfq-quote-over-limit" : short.length ? "rfq-quote-stock" : "rfq-quote";
+  const shortText = short.map((x) => `${x.part_name} (${x.part_id}) is short by ${x.needed - x.stock}: needs ${x.needed}, stock ${x.stock}`).join("; ");
+  const why = `quote for ${qty} x ${price.name}: tier ${quote.tier} (${discount}% off), unit ${cut(unit)} GC, total ${cut(total)} GC, lead ${lead} days; parts ${partsText || "none listed"}`
+    + (over ? `; the total is over the ${limit} GC quote limit, ${approver ? `${approver.name ?? `employee ${approver.id}`} (${approver.role ?? "approver"}) approves${headOut ? ` because the Sales head ${approver.head.id} is out on ${tb.f?.as_of ?? tb.o?.as_of}` : ""}` : "no Sales head row: the quote owner stands"}` : "")
+    + (short.length ? `; ${shortText}` : "");
+  return { branch_id, why, cited, data: { quote, quote_name: price.name, lead, limit, over, short, shortText, approver, owner }, lines: lines.map((x) => ({ ...x, branch_id })) };
+}
+
+async function actQuote(tb, p) {
+  const { quote, quote_name, lead, limit, over, short, shortText, approver, owner } = p.data;
+  const B = p.branch_id;
+  skipLine(tb, "nvidia.model", `${B}: the quote is filled from the tier, the price and the parts, no model call`);
+  skipLine(tb, "critique", "composed from the rows, nothing to evaluate");
+  const body = fillQuote({ product: quote_name, quantity: quote.quantity, tier: `${quote.tier} (${quote.discount_pct}% off)`, unit_price: cut(quote.unit_price), total: cut(quote.total), lead_days: lead, parts: quote.parts })
+    + (over ? "\nBecause of its size this quote is routed for approval before it is confirmed." : "");
+  const draft = { text: sample.frame(tb.ticket ?? tb.f, body, { team: "Sales" }), promises: NO_PROMISES(), model: "template/quote" };
+  const sig = signoff(tb, B, draft);
+  skipLine(tb, "retry", "composed from the rows: a rewrite cannot change it");
+  const attachments = { quote, cited: p.cited };
+  const recommendation = over
+    ? `The quote total ${cut(quote.total)} GC is over the ${limit} GC quote limit: ${approver?.name ?? "the Sales head"} approves it${short.length ? `; also ${shortText}` : ""}.`
+    : short.length ? `Hold the quote: ${shortText}. Sales confirms the part with production before the quote goes out.`
+    : `Quote ready: ${quote.quantity} x ${quote_name}, tier ${quote.tier}, ${cut(quote.total)} GC. Sales checks it and sends it.`;
+  if (!sig.pass) {
+    const reason = `${p.why}; the quote draft was not signed off: ${sig.reasons.join("; ")}`;
+    tb.escalate([{ source: "Risk", reason: sig.reasons.join("; ") }], reason, {}, { owner, attachments, recommendation });
+    return { decision: "escalate", reasons: [reason], queued: owner, recommendation, attachments, cited: p.cited };
+  }
+  if (over && approver) {
+    const ap = { kind: "quote_total", amount: quote.total, limit, approver_id: approver.id, approver_name: approver.name };
+    const o2 = { owner_id: approver.id, backup_id: approver.headOut ? null : approver.manager_id, owner_name: approver.name, backup_name: null, role: approver.role, team: approver.team, team_label: approver.team_label };
+    const reason = `${p.why}`;
+    tb.escalate([{ source: "Policy", reason: `quote total ${cut(quote.total)} GC is over the ${limit} GC limit: needs approval by ${approver.name ?? `employee ${approver.id}`}` }], reason, {},
+      { approval: ap, draft, owner: o2, attachments, recommendation, team: approver.team, team_label: approver.team_label, backup_team: approver.headOut ? null : "Executive" });
+    return { decision: "escalate", reasons: [reason], draft, queued: o2, recommendation, attachments, cited: p.cited };
+  }
+  tb.skipped("escalate_or_fallback", `${B}: a human sends quotes; the hold waits for the quote owner`);
+  return { decision: "hold", reasons: [`${p.why}. Held for the quote owner with the draft attached; a human sends quotes`], draft, queued: owner, recommendation, attachments, cited: p.cited };
 }
 
 // ---- complaint ----
@@ -366,15 +494,52 @@ async function probeComplaint(tb) {
   // severity (the gate logs its own line through the shim)
   const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
     { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
-  const sevCls = sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
+  // a legal threat wins over the channel and over plain severity: the severity read says legal, or a score of 10 on lawyer/legal/sue words
+  const legal = sev.legal === true || (sev.score >= 10 && LEGAL_TEXT.test(`${ticket.subject} ${ticket.body}`));
+  const sevCls = legal ? "complaint-legal" : sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
   const owner = await ownerOf(tb, "complaint", o);
   const cited = ["world_threads", ...ctx.skus.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
+  let legalRoute = null;
+  if (legal) {
+    // Support owns the customer, Legal is told with it: the legal default owner (responsibility legal), and the heads of Support and Legal in copy
+    const lo = await ownerOf(tb, "legal", o);
+    const [supportHead, legalHead, alsoP] = [await headOf(tb, "Support", o), await headOf(tb, "Legal", o), lo.owner_id != null ? await personOf(tb, lo.owner_id, o) : null];
+    const strip = ({ id, name, role, email }) => ({ id, name, role, email });
+    legalRoute = { also: alsoP ? [strip(alsoP)] : [], cc: [supportHead, legalHead].filter(Boolean).map(strip) };
+    cited.push("responsibility:legal", ...[supportHead, legalHead, alsoP].filter(Boolean).map((x) => `companyhierarchy:${x.id}`));
+  }
   const hist = ctx.summary.earlier_threads ? `${ctx.summary.earlier_threads} earlier thread${ctx.summary.earlier_threads === 1 ? "" : "s"} on record` : "no earlier threads";
-  return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? "the owner gets the draft and the handling note" : "a calm acknowledgement closes it"}`,
-    cited, data: { ctx, read, severity: sev, owner }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
+  return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-legal" ? "a legal threat: a courtesy reply now, Support owns it and Legal reviews" : sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? "the owner gets the draft and the handling note" : "a calm acknowledgement closes it"}`,
+    cited, data: { ctx, read, severity: sev, owner, legalRoute, products }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
+}
+
+const LEGAL_TEXT = /lawyer|attorney|legal|sue\b|court/i;
+
+// The courtesy reply of a legal threat: a template, no model, Support's name on it. It acknowledges and promises nothing; Legal reviews the case.
+async function actLegal(tb, p) {
+  const B = p.branch_id;
+  const { ctx, read, severity: sev, owner, legalRoute, products } = p.data;
+  skipLine(tb, "nvidia.model", `${B}: the courtesy reply is a template, no model call`);
+  skipLine(tb, "critique", "template, nothing to evaluate");
+  const text = tb.inputText ?? "";
+  const named = ctx.skus.map((k) => (products ?? []).find((x) => x.sku === k)?.name).filter(Boolean)[0];
+  const order = ORDER_ID.exec(text)?.[0];
+  const situation = order ? `your order ${order.toUpperCase()}` : named ? `your ${named}` : "your order";
+  const draft = { text: sample.frame(tb.ticket ?? tb.f, fillCourtesy({ situation }), { team: "Support" }), promises: NO_PROMISES(), model: "template/courtesy" };
+  const sig = signoff(tb, B, draft);
+  skipLine(tb, "retry", "template: a rewrite cannot change it");
+  const recommendation = "courtesy reply now, Legal reviews; the send marks follow-up";
+  const escalation = { severity: sev.score, kind: read.kind, legal: true, reasoning: read.reasoning, handle: read.handle, world: ctx.provenance.map((x) => x.id) };
+  const reason = `${p.why}; escalated to ${owner.owner_name ?? `employee ${owner.owner_id}`} (Support) and ${legalRoute.also.map((x) => x.name ?? x.id).join(", ") || "Legal"} (Legal), heads in copy`;
+  const crit = [{ source: "Severity", reason: `severity ${sev.score}: legal threat; Legal reviews, Support sends the courtesy reply` }, ...(sig.pass ? [] : [{ source: "Risk", reason: sig.reasons.join("; ") }])];
+  const who = (x) => `${x.name ?? `employee ${x.id}`} (${x.role ?? "?"}, ${x.id})`;
+  const line = { output_summary: `escalated to owner ${owner.owner_id} (Support) and Legal's default owner ${legalRoute.also.map(who).join(", ") || "?"}, in copy ${legalRoute.cc.map(who).join(" and ")}; a courtesy reply is drafted, Legal reviews, the send marks follow-up; draft and critiques stored in the queue file` };
+  tb.escalate(crit, reason, line, { owner, draft: sig.pass ? draft : null, recommendation, escalation, also: legalRoute.also, cc: legalRoute.cc, status: "open", courtesy_reply: true });
+  return { decision: "escalate", reasons: [reason], draft: sig.pass ? draft : undefined, queued: owner, recommendation, cited: p.cited, also: legalRoute.also, cc: legalRoute.cc, status: "open", courtesy_reply: true };
 }
 
 async function actComplaint(tb, p) {
+  if (p.branch_id === "complaint-legal") return actLegal(tb, p);
   const B = p.branch_id;
   const { ctx, read, severity: sev, owner } = p.data;
   const severe = B === "complaint-severe";

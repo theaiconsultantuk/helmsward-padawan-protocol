@@ -362,7 +362,7 @@
     {
       "id": "complaint-severe",
       "input": {
-        "message": "This is the second training saber from you whose hilt split open in my son's hands and cut him. I will post this review everywhere and I am talking to a lawyer. Never again. I want this fixed today.",
+        "message": "This is the second training saber from you whose hilt split open in my son's hands and cut him. I will post this review everywhere. Never again. I want this fixed today.",
         "from": "tilda.moss@example.com",
         "name": "Tilda Moss",
         "channel": "chat",
@@ -597,6 +597,226 @@
       "sequence": [
         "branch:success:",
         "critique:success:",
+        "risk.signoff:success:",
+        "memory.write:success:",
+        "synthesis:success:"
+      ]
+    },
+    {
+      "id": "s07-bulk-quote",
+      "input": {
+        "message": "Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.",
+        "from": "academy@example.com",
+        "channel": "email"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "rfq",
+        "resolved_how": "scout",
+        "branch_id": "rfq-quote",
+        "decision": "hold",
+        "owner_id": 6,
+        "cited_includes": [
+          "products:FS-B01",
+          "bulk_pricing:squad",
+          "bom:FS-B01:PT-0001",
+          "policy:rfq"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "Tier: squad (10% off)",
+          "Unit price: 170.10 GC",
+          "Total: 4252.50 GC",
+          "Lead time: 12 days",
+          "Jedi Pack Sales team"
+        ],
+        "auto_reply": false,
+        "status": "open",
+        "team": "Sales"
+      },
+      "sequence": [
+        "branch:success:rfq-quote",
+        "risk.signoff:success:rfq-quote",
+        "memory.write:success:rfq-quote",
+        "synthesis:success:rfq-quote"
+      ]
+    },
+    {
+      "id": "s07b-quote-part-short",
+      "input": {
+        "message": "We need a quote for 20 Dual-Phase Practice Poles for the training hall.",
+        "from": "hall@example.com",
+        "channel": "email"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "rfq",
+        "resolved_how": "scout",
+        "branch_id": "rfq-quote-stock",
+        "decision": "hold",
+        "owner_id": 6,
+        "cited_includes": [
+          "products:FS-B04",
+          "bom:FS-B04:PT-0038"
+        ],
+        "recommendation_includes": [
+          "Wobble-free hinge",
+          "short by 20"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "Total: 2502.00 GC",
+          "(short on stock)"
+        ],
+        "auto_reply": false,
+        "status": "open",
+        "team": "Sales"
+      },
+      "sequence": [
+        "branch:success:rfq-quote-stock",
+        "risk.signoff:success:rfq-quote-stock",
+        "memory.write:success:rfq-quote-stock",
+        "synthesis:success:rfq-quote-stock"
+      ]
+    },
+    {
+      "id": "s07c-quote-over-limit",
+      "input": {
+        "message": "We need a quote for 50 Arc Blade Trainers for the new academy wing.",
+        "from": "academy@example.com",
+        "channel": "email"
+      },
+      "as_of": "2026-10-25",
+      "expect": {
+        "scenario": "rfq",
+        "resolved_how": "scout",
+        "branch_id": "rfq-quote-over-limit",
+        "decision": "escalate",
+        "owner_id": 40,
+        "cited_includes": [
+          "policy:rfq",
+          "companyhierarchy:40"
+        ],
+        "recommendation_includes": [
+          "8505.00 GC",
+          "5000 GC"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "Total: 8505.00 GC",
+          "routed for approval"
+        ],
+        "auto_reply": false,
+        "status": "open",
+        "team": "Sales"
+      },
+      "sequence": [
+        "branch:success:rfq-quote-over-limit",
+        "risk.signoff:success:rfq-quote-over-limit",
+        "escalate_or_fallback:success:rfq-quote-over-limit",
+        "memory.write:success:rfq-quote-over-limit",
+        "synthesis:success:rfq-quote-over-limit"
+      ]
+    },
+    {
+      "id": "s08-mild-injury",
+      "input": {
+        "message": "This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.",
+        "from": "parent@example.com",
+        "name": "Dana Orr",
+        "channel": "email"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "complaint",
+        "resolved_how": "cues",
+        "branch_id": "complaint-genuine",
+        "decision": "hold",
+        "owner_id": 15,
+        "draft_present": true,
+        "draft_includes": [
+          "Jedi Pack Support team"
+        ],
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:complaint-genuine",
+        "risk.signoff:success:complaint-genuine",
+        "memory.write:success:complaint-genuine",
+        "synthesis:success:complaint-genuine"
+      ]
+    },
+    {
+      "id": "s09-legal-threat",
+      "input": {
+        "message": "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+        "from": "angry@example.com",
+        "name": "Rex Dow",
+        "channel": "email"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "complaint",
+        "resolved_how": "cues",
+        "branch_id": "complaint-legal",
+        "decision": "escalate",
+        "owner_id": 15,
+        "cited_includes": [
+          "responsibility:legal",
+          "companyhierarchy:202"
+        ],
+        "recommendation_includes": [
+          "courtesy reply now, Legal reviews"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "We are sorry to read what happened with your Emitter Hilt"
+        ],
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:complaint-legal",
+        "risk.signoff:success:complaint-legal",
+        "escalate_or_fallback:success:complaint-legal",
+        "memory.write:success:complaint-legal",
+        "synthesis:success:complaint-legal"
+      ]
+    },
+    {
+      "id": "s13-trustpilot-complaint",
+      "input": {
+        "message": "The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.",
+        "from": "tp@example.com",
+        "name": "Lena Kor",
+        "channel": "trustpilot"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "complaint",
+        "resolved_how": [
+          "scout",
+          "gates"
+        ],
+        "branch_id": [
+          "complaint-genuine",
+          "complaint-vent"
+        ],
+        "decision": "hold",
+        "owner_id": 15,
+        "cited_includes": [
+          "channels:trustpilot"
+        ],
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:",
         "risk.signoff:success:",
         "memory.write:success:",
         "synthesis:success:"

@@ -43,7 +43,10 @@ test("genuine: complaint-genuine holds the draft with the handling note", async 
 });
 
 test("severe: round 1 hard refusal, no retry, escalates to the complaint owner with the draft and the world", async () => {
-  const { result, lines, d } = await go("cr-severe", example(8));
+  // severe, not legal (the example 8 message names a lawyer, which is the complaint-legal route: tests/legal_complaint.test.mjs)
+  const severe = { ...example(8), message: example(8).message.replace(" and I am talking to a lawyer", "") };
+  assert.ok(!/lawyer/i.test(severe.message));
+  const { result, lines, d } = await go("cr-severe", severe);
   assert.equal(result.branch_id, "complaint-severe");
   const risk = find(lines, "risk.signoff");
   assert.equal(risk.status, "refused");
@@ -65,6 +68,14 @@ test("severe: round 1 hard refusal, no retry, escalates to the complaint owner w
   // S5.3-5: the durable queue file holds the escalation
   const q = JSON.parse(readFileSync(join(d.memoryDir, "queue", "F1.json"), "utf8"));
   assert.ok(q.escalation.severity >= 9);
+});
+
+test("a legal threat is not the severe route: complaint-legal escalates to Support with Legal and the heads in copy", async () => {
+  const { result } = await go("cr-legal", example(8));
+  assert.equal(result.branch_id, "complaint-legal");
+  assert.equal(result.output.decision, "escalate");
+  assert.equal(result.output.queued_for.owner_id, 15);
+  assert.equal(result.output.courtesy_reply, true);
 });
 
 // einh, 24 Oct 2026: "Draft to Support, escalate only on severity". The channel is a row (channels:trustpilot) that changes the severity score, never a branch.

@@ -329,6 +329,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       topic_label: ov.topic_label ?? f?.topic_label ?? null,
       cc: ov.cc ?? [], also: ov.also ?? [],
       status: ov.status ?? "open",
+      ...(ov.courtesy_reply === true ? { courtesy_reply: true } : {}),
       auto_reply: false,
       memory_note: memoryNote(),
       channel_label: f?.channel_label ?? null,
@@ -397,14 +398,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
   // owner: { owner_id, backup_id, owner_name, backup_name, role } lets a handler name who it escalates to (default: the facts' owner and backup).
   // Options also carry the queue-entry fields a handler decides: team, team_label, backup_team, topic_label, cc[], also[], status.
-  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null, owner = null, attachments, recommendation, escalation, team, team_label, backup_team, topic_label, cc, also, status } = {}) => {
+  const escalate = (critiques, reason, extra = {}, { approval = null, draft = null, owner = null, attachments, recommendation, escalation, team, team_label, backup_team, topic_label, cc, also, status, courtesy_reply } = {}) => {
     const f = S.facts;
     const ownerId = owner?.owner_id ?? f?.owner_id ?? null;
     const backupId = owner?.backup_id ?? f?.backup_id ?? null;
     const ticketObj = { ...(f?.ticket ?? {}), id: thread_id, thread_id, ...(f ? { category: f.category, decision_reason: reason } : {}),
       ...(approval ? { approval } : {}), ...(draft ? { draft: { text: draft.text, promises: draft.promises } } : {}) };
     const fc = owner?.fallback_contact ?? f?.fallback_contact ?? null;
-    S.meta = { ...S.meta, ...Object.fromEntries(Object.entries({ team: team ?? owner?.team, team_label: team_label ?? owner?.team_label, backup_team, topic_label, cc, also, status }).filter(([, v]) => v !== undefined)) };
+    S.meta = { ...S.meta, ...Object.fromEntries(Object.entries({ team: team ?? owner?.team, team_label: team_label ?? owner?.team_label, backup_team, topic_label, cc, also, status, courtesy_reply }).filter(([, v]) => v !== undefined)) };
     const meta = queueMeta();
     let memId = null;
     let queueFailed = false;
@@ -412,7 +413,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       memId = hmem.queueForHuman(ticketObj, critiques, {
         owner: { owner_id: ownerId, backup_id: backupId, owner_name: owner?.owner_name ?? f?.owner_name ?? null, backup_name: owner?.backup_name ?? f?.backup_name ?? null, role: owner?.role ?? (fc ? "default contact" : null), team: meta.team, team_label: meta.team_label, ...(fc ? { fallback_contact: fc } : {}) },
         scenario: S.scenario?.scenario ?? null, recommendation: recommendation ?? null, attachments: attachments ?? null, escalation: escalation ?? null,
-        cc: meta.cc, also: meta.also, status: meta.status,
+        cc: meta.cc, also: meta.also, status: meta.status, courtesy_reply: meta.courtesy_reply,
       });
     } catch (e) {
       queueFailed = true;
@@ -690,10 +691,10 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model, ...(a.draft.blanks ? { blanks: a.draft.blanks } : {}) };
       if (a.recommendation !== undefined) S.recommendation = a.recommendation;
       // queue-entry fields a handler decides (team, cc, also, status ...), and whether the reply goes out by itself
-      S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
+      S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status", "courtesy_reply"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
       if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
-      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...queueMeta() };
+      if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...(a.attachments !== undefined ? { attachments: a.attachments } : {}), ...queueMeta() };
       for (const c of a.cited ?? []) if (!S.extraCited.includes(c)) S.extraCited.push(c);
       return;
     }
@@ -838,7 +839,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       ...(S.recommendation !== undefined ? { recommendation: S.recommendation } : {}),
       ...(S.draft ? { draft: S.draft } : {}), ...(S.queued ? { queued_for: S.queued } : {}),
       status: meta.status, auto_reply: meta.auto_reply, memory_note: meta.memory_note, team: meta.team, team_label: meta.team_label, backup_team: meta.backup_team,
-      topic_label: meta.topic_label, cc: meta.cc, also: meta.also, channel_label: meta.channel_label, trusted_to_send: trusted,
+      topic_label: meta.topic_label, cc: meta.cc, also: meta.also, ...(meta.courtesy_reply ? { courtesy_reply: true } : {}), channel_label: meta.channel_label, trusted_to_send: trusted,
     },
     agents: [
       { name: "Planner", role: "plan and delegate" }, { name: "Executor", role: "facts from Zetaris" },
