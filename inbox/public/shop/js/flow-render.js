@@ -41,7 +41,7 @@
     var model = str(n.model);
     var agent = str(n.agent);
     var step = str(n.step);
-    var isModel = model !== "" && !CODE_MODELS[model]; // a model call: never labelled code
+    var isModel = model !== "" && !Object.prototype.hasOwnProperty.call(CODE_MODELS, model); // a model call: never labelled code
     var t;
     if (!isModel && (step === "zetaris.query" || n.tech === "Zetaris")) t = { tech: "zetaris", label: "Zetaris", model: null };
     else if (!isModel && agent === "Scout" && step === "meterless.engine") t = { tech: "meterless", label: "Meterless · Scout engine", model: null };

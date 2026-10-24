@@ -160,3 +160,50 @@ test("(7) the old scenarios copy is gone; faq.json is served as JSON", async () 
   assert.equal(r.status, 200);
   assert.match(r.headers.get("content-type"), /^application\/json/);
 });
+
+test("(8) faq.js never reads a `source` field, and /faq rows carry exactly the four public keys", async () => {
+  const js = readShop("js/faq.js");
+  assert.doesNotMatch(js, /\.source\b/);
+  assert.doesNotMatch(js, /\[\s*["']source["']\s*\]/);
+  const rows = await (await get("/faq")).json();
+  assert.ok(Array.isArray(rows) && rows.length > 0);
+  for (const r of rows) assert.deepEqual(Object.keys(r).sort(), ["answer", "faq_id", "keywords", "question"], JSON.stringify(r));
+});
+
+test("(9) contact.js token handling: the token survives throwing storage and a throwing history, and a failed strip is reported", async () => {
+  assert.equal(typeof globalThis.document, "undefined");
+  await import("../public/shop/js/contact.js");
+  const { resolveToken } = globalThis.JP_CONTACT_TEST;
+  assert.equal(typeof resolveToken, "function");
+  const boom = () => { throw new Error("blocked"); };
+  const throwingStorage = { setItem: boom, getItem: boom };
+  const goodHistory = () => { const calls = []; return { calls, replaceState: (...a) => calls.push(a) }; };
+
+  // storage throws: the token is still held, and the address bar is still cleaned
+  const h1 = goodHistory();
+  const r1 = resolveToken({ search: "?token=abc&x=1", href: "http://h.test/shop/contact.html?token=abc&x=1#f", storage: throwingStorage, history: h1 });
+  assert.equal(r1.token, "abc");
+  assert.equal(r1.stripFailed, false);
+  assert.equal(h1.calls.length, 1);
+  assert.equal(h1.calls[0][2], "/shop/contact.html?x=1#f");
+
+  // history throws: the token is held and stored, and the failure is flagged for the status line
+  const stored = {};
+  const r2 = resolveToken({ search: "?token=abc", href: "http://h.test/shop/contact.html?token=abc",
+    storage: { setItem: (k, v) => { stored[k] = v; }, getItem: (k) => stored[k] }, history: { replaceState: boom } });
+  assert.equal(r2.token, "abc");
+  assert.equal(r2.stripFailed, true);
+  assert.equal(stored.jp_token, "abc");
+
+  // both throw
+  const r3 = resolveToken({ search: "?token=zz", href: "http://h.test/c?token=zz", storage: throwingStorage, history: { replaceState: boom } });
+  assert.deepEqual(r3, { token: "zz", stripFailed: true });
+
+  // no query token: storage read, and a throwing read gives an empty token
+  assert.equal(resolveToken({ search: "", href: "http://h.test/c", storage: { getItem: () => "kept" }, history: goodHistory() }).token, "kept");
+  assert.equal(resolveToken({ search: "", href: "http://h.test/c", storage: throwingStorage, history: goodHistory() }).token, "");
+
+  // the status line reports a failed strip through textContent only
+  const src = readShop("js/contact.js");
+  assert.match(src, /stripFailed\) setStatus\(/);
+});

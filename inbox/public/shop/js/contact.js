@@ -5,6 +5,9 @@
 (function () {
   "use strict";
 
+  // Outside a browser (no document) only the token function is exposed, for the test that drives it with throwing stubs.
+  if (typeof document === "undefined") { globalThis.JP_CONTACT_TEST = { resolveToken: resolveToken }; return; }
+
   var meta = document.querySelector('meta[name="api-base"]');
   var base = ((meta && meta.getAttribute("content")) || "").replace(/\/+$/, "");
   var $ = function (id) { return document.getElementById(id); };
@@ -58,23 +61,31 @@
   }
 
   /* ---------- token and fetch ---------- */
-  var token = (function () {
-    try {
-      var q = new URLSearchParams(location.search).get("token");
-      if (q) {
-        localStorage.setItem("jp_token", q);
-        try {
-          var u = new URL(location.href);
-          u.searchParams.delete("token");
-          history.replaceState(null, "", u.pathname + u.search + u.hash);
-        } catch (e) { /* the address bar keeps the token; harmless */ }
-        return q;
-      }
-      return localStorage.getItem("jp_token") || "";
-    } catch (e) {
-      return "";
+  // Token handling is a small function so a test can drive it with throwing stubs (JP_CONTACT_TEST above).
+  // Returns { token, stripFailed }: the token is kept in memory even when storage throws, and the address bar is
+  // cleaned in its own try/catch, independent of storage.
+  function resolveToken(env) {
+    var q = "", stripFailed = false;
+    try { q = new URLSearchParams(env.search).get("token") || ""; } catch (e) { q = ""; }
+    if (q) {
+      try { env.storage.setItem("jp_token", q); } catch (e) { /* kept in memory only */ }
+      try {
+        var u = new URL(env.href);
+        u.searchParams.delete("token");
+        env.history.replaceState(null, "", u.pathname + u.search + u.hash);
+      } catch (e) { stripFailed = true; }
+      return { token: q, stripFailed: stripFailed };
     }
-  })();
+    var stored = "";
+    try { stored = env.storage.getItem("jp_token") || ""; } catch (e) { stored = ""; }
+    return { token: stored, stripFailed: false };
+  }
+  var tokenState = resolveToken({
+    get search() { return location.search; }, get href() { return location.href; },
+    get storage() { return localStorage; }, get history() { return history; }
+  });
+  var token = tokenState.token;
+  if (tokenState.stripFailed) setStatus("The address bar still shows your access token: this browser would not let the page remove it.", true);
 
   // The bearer goes on POST only; a GET carries no credentials.
   function withAuth(opts) {

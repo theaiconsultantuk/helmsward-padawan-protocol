@@ -408,3 +408,14 @@ test("source sweep: no HTML-building APIs, no invented names", () => {
   assert.ok(!/claude-sonnet|zetaris-mcp|helmsward-|Elena Vance|Mina Sato|Soren Lind|JP-\d{4}/.test(src));
   assert.ok(!/\bdocument\b/.test(src.replace(/\/\*[\s\S]*?\*\//, "")), "no bare document use outside the header comment");
 });
+
+test("a Drafter node whose model names an inherited Object key is a model call carrying that exact id", () => {
+  for (const model of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+    const t = F.techOf({ agent: "Drafter", step: "draft.reply", model });
+    assert.equal(t.tech, "nightshift", model);
+    assert.equal(t.label, "Nightshift · " + model, model);
+    assert.equal(t.model, model, model);
+  }
+  // the genuine code strings stay code
+  assert.equal(F.techOf({ agent: "Drafter", step: "draft.reply", model: "sample/rules" }).tech, "rules");
+});

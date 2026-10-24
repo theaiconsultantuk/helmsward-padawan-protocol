@@ -170,7 +170,7 @@ test("(h) with API_TOKEN set: no header 401, right header 200, GET is 405", asyn
   const b = `http://127.0.0.1:${s.address().port}`;
   try {
     const H = { "Content-Type": "application/json", Authorization: "Bearer t" };
-    const r0 = await fetch(`${b}/run`, { method: "POST", headers: H, body: JSON.stringify({ run_id: "snd-h", input: { thread_id: "T03" } }) });
+    const r0 = await fetch(`${b}/run`, { method: "POST", headers: H, body: JSON.stringify({ run_id: "snd-h", input: { ...LEGAL, message: "My solicitor will write to you about the faulty trainers; this is now a formal legal complaint.", from: "auth@example.com" } }) });
     assert.equal(r0.status, 200);
     const noAuth = await fetch(`${b}/runs/snd-h/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     assert.equal(noAuth.status, 401);
@@ -187,4 +187,54 @@ test("(i) a second run of an already-sent ticket is a 409: the queue file, not t
   const run1 = await run("snd-i", { thread_id: "T02" });
   assert.equal(run1.output.decision, "hold");
   assert.equal((await send("snd-i")).status, 409);
+});
+
+// A fresh server with its own temp dirs, so these cases do not share the queue files of the grid above.
+async function bootFresh(publish) {
+  const d = mk("fresh-rt"), l = mk("fresh-logs"), m = mk("fresh-mem");
+  const s = createServer({
+    cfg: config({ API_TOKEN: "", SAMPLE_MODE: "true" }),
+    deps: { dir: d, runtimeDir: d, logsDir: l, memoryDir: m, quiet: true, publish },
+  });
+  await new Promise((r) => s.listen(0, "127.0.0.1", r));
+  const b = `http://127.0.0.1:${s.address().port}`;
+  const p = (path, body) => fetch(b + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return { s, b, p, m };
+}
+
+test("(j) a re-escalation of a sent thread keeps `sent` and ticket.status: both runs then answer 409", async () => {
+  const f = await bootFresh(async () => ({ published: true, uncached: true }));
+  try {
+    assert.equal((await f.p("/run", { run_id: "re-A", input: { thread_id: "T03" } })).status, 200);
+    assert.equal((await f.p("/runs/re-A/send", {})).status, 200);
+    const sentFile = JSON.parse(readFileSync(join(f.m, "queue", "T03.json"), "utf8"));
+    assert.equal(sentFile.ticket.status, "handled");
+    // the same thread escalates again as run B: the queue file is rewritten
+    const rb = await f.p("/run", { run_id: "re-B", input: { thread_id: "T03" } });
+    assert.equal(rb.status, 200);
+    assert.equal((await rb.json()).output.decision, "escalate");
+    const after = JSON.parse(readFileSync(join(f.m, "queue", "T03.json"), "utf8"));
+    assert.deepEqual(after.sent, sentFile.sent, "the re-escalation dropped the send marker");
+    assert.equal(after.ticket.status, "handled");
+    assert.equal((await f.p("/runs/re-A/send", {})).status, 409);
+    assert.equal((await f.p("/runs/re-B/send", {})).status, 409);
+    const ja = await (await fetch(`${f.b}/runs/re-A/journey`)).json();
+    assert.ok(ja.sent && ja.sent.status === "handled", JSON.stringify(ja.sent));
+  } finally { f.s.close(); }
+});
+
+test("(k) a publish that never resolves does not hold a send: it still answers 200 promptly", async () => {
+  const f = await bootFresh(() => new Promise(() => {}));
+  try {
+    // the run itself may also publish; give it the time a stuck publish would be given, then send
+    await Promise.race([
+      f.p("/run", { run_id: "hang-A", input: { thread_id: "T03" } }),
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
+    const t0 = Date.now();
+    const r = await Promise.race([f.p("/runs/hang-A/send", {}), new Promise((res) => setTimeout(() => res(null), 4000))]);
+    assert.ok(r, "the send did not answer within 4s while a publish never resolves");
+    assert.equal(r.status, 200);
+    assert.ok(Date.now() - t0 < 4000);
+  } finally { f.s.close(); }
 });

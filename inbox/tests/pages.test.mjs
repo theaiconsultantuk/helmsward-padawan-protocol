@@ -1,7 +1,7 @@
 // The two pages and the closed static route, in sample mode (same harness as api.test.mjs).
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, existsSync } from "node:fs";
 import http from "node:http";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -188,7 +188,11 @@ test("the first .glb in the models manifest is model/gltf-binary", async (t) => 
 });
 
 test("storefront: dot-leading, folder, unknown-extension and missing paths are a structured 404; POST is 405", async () => {
-  for (const p of ["/shop/.hidden", "/shop/js/", "/shop/README.exe", "/shop/nope.html", "/shop/js//x.js", "/shop/%zz", "/shop/DESIGN.md"]) await notFound(p);
+  // DESIGN.md and NOTES.md exist on disk under public/shop, so their 404 is the extension allow-list at work, not a missing file.
+  // No dotfile exists under public/shop, so the dot-leading guard (/shop/.hidden) cannot be shown to bite on a real file: it stays a
+  // guard on the path shape only, and this suite cannot prove it would stop a file that existed.
+  for (const f of ["DESIGN.md", "NOTES.md"]) assert.ok(existsSync(join(SHOP, f)), f + " must exist for this case to mean anything");
+  for (const p of ["/shop/.hidden", "/shop/js/", "/shop/README.exe", "/shop/nope.html", "/shop/js//x.js", "/shop/%zz", "/shop/DESIGN.md", "/shop/NOTES.md"]) await notFound(p);
   const r = await post("/shop/index.html", {});
   assert.equal(r.status, 405);
 });
@@ -214,5 +218,20 @@ test("storefront traversal sent as raw paths is always a structured 404, never a
     const b = JSON.parse(r.text);
     assert.equal(b.status, "error", p);
     assert.equal(b.error.type, "NotFound", p);
+  }
+});
+
+const SHOP = join(dirname(fileURLToPath(import.meta.url)), "..", "public", "shop");
+
+test("a raw /shop/%2e%2e/static/dashboard.js is normalised to the public /static route (by design); deeper climbs never reach source", async () => {
+  // new URL() in the server collapses the dot segments, so the request lands on /static/dashboard.js, which is public anyway.
+  const via = await raw("/shop/%2e%2e/static/dashboard.js");
+  const direct = await (await get("/static/dashboard.js")).text();
+  assert.equal(via.status, 200);
+  assert.equal(via.text, direct);
+  for (const p of ["/shop/%2e%2e/%2e%2e/src/server.mjs", "/shop/%2e%2e/%2e%2e/package.json"]) {
+    const r = await raw(p);
+    assert.equal(r.status, 404, p);
+    assert.equal(JSON.parse(r.text).error.type, "NotFound", p);
   }
 });
