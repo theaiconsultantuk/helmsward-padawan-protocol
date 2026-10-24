@@ -60,8 +60,9 @@ function rowsOf(text) {
 const [head, ...body] = rowsOf(csv);
 const catalogue = body.map((r) => ({ name: r[head.indexOf("name")], aliases: r[head.indexOf("aliases")].split(";").filter(Boolean), sku: r[0] }));
 const plural = (w) => (/(?:s|x|ch|sh)$/i.test(w) ? `${w}es` : /[^aeiou]y$/i.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
-// the aliases that are product codes ("P01") are not words a customer asks about
-const phrases = catalogue.flatMap((p) => [p.name, ...p.aliases.filter((a) => !/^P\d+$/.test(a))].flatMap((n) => [n, plural(n)]));
+// every name and alias is swept in the singular (the P-codes too); only word names and aliases are pluralised
+const isCode = (a) => /^P\d+$/.test(a);
+const phrases = catalogue.flatMap((p) => [p.name, ...p.aliases].flatMap((n) => (isCode(n) ? [n] : [n, plural(n)])));
 
 test("sweep: every catalogue name, alias and plural, asked what it is made of, is a product question (never RFQ, refund or legacy)", async () => {
   assert.ok(phrases.length > 100);
@@ -97,4 +98,46 @@ test("money, dates and unrelated counts are not quantities; a lone attribute wor
   }
   const { result } = await ask("What is the volume and price of the Core Crystal Cleaning Solution?");
   assert.equal(result.scenario, "product");
+});
+
+// ---- the table: one row per phrase either Codex review named, plus counterexamples of my own for each rule ----
+// [text, expected scenario ("!x" = anything but x), rule]
+const TABLE = [
+  // A: one predicate for keeping and promoting
+  ["How much for 51 Strand Emitter Hilts?", "rfq", "A: price for a count, not in the examples"],
+  ["How much for 50 Strand Emitter Hilts?", "rfq", "A"],
+  ["How much for 51 Drift Vault Cases?", "rfq", "B: Cases/Case agree"],
+  ["What is the price for 73 Quartermaster Utility Belts?", "rfq", "A"],
+  ["What would 300 Wayfarer Long Cloaks cost?", "rfq", "A: cost with the count"],
+  ["50 Strand Emitter Hilts, how much?", "rfq", "A: the count first, how much after"],
+  ["We need a price for fifty Vanta Arc Trainers for the new academy wing", "rfq", "A+B: spelled-out count"],
+  ["Please quote twenty-five Vanta Arc Trainers", "rfq", "A: hyphenated number word"],
+  ["How much for a dozen Strand Emitter Hilts?", "rfq", "A"],
+  ["Please quote 20 Vanta Arc Trainers, same as my order JP-1008", "rfq", "A: explicit quote beats the past order"],
+  ["I want to order 12 Vanta Arc Trainers", "rfq", "A: order N"],
+  ["I bought 2 Vanta Arc Trainers, what are they made of?", "!rfq", "A: past purchase + attribute is not a quote"],
+  ["How much do 2 Vanta Arc Trainers weigh?", "product", "A: bare how much is an attribute question"],
+  ["How much do 3 Drift Vault Cases weigh?", "product", "A: same, another product"],
+  ["I received 4 Strand Emitter Hilts, what colour are they?", "!rfq", "A: past purchase"],
+  // B: binding
+  ["I have 2 questions: Vanta Arc Trainer price and materials?", "product", "B: no arbitrary skipped word, no clause crossing"],
+  ["I have 2 questions about the Vanta Arc Trainer, how much is it?", "product", "B"],
+  ["On 24/10 the Vanta Arc Trainer costs 189 GC, what is it made of?", "product", "3: date and money are not counts"],
+  // 3: attribute word needs commercial context
+  ["What is the volume and price of the Core Crystal Cleaning Solution?", "product", "3: volume alone"],
+  ["Do you give a discount on the Vanta Arc Trainer?", "product", "3: discount alone"],
+  // C: the override keeps complaint roads
+  ["The hilt is cracked and this is unacceptable, what is it made of?", "complaint", "C: complaint cue in the remainder"],
+  ["The hilt burned my hand, what is it made of?", "complaint", "C: safety cue"],
+  ["What is the Cracked Core Recycling Pouch made of?", "product", "C: the product's own name is not a complaint"],
+  ["What are the etiquette cards made of?", "product", "C: refund read, plain product question"],
+];
+
+test("table: every named phrase takes its expected road", async () => {
+  const bad = [];
+  for (const [text, want, rule] of TABLE) {
+    const { result } = await ask(text);
+    if (want.startsWith("!") ? result.scenario === want.slice(1) : result.scenario !== want) bad.push(`[${rule}] ${text} -> ${result.scenario}/${result.branch_id}, wanted ${want}`);
+  }
+  assert.deepEqual(bad, []);
 });
