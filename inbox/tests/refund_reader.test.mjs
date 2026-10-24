@@ -30,7 +30,7 @@ test("parseReaderJson: fenced JSON and prose around JSON parse; a missing boolea
 });
 
 test("REDRESS_WORDS and sampleRead: redress wording hits, a credit card and goodwill do not, a cited row id is not a mention", () => {
-  for (const t of ["We can credit your account.", "Here is a voucher for you.", "We will cover the cost of shipping.", "We zullen het terugbetalen.", "Wir veranlassen die Rückerstattung.", "A gift card is on its way.", "You get a discount.", "We waive the fee."]) {
+  for (const t of ["We can credit your account.", "Here is a voucher for you.", "We will cover the cost of shipping.", "We zullen het terugbetalen.", "Wij zullen het bedrag terugstorten.", "De terugbetaling volgt binnen vijf dagen.", "Wir veranlassen die Rückerstattung.", "A gift card is on its way.", "You get a discount.", "We waive the fee."]) {
     assert.ok(REDRESS_WORDS.test(normalizeReply(t)), `hit expected: ${t}`);
     assert.equal(sampleRead(says(t), vent).mentions_money_back, true, `sampleRead mentions: ${t}`);
   }

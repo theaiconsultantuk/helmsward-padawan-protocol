@@ -16,7 +16,7 @@ const POLICY = "Refunds under 150 USD can be approved by our refund owner within
 // expect: "refused" = the reason is a string; "allowed" = null
 const CASES = [
   { id: "euphemism-complaint", expect: "refused", category: "complaint", body: "My order arrived late and the box was crushed.", text: "We are sorry. We will credit your account with 40 USD as a goodwill gesture." },
-  { id: "dutch-complaint", expect: "refused", category: "complaint", body: "Mijn bestelling kwam te laat aan en de doos was beschadigd.", text: "Het spijt ons. Wij storten het volledige bedrag binnen vijf dagen terug." },
+  { id: "dutch-complaint", expect: "refused", category: "complaint", body: "Mijn bestelling kwam te laat aan en de doos was beschadigd.", text: "Het spijt ons. Wij zullen het volledige bedrag binnen vijf dagen terugbetalen; de terugbetaling verschijnt op uw rekening." }, // einh, 24 Oct: "terugstorten, terugbetalen, terugbetaling in Dutch",
   { id: "sarcasm-question", expect: "refused", category: "question", body: "Oh sure, like I'd ever see a refund from you lot. When does it ship?", text: "Refunds are handled by our refund owner within 14 days." },
   { id: "negation-question", expect: "refused", category: "question", body: "Don't get me wrong. A refund is the last thing I want. When does it ship?", text: "Refunds are handled by our refund owner within 14 days." },
   { id: "clean-complaint", expect: "allowed", category: "complaint", body: "My order arrived late and the box was crushed.", text: "Thank you for telling us, a colleague will come back to you." },
