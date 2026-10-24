@@ -5,7 +5,7 @@ Everything is fictional and labelled synthetic. Deterministic from --seed:
 no wall-clock, no set iteration order, seeded random only.
 Run: uv run --with pyarrow python gen_company.py --out <dir> --seed 42
 """
-import argparse, csv, datetime as dt, io, json, os, quopri, random, shutil
+import argparse, csv, datetime as dt, io, json, os, quopri, random
 import pyarrow as pa
 import pyarrow.parquet as pq
 
@@ -51,7 +51,15 @@ def read_bytes(p):
         return f.read()
 
 
+# --dry-run: write_bytes records the path and writes nothing.
+DRY_RUN = False
+WRITES = []
+
+
 def write_bytes(p, data):
+    WRITES.append(p)
+    if DRY_RUN:
+        return
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "wb") as f:
         f.write(data)
@@ -209,6 +217,24 @@ FAQ = [
 ]
 
 
+# Seeds in kristof/data/ that the generator byte-copies to the output. Adding a seed is one line.
+COPIED = ["responsibility.csv", "policy.csv", "categories.csv", "trust-ledger.csv", "automation-matrix.xml"]
+
+
+def merge_sources(path, owned, header):
+    """Replace the generator-owned entries by name, keep every other entry; owned first, then kept in existing order."""
+    old = {}
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            old = json.load(f)
+    names = {e["name"] for e in owned}
+    kept = [e for e in old.get("sources", []) if e.get("name") not in names]
+    sj = dict(old)
+    sj.update(header)
+    sj["sources"] = list(owned) + kept
+    return sj
+
+
 def gen_only(out, a):
     """--only: write just the named files and refresh their sources.json rows; nothing else is touched."""
     only = {x.strip() for x in a.only.split(",") if x.strip()}
@@ -276,14 +302,15 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--src", default=DEFAULT_SRC)
+    ap.add_argument("--dry-run", action="store_true", help="list the files a full run would write; write nothing")
     ap.add_argument("--only", default="", help="comma list of products,faq,responsibility: write only those files, keep the rest")
     a = ap.parse_args()
     out, src = os.path.abspath(a.out), os.path.abspath(a.src)
     if a.only:
         return gen_only(out, a)
-    if os.path.isdir(out):
-        shutil.rmtree(out)
-    os.makedirs(out)
+    global DRY_RUN
+    DRY_RUN = a.dry_run
+    # Non-destructive: every generated file is overwritten in place; nothing else in out is touched or deleted.
     rng = random.Random(a.seed)
     counts = {}
 
@@ -293,7 +320,7 @@ def main():
     counts["employees.csv"] = len(erows)
 
     # unchanged copies
-    for n in ["responsibility.csv", "policy.csv", "categories.csv", "trust-ledger.csv", "automation-matrix.xml"]:
+    for n in COPIED:
         write_bytes(os.path.join(out, n), read_bytes(os.path.join(src, n)))
     counts["responsibility.csv"] = len(read_csv(os.path.join(src, "responsibility.csv")))
     counts["policy.csv"] = len(read_csv(os.path.join(src, "policy.csv")))
@@ -307,7 +334,7 @@ def main():
     write_bytes(os.path.join(out, "holiday-2026.csv"), hol)
     counts["holiday-2026.csv"] = hn
     absent = set()
-    for r in read_csv(os.path.join(out, "holiday-2026.csv")):
+    for r in csv.DictReader(io.StringIO(hol.decode("utf-8"), newline="")):
         if r["employee_id"]:
             absent.add((int(r["employee_id"]), r["date"]))
 
@@ -395,7 +422,9 @@ def main():
             cols[k] = pa.array(vals, type=pa.int64())
         else:
             cols[k] = pa.array(["" if v is None else str(v) for v in vals], type=pa.string())
-    pq.write_table(pa.table(cols), os.path.join(out, "threads", "threads.parquet"), compression="snappy")
+    pbuf = io.BytesIO()
+    pq.write_table(pa.table(cols), pbuf, compression="snappy")
+    write_bytes(os.path.join(out, "threads", "threads.parquet"), pbuf.getvalue())
     counts["threads/threads.parquet"] = 100
 
     # intakes
@@ -471,11 +500,16 @@ def main():
         src_("trustpilot_reviews", "intakes/trustpilot/reviews.json", "JSON", "trustpilot_reviews", J, len(tp)),
         src_("escalation_notes", "notes/escalation-notes.txt", "TEXT", "escalation_notes", {}, 20),
     ]
-    sj = {"synthetic": True, "generated_by": "scripts/gen_company.py --seed %d" % a.seed, "sources": S}
-    # sources.json lives in the parent of the synthetic dir (data/)
-    write_text(os.path.join(os.path.dirname(out), "sources.json") if os.path.basename(out) == "synthetic"
-               else os.path.join(out, "..", os.path.basename(out) + "-sources.json"),
-               json.dumps(sj, indent=2) + "\n")
+    # sources.json lives in the parent of the synthetic dir (data/); entries the generator does not own are kept
+    mp = (os.path.join(os.path.dirname(out), "sources.json") if os.path.basename(out) == "synthetic"
+          else os.path.join(out, "..", os.path.basename(out) + "-sources.json"))
+    sj = merge_sources(mp, S, {"synthetic": True, "generated_by": "scripts/gen_company.py --seed %d" % a.seed})
+    write_text(mp, json.dumps(sj, indent=2) + "\n")
+    if DRY_RUN:
+        print("dry-run: would write %d files into %s" % (len(WRITES), out))
+        for w in WRITES:
+            print("  " + os.path.relpath(w, out))
+        return
     print("wrote", out, counts)
 
 
