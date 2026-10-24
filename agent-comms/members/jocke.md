@@ -12,6 +12,17 @@
 
 <!-- Append newest entries at the top. Format: ### YYYY-MM-DD HH:MM — Short title -->
 
+### 2026-10-24 14:00 — Added Intergalactic Language Switcher (5 planetary flags), Galactic Credits (GC), & mobile side-by-side layout
+
+- **Galactic Credits (`GC`) & In-World Polish**:
+  - Updated storefront display prices from `USD` to Galactic Credits (`GC`) across `index.html`, `shop.html`, `product.html`, `contact.html`, `js/core.js`, and `js/contact.js` while preserving underlying Zetaris SQL schema fields (`price_usd`, `amount_usd`).
+  - Removed prototype/keyboard meta-hints so the storefront reads purely in-universe ("Standard orbital dispatch across all Outer Ring sectors · Registry 04-FARSTRAND").
+- **Intergalactic Language Switcher & Alien Gibberish Engine (`js/core.js`, `css/totality.css`, `images/flags/*.svg`)**:
+  - Added 5 custom sci-fi planetary flag SVGs (`earth-basic.svg`, `vorthak.svg`, `xylos.svg`, `krazzik.svg`, `zogwort.svg`) and an accessible header language dropdown.
+  - Built a deterministic, reversible alien gibberish translation engine supporting Planet Earth (Basic), Vorthak (Outer Rim), Xylosian (Nebula Choir), Krazz'ik (Insectoid Hive), and Zogwortian (Swamp Moon) while keeping `GC` currency codes intact and restoring exact English on return.
+- **Mobile Layout Refinements (`<= 1023px` & `<= 640px`)**:
+  - Updated mobile and tablet product cards across `index.html`, `shop.html`, and `product.html` for side-by-side product media and description layouts with zero horizontal overflow.
+
 ### 2026-10-24 13:20 — Finalized FRONTEND-SPEC.md & jedi.blastworks.ai live integration and staged `inbox/public/store/`
 
 - **Storefront & 3D Catalogue (`inbox/public/store/`)**:

@@ -32,7 +32,7 @@
         <p class="ds-eyebrow"><span class="ds-pulse" aria-hidden="true"></span><span data-brand="agent_name">Helmsward</span> × Zetaris · Judge studio</p>
         <h1 class="ds-title"><span data-brand="agent_name">Helmsward</span> Live Dispatch Desk</h1>
       </div>
-      <p class="ds-lede">Pick a scenario. <span data-brand="agent_name">Helmsward</span> reads it, checks the store records in Zetaris, then replies, holds a draft for a human, or escalates. The result shows on the right.</p>
+      <p class="ds-lede">Pick a scenario or transmit a dispatch. Helmsward checks the store records in Zetaris, then replies, holds a draft for a human, or escalates.</p>
     </div>
     <ul class="ds-rules" aria-label="Store rules Helmsward enforces">
       <li><b>01</b>Ships in 3–5 cycles · Street address required</li>
@@ -46,7 +46,6 @@
     <section class="ds-card ds-intake" aria-labelledby="intake-heading">
       <div class="ds-card__head">
         <h2 class="ds-h" id="intake-heading"><span class="ds-step">1</span>Pick a scenario</h2>
-        <span class="ds-hint">Runs on click</span>
       </div>
       <div id="presets" class="ds-presets" aria-label="Preset test scenarios"></div>
       <p id="expected" class="ds-expected" hidden></p>
@@ -54,7 +53,6 @@
       <form id="form" class="ds-form" autocomplete="off" novalidate>
         <div class="ds-card__head ds-card__head--sub">
           <h3 class="ds-h"><span class="ds-step">2</span>Or write your own</h3>
-          <span class="ds-hint">Try a prompt injection</span>
         </div>
         <fieldset class="ds-reasons">
           <legend class="sr-only">Why are you contacting us?</legend>
@@ -86,7 +84,7 @@
         <p class="ds-verdict__sub">Pick a scenario to see Helmsward decide.</p>
       </div>
       <div class="ds-tabs" role="tablist" aria-label="Result views">
-        <button type="button" role="tab" id="tab-reply" aria-controls="panel-reply" aria-selected="true">How a person sees it <span class="ds-tabs__sub">Reply &amp; why</span></button>
+        <button type="button" role="tab" id="tab-reply" aria-controls="panel-reply" aria-selected="true">Reply &amp; why</button>
         <button type="button" role="tab" id="tab-hood" aria-controls="panel-hood" aria-selected="false" tabindex="-1">Under the hood <span class="ds-tabs__sub">Zetaris SQL &amp; trace</span><span class="ds-tabs__count" id="hood-count" hidden></span></button>
       </div>
       <div class="ds-panels" data-lenis-prevent>
@@ -110,7 +108,7 @@
       <li><a href="index.html">Home</a></li><li><a href="shop.html">Shop</a></li><li><a href="contact.html" aria-current="page">Contact</a></li>
     </ul></nav>
     <span class="moth-slot" data-moth-slot><svg class="moth" viewBox="0 0 80 72" width="56" height="50" aria-hidden="true" focusable="false"><defs><linearGradient id="moth-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF5A1F"/><stop offset="1" stop-color="#FF5A1F" stop-opacity="0"/></linearGradient></defs><path class="moth__tail" d="M40 34c-3 10 4 20-2 36" stroke="url(#moth-t)" stroke-width="3" fill="none" stroke-linecap="round"/><g class="moth__wing"><g id="moth-w"><path class="mw" d="M39 22C30 6 12 2 7 10s8 18 32 15z"/><path class="mw2" d="M39 28c-9 3-19 12-15 18s12-4 15-16z"/><circle class="mb" cx="18" cy="12" r="2.6"/></g></g><g class="moth__wing"><use href="#moth-w" transform="matrix(-1 0 0 1 80 0)"/></g><ellipse class="mb" cx="40" cy="26" rx="2.8" ry="10"/><path class="moth__ant" d="M39 17c-2-6-5-9-9-10M41 17c2-6 5-9 9-10" fill="none" stroke-width="1.2"/></svg></span>
-    <p class="endcard__fine">A prototype storefront. No orders are taken and nothing is charged.</p>
+    <p class="endcard__fine">Standard orbital dispatch across all Outer Ring sectors · Registry 04-FARSTRAND.</p>
   </div>
 </footer>
 <div class="cartbar" data-cartbar>
@@ -123,9 +121,9 @@
   <p class="cart__empty" data-cart-empty>Your cart is empty. Every piece is on the reel.</p>
   <ul class="cart__list" data-cart-list></ul>
   <div class="cart__foot">
-    <p class="cart__total"><span>Total</span><span data-cart-total>0 USD</span></p>
+    <p class="cart__total"><span>Total</span><span data-cart-total>0 GC</span></p>
     <button class="btn btn--wide" type="button" disabled>Checkout</button>
-    <p class="cart__note">Prototype: checkout is not connected.</p>
+    <p class="cart__note">Settled in Galactic Credits (GC) upon orbital manifest lock.</p>
   </div>
 </dialog>
 <p class="sr-only" aria-live="polite" data-live></p>

@@ -9,8 +9,187 @@
   };
   const reduced = matchMedia(MQ.reduced).matches;
   const hasGsap = typeof window.gsap !== "undefined" && typeof window.ScrollTrigger !== "undefined";
-  const usd = n => `${n} USD`;
+  const usd = n => `${n} GC`;
   const ROOT = location.pathname.includes("/concepts/") ? "../.." : ".";
+
+  /* ---------- intergalactic languages: reversible text, stable word ciphers ---------- */
+  const languages = [
+    { id: "en", code: "EARTH", name: "Planet Earth", subtitle: "Basic", flag: "earth-basic" },
+    { id: "vth", code: "VTH", name: "Vorthak", subtitle: "Outer Rim", flag: "vorthak" },
+    { id: "xly", code: "XLY", name: "Xylosian", subtitle: "Nebula Choir", flag: "xylos" },
+    { id: "kzk", code: "KZK", name: "Krazz'ik", subtitle: "Insectoid Hive", flag: "krazzik" },
+    { id: "zog", code: "ZOG", name: "Zogwortian", subtitle: "Swamp Moon", flag: "zogwort" },
+  ];
+  const syllables = {
+    vth: ["krr'vak", "zhth", "ul-khor", "vrax'n", "q'thun", "drak-vor"],
+    xly: ["aeloria", "shii'luna", "vaen", "oou'ri", "lyss'ea", "nae'vyn"],
+    kzk: ["bzz't", "krak-xik", "t'chzz", "xik'krr", "zzz'tik", "ch'kax"],
+    zog: ["gloop", "blarg-wub", "zog'plop", "blorp", "quag-mub", "slurp'zog"],
+  };
+  const LANG_KEY = "totality.lang.v1";
+  const originals = new WeakMap();
+  const letterGroups = new WeakMap();
+  const skipTranslation = "script,style,code,pre,noscript,textarea,.sql,[data-no-translate]";
+  let language = "en";
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (languages.some(l => l.id === saved)) language = saved;
+  } catch (e) {}
+
+  function cipher(text, lang) {
+    if (lang === "en") return text;
+    return text.replace(/[A-Za-z]+/g, word => {
+      // Credits and other currency codes stay readable, including inside sentences.
+      if (/^(GC|USD|EUR|GBP)$/.test(word)) return word;
+      let hash = 2166136261;
+      for (const ch of `${lang}:${word.toLowerCase()}`) {
+        hash = Math.imul(hash ^ ch.charCodeAt(0), 16777619) >>> 0;
+      }
+      const translated = syllables[lang][hash % syllables[lang].length];
+      if (word === word.toUpperCase()) return translated.toUpperCase();
+      if (/^[A-Z]/.test(word)) return translated[0].toUpperCase() + translated.slice(1);
+      return translated;
+    });
+  }
+
+  function translateNode(node, lang) {
+    const current = node.data;
+    let saved = originals.get(node);
+    // Renderers can update an existing node as well as replace its parent.
+    if (!saved || current !== saved.rendered) saved = { english: current, rendered: current };
+    const translated = cipher(saved.english, lang);
+    saved.rendered = translated;
+    originals.set(node, saved);
+    if (current !== translated) node.data = translated;
+  }
+
+  function translateLetters(group, lang) {
+    const letters = [...group.children].filter(el => el.matches(".ch,.c"));
+    const current = letters.map(el => el.textContent).join("");
+    let saved = letterGroups.get(group);
+    if (!saved || current !== saved.rendered) saved = { english: current, rendered: current };
+    const translated = cipher(saved.english, lang);
+    saved.rendered = translated;
+    letterGroups.set(group, saved);
+    // Keep the spans that GSAP already targets; only their text changes.
+    letters.forEach((el, i) => {
+      const text = i === letters.length - 1 ? translated.slice(i) : translated.slice(i, i + 1);
+      if (el.textContent !== text) el.textContent = text;
+    });
+  }
+
+  function translateRoot(root, lang) {
+    if (!root?.isConnected) return;
+    const element = root.nodeType === Node.TEXT_NODE ? root.parentElement : root;
+    if (!element || element.closest(skipTranslation)) return;
+    const animated = element.closest(".word,.sub");
+    if (animated?.querySelector(":scope > .ch,:scope > .c")) {
+      translateLetters(animated, lang);
+      return;
+    }
+    if (root.nodeType === Node.TEXT_NODE) return translateNode(root, lang);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.matches(skipTranslation)) return NodeFilter.FILTER_REJECT;
+          if (node.matches(".word,.sub") && node.querySelector(":scope > .ch,:scope > .c")) {
+            translateLetters(node, lang);
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_SKIP;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+    while (walker.nextNode()) translateNode(walker.currentNode, lang);
+  }
+
+  const languageObserver = new MutationObserver(records => {
+    const roots = new Set();
+    for (const record of records) {
+      if (record.type === "characterData") roots.add(record.target);
+      else record.addedNodes.forEach(node => roots.add(node));
+    }
+    languageObserver.disconnect();
+    roots.forEach(root => translateRoot(root, language));
+    observeLanguage();
+  });
+  const observeLanguage = () => languageObserver.observe(document.body, { childList: true, characterData: true, subtree: true });
+
+  function applyLanguage(next = language) {
+    if (!languages.some(l => l.id === next)) return;
+    language = next;
+    try { localStorage.setItem(LANG_KEY, language); } catch (e) {}
+    languageObserver.disconnect();
+    // Hidden dialogs are prepared too, so opening one never flashes English.
+    translateRoot(document.body, language);
+    syncLanguageButton();
+    observeLanguage();
+    if (hasGsap) requestAnimationFrame(() => ScrollTrigger.refresh());
+  }
+
+  function syncLanguageButton() {
+    const active = languages.find(l => l.id === language);
+    const button = $(".lang-switch__btn");
+    if (!button) return;
+    $("img", button).src = `images/flags/${active.flag}.svg`;
+    $(".lang-switch__code", button).textContent = active.code;
+    button.setAttribute("aria-label", `Language: ${active.name} · ${active.subtitle}`);
+    $$(".lang-switch__option").forEach(option => {
+      option.setAttribute("aria-checked", String(option.dataset.lang === language));
+    });
+  }
+
+  function mountLanguageSwitch() {
+    const mast = $(".mast"), cartButton = $(".mast__cart", mast || document);
+    if (!mast || !cartButton || $(".lang-switch", mast)) return;
+    const control = document.createElement("div");
+    control.className = "lang-switch";
+    control.dataset.noTranslate = "";
+    control.innerHTML = `<button class="lang-switch__btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="totality-languages">
+      <img src="images/flags/earth-basic.svg" width="24" height="16" alt=""><span class="lang-switch__code">EARTH</span>
+      <svg class="lang-switch__chevron" viewBox="0 0 12 8" width="10" height="7" aria-hidden="true"><path d="m1 1 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+    </button><div class="lang-switch__menu" id="totality-languages" role="menu" aria-label="Intergalactic language" hidden>
+      ${languages.map(l => `<button class="lang-switch__option" type="button" role="menuitemradio" aria-checked="false" tabindex="-1" data-lang="${l.id}">
+        <img src="images/flags/${l.flag}.svg" width="24" height="16" alt=""><span><span class="lang-switch__name">${l.name}</span><span class="lang-switch__subtitle">${l.subtitle}</span></span>
+        <svg class="lang-switch__check" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="m1 6 3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>`).join("")}</div>`;
+    mast.insertBefore(control, cartButton);
+    const button = $(".lang-switch__btn", control), menu = $(".lang-switch__menu", control);
+    const options = $$(".lang-switch__option", control);
+    const close = (restoreFocus = false) => {
+      menu.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      if (restoreFocus) button.focus({ preventScroll: true });
+    };
+    const open = (index = languages.findIndex(l => l.id === language)) => {
+      menu.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      options[index].focus({ preventScroll: true });
+    };
+    button.addEventListener("click", () => menu.hidden ? open() : close());
+    options.forEach(option => option.addEventListener("click", () => {
+      applyLanguage(option.dataset.lang);
+      close(true);
+    }));
+    control.addEventListener("keydown", e => {
+      const index = options.indexOf(document.activeElement);
+      if (e.key === "Escape" && !menu.hidden) { e.preventDefault(); e.stopPropagation(); close(true); }
+      else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        open(index < 0 ? (e.key === "ArrowDown" ? 0 : options.length - 1) : (index + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length);
+      } else if (!menu.hidden && (e.key === "Home" || e.key === "End")) {
+        e.preventDefault(); open(e.key === "Home" ? 0 : options.length - 1);
+      } else if (index >= 0 && /^[a-z]$/i.test(e.key)) {
+        const match = languages.findIndex((l, i) => i > index && l.name.toLowerCase().startsWith(e.key.toLowerCase()));
+        const first = languages.findIndex(l => l.name.toLowerCase().startsWith(e.key.toLowerCase()));
+        if (match >= 0 || first >= 0) { e.preventDefault(); open(match >= 0 ? match : first); }
+      }
+    });
+    document.addEventListener("pointerdown", e => { if (!control.contains(e.target)) close(); });
+    control.addEventListener("focusout", e => { if (!control.contains(e.relatedTarget)) close(); });
+    syncLanguageButton();
+  }
 
   /* ---------- data ---------- */
   const data = (async () => {
@@ -339,6 +518,7 @@
   /* ---------- letter split for kinetic titles ---------- */
   function split(el) {
     if (!el) return [];
+    translateRoot(el, "en");
     const text = el.textContent.trim();
     el.textContent = "";
     const sr = document.createElement("span"); sr.className = "sr-only"; sr.textContent = text;
@@ -406,11 +586,14 @@
   })();
 
   /* ---------- Lenis + ScrollTrigger ---------- */
-  const T = (window.T = {
+  const T = (window.TOTALITY = window.T = {
     $, $$, MQ, ROOT, data, models, cart, split, sequence,
-    mount3DStage, watchPlates, moth, say, usd,
+    mount3DStage, watchPlates, moth, say, usd, applyLanguage,
     lenis: null, reduced,
   });
+  mountLanguageSwitch();
+  if (document.readyState === "complete") applyLanguage();
+  else document.addEventListener("DOMContentLoaded", () => applyLanguage(), { once: true });
   if (hasGsap) {
     gsap.registerPlugin(ScrollTrigger);
     if (!reduced && typeof window.Lenis !== "undefined") {

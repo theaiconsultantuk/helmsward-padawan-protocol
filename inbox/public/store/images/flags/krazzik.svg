@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 24" width="36" height="24">
+  <title>Krazz'ik · Insectoid Hive</title>
+  <defs>
+    <linearGradient id="amber" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#F2EEE6"/><stop offset=".3" stop-color="#F5A524"/><stop offset=".65" stop-color="#9B5B13"/><stop offset="1" stop-color="#F5A524"/></linearGradient>
+    <radialGradient id="chitin"><stop stop-color="#353014"/><stop offset="1" stop-color="#090A06"/></radialGradient>
+    <pattern id="cells" width="9" height="15.588" patternUnits="userSpaceOnUse"><path d="m0 0 4.5 2.598v5.196L0 10.392-4.5 7.794V2.598ZM9 0l4.5 2.598v5.196L9 10.392 4.5 7.794V2.598ZM4.5 7.794 9 10.392v5.196l-4.5 2.598L0 15.588v-5.196Z" fill="none" stroke="#F5A524" stroke-width=".45"/></pattern>
+  </defs>
+  <path fill="url(#chitin)" d="M0 0h36v24H0z"/>
+  <path fill="url(#cells)" opacity=".3" d="M0 0h36v24H0z"/>
+  <path d="m18 1 10 5.5v11L18 23 8 17.5v-11Z" fill="#090A06" stroke="url(#amber)" stroke-width=".65"/>
+  <path d="m18 3 7.5 4.3v9.4L18 21l-7.5-4.3V7.3Z" fill="none" stroke="#F5A524" stroke-opacity=".35" stroke-width=".4"/>
+  <g fill="url(#amber)" stroke="#F5A524" stroke-width=".25">
+    <path d="m11 7 5 3-2 5 3 4-6-3 1-4-3-3Z"/>
+    <path d="m25 7-5 3 2 5-3 4 6-3-1-4 3-3Z"/>
+    <path d="m18 6 2 4-2 6-2-6Z"/>
+  </g>
+  <path d="m14 5 4 2 4-2M16 19l2 2 2-2" fill="none" stroke="#F2EEE6" stroke-width=".6"/>
+  <path d="m2 10 3-2v8l-3-2Zm32 0-3-2v8l3-2Z" fill="#F5A524" opacity=".6"/>
+  <circle cx="18" cy="10" r=".65" fill="#F2EEE6"/>
+</svg>
