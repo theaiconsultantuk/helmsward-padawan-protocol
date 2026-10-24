@@ -1,6 +1,10 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { config, INBOX_ROOT } from "../config.mjs";
+import { readCsv } from "../csv.mjs";
+import { intakeRefundRows, readIntake } from "../intake.mjs";
+import { runLocal } from "../queries.mjs";
 import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS, refundRuleReason } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
@@ -16,15 +20,41 @@ function canon(v) {
 }
 const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
-export function queryByName(name, params = {}, { cfg = config() } = {}) {
+// The SQL's second prior_refunds branch counts the RUNTIME intake refunds (data/runtime/intake.csv) with the same rules as the stored threads.
+// Merge them into an offline answer (idempotent: a thread already in the rows is not added twice); no file or no runtimeDir = unchanged.
+export function withRuntimeRefunds(r, params, runtimeDir) {
+  if (!runtimeDir || !r) return r;
+  let intake = [];
+  try { intake = readIntake({ runtimeDir }); } catch { return r; } // an unreadable file is no evidence
+  const add = intakeRefundRows(intake, params);
+  if (!add.length) return r;
+  const have = new Set((r.rows ?? []).map((x) => `${x[2] ?? "threads_json"}:${x[0]}`));
+  const rows = [...(r.rows ?? []), ...add.filter((x) => !have.has(`${x[2]}:${x[0]}`))]
+    .sort((x, y) => Date.parse(x[1]) - Date.parse(y[1]) || (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0));
+  return { ...r, headers: r.headers?.length ? r.headers : ["thread_id", "received_at", "src"], rows, total: rows.length };
+}
+
+// The holiday table as the offline twin reads it: the synthetic CSV beside the sample dir (cfg.SYNTHETIC_DIR overrides), or null when absent.
+function holidayCsv(cfg) {
+  const f = join(cfg.SYNTHETIC_DIR ?? join(sampleDir(cfg), "..", "synthetic"), "holiday-2026.csv");
+  return existsSync(f) ? readCsv(f) : null;
+}
+
+// opts.runtimeDir (optional): also count that dir's runtime intake refunds in prior_refunds, as the SQL does.
+export function queryByName(name, params = {}, { cfg = config(), runtimeDir } = {}) {
   if (typeof name !== "string" || !/^[a-z_][a-z0-9_]*$/.test(name)) throw new Error(`bad query name: ${JSON.stringify(name)}`);
   const entries = JSON.parse(readFileSync(`${sampleDir(cfg)}/${name}.json`, "utf8"));
   const exact = entries.find((e) => same(e.params ?? {}, params));
   if (!exact && name === "holiday") {
-    // No cached pair: derive the per-employee answer from the full table, as live would.
+    // No cached pair: derive the answer as live would. Through the holiday template's own local() on the CSV (company-wide rows, all four columns);
+    // without the CSV, from the cached full table by the same rule (a blank employee_id is a company-wide day).
+    const csv = holidayCsv(cfg);
+    if (csv) {
+      try { return { ...runLocal("holiday", params, { holiday_2026: csv }), timeUsed: 0 }; } catch (e) { if (!(e instanceof TypeError)) throw e; }
+    }
     const all = JSON.parse(readFileSync(`${sampleDir(cfg)}/holidays.json`, "utf8")).find((e) => same(e.params ?? {}, {}));
     const src = all?.result ?? {};
-    const rows = (src.rows ?? src.data ?? []).filter((r) => String(r[0]) === String(params.employee_id) && r[1] === params.date);
+    const rows = (src.rows ?? src.data ?? []).filter((r) => (r[0] === null || r[0] === undefined || r[0] === "" || String(r[0]) === String(params.employee_id)) && r[1] === params.date);
     return { headers: src.headers ?? ["employee_id", "date"], rows, total: rows.length, timeUsed: 0 };
   }
   // The new exhaustive caches (CP1) answer what live answers for a key they were not asked about, instead of failing:
@@ -35,7 +65,7 @@ export function queryByName(name, params = {}, { cfg = config() } = {}) {
     // and apply the SQL's filter: a different thread, received strictly before this one. No sentinel = no refund thread = no rows.
     const all = entries.find((e) => lc(e.params?.email) === lc(params.email) && e.params?.thread_id === "F0")?.result;
     const rows = (all?.rows ?? []).filter((r) => r[0] !== params.thread_id && Date.parse(r[1]) < Date.parse(params.received_at));
-    return shape(all ?? entries[0]?.result, rows);
+    return withRuntimeRefunds({ ...shape(all ?? entries[0]?.result, rows), headers: (all ?? entries[0]?.result)?.headers ?? ["thread_id", "received_at", "src"] }, params, runtimeDir);
   }
   if (!exact && name === "shipping_rule") {
     const own = entries.find((e) => lc(e.params?.planet) === lc(params.planet)) ?? entries.find((e) => e.params?.planet === "default");
@@ -45,6 +75,7 @@ export function queryByName(name, params = {}, { cfg = config() } = {}) {
     const ci = entries.find((e) => same(Object.fromEntries(Object.entries(e.params ?? {}).map(([k, v]) => [k, lc(v)])), Object.fromEntries(Object.entries(params).map(([k, v]) => [k, lc(v)]))));
     return shape((ci ?? entries.find((e) => e.result?.headers?.length))?.result, ci ? ci.result.rows : []); // an unknown key: zero rows, as live
   }
+  if (exact && name === "prior_refunds" && runtimeDir) return withRuntimeRefunds({ ...exact.result, rows: exact.result.rows ?? [], timeUsed: 0 }, params, runtimeDir);
   const hit = exact
     ?? entries.find((e) => same(e.params ?? {}, {}));
   if (!hit) throw new Error(`no cached rows for ${name} ${JSON.stringify(canon(params))}`);

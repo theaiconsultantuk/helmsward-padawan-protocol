@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, dirname, sep } from "node:path";
@@ -29,6 +29,10 @@ test("clean_deploy.sh text: syntax ok, no secret echo, no xtrace, no npm ci", { 
   assert.ok(!text.includes("echo $ZETARIS"), "echoes a Zetaris value");
   assert.ok(!/set\s+-\w*x/.test(text.replace(/set \+x/g, "")), "set -x present");
   assert.ok(!text.includes("npm ci"), "npm ci present");
+  assert.ok(!/\bnpm\b/i.test(text), "the word npm appears in clean_deploy.sh");
+  assert.match(text, /scripts\.doctor|\.scripts/, "doctor must come from package.json");
+  assert.match(text, /\$\{CLEAN_DEPLOY_EXPECT_MODE/);
+  assert.match(text, /--stop first/, "mismatch FAIL line must name the fix");
   assert.match(readFileSync(join(INBOX, "scripts", "zetaris_drop.sh"), "utf8"), /SKIP_RUNTIME/);
 });
 
@@ -57,6 +61,54 @@ test("sample mode starts on a node_modules-free copy, /health is 200, --stop end
     assert.equal(stop.status, 0, stop.stdout + stop.stderr);
     assert.ok(!alive(pid), "server process still running after --stop");
     assert.ok(!existsSync(join(copy, "data", "runtime", "clean_deploy.pid")));
+  } finally {
+    if (pid && alive(pid)) { try { process.kill(pid, "SIGKILL"); } catch {} }
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("second run reuses, stale pid is replaced, mode mismatch fails with the fix", { skip: (!hasBash && "bash not available") || (!hasCurl && "curl not available") }, async () => {
+  const tmp = mkdtempSync(join(tmpdir(), "clean-deploy-"));
+  const copy = join(tmp, "inbox");
+  cpSync(INBOX, copy, {
+    recursive: true,
+    filter: (src) => !src.split(sep).includes("node_modules") && !src.split(sep).includes("runtime") && !src.endsWith(`${sep}.env`),
+  });
+  const port = await freePort();
+  const env = { ...process.env, PORT: String(port) };
+  const script = join(copy, "scripts", "clean_deploy.sh");
+  const pidf = join(copy, "data", "runtime", "clean_deploy.pid");
+  const run = (args, e = env) => spawnSync("bash", [script, ...args], { cwd: tmp, env: e, encoding: "utf8", timeout: 30000 });
+  let pid = 0;
+  try {
+    // stale pid file: process gone -> removed, start proceeds
+    spawnSync("mkdir", ["-p", join(copy, "data", "runtime")]);
+    const dead = spawnSync("bash", ["-c", "sleep 0 & echo $!"], { encoding: "utf8" }).stdout.trim();
+    await new Promise((r) => setTimeout(r, 200));
+    writeFileSync(pidf, dead + "\n");
+    const first = run([]);
+    assert.equal(first.status, 0, first.stdout + first.stderr);
+    pid = Number(readFileSync(pidf, "utf8").trim());
+    assert.notEqual(String(pid), dead);
+    assert.ok(alive(pid));
+    // second run on the same port reuses
+    const second = run([]);
+    assert.equal(second.status, 0, second.stdout + second.stderr);
+    assert.match(second.stdout, /already running.*ok|ok \(already running/);
+    assert.equal(Number(readFileSync(pidf, "utf8").trim()), pid);
+    // check-running: right mode ok, wrong mode FAIL naming the fix
+    const good = run(["--check-running"]);
+    assert.equal(good.status, 0, good.stdout + good.stderr);
+    const bad = run(["--check-running"], { ...env, CLEAN_DEPLOY_EXPECT_MODE: "live" });
+    assert.notEqual(bad.status, 0);
+    assert.match(bad.stdout, /FAIL .*sample mode.*live.*--stop first/);
+    // a live pid that answers on no health of ours (other port) fails too
+    const other = run(["--check-running"], { ...env, PORT: String(await freePort()) });
+    assert.notEqual(other.status, 0);
+    assert.match(other.stdout, /FAIL .*does not answer.*--stop first/);
+    assert.ok(alive(pid), "mismatch must not kill the server");
+    run(["--stop"]);
+    assert.ok(!alive(pid));
   } finally {
     if (pid && alive(pid)) { try { process.kill(pid, "SIGKILL"); } catch {} }
     rmSync(tmp, { recursive: true, force: true });

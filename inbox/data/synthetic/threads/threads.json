@@ -425,8 +425,8 @@
     "owner_id": 15,
     "backup_id": 27,
     "owner_out": true,
-    "outcome": "send",
-    "outcome_reason": "Appreciation weight 0.84 is at or above the floor 0.80. No amount and no private data. A short thanks may be sent.",
+    "outcome": "hold",
+    "outcome_reason": "channels:trustpilot is a public channel and replies on this channel are sent by a person, so no autonomous reply. Appreciation weight 0.84 is at or above the floor 0.80, no amount and no private data. Held with the thanks drafted for Support to send.",
     "ledger_effect": "affirm",
     "source_id": "seed-T18",
     "fictional": true

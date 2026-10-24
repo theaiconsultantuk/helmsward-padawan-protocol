@@ -62,8 +62,8 @@ export class Trace {
     this.stdout = stdout;
     this.path = `${logsDir}/trace-${run_id}.jsonl`;
     this._lines = [];
-    this._first = null;
-    this._prev = null;
+    this._start = Date.now(); // the run's stable start: elapsed_ms counts from here, whatever order buffered lines are flushed in
+    this._ats = []; // the recorded moments of the lines already written
   }
 
   get lines() {
@@ -81,13 +81,14 @@ export class Trace {
     if (fields.sponsor !== undefined && !SPONSORS.includes(fields.sponsor)) {
       throw new Error(`trace line: unknown sponsor "${fields.sponsor}"`);
     }
-    // millisecond ISO timestamp; duration_ms since the previous line of this run (0 for the first), elapsed_ms since the first
-    // a buffered line passes the moment it was recorded as `at`; it is never written out as a field
+    // millisecond ISO timestamp (the line's own `at`); elapsed_ms = at - the run's start (the Trace's construction), duration_ms = at minus
+    // the latest recorded moment strictly before it among the lines already written (the run's start when none), never negative.
+    // A buffered line passes the moment it was recorded as `at`; it is never written out as a field.
     const now = Number.isFinite(fields.at) ? fields.at : Date.now();
-    if (this._first === null) this._first = now;
-    const duration_ms = this._prev === null ? 0 : Math.max(0, now - this._prev);
-    const elapsed_ms = Math.max(0, now - this._first);
-    this._prev = Math.max(this._prev ?? now, now);
+    const before = this._ats.filter((a) => a < now);
+    const duration_ms = Math.max(0, now - (before.length ? Math.max(...before) : this._start));
+    const elapsed_ms = Math.max(0, now - this._start);
+    this._ats.push(now);
     const raw = {
       timestamp: new Date(now).toISOString(),
       duration_ms,

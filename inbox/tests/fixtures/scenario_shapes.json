@@ -131,8 +131,8 @@
           "products:FS-B01"
         ],
         "recommendation_includes": [
-          "one unit price",
-          "no volume tiers"
+          "a unit price",
+          "more than one quantity"
         ],
         "draft_excludes": [
           "189"

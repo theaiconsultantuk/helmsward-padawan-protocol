@@ -14,6 +14,7 @@ import { verifyContract } from "./engines/scout/contract.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
+import { parseRestricted } from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
 import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
 import { readRefund } from "./refund_reader.mjs";
@@ -178,6 +179,17 @@ export function promisesMoney(d, f) {
   return f?.amount != null && new RegExp(`(^|[^\\d.])${String(f.amount).replace(/\.0+$/, "").replace(".", "\\.")}(?:\\.0+)?([^\\d]|$)`).test(text);
 }
 
+// The ONE send-eligibility rule (Codex 29, finding 2): a decision "send" needs a non-empty draft and a channel whose row does not say
+// autonomous_reply false (channels.csv). Every send path asks here; a send that fails it becomes a hold for the owner.
+export function sendEligible(facts, draft) {
+  return String(draft?.text ?? "").trim().length > 0 && facts?.channel_autonomous !== false;
+}
+export const sendBlockReason = (facts, draft) => (facts?.channel_autonomous === false
+  ? `channels:${facts.channel ?? "?"}: replies on this channel are sent by a person`
+  : String(draft?.text ?? "").trim().length === 0 ? "no draft to send" : null);
+// The deterministic words an over-limit draft is replaced by when it still promises money after its one rewrite (Codex 29, finding 4).
+export const APPROVAL_ACK = "Thank you for your request. It has been routed for approval and we will come back to you.";
+
 // The reply rounds: draft, critique, Risk sign-off, one retry. Reads everything from the toolbox tb
 // ({ f, ticket, L, skipped, fatal, S, sampleOn, memCtx, hardRisk, maxRounds, io: { drafter, sampleDrafter, critic, reader, adapterTrace }, readerOn }).
 //   messagesFn({ critiques }) -> drafter messages        (default: the draftMessages of the ticket, facts and memory)
@@ -302,6 +314,12 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     draft = await makeDraft("revised", both, round + 1);
     round += 1;
   }
+  if (approvalPath && promisesMoney(draft, f)) {
+    // the one rewrite round did not remove the promise: nothing the model wrote is attached; the approver gets the fixed acknowledgement
+    L({ step: "nvidia.model", agent_name: "Drafter", action: "draft_replaced", model: "template/approval-ack", branch_id: B, retry_count: round - 1,
+      input_summary: `round ${round} draft still promises money after the rewrite`, output_summary: "replaced by the approval acknowledgement (code, no amount, no date); the model draft is not attached", status: "success" });
+    draft = { text: sample.frame({ sender_name: f.sender_name }, APPROVAL_ACK), promises: { refund_amount: null, replacement: false, other: null }, model: "template/approval-ack" };
+  }
   S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
   const ok = Boolean(crit.pass && risk.pass);
   if (!retried) skipped("retry", refused && overLimitRefusal(f) ? "hard refusal: amount needs approval" : risk.hard && !ok ? "hard fact: a rewrite cannot change it" : "round 1 passed");
@@ -353,6 +371,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     };
   };
   // The one choke point: every line (direct, buffered-then-flushed, finalisation) is written here, then handed to deps.onLine.
+  const restrictedGateSkip = (id, model) => ({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model, gate_source: "rules", confidence: 0.5,
+    input_summary: `typed gates for ${id}`, output_summary: "skipped: restricted fact in the message, so no model receives the text; code rules used", status: "skipped" });
   const W = (f) => {
     const out = trace.line(f);
     if (typeof deps.onLine === "function") deps.onLine(out);
@@ -384,7 +404,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const gatesFn = deps.gates ?? typedGates;
   const runtimeDir = deps.runtimeDir ?? null;
   const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
-  const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
+  const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime"), ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
   const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") }));
   const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
     ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
@@ -456,6 +476,18 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.reasons.push(reason);
   };
 
+  // A decision "send" that fails sendEligible becomes a hold for the owner, the draft kept (Codex 29, finding 2).
+  const settleSend = () => {
+    if (S.decision !== "send" || sendEligible(S.facts, S.draft)) return false;
+    const why = sendBlockReason(S.facts, S.draft);
+    S.decision = "hold";
+    S.autoReply = false;
+    S.meta = { ...S.meta, status: "open" };
+    S.reasons.push(`held for owner ${S.facts?.owner_id ?? "?"}, draft kept: ${why}`);
+    L({ step: "planner.plan", agent_name: "Planner", action: "send_check", branch_id: S.branch?.branch_id, input_summary: "send eligibility", output_summary: `send refused, held for a person: ${why}`, status: "success", memory_ids: S.memRead });
+    return true;
+  };
+
   async function pipeline() {
     // Facts first, silently: memory.read needs the customer's name. Their zetaris.query lines are logged at step 4.
     const buf = stampedBuffer();
@@ -498,7 +530,18 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
           scoutRefused = !verifyContract(preDecided.executionContract, { secret: scout.secret ?? secret }).ok || preDecided.risk?.level === "block";
         } catch { scoutRefused = true; }
       }
+      // a restricted fact in the customer's own words (a card number, a staff price): no model call receives the raw text
+      let msgRestricted = null;
       if (!scoutRefused) {
+        let terms = [];
+        try { terms = parseRestricted((await queries.run("wiki", { wiki: "leave" }, { cfg, trace: { line: () => {} } })).objects[0]?.preview); } catch { terms = []; }
+        msgRestricted = restrictedInMessage({ subject: row.subject, body: row.body, restricted_terms: terms });
+      }
+      if (!scoutRefused && msgRestricted) {
+        const g = sample.gates(rowTicket);
+        preGates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+        preGbuf.push(restrictedGateSkip(rowTicket.thread_id, g.model));
+      } else if (!scoutRefused) {
         try {
           preGates = await gatesFn(rowTicket, {}, { trace: { line: (x) => preGbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
         } catch (e) {
@@ -651,6 +694,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // gates (a model call, so after the contract check); their line is held back until step 7
     const gbuf = preGates ? preGbuf : stampedBuffer();
     let gates = preGates;
+    if (!gates && restrictedInMessage(f)) {
+      const g = sample.gates(ticket);
+      gates = { answers: g.answers, model: g.model, gate_source: "rules", confidence: 0.5 };
+      gbuf.push(restrictedGateSkip(thread_id, g.model));
+    }
     if (!gates) {
       try {
         gates = await gatesFn(ticket, f, { trace: { line: (x) => gbuf.push(x) }, cfg, sampleMode: sampleOn, signal: runAbort.signal });
@@ -711,6 +759,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       // queue-entry fields a handler decides (team, cc, also, status ...), and whether the reply goes out by itself
       S.meta = { ...S.meta, ...Object.fromEntries(["team", "team_label", "backup_team", "topic_label", "cc", "also", "status", "courtesy_reply"].filter((k) => a[k] !== undefined).map((k) => [k, a[k]])) };
       if (a.auto_reply !== undefined) S.autoReply = a.auto_reply === true;
+      settleSend();
       if (a.ownerHint) S.ownerHint = a.ownerHint; // who the card names for a reply that needs no queue entry (an automatic reply)
       // A hold names the person it waits for: the handler's owner, unless escalate() already queued it.
       if (a.queued && !S.queued) S.queued = { owner_id: a.queued.owner_id, backup_id: a.queued.backup_id, owner_name: a.queued.owner_name, backup_name: a.queued.backup_name, role: a.queued.role, ...(a.attachments !== undefined ? { attachments: a.attachments } : {}), ...queueMeta() };
@@ -778,7 +827,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     S.decision = "send";
     S.reasons.push(`both critics passed on round ${round}; ${S.branch.why}`);
-    skipped("escalate_or_fallback", "both critics passed");
+    if (settleSend()) skipped("escalate_or_fallback", "both critics passed; a hold waits for a person");
+    else skipped("escalate_or_fallback", "both critics passed");
   }
 
   async function body() {

@@ -152,7 +152,7 @@ test("owner and backup both out escalates", async () => {
 });
 
 // ---- first run vs second run (same memory dir) x four decisions ----
-for (const [id, decision] of [["T18", "send"], ["T02", "hold"], ["T03", "escalate"], ["T16", "close"]]) {
+for (const [id, decision] of [["T19", "send"], ["T18", "hold"], ["T02", "hold"], ["T03", "escalate"], ["T16", "close"]]) {
   test(`grid: ${id} ${decision}, first run then second run reads the first run's memory`, async () => {
     const d = dirs();
     const a = await go(id, { d, run_id: `grid-${id}-1` });

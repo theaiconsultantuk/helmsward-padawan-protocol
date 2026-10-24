@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "./config.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
-import { readIntake } from "./intake.mjs";
+import { readIntake, intakeRefundRows } from "./intake.mjs";
+import { RUNTIME_DIR } from "./decisions.mjs";
+import { withRuntimeRefunds } from "./adapters/sample.mjs";
 
 export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation", "other"];
 export const INTENTS = ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"];
@@ -63,7 +65,10 @@ const row = (headers, r) => Object.fromEntries(headers.map((h, i) => [h, r[i]]))
 //   USL view columns    -> as the view casts them: int "15", double "189.0" (Java's Double.toString), varchar as is
 // TYPES below are the view column types this module assumes (register_usl.mjs owns the DDL; usl_drift compares the two live).
 const nul = (v) => (v === undefined || v === null || v === "" ? null : v);
+// Spark's string -> boolean cast (what the USL views do with CAST(x AS boolean)): true/t/yes/y/1 -> "true", false/f/no/n/0 -> "false", else (or empty) null
+const BOOL = { true: "true", t: "true", yes: "true", y: "true", 1: "true", false: "false", f: "false", no: "false", n: "false", 0: "false" };
 const CAST = {
+  bool: (v) => (nul(v) === null ? null : BOOL[String(v).trim().toLowerCase()] ?? null),
   str: (v) => (nul(v) === null ? null : String(v)),
   int: (v) => { if (nul(v) === null) return null; const n = Number(v); return Number.isFinite(n) ? String(Math.trunc(n)) : null; },
   dbl: (v) => { if (nul(v) === null) return null; const n = Number(v); return !Number.isFinite(n) ? null : Number.isInteger(n) ? n.toFixed(1) : String(n); },
@@ -76,11 +81,11 @@ const need = (tables, name) => { if (!Array.isArray(tables?.[name])) throw new E
 const RAW_EMPLOYEE = [["employee_id", "str"], ["given_name", "str"], ["family_name", "str"], ["email", "str"], ["team", "str"], ["role", "str"], ["trust_weight_seed", "str"]];
 const RAW_POLICY = ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"].map((c) => [c, "str"]);
 const PRODUCT_COLS = [["sku", "str"], ["name", "str"], ["unit_price", "dbl"], ["currency", "str"], ["min_order_qty", "int"], ["lead_days", "int"],
-  ["material", "str"], ["specs", "str"], ["show_in_store", "str"], ["aliases", "str"]];
+  ["material", "str"], ["specs", "str"], ["show_in_store", "bool"], ["aliases", "str"]];
 const PRODUCT_FULL = [["sku", "str"], ["slug", "str"], ["name", "str"], ["category", "str"], ["unit_price", "dbl"], ["currency", "str"], ["stock", "str"],
-  ["min_order_qty", "int"], ["lead_days", "int"], ["show_in_store", "str"], ["image", "str"], ["model", "str"], ["aliases", "str"], ["material", "str"], ["specs", "str"], ["description", "str"]];
+  ["min_order_qty", "int"], ["lead_days", "int"], ["show_in_store", "bool"], ["image", "str"], ["model", "str"], ["aliases", "str"], ["material", "str"], ["specs", "str"], ["description", "str"]];
 const HIER_COLS = [["employee_id", "int"], ["name", "str"], ["role", "str"], ["team", "str"], ["team_label", "str"]];
-const CUSTOMER_COLS = [["customer_id", "str"], ["name", "str"], ["callsign", "str"], ["email", "str"], ["home_planet", "str"], ["since", "str"], ["seeded_prior_refund", "str"], ["fictional", "str"]];
+const CUSTOMER_COLS = [["customer_id", "str"], ["name", "str"], ["callsign", "str"], ["email", "str"], ["home_planet", "str"], ["since", "str"], ["seeded_prior_refund", "bool"], ["fictional", "bool"]];
 const ORDER_COLS = [["order_id", "str"], ["customer_id", "str"], ["sku", "str"], ["quantity", "int"], ["amount", "dbl"], ["currency", "str"], ["shipping_planet", "str"], ["status", "str"], ["ordered_at", "str"]];
 const ts = (s) => Date.parse(s);
 
@@ -222,7 +227,7 @@ export const TEMPLATES = {
   },
   // Earlier refund tickets from the same sender: category refund, same sender_email (case-insensitive), a DIFFERENT thread, received STRICTLY BEFORE this one.
   // One row per earlier ticket (count = rows, ids = thread_id), oldest first; `src` says which table (threads_json | intake_runtime) for the cite.
-  // local() reads threads.json only: the runtime intake rows exist only live.
+  // local() reads threads.json plus tables.intake_runtime when the caller loaded it; run() adds the runtime intake file to a cache answer.
   prior_refunds: {
     layer: "usl", params: { email: V.email, thread_id: V.any_thread_id, received_at: V.received_at }, cacheable: true, question: "the sender's earlier refund tickets",
     sql: (p) => {
@@ -234,10 +239,13 @@ export const TEMPLATES = {
     },
     cite: (p, o) => o.map((x) => `${x.src ?? "threads_json"}:${x.thread_id}`),
     local: (t, p) => {
-      const rows = need(t, "threads_json")
+      // threads.json plus the runtime intake rows when the caller loaded them (loadTables(dir, { runtimeDir }) -> tables.intake_runtime)
+      const stored = need(t, "threads_json")
         .filter((r) => r.category === "refund" && String(r.sender_email ?? "").toLowerCase() === p.email.toLowerCase() && r.thread_id !== p.thread_id && ts(r.received_at) < ts(p.received_at))
-        .sort((a, b) => ts(a.received_at) - ts(b.received_at) || (a.thread_id < b.thread_id ? -1 : 1));
-      return { headers: ["thread_id", "received_at", "src"], rows: rows.map((r) => [String(r.thread_id), String(r.received_at), "threads_json"]), total: rows.length };
+        .map((r) => [String(r.thread_id), String(r.received_at), "threads_json"]);
+      const rt = Array.isArray(t.intake_runtime) ? intakeRefundRows(t.intake_runtime, p) : [];
+      const rows = [...stored, ...rt].sort((a, b) => ts(a[1]) - ts(b[1]) || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+      return { headers: ["thread_id", "received_at", "src"], rows, total: rows.length };
     },
   },
   order: {
@@ -278,7 +286,7 @@ export const TEMPLATES = {
     layer: "usl", params: { channel: V.channel }, cacheable: true, question: "the channel's rules",
     sql: (p) => `SELECT channel, public, autonomous_reply, intake_address, label FROM ${USL}.channel WHERE channel = '${p.channel}'`,
     cite: (p, o) => o.map((x) => `channels:${x.channel}`),
-    local: (t, p) => proj(need(t, "channels").filter((r) => r.channel === p.channel), ["channel", "public", "autonomous_reply", "intake_address", "label"].map((c) => [c, "str"])),
+    local: (t, p) => proj(need(t, "channels").filter((r) => r.channel === p.channel), [["channel", "str"], ["public", "bool"], ["autonomous_reply", "bool"], ["intake_address", "str"], ["label", "str"]]),
   },
   reviews: {
     layer: "usl", params: {}, cacheable: true, question: "the public review index",
@@ -340,7 +348,7 @@ export function validate(name, params = {}) {
 }
 
 // why: the caller's reason for the read, in words; it lands in the trace line's input_summary ("owner for refund: under the refund limit 150 (policy:refund)")
-export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun, why } = {}) {
+export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun, why, runtimeDir = RUNTIME_DIR } = {}) {
   const t = validate(name, params);
   const sql = t.sql(params);
   const q = `${t.question} ${JSON.stringify(params)}${why ? ` · ${why}` : ""}${t.layer === "usl" ? " via the USL" : ""}`;
@@ -352,6 +360,8 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
       output_summary: `${e.name}: ${e.message}`, status: "error", sponsor: "zetaris" });
     throw e;
   }
+  // an offline answer (the cache) knows no runtime intake rows; the SQL's second branch counts them, so add them with its exact rules
+  if (name === "prior_refunds" && r.source === "cache") r = withRuntimeRefunds(r, params, runtimeDir);
   const objects = r.rows.map((x) => row(r.headers, x));
   const cited = t.cite(params, objects);
   const detail = t.detail ? t.detail(params, objects) : "";
@@ -490,8 +500,8 @@ export function parseRestricted(preview) {
 const todayLondon = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/London" });
 const OTHER_WEIGHT = 0.4, DEFAULT_FLOOR = 0.8; // rfq / customer_service / billing have no trust row: the "other" row's weight, the default floor
 
-export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published, needs } = {}) {
-  const o = { trace, cfg, ...(sqlRunImpl ? { sqlRunImpl } : {}) };
+export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), sqlRunImpl, ticketSource, intakeRow, topic: topicOpt, amount: amountOpt, published, needs, runtimeDir } = {}) {
+  const o = { trace, cfg, ...(sqlRunImpl ? { sqlRunImpl } : {}), ...(runtimeDir ? { runtimeDir } : {}) };
   const intake = ticketSource === "intake";
   let ticket, cited;
   if (intake) {

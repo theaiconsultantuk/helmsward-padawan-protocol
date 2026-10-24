@@ -42,7 +42,7 @@ Sample mode starts the one process that serves the front end at `/`, the dashboa
 5. `node scripts/register_sources.mjs --apply` creates the tables (options `--refresh` and `--only a,b` exist; `scripts/register_zetaris_sources.sql` holds the same statements)
 6. `node scripts/register_usl.mjs --apply` builds the unified semantic layer
 7. each table's row count equals `data/sources.json`
-8. `npm run doctor`
+8. the doctor (`node src/cli.mjs doctor`, read from `package.json`; no npm)
 9. the server starts with `SAMPLE_MODE=false`
 
 A variable on the command line wins over `.env`. `npm test` skips the live Zetaris tests, and says why, unless `.env` points at a Zetaris that answers.

@@ -41,10 +41,12 @@ export function readCsv(path) {
   });
 }
 
-export function loadTables(dir) {
+// opts.runtimeDir (optional): also load that dir's intake.csv as `intake_runtime`, the runtime rows a live store unions in. Absent: no such table.
+export function loadTables(dir, { runtimeDir } = {}) {
   const tables = {};
   for (const f of readdirSync(dir).filter((x) => x.endsWith(".csv")).sort()) tables[f.slice(0, -4).replace(/-/g, "_")] = readCsv(join(dir, f));
   const tj = join(dir, "threads", "threads.json");
   if (existsSync(tj)) tables.threads_json = JSON.parse(readFileSync(tj, "utf8"));
+  if (runtimeDir && existsSync(join(runtimeDir, "intake.csv"))) tables.intake_runtime = readCsv(join(runtimeDir, "intake.csv"));
   return tables;
 }

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # One-command clean deploy.
-#   bash scripts/clean_deploy.sh          sample mode: bundled data, no key, no network, no npm step
+#   bash scripts/clean_deploy.sh          sample mode: bundled data, no key, no network
 #   bash scripts/clean_deploy.sh --live   the judge's own Zetaris: publish data, register, verify, doctor, start
 #   bash scripts/clean_deploy.sh --stop   stop the server this script started
+#   bash scripts/clean_deploy.sh --check-running   is our server up on $PORT in the mode CLEAN_DEPLOY_EXPECT_MODE (sample|live, default sample)?
 # Idempotent. Never prints a secret value (set +x; .env is parsed for key NAMES only). Never creates or fetches a key.
 set +x
 set -uo pipefail
@@ -18,7 +19,8 @@ case "${1:-}" in
   "") ;;
   --live) MODE="live" ;;
   --stop) MODE="stop" ;;
-  *) echo "usage: bash scripts/clean_deploy.sh [--live|--stop]" >&2; exit 2 ;;
+  --check-running) MODE="check" ;;
+  *) echo "usage: bash scripts/clean_deploy.sh [--live|--stop|--check-running]" >&2; exit 2 ;;
 esac
 mkdir -p "$RUN"
 
@@ -43,9 +45,9 @@ export PORT="${PORT:-8000}"
 URL="http://127.0.0.1:${PORT}/"
 TOTAL=3; [ "$MODE" = live ] && TOTAL=9
 N=0
+fail() { echo "FAIL $1"; exit 1; }
 step() { N=$((N + 1)); printf 'step %s/%s: %s … ' "$N" "$TOTAL" "$1"; }
 ok() { echo "ok${1:+ ($1)}"; }
-fail() { echo "FAIL $1"; exit 1; }
 # run a command quietly; its output goes to a log, never the screen (a command could echo a value)
 quiet() { "$@" >"$STEPLOG" 2>&1; }
 
@@ -53,8 +55,31 @@ env_has() { # key is set and non-empty in inbox/.env; the value is never printed
   grep -Eq "^[[:space:]]*${1}=[^[:space:]]+" "$INBOX/.env" 2>/dev/null
 }
 
+# running_mode: prints "sample" or "live" from /health on our port; non-zero when /health does not answer
+running_mode() {
+  local body
+  body="$(curl -fs --max-time 3 "${URL}health" 2>/dev/null)" || return 1
+  case "$body" in
+    *'"sample_mode":true'*) echo sample ;;
+    *'"sample_mode":false'*) echo live ;;
+    *) return 1 ;;
+  esac
+}
+
+# check_existing <want sample|live>: 0 = our process, right mode (reuse); 1 = nothing of ours (start); exits FAIL on a mismatch
+check_existing() {
+  local want="$1" p have
+  [ -f "$PIDF" ] || return 1
+  if ! pid_alive; then rm -f "$PIDF"; return 1; fi
+  p="$(cat "$PIDF")"
+  have="$(running_mode)" || fail "pid $p from $PIDF is alive but /health does not answer on port $PORT (other port or not ours); run: bash scripts/clean_deploy.sh --stop first"
+  [ "$have" = "$want" ] || fail "server pid $p on port $PORT is in $have mode, you asked for $want; run: bash scripts/clean_deploy.sh --stop first"
+  return 0
+}
+
 start_server() { # $1 = SAMPLE_MODE value
-  if pid_alive; then ok "already running, pid $(cat "$PIDF")"; return 0; fi
+  local want=live; [ "$1" = true ] && want=sample
+  if check_existing "$want"; then ok "already running, pid $(cat "$PIDF"), $want mode"; return 0; fi
   ( cd "$INBOX" || exit 1; SAMPLE_MODE="$1" nohup node src/server.mjs >"$LOGF" 2>&1 </dev/null & echo $! >"$PIDF" )
   for _ in $(seq 1 40); do
     if curl -fs "${URL}health" >/dev/null 2>&1; then ok "pid $(cat "$PIDF")"; return 0; fi
@@ -65,6 +90,14 @@ start_server() { # $1 = SAMPLE_MODE value
   rm -f "$PIDF"
   fail "no /health within 10 s; read $LOGF (is port $PORT taken? set PORT=<free port>)"
 }
+
+if [ "$MODE" = check ]; then
+  command -v curl >/dev/null 2>&1 || fail "curl not found"
+  case "${CLEAN_DEPLOY_EXPECT_MODE:-sample}" in sample|live) ;; *) fail "CLEAN_DEPLOY_EXPECT_MODE must be sample or live" ;; esac
+  check_existing "${CLEAN_DEPLOY_EXPECT_MODE:-sample}" || fail "no server of this script is running"
+  echo "ok running pid $(cat "$PIDF"), ${CLEAN_DEPLOY_EXPECT_MODE:-sample} mode"
+  exit 0
+fi
 
 step "Node 22 or newer"
 command -v node >/dev/null 2>&1 || fail "node not found; install Node 22+"
@@ -134,7 +167,14 @@ console.log(Object.keys(want).length+" tables match");' "$EXPECT" "$HERE/registe
 ok "$(cat "$STEPLOG")"
 
 step "doctor"
-quiet env -C "$INBOX" npm run doctor || fail "npm run doctor reported a problem; see $STEPLOG (run it by hand: npm run doctor)"
+# the doctor entry point is read from package.json (scripts.doctor) and run with node directly: no package-manager step
+DOC="$(node -e 'const c=(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).scripts||{}).doctor||"";process.stdout.write(c)' "$INBOX/package.json")"
+case "$DOC" in
+  "node "[A-Za-z0-9_./-]*) ;;
+  *) fail "package.json scripts.doctor is not a plain node command: $DOC" ;;
+esac
+# shellcheck disable=SC2086
+quiet env -C "$INBOX" $DOC || fail "doctor reported a problem; see $STEPLOG (run it by hand in inbox/: $DOC)"
 ok
 
 step "start the server (live)"

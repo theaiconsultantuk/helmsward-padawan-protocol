@@ -21,6 +21,7 @@ function factsFor(id, patch = {}) {
     owner_id: t.owner_id, backup_id: t.backup_id, owner_name: `Employee ${t.owner_id}`, backup_name: `Employee ${t.backup_id}`,
     owner_out: Boolean(t.owner_out), backup_out: Boolean(patch.backup_out), may_leave: t.may_leave, restricted_terms: ["card number"],
     cited_rows: [`threads_parquet:${id}`, `policy:${t.category}`, `trust_ledger:${t.category}`], received_at: t.received_at, as_of: String(t.received_at).slice(0, 10),
+    channel_autonomous: t.channel !== "trustpilot", // channels.csv: trustpilot autonomous_reply=false
     subject: t.subject, body: t.body, sender_name: t.sender_name, sender_email: t.sender_email, channel: t.channel,
     follow_up_kind: t.follow_up_kind || null, follow_up_body: t.follow_up_body || null, parent_thread_id: t.parent_thread_id || null, ticket: t,
   };
@@ -97,11 +98,15 @@ test("T02: hold on under-floor, all 15 steps, then a second run reads the first 
   assert.equal(b.result.output.decision, "hold");
 });
 
-test("T18: send, both critics pass on round 1, no retry", async () => {
+test("T18: Trustpilot appreciation, both critics pass on round 1, no retry, held for Support with the draft (channels:trustpilot is a person-sent channel)", async () => {
   const t = await run("T18");
   assertWholeTrace(t);
-  assert.equal(THREADS.T18.outcome, "send");
-  assert.equal(t.result.output.decision, "send");
+  assert.equal(THREADS.T18.outcome, "hold");
+  assert.match(THREADS.T18.outcome_reason, /channels:trustpilot/);
+  assert.equal(t.result.output.decision, "hold");
+  assert.equal(t.result.output.auto_reply, false);
+  assert.ok(t.result.output.draft?.text, "the draft is kept");
+  assert.match(t.result.output.reasons.join(" "), /channels:trustpilot: replies on this channel are sent by a person/);
   assert.equal(t.result.branch_id, "send-ok");
   assert.equal(t.result.rounds.length, 1);
   assert.equal(t.lines.find((l) => l.step === "retry").status, "skipped");
@@ -318,7 +323,7 @@ test("an RFQ message escalates to sales with the one unit price attached, no pri
   assert.equal(result.output.decision, "escalate");
   assert.equal(result.output.queued_for.owner_id, 6);
   assert.ok(result.output.queued_for.attachments.cited.includes("products:FS-B01"));
-  assert.match(result.output.recommendation, /one unit price/);
+  assert.match(result.output.recommendation, /a unit price/);
   assert.ok(!/189/.test(result.output.draft?.text ?? ""));
 });
 

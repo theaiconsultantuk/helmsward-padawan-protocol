@@ -92,6 +92,14 @@ All money is GC (Galactic Credits). Field names are `amount`, `policy_limit`, `l
 
 The trust floor is the yes or no on whether the draft cleared the floor (a weight of 0.80). It does not decide an auto reply. A reply composed from rows (the FAQ answer, the product-row answer, the shipping rule's note) sends because the text IS the row, and `trusted_to_send` can be false on it: s11 and s05 send with `false`, s10 sends with `true`. Show the field as the trust-floor result, never as "may send".
 
+## Which decisions send
+
+A decision `send` needs a non-empty draft and a channel whose `channels.csv` row does not say `autonomous_reply` false (one function, `sendEligible` in `src/loop.mjs`, used by every send path). Two kinds of run send:
+- The automatic replies composed from rows (branches `product-hit`, `delivery-*`, `faq-hit`, or a handler that sets `auto_reply: true`): decision `send`, `auto_reply: true`.
+- The legacy `send-ok` branch (an appreciation thank-you whose weight meets the floor, within the limit, someone available): decision `send` with `auto_reply: false`, because the loop only sets `auto_reply` for the automatic replies above. A person still sends it from the card. T19 (contact-form) is the example.
+
+No run sends on a channel whose row says `autonomous_reply` false (today only `trustpilot`). A send there becomes a `hold` for the owner with the draft kept, `auto_reply: false`, status `open`, and a reason that cites `channels:<channel>`: "replies on this channel are sent by a person". T18 (a Trustpilot appreciation that clears the floor) is the example: it holds with its thank-you drafted for Support.
+
 ## What `returned` holds, per `tech`
 
 `tech` is one of `Zetaris`, `Meterless (Scout contract)`, `Meterless (World Model)`, `Nightshift (<model>)`, `OpenJev (<model>)`, `H-MEM`, `rules` or `not run`, read only from the line's own step, agent, sponsor, model and gate_source; `unknown` only when a line records none of them.

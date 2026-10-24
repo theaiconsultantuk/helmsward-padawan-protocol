@@ -50,13 +50,13 @@ test("price difference, no product named: both quantities, nothing matched, sale
   assert.equal(esc[0][3].owner.owner_id, 6);
 });
 
-test("Arc Blade Trainer named: one price row cited, one unit price, no volume tiers", async () => {
+test("Arc Blade Trainer named: one price row cited, two quantities named, no tier denial", async () => {
   const { probe, out, lines, esc } = await run(`${MSG} for Arc Blade Trainers`);
   assert.equal(probe.data.prices.length, 1);
   assert.ok(probe.cited.includes("products:FS-B01"));
   assert.deepEqual(out.attachments.cited, ["products:FS-B01"]);
-  assert.match(out.recommendation, /one unit price/);
-  assert.match(out.recommendation, /no volume tiers/);
+  assert.match(out.recommendation, /a unit price/);
+  assert.match(out.recommendation, /more than one quantity/);
   assert.equal(out.queued.owner_id, 6);
   assert.ok(probe.lines.some((l) => l.action === "sql:product_price"));
   assert.ok(!out.draft.text.includes("189"), "no price in the acknowledgement");

@@ -77,7 +77,8 @@ test("cold-start twin: F1 then F2 in the same dirs; F2 is recalled by email even
   assert.equal(f1.o.memory_note, null, "a cold memory says nothing");
   assert.match(f1.lines.find((l) => l.step === "memory.read").output_summary, /empty \(cold first run\)/);
   const f2 = await ask(d, "Another refund please, 100 GC for the same saber", { from: "Twin.Client@email.com", name: "Someone Else", ticks: 5 });
-  assert.equal(f2.o.memory_note, RECALL(1));
+  // F1 sits in the same runtime intake, so the Zetaris sentence is true too: the combined note
+  assert.equal(f2.o.memory_note, `${sentence(1, ["F1"])} ${RECALL(1)}`);
   const mr = f2.lines.find((l) => l.step === "memory.read").output_summary;
   assert.match(mr, /recalled by the client's email twin\.client@email\.com/);
   const hm = JSON.parse(readFileSync(join(d.memoryDir, "state.json"), "utf8")).records;
@@ -89,7 +90,7 @@ test("both sources together: Zetaris says the sentence, H-MEM appends its own, i
   const d = dirs();
   await ask(d, "I want a refund of 100 GC for my cracked saber", { from: "liravenn@email.com", name: "Lira Venn" });
   const b = await ask(d, "Again: a refund of 100 GC please", { from: "liravenn@email.com", name: "Lira Venn", ticks: 5 });
-  assert.equal(b.o.memory_note, `${sentence(2, ["T02", "T06"])} ${RECALL(1)}`);
+  assert.equal(b.o.memory_note, `${sentence(3, ["T02", "T06", "F1"])} ${RECALL(1)}`);
 });
 
 // status x operation: the second refund after a first that was escalated / held / sent
