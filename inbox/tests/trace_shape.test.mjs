@@ -28,6 +28,15 @@ test("vocabularies have 15 steps and 7 statuses", () => {
   assert.equal(STATUSES.length, 7);
 });
 
+test("detail is an optional field: kept when given, absent when not, masked like any string", () => {
+  const { t } = open();
+  const a = t.line({ ...base, detail: `Soren Adey · Support Agent · ${SECRET}` });
+  assert.equal(a.detail, "Soren Adey · Support Agent · [masked]");
+  assert.equal(JSON.parse(fileLines(t)[0]).detail, a.detail);
+  const b = t.line({ ...base });
+  assert.equal("detail" in b, false);
+});
+
 test("unknown step throws", () => {
   const { t } = open();
   assert.throws(() => t.line({ ...base, step: "bogus" }), /unknown step/);

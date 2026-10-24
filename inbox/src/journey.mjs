@@ -61,6 +61,7 @@ export function labelFor(step, line) {
 }
 
 // ids named by a line: memory_ids, the "rows: a, b" tail of sql: lines, the "ids: ..." tail of a world line.
+// A line's optional detail (the rows in words, written by the query step) is carried into the node as is.
 function consultedOf(line) {
   const out = [];
   const add = (id) => {
@@ -218,6 +219,7 @@ export function deriveJourney(result, lines) {
       agent: l.agent_name ?? null,
       label: labelFor(l.step, l),
       route: skipped ? `not reached: ${str(l.input_summary)}` : str(l.output_summary) || null,
+      detail: skipped ? null : str(l.detail) || null,
       consulted,
       retained,
       reached_human: Boolean(reached),

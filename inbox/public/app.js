@@ -206,6 +206,7 @@
       c.appendChild(head);
       c.appendChild(el("div", n.agent + " · " + n.step + (n.model ? " · " + n.model : ""), "muted small"));
       c.appendChild(el("p", n.route, "route"));
+      if (n.detail) c.appendChild(el("p", n.detail, "detail"));
       if ((n.consulted || []).length) {
         c.appendChild(el("div", "consulted", "list-label"));
         c.appendChild(chips(n.consulted, "seen"));

@@ -83,6 +83,8 @@ The trace as a JSON array, one object per step, in order; 404 when unknown.
 { "timestamp": "2026-10-23T00:10:42Z", "run_id": "demo-1", "trace_id": "demo-1", "step": "memory.read", "agent_name": "Memory", "action": "memory_read", "input_summary": "Lira Venn refund T02", "output_summary": "4 memories: mem-7 (...)", "status": "success" }
 ```
 
+Optional fields a line may carry: `target_agent`, `model`, `confidence`, `retry_count`, `branch_id`, `memory_ids`, `sponsor`, `gate_source`, and on a Zetaris query `detail` (the rows in words; section 3).
+
 `GET /runs/{id}/journey`
 
 The run as a journey a person can read (section 3); 404 when the run or its trace file is gone.
@@ -140,13 +142,13 @@ The contract.
 ## 3. The journey shape
 
 `GET /runs/{id}/journey` is derived from the stored result and the trace file.
-No model call, nothing new in the trace.
+No model call; every field comes from a stored line.
 Trimmed from `openapi.yaml`:
 
 ```json
 { "run_id": "ex-rfq", "scenario": "rfq", "resolved_how": "declared", "decision": "escalate",
   "input": { "kind": "message", "thread_id": "F2", "text": "Incoming RFQ for price difference ...", "from": "buyer@example.com", "name": null, "channel": "chat", "received_at": "...", "as_of": "2026-10-20" },
-  "nodes": [ { "n": 1, "step": "memory.read", "agent": "Memory", "label": "Memory read", "route": "empty (cold first run)", "consulted": [], "retained": [], "reached_human": false, "status": "success", "model": null, "timestamp": "..." } ],
+  "nodes": [ { "n": 1, "step": "memory.read", "agent": "Memory", "label": "Memory read", "route": "empty (cold first run)", "detail": null, "consulted": [], "retained": [], "reached_human": false, "status": "success", "model": null, "timestamp": "..." } ],
   "human": { "input": "...", "path": ["Memory read", "Plan", "Branch: rfq", "Hand-off", "Reply"],
              "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:P01"], "blanks": [], "recommendation": "..." } },
   "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:P01"], "queue_file": "data/memory/queue/F2.json" } }
@@ -159,6 +161,7 @@ The derivation, in plain words:
 - `retained` is the part of `consulted` that survived into the answer: it appears in the cited rows, in the memory written, in the draft text, or in what was attached for the human.
 - `reached_human` is true on the hand-off step when it succeeded or was incomplete, and on the final reply step when the decision is `hold`. `reached_human` at the top level is `null` when nobody got anything.
 - `model` is the model id when the step used one, else `null`. `label` is the plain-words name; `route` is what the step decided.
+- `detail` is the rows in words when a Zetaris query read a record a person would want to see, else `null`: an employee as `Soren Adey · Support Agent · Support`, a policy as its limit and owners, a topic as its owner and backup. The same step's `route` keeps the count and the row ids. When the query ran for a reason the caller named, that reason sits in the trace line's `input_summary` after the parameters (`the employee record {"employee_id":15} · owner for refund: under the refund limit 150 (policy:refund)`).
 - The function never throws: a missing piece is `null`.
 
 Closed enums:

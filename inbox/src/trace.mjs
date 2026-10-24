@@ -13,7 +13,7 @@ export const STATUSES = [
 ];
 const SPONSORS = ["zetaris", "meterless", "nvidia"];
 const REQUIRED = ["step", "agent_name", "action", "input_summary", "output_summary", "status"];
-const OPTIONAL = ["target_agent", "model", "confidence", "retry_count", "branch_id", "memory_ids", "sponsor", "gate_source"];
+const OPTIONAL = ["target_agent", "model", "confidence", "retry_count", "branch_id", "memory_ids", "sponsor", "gate_source", "detail"];
 
 const MASK = "[masked]";
 

@@ -37,6 +37,7 @@ const id = (p) => String(Number(p.employee_id));
 const row = (headers, r) => Object.fromEntries(headers.map((h, i) => [h, r[i]]));
 
 // cite(params, objects) -> the row ids a result used
+// detail(params, objects) -> the rows in words, for the trace line (optional; a person reads it, nothing parses it)
 export const TEMPLATES = {
   thread: {
     params: { thread_id: V.thread_id }, cacheable: true, question: "the thread row",
@@ -47,16 +48,19 @@ export const TEMPLATES = {
     params: { topic: V.topic }, cacheable: true, question: "the policy limit and owners",
     sql: (p) => `SELECT * FROM JEDI_PACK.policy WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `policy:${x.topic}`),
+    detail: (p, o) => o.map((x) => `limit ${x.limit_amount} ${x.currency} · under: owner ${x.under_limit_owner_id}, backup ${x.under_limit_backup_id} · over: owner ${x.over_limit_owner_id}, backup ${x.over_limit_backup_id}`).join("; "),
   },
   responsibility: {
     layer: "usl", params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
     sql: (p) => `SELECT * FROM ${USL}.responsibility WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `responsibility:${x.topic}`),
+    detail: (p, o) => o.map((x) => `owner ${x.owner_id}, backup ${x.backup_id}`).join("; "),
   },
   employee: {
     params: { employee_id: V.employee_id }, cacheable: true, question: "the employee record",
     sql: (p) => `SELECT * FROM JEDI_PACK.employees WHERE employee_id = ${id(p)}`,
     cite: (p, o) => o.map((x) => `employees:${x.employee_id}`),
+    detail: (p, o) => o.map((x) => [`${x.given_name} ${x.family_name}`, x.role, x.team].filter(Boolean).join(" · ")).join("; "),
   },
   holiday: {
     params: { employee_id: V.employee_id, date: V.date }, cacheable: true, question: "is the employee out on the date",
@@ -150,10 +154,11 @@ export function validate(name, params = {}) {
   return t;
 }
 
-export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun } = {}) {
+// why: the caller's reason for the read, in words; it lands in the trace line's input_summary ("owner for refund: under the refund limit 150 (policy:refund)")
+export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun, why } = {}) {
   const t = validate(name, params);
   const sql = t.sql(params);
-  const q = `${t.question} ${JSON.stringify(params)}${t.layer === "usl" ? " via the USL" : ""}`;
+  const q = `${t.question} ${JSON.stringify(params)}${why ? ` · ${why}` : ""}${t.layer === "usl" ? " via the USL" : ""}`;
   let r;
   try {
     r = await sqlRunImpl(sql, { name, params, limit: Math.max(limit, t.minLimit ?? 0), cfg, trace });
@@ -164,8 +169,9 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
   }
   const objects = r.rows.map((x) => row(r.headers, x));
   const cited = t.cite(params, objects);
+  const detail = t.detail ? t.detail(params, objects) : "";
   trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
-    output_summary: `${r.rows.length} rows: ${cited.join(", ") || "none"}`, status: "success", sponsor: "zetaris" });
+    output_summary: `${r.rows.length} rows: ${cited.join(", ") || "none"}`, status: "success", sponsor: "zetaris", ...(detail ? { detail } : {}) });
   return { name, params, headers: r.headers, rows: r.rows, objects, total: r.total ?? r.rows.length, source: r.source ?? "live" };
 }
 
@@ -304,7 +310,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   const valid = (n) => Number.isInteger(n) && n >= 1 && n <= 200;
   const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
   const notes = [];
-  let owner = null, backup = null;
+  let owner = null, backup = null, how = "";
   if (pol) {
     cited.push(`policy:${topic}`);
   } else {
@@ -314,26 +320,27 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   }
   const tOwner = num(ticket.owner_id), tBackup = num(ticket.backup_id);
   if (valid(tOwner) && valid(tBackup)) {
-    owner = tOwner; backup = tBackup;
+    owner = tOwner; backup = tBackup; how = "named on the ticket";
   } else if (pol) {
     const over = amount != null && amount > limit;
     owner = num(over ? pol.over_limit_owner_id : pol.under_limit_owner_id);
     backup = num(over ? pol.over_limit_backup_id : pol.under_limit_backup_id);
+    how = `${over ? "over" : "under"} the ${topic} limit ${limit} (policy:${topic})`;
   } else if (resp && valid(num(resp.owner_id)) && valid(num(resp.backup_id))) {
     cited.push(`responsibility:${topic}`);
-    owner = num(resp.owner_id); backup = num(resp.backup_id);
+    owner = num(resp.owner_id); backup = num(resp.backup_id); how = `responsibility:${topic}`;
   } else {
     let gen = null;
     for (const t of ["general", "support"]) {
       const r = (await run("responsibility", { topic: t }, o).catch(() => ({ objects: [] }))).objects[0];
-      if (r && valid(num(r.owner_id)) && valid(num(r.backup_id))) { gen = r; cited.push(`responsibility:${t}`); break; }
+      if (r && valid(num(r.owner_id)) && valid(num(r.backup_id))) { gen = r; cited.push(`responsibility:${t}`); how = `responsibility:${t} (no row for ${topic})`; break; }
     }
     if (gen) { owner = num(gen.owner_id); backup = num(gen.backup_id); }
     else {
       const ref = (await run("policy", { topic: "refund" }, o)).objects[0];
       if (ref && valid(num(ref.under_limit_owner_id)) && valid(num(ref.under_limit_backup_id))) {
         owner = num(ref.under_limit_owner_id); backup = num(ref.under_limit_backup_id);
-        cited.push("responsibility:fallback");
+        cited.push("responsibility:fallback"); how = `the refund policy's under-limit owners (no row for ${topic})`;
       }
     }
   }
@@ -355,7 +362,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   }
   if (owner != null) cited.push(`holiday_2026:${owner}@${day}`);
   if (backup != null) cited.push(`holiday_2026:${backup}@${day}`);
-  const emps = await Promise.all([owner, backup].map((e) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, o))));
+  const emps = await Promise.all([owner, backup].map((e, i) => (e == null ? { objects: [] } : run("employee", { employee_id: e }, { ...o, why: `${i ? "backup" : "owner"} for ${topic}: ${how}` }))));
   for (const e of emps) if (e.objects[0]) cited.push(`employees:${e.objects[0].employee_id}`);
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 

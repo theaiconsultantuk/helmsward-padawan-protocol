@@ -163,6 +163,21 @@ test("(18) a failed queue write is not reached_human and stores nothing", () => 
   assert.deepEqual(j.reached_human.what, ["nothing stored: the queue write failed"]);
 });
 
+test("a line's detail is carried into its node as is; a line without one, or a skipped line, gives null", () => {
+  const base = { step: "zetaris.query", agent_name: "Executor", action: "sql:employee", input_summary: "the employee record", status: "success" };
+  const lines = [
+    { ...base, output_summary: "1 rows: employees:15", detail: "Soren Adey · Support Agent · Support" },
+    { ...base, output_summary: "1 rows: employees:16" },
+    { ...base, status: "skipped", output_summary: "", detail: "never shown" },
+  ];
+  const j = deriveJourney({ run_id: "d", output: { decision: "hold", cited_rows: ["employees:15"] } }, lines);
+  assert.equal(j.nodes[0].detail, "Soren Adey · Support Agent · Support");
+  assert.deepEqual(j.nodes[0].consulted, ["employees:15"]);
+  assert.deepEqual(j.nodes[0].retained, ["employees:15"]);
+  assert.equal(j.nodes[1].detail, null);
+  assert.equal(j.nodes[2].detail, null);
+});
+
 test("(19) the world line's 'ids: none' sentinel gives consulted []", () => {
   const lines = [{ step: "nvidia.model", action: "world_context", output_summary: "5 entities, 3 relationships; customer none: 0 earlier threads; ids: none", status: "success" }];
   const j = deriveJourney({ run_id: "syn", output: {} }, lines);
