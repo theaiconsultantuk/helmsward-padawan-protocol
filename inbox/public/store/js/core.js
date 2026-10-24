@@ -407,7 +407,7 @@
 
   /* ---------- Lenis + ScrollTrigger ---------- */
   const T = (window.T = {
-    $, $, MQ, ROOT, data, models, cart, split, sequence,
+    $, $$, MQ, ROOT, data, models, cart, split, sequence,
     mount3DStage, watchPlates, moth, say, usd,
     lenis: null, reduced,
   });
