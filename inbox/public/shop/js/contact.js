@@ -533,8 +533,12 @@
     showFlow();
     var slot = $("flow-run");
     if (slot) {
-      var secs = cur.started ? " · " + ((Date.now() - cur.started) / 1000).toFixed(1) + " s" : "";
-      slot.textContent = str(j.run_id) + (cur.started && cur.runId === j.run_id ? secs : "");
+      // The run's own time: the sum of the nodes' duration_ms, or (no durations) the POST /run wall time.
+      // Both are fixed once the run is done, so a send (which re-renders) never changes it.
+      var nodes = Array.isArray(j.nodes) ? j.nodes : [], sum = 0, all = nodes.length > 0;
+      nodes.forEach(function (n) { if (n && typeof n.duration_ms === "number") sum += n.duration_ms; else all = false; });
+      var ms = all ? sum : (cur.runId === j.run_id && typeof cur.postMs === "number" ? cur.postMs : null);
+      slot.textContent = str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
     }
     paint(j);
     if (active && cur.entry === active && cur.runId === j.run_id) {
@@ -570,6 +574,7 @@
       body: JSON.stringify({ run_id: runId, input: input })
     })
       .then(function (r) {
+        if (typeof cur.postMs !== "number") cur.postMs = Date.now() - cur.started;
         if (r.code === 502 || r.code === 504 || r.code === 524) {
           setStatus("The gateway timed out; checking whether the run finished…");
           return pollRunUntilDone(runId, 100);

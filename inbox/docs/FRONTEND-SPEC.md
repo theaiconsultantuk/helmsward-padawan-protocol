@@ -305,7 +305,7 @@ Generate the `run_id` yourself if you want to poll `GET /runs/{id}/trace` for pr
 
 ## 9. The reference pages and what a replacement must keep
 
-The service serves the storefront and two reference pages, which have landed.
+The service serves the storefront, the reference form and the dashboard, which have landed.
 The storefront pages are `/shop/index.html`, `/shop/shop.html`, `/shop/product.html`, `/shop/faq.html` and `/shop/contact.html`.
 
 `GET /`
@@ -318,14 +318,14 @@ The reference form: picker, name, email, message, demo buttons, the two views.
 
 `GET /dashboard`
 
-Counters, the queue with drafts, recent runs (each linking to `/?run=<id>`), affirm and reject buttons.
+Counters, the queue with drafts, recent runs (each linking to `/shop/contact.html?run=<id>`), affirm and reject buttons.
 
 `GET /static/{name}`
 
 Their script, stylesheet and `demo-scenarios.json`, from a closed list of names.
 
 They are driven only by the API above: no private endpoint, no server-side rendering.
-That is deliberate: the team's own front end can replace either one, or both.
+That is deliberate: the team's own front end can replace any of them.
 
 A replacement must keep:
 
@@ -333,6 +333,6 @@ A replacement must keep:
 - CORS: the service sends `Access-Control-Allow-Origin: *`; keep calling it cross-origin, or serve your page from the same origin.
 - The `api-base` meta, so the page can be pointed at another host without a rebuild.
 - Model text (drafts, recommendations, reasons) rendered as text, never as HTML.
-- The two-view layout and the title "How a person sees it".
+- On the contact page, the two-view layout and the title "How a person sees it".
 - One in-flight `/run` at a time, with the run id and elapsed seconds shown.
 - Static files only (no build step on the server; commit built output if you use a bundler).

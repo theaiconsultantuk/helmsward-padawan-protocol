@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
-    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the three POST routes (`/run`, `/ask`, `/feedback`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
+    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
     Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
     Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
     The examples below come from a sample-mode run of thread T02.
