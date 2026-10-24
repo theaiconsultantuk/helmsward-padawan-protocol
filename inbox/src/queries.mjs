@@ -83,7 +83,7 @@ const RAW_POLICY = ["topic", "limit_amount", "currency", "under_limit_owner_id",
 const PRODUCT_COLS = [["sku", "str"], ["name", "str"], ["unit_price", "dbl"], ["currency", "str"], ["min_order_qty", "int"], ["lead_days", "int"],
   ["material", "str"], ["specs", "str"], ["show_in_store", "bool"], ["aliases", "str"]];
 const PRODUCT_FULL = [["sku", "str"], ["slug", "str"], ["name", "str"], ["category", "str"], ["unit_price", "dbl"], ["currency", "str"], ["stock", "str"],
-  ["min_order_qty", "int"], ["lead_days", "int"], ["show_in_store", "bool"], ["image", "str"], ["model", "str"], ["aliases", "str"], ["material", "str"], ["specs", "str"], ["description", "str"]];
+  ["min_order_qty", "int"], ["lead_days", "int"], ["show_in_store", "bool"], ["image_url", "str"], ["model", "str"], ["aliases", "str"], ["material", "str"], ["specs", "str"], ["description", "str"]];
 const HIER_COLS = [["employee_id", "int"], ["name", "str"], ["role", "str"], ["team", "str"], ["team_label", "str"]];
 const CUSTOMER_COLS = [["customer_id", "str"], ["name", "str"], ["callsign", "str"], ["email", "str"], ["home_planet", "str"], ["since", "str"], ["seeded_prior_refund", "bool"], ["fictional", "bool"]];
 const ORDER_COLS = [["order_id", "str"], ["customer_id", "str"], ["sku", "str"], ["quantity", "int"], ["amount", "dbl"], ["currency", "str"], ["shipping_planet", "str"], ["status", "str"], ["ordered_at", "str"]];
@@ -193,9 +193,10 @@ export const TEMPLATES = {
   },
   product_by_sku: {
     layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the full product row",
-    sql: (p) => `SELECT sku, slug, name, category, unit_price, currency, stock, min_order_qty, lead_days, show_in_store, image, model, aliases, material, specs, description FROM ${USL}.product WHERE sku = '${p.sku}'`,
+    sql: (p) => `SELECT sku, slug, name, category, unit_price, currency, stock, min_order_qty, lead_days, show_in_store, image_url, model, aliases, material, specs, description FROM ${USL}.product WHERE sku = '${p.sku}'`,
     cite: (p, o) => o.map((x) => `products:${x.sku}`),
-    local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku), PRODUCT_FULL),
+    // the USL view names the column image_url: Zetaris refuses a USL column called image (COMPILE: "Invalid DDL statement")
+    local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku).map((r) => ({ ...r, image_url: r.image })), PRODUCT_FULL),
   },
   // the employee and the manager, one row (the CEO is their own manager)
   hierarchy: {
