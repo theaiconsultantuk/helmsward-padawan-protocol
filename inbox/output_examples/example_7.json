@@ -8,12 +8,9 @@
     ],
     "cited_rows": [
       "intake_runtime:F1 (local)",
-      "policy:refund",
       "responsibility:complaint",
       "holiday_2026:5@2026-10-20",
-      "holiday_2026:6@2026-10-20",
       "employees:5",
-      "employees:6",
       "trust_ledger:complaint",
       "wiki_what_may_leave",
       "world_threads"
@@ -32,7 +29,7 @@
       "owner_id": 5,
       "backup_id": 6,
       "owner_name": "Priya Raman",
-      "backup_name": "Tomas Keller",
+      "backup_name": null,
       "role": "complaint owner"
     }
   },
@@ -82,10 +79,10 @@
     "from": "new.customer@example.com",
     "name": "Rey Kanata",
     "channel": "chat",
-    "received_at": "2026-10-23T05:18:00.115Z",
+    "received_at": "2026-10-24T04:26:06.475Z",
     "as_of": "2026-10-20"
   },
   "trace_id": "example-7",
   "log_file": "logs/trace-example-7.jsonl",
-  "execution_time_seconds": 0.051
+  "execution_time_seconds": 0.032
 }

@@ -8,12 +8,9 @@
     ],
     "cited_rows": [
       "intake_runtime:F1 (local)",
-      "policy:refund",
       "responsibility:customer_service",
       "holiday_2026:7@2026-10-20",
-      "holiday_2026:15@2026-10-20",
       "employees:7",
-      "employees:15",
       "wiki_what_may_leave"
     ],
     "recommendation": "no clear intent; top candidates order.question (7.2), appreciation (3.9), follow_up (3.9); nothing in the FAQ (12 rows searched); see the wiki page \"What may leave the company\". A person confirms the order and what the customer wants changed, then finishes the draft.",
@@ -40,7 +37,7 @@
       "owner_id": 7,
       "backup_id": 15,
       "owner_name": "Mei-Ling Zhao",
-      "backup_name": "Soren Adey",
+      "backup_name": null,
       "role": "customer_service owner"
     }
   },
@@ -86,10 +83,10 @@
     "from": "lea.ortiz@example.com",
     "name": "Lea Ortiz",
     "channel": "chat",
-    "received_at": "2026-10-23T05:24:07.417Z",
+    "received_at": "2026-10-24T04:26:06.512Z",
     "as_of": "2026-10-20"
   },
   "trace_id": "example-9",
   "log_file": "logs/trace-example-9.jsonl",
-  "execution_time_seconds": 0.061
+  "execution_time_seconds": 0.006
 }

@@ -8,12 +8,9 @@
     ],
     "cited_rows": [
       "intake_runtime:F1 (local)",
-      "policy:refund",
       "responsibility:question",
       "holiday_2026:1@2026-10-20",
-      "holiday_2026:2@2026-10-20",
       "employees:1",
-      "employees:2",
       "trust_ledger:question",
       "wiki_what_may_leave",
       "faq:Q01"
@@ -64,10 +61,10 @@
     "from": "a@example.com",
     "name": null,
     "channel": "chat",
-    "received_at": "2026-10-23T05:19:01.591Z",
+    "received_at": "2026-10-24T04:26:06.460Z",
     "as_of": "2026-10-20"
   },
   "trace_id": "example-4",
   "log_file": "logs/trace-example-4.jsonl",
-  "execution_time_seconds": 0.017
+  "execution_time_seconds": 0.005
 }

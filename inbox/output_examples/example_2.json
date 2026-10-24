@@ -57,5 +57,5 @@
   ],
   "trace_id": "example-2",
   "log_file": "logs/trace-example-2.jsonl",
-  "execution_time_seconds": 0.019
+  "execution_time_seconds": 0.011
 }
