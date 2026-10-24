@@ -83,22 +83,29 @@ function consultedOf(line) {
   return out;
 }
 
-// The technology behind a line, from what the line itself records (sponsor, model, agent_name); never guessed.
-//  zetaris sponsor -> Zetaris; meterless -> Meterless Nightshift (<model>); a real (non "sample/") model, or the nvidia
-//  sponsor with one -> OpenJev (<model>); Memory agent / memory steps -> H-MEM; any other named agent, or a sample/rules
-//  model, is deterministic code -> rules; a line with no sponsor, model or agent_name -> unknown.
+// The technology behind a line, read only from what the line itself records (step, agent_name, sponsor, model,
+// gate_source, status); never guessed (einh: "which tech was used in that step ... success (never lie)").
+//  a skipped step -> "not run"; memory steps / the Memory agent -> H-MEM; the zetaris sponsor -> Zetaris;
+//  the Meterless engine step -> "Meterless (Scout contract)" / "Meterless (World Model)" (no model call);
+//  an openjev model or gate_source -> "OpenJev (<model>)"; a sample/ or rules model, gate_source rules, or Risk's
+//  sign-off -> "rules" (deterministic code); any other model -> "Nightshift (<model>)" (Nemotron and every model the
+//  Drafter, Evaluator, Readers and Recommender call go through Meterless Nightshift); a named agent with no model -> rules.
+const METERLESS_ENGINE = { Scout: "Meterless (Scout contract)", WorldModel: "Meterless (World Model)" };
 export function techOf(line) {
   const sponsor = str(line?.sponsor);
-  const model = str(line?.model);
+  const model = str(line?.model).replace(/^(\S+) \(\1\)$/, "$1"); // "openjev-0.1 (openjev-0.1)" -> "openjev-0.1"
   const agent = str(line?.agent_name);
-  const sample = model === "" || /^sample\//.test(model);
+  const step = str(line?.step);
+  const gate = str(line?.gate_source);
+  if (str(line?.status) === "skipped") return "not run";
+  if (agent === "Memory" || /^memory\./.test(step)) return "H-MEM";
   if (sponsor === "zetaris") return "Zetaris";
-  if (sponsor === "meterless") return model && !sample ? `Meterless Nightshift (${model})` : "Meterless Nightshift";
-  if (model && !sample) return `OpenJev (${model})`;
-  if (sponsor === "nvidia" && !model) return str(line?.gate_source) === "rules" ? "rules" : "OpenJev";
-  if (agent === "Memory" || /^memory\./.test(str(line?.step))) return "H-MEM";
-  if (model || agent) return "rules";
-  return sponsor ? "OpenJev" : "unknown";
+  if (step === "meterless.engine") return METERLESS_ENGINE[agent] ?? "Meterless";
+  if (gate === "openjev" || /^openjev/i.test(model)) return `OpenJev (${model || "openjev"})`;
+  if (step === "risk.signoff" || gate === "rules" || model === "rules" || /^sample\//.test(model)) return "rules";
+  if (model) return `Nightshift (${model})`;
+  if (agent) return "rules";
+  return sponsor ? sponsor : "unknown";
 }
 
 // "table:key" -> its parts; the key fields of a row id as the trace names it
@@ -115,7 +122,7 @@ function returnedOf(line, tech, retained, consulted) {
     const detail = str(line?.detail) || null;
     return retained.map((id) => ({ ...rowFields(id), ...(detail && consulted.length === 1 ? { detail } : {}) }));
   }
-  if (tech.startsWith("OpenJev")) return str(line?.output_summary) || null;
+  if (/^(OpenJev|Nightshift) \(/.test(tech)) return str(line?.output_summary) || null;
   return null;
 }
 

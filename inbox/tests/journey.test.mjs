@@ -260,16 +260,47 @@ test("invariant sweep: all 24 threads in sample mode, every node has a known tec
   }
 });
 
-test("tech is derived from sponsor, model and agent_name, never guessed", () => {
+test("tech is read from the line's own step, agent, sponsor, model and gate_source, never guessed", () => {
   assert.equal(techOf({ sponsor: "zetaris" }), "Zetaris");
-  assert.equal(techOf({ sponsor: "meterless", agent_name: "Scout" }), "Meterless Nightshift");
-  assert.equal(techOf({ sponsor: "nvidia", model: "nemotron-x", agent_name: "Drafter" }), "OpenJev (nemotron-x)");
-  assert.equal(techOf({ model: "nemotron-x", agent_name: "Evaluator" }), "OpenJev (nemotron-x)");
+  assert.equal(techOf({ step: "meterless.engine", sponsor: "meterless", agent_name: "Scout" }), "Meterless (Scout contract)");
+  assert.equal(techOf({ step: "meterless.engine", sponsor: "meterless", agent_name: "WorldModel" }), "Meterless (World Model)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "nemotron-x", agent_name: "Drafter" }), "Nightshift (nemotron-x)");
+  assert.equal(techOf({ model: "nemotron-x", agent_name: "Evaluator" }), "Nightshift (nemotron-x)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "openjev-0.1 (openjev-0.1)", gate_source: "openjev", agent_name: "Severity" }), "OpenJev (openjev-0.1)");
+  assert.equal(techOf({ sponsor: "nvidia", model: "rules", gate_source: "rules", agent_name: "Severity" }), "rules");
+  assert.equal(techOf({ step: "risk.signoff", sponsor: "meterless", agent_name: "Risk" }), "rules");
   assert.equal(techOf({ sponsor: "nvidia", model: "sample/rules", agent_name: "Drafter" }), "rules");
   assert.equal(techOf({ agent_name: "Memory", step: "memory.read" }), "H-MEM");
   assert.equal(techOf({ agent_name: "Planner", step: "branch" }), "rules");
+  assert.equal(techOf({ step: "nvidia.model", agent_name: "Drafter", status: "skipped" }), "not run");
   assert.equal(techOf({ step: "branch" }), "unknown");
   assert.equal(techOf(null), "unknown");
+});
+
+test("every label on a real live trace (jedi.blastworks.ai, 24 Oct): Nemotron is Nightshift, the Scout contract and World Model are the Meterless engine, OpenJev only for the openjev gate", () => {
+  const { lines } = JSON.parse(readFileSync(new URL("./fixtures/live_trace_tech.json", import.meta.url), "utf8"));
+  // pinned by hand from what each step is, keyed step|agent|skipped
+  const want = {
+    "memory.read|Memory|": "H-MEM", "memory.write|Memory|": "H-MEM",
+    "planner.plan|Planner|": "rules", "delegate|Planner|": "rules", "branch|Planner|": "rules", "synthesis|Planner|": "rules",
+    "retry|Planner|skipped": "not run", "recovery|Planner|skipped": "not run",
+    "zetaris.query|Executor|": "Zetaris", "zetaris.query|Scout|": "Zetaris", "executor.act|Executor|": "Zetaris",
+    "meterless.engine|Scout|": "Meterless (Scout contract)", "meterless.engine|WorldModel|": "Meterless (World Model)",
+    "nvidia.model|Gates|": "OpenJev (openjev-0.1)",
+    "nvidia.model|Drafter|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|RefundReader|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|Recommender|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "critique|Evaluator|": "Nightshift (nvidia/nemotron-3.5-lightning-30b-a3b)",
+    "nvidia.model|Drafter|skipped": "not run", "critique|Evaluator|skipped": "not run",
+    "risk.signoff|Risk|": "rules", "risk.signoff|Risk|skipped": "not run",
+    "escalate_or_fallback|Escalator|": "rules", "escalate_or_fallback|Escalator|skipped": "not run",
+  };
+  assert.ok(lines.length >= 20, "the fixture holds the live lines");
+  for (const l of lines) {
+    const k = `${l.step}|${l.agent_name}|${l.status === "skipped" ? "skipped" : ""}`;
+    assert.ok(k in want, `a live line kind with no pinned label: ${k}`);
+    assert.equal(techOf(l), want[k], k);
+  }
 });
 
 test("a Zetaris node returns only the hit row with its key fields; a model node returns its reply as recorded; a skipped node returns null", () => {
@@ -281,7 +312,7 @@ test("a Zetaris node returns only the hit row with its key fields; a model node 
   assert.equal(j.nodes[0].tech, "Zetaris");
   assert.equal(j.nodes[0].duration_ms, 250);
   assert.equal(j.nodes[1].returned, "Hello, seven days.");
-  assert.equal(j.nodes[1].tech, "OpenJev (nemotron-x)");
+  assert.equal(j.nodes[1].tech, "Nightshift (nemotron-x)");
   assert.equal(j.nodes[1].duration_ms, 750, "older trace without duration_ms: gap to the previous timestamp");
   assert.equal(j.nodes[2].returned, null);
 });

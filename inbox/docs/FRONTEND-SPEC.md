@@ -177,7 +177,7 @@ Trimmed from `openapi.yaml`:
 
 The judge-scenarios build adds these fields, here and on `GET /runs/{id}` (`output`, `output.queued_for`).
 Top level of the journey and of `output`: `team`, `team_label` (display name, fiction), `topic_label`, `cc[]` and `also[]` (`{ id, name, role, email }`, empty arrays when none), `status` (`open` | `handled` | `follow_up`), `auto_reply` (boolean), `memory_note` (H-MEM's sentence or `null`), `channel_label`, `trusted_to_send` (boolean, the trust-floor yes or no), `courtesy_reply` (true only on the legal route).
-Each node gains `duration_ms` (since the previous line, 0 for the first), `tech` (`Zetaris` | `Meterless Nightshift (<model>)` | `OpenJev (<model>)` | `H-MEM` | `rules`) and `returned` (Zetaris: the rows that hit, `[{ id, table, key, detail }]`; a model: its reply text; else `null`).
+Each node gains `duration_ms` (since the previous line, 0 for the first), `tech` (`Zetaris` | `Meterless (Scout contract)` | `Meterless (World Model)` | `Nightshift (<model>)` | `OpenJev (<model>)` | `H-MEM` | `rules` | `not run`; see the contract page) and `returned` (Zetaris: the rows that hit, `[{ id, table, key, detail }]`; a model: its reply text; else `null`).
 Trace lines carry `duration_ms` and `elapsed_ms` (since the run's first line) and millisecond timestamps.
 Money is in GC (Galactic Credits): `amount`, `policy_limit`, `limit`, `unit_price`, `total`; SKUs are `FS-...`.
 A quote rides `queued_for.attachments.quote`: `{ sku, quantity, tier, unit_price, discount_pct, total, currency: "GC", parts: [{ part_id, part_name, needed, stock, short }] }`.

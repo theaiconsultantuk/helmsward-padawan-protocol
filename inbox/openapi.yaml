@@ -640,7 +640,7 @@ components:
         model: { type: string, nullable: true }
         timestamp: { type: string, nullable: true, description: "ISO with milliseconds (.mmmZ)." }
         duration_ms: { type: integer, description: "Milliseconds since the previous line of the same run, 0 for the first." }
-        tech: { type: string, description: "What did the step: Zetaris, Meterless Nightshift (<model>), OpenJev (<model>), H-MEM or rules; never guessed (unknown only when the line names neither a sponsor nor a model)." }
+        tech: { type: string, description: "What did the step: Zetaris, Meterless (Scout contract), Meterless (World Model), Nightshift (<model>), OpenJev (<model>), H-MEM, rules or not run; read from the line's own fields, never guessed (unknown only when the line records none)." }
         returned: { description: "What the step handed back. Zetaris: the HIT rows only ([{id, table, key, detail}]), [] when nothing matched; a model: its reply text as traced; other techs: null." }
     Participant:
       type: object

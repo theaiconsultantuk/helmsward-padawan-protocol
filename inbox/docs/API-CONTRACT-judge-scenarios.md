@@ -94,12 +94,13 @@ The trust floor is the yes or no on whether the draft cleared the floor (a weigh
 
 ## What `returned` holds, per `tech`
 
-`tech` is one of `Zetaris`, `Meterless Nightshift (<model>)`, `OpenJev (<model>)`, `H-MEM`, `rules`; it is `unknown` only when a line names neither a sponsor nor a model.
+`tech` is one of `Zetaris`, `Meterless (Scout contract)`, `Meterless (World Model)`, `Nightshift (<model>)`, `OpenJev (<model>)`, `H-MEM`, `rules` or `not run`, read only from the line's own step, agent, sponsor, model and gate_source; `unknown` only when a line records none of them.
+Nemotron and every other model the Drafter, Evaluator, Readers and Recommender call is `Nightshift (<model>)`; `OpenJev (<model>)` is only the OpenJev typed gate (gate_source `openjev`); the Scout contract and the World Model are Meterless engine steps with no model call; Risk's sign-off and every sample/rules line is `rules`; a skipped step is `not run`.
+_Fixed 24 Oct before the merge: the first cut labelled every non-sample model OpenJev and every Meterless line Nightshift (from the HACKATHON orchestrator's review, msg-1945); a test pins each label on a real live trace._
 
 - `Zetaris`: the rows that HIT, not the scanned count: `[{ "id": "employees:15", "table": "employees", "key": "15", "detail": "Soren Adey · Support Agent · Support" }]`; `[]` when the query matched nothing (the FAQ node's `returned` is exactly the hit row).
-- `Meterless Nightshift (<model>)` and `OpenJev (<model>)`: the model's reply text as the trace recorded it.
-- `H-MEM`: `null` on a read that found nothing; the memory ids otherwise.
-- `rules`: `null`.
+- `Nightshift (<model>)` and `OpenJev (<model>)`: the model's reply text as the trace recorded it.
+- `H-MEM`, `Meterless (…)`, `rules`, `not run`: `null` (the node's own summary carries what it did).
 
 ## Files and who owns them
 
