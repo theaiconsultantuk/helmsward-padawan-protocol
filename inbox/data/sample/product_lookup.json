@@ -10,17 +10,17 @@
       "rows": [
         [
           "FS-A01",
-          "Wayfarer Cloak",
+          "Wayfarer Long Cloak",
           "travel cloak;cloak;P04"
         ],
         [
           "FS-A02",
-          "Initiate Robe",
+          "Initiate Training Robe",
           "padawan robe;robe;P07"
         ],
         [
           "FS-A03",
-          "Drift Boots",
+          "Drift Boot Wraps",
           "boot set;boots;P10"
         ],
         [
@@ -60,12 +60,12 @@
         ],
         [
           "FS-B01",
-          "Arc Blade Trainer",
+          "Vanta Arc Trainer",
           "training saber;training blade;P01"
         ],
         [
           "FS-B02",
-          "Emitter Hilt",
+          "Strand Emitter Hilt",
           "hilt;P02"
         ],
         [
@@ -105,7 +105,7 @@
         ],
         [
           "FS-C01",
-          "Core Crystal Case",
+          "Ember Core Reliquary",
           "kyber crystal case;crystal case;P03"
         ],
         [
@@ -115,7 +115,7 @@
         ],
         [
           "FS-C03",
-          "Orbit Stand",
+          "Orbit Display Stand",
           "saber stand;stand;P08"
         ],
         [
@@ -150,18 +150,18 @@
         ],
         [
           "FS-G01",
-          "Quartermaster Belt",
+          "Quartermaster Utility Belt",
           "utility belt;belt;P05"
         ],
         [
           "FS-G02",
-          "Sidearm Holster",
+          "Ranger Hilt Holster",
           "holster;P06"
         ],
         [
           "FS-G03",
-          "Pilgrim Pack",
-          "pilgrim pack;pack;P09"
+          "Pilgrim Field Pack",
+          "pack;P09"
         ],
         [
           "FS-G04",

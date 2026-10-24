@@ -12,7 +12,7 @@ import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
-import { deriveJourney } from "./journey.mjs";
+import { deriveJourney, publicQueueFile } from "./journey.mjs";
 import { readCsv } from "./csv.mjs";
 import { generateClient } from "./demo_names.mjs";
 
@@ -156,6 +156,14 @@ function seededClient() {
   const row = readCsv(join(INBOX_ROOT, "data", "synthetic", "customers.csv")).find((r) => String(r.seeded_prior_refund) === "true");
   if (!row) throw new HttpError(500, "InternalError", "no seeded client in customers.csv");
   return { customer_id: row.customer_id, name: row.name, email: row.email, generated: false, seeded_prior_refund: true };
+}
+
+// the seeded client of s10: the customer on order JP-1001 (orders.csv customer_id -> customers.csv), the only sender the delivery road answers for that order
+function orderOwnerClient(order_id = "JP-1001") {
+  const order = readCsv(join(INBOX_ROOT, "data", "synthetic", "orders.csv")).find((r) => r.order_id === order_id);
+  const row = order && readCsv(join(INBOX_ROOT, "data", "synthetic", "customers.csv")).find((r) => r.customer_id === order.customer_id);
+  if (!row) throw new HttpError(500, "InternalError", `no customer on order ${order_id} in the records`);
+  return { customer_id: row.customer_id, name: row.name, email: row.email, generated: false, order_owner: true, order_id };
 }
 
 const newRunId = () => `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -344,7 +352,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         if (path === "/demo/scenarios") { send(200, demoScenarios()); return; }
         const sc = new URL(req.url, "http://localhost").searchParams.get("scenario");
         if (sc !== null && !demoScenarios().some((d) => d.id === sc)) throw new HttpError(400, "BadRequest", "scenario must be one of s01..s14 or absent");
-        const client = sc === "s04" ? seededClient() : generateClient();
+        const client = sc === "s04" ? seededClient() : sc === "s10" ? orderOwnerClient() : generateClient();
         if (res.headersSent) return;
         const text = JSON.stringify(mask(client, sec));
         res.writeHead(200, { ...CORS, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(text), "Cache-Control": "no-store" });
@@ -462,8 +470,12 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       const result = isMsg
         ? await runTicket(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
         : await runTicket(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+      // the server keeps its own absolute queue path; the public result names the file inside the memory dir only
+      const publicOutput = result.output?.queued_for?.queue_file
+        ? { ...result.output, queued_for: { ...result.output.queued_for, queue_file: publicQueueFile(result.output.queued_for.queue_file) } }
+        : result.output;
       const out = {
-        run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
+        run_id: result.run_id, status: result.status, output: publicOutput, agents: result.agents,
         trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
         ...(result.scenario !== undefined ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
         ...(result.input ? { input: result.input } : {}),

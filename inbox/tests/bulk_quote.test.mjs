@@ -25,9 +25,9 @@ test("the CSV facts the tests stand on: tiers 1-10 / 11-100 / 101+, a rfq limit 
 });
 
 for (const q of [10, 11, 100, 101]) {
-  test(`${q} Emitter Hilts: the ${tierFor(q).tier} tier, unit price and total exact from the CSV, a held quote for Sales`, async () => {
+  test(`${q} Strand Emitter Hilts: the ${tierFor(q).tier} tier, unit price and total exact from the CSV, a held quote for Sales`, async () => {
     const e = expected("FS-B02", q);
-    const { result, lines } = await ask(q, "Emitter Hilts");
+    const { result, lines } = await ask(q, "Strand Emitter Hilts");
     const o = result.output;
     assert.equal(result.scenario, "rfq");
     assert.equal(result.branch_id, "rfq-quote");
@@ -55,7 +55,7 @@ for (const q of [10, 11, 100, 101]) {
 
 test("parts: each part listed with qty_per_unit x quantity against stock, none short", async () => {
   const q = 25;
-  const { result } = await ask(q, "Arc Blade Trainers");
+  const { result } = await ask(q, "Vanta Arc Trainers");
   const quote = result.output.queued_for.attachments.quote;
   const rows = BOM.filter((b) => b.sku === "FS-B01");
   assert.equal(quote.parts.length, rows.length);
@@ -89,7 +89,7 @@ test("a short part (FS-B04 hinge, stock 0): rfq-quote-stock holds for Sales, nam
 test("over the quote limit: escalated to the Sales head (40) with a quote_total approval; the CEO (201) when the head is out", async () => {
   const e = expected("FS-B01", 50);
   assert.ok(e.total > LIMIT);
-  const run = (as_of) => ask(50, "Arc Blade Trainers", as_of);
+  const run = (as_of) => ask(50, "Vanta Arc Trainers", as_of);
   const inDay = await run("2026-10-25");
   const o = inDay.result.output;
   assert.equal(inDay.result.branch_id, "rfq-quote-over-limit");
@@ -117,16 +117,16 @@ test("over the quote limit: escalated to the Sales head (40) with a quote_total 
 
 test("a total at or under the limit is a plain held quote, never an approval", async () => {
   // 25 trainers: 4252.50 GC < 5000
-  const { result } = await ask(25, "Arc Blade Trainers");
+  const { result } = await ask(25, "Vanta Arc Trainers");
   assert.equal(result.branch_id, "rfq-quote");
   assert.equal(result.output.queued_for.approval, undefined);
 });
 
 test("no quantity, no product, or two quantities: today's acknowledgement path (rfq), no quote, no price in the draft", async () => {
   for (const [text, why] of [
-    ["Can you quote Orbit Stands for our school?", "no quantity"],
+    ["Can you quote Orbit Display Stands for our school?", "no quantity"],
     ["Please quote 40 of the thingamajigs for our school", "no product"],
-    ["Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100 (we only have 1 price", "two quantities"],
+    ["Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100 (we only have 1 price", "two quantities"],
   ]) {
     const { result } = await runMessage(msg(text, "chat", "a@example.com", { scenario: "rfq" }));
     assert.equal(result.branch_id, "rfq", why);
@@ -139,9 +139,9 @@ test("no quantity, no product, or two quantities: today's acknowledgement path (
 
 test("cold-start twin: the same quote asked twice by the same email is F1 then F2 and the numbers do not move", async () => {
   const d = dirs();
-  const a = await ask(11, "Emitter Hilts", "2026-10-20", {});
-  const x = await runMessage(msg("Hello, we need a quote for 11 Emitter Hilts for our guild. Thank you.", "email", "guild@example.com"), { d, run_id: "twin1" });
-  const y = await runMessage(msg("Hello, we need a quote for 11 Emitter Hilts for our guild. Thank you again.", "email", "guild@example.com"), { d, run_id: "twin2" });
+  const a = await ask(11, "Strand Emitter Hilts", "2026-10-20", {});
+  const x = await runMessage(msg("Hello, we need a quote for 11 Strand Emitter Hilts for our guild. Thank you.", "email", "guild@example.com"), { d, run_id: "twin1" });
+  const y = await runMessage(msg("Hello, we need a quote for 11 Strand Emitter Hilts for our guild. Thank you again.", "email", "guild@example.com"), { d, run_id: "twin2" });
   assert.equal(x.result.input.thread_id, "F1");
   assert.equal(y.result.input.thread_id, "F2");
   for (const r of [a, x, y]) assert.equal(r.result.branch_id, "rfq-quote");

@@ -109,9 +109,9 @@ On screen: two stamps on the same draft.
 
 Then the rule, in large type: "1 fail, retry. 2 fails, escalate." The dashed line goes back to the draft and stops at 2.
 
-Cutaway, four seconds, Padmé, `T01-reply.eml`: she asked for a replacement, the draft promised a refund. Critique is an error. The ticket reopens, the refund is withdrawn, H-MEM `queueForHuman` fires. No third draft. Nothing is sent.
+Cutaway, four seconds, Seraphine, `T01-reply.eml`: she asked for a replacement, the draft promised a refund. Critique is an error. The ticket reopens, the refund is withdrawn, H-MEM `queueForHuman` fires. No third draft. Nothing is sent.
 
-Say: "Two judges, one draft. The Evaluator is Nightshift, and NVIDIA writes the critique. Risk is Scout, and it does not call a model. One fail sends the draft back. That is the dashed line. Two fails, or one fact a rewrite cannot change, and it escalates to a person. Padmé's reply is that case. The agent promised money she did not ask for."
+Say: "Two judges, one draft. The Evaluator is Nightshift, and NVIDIA writes the critique. Risk is Scout, and it does not call a model. One fail sends the draft back. That is the dashed line. Two fails, or one fact a rewrite cannot change, and it escalates to a person. Seraphine's reply is that case. The agent promised money she did not ask for."
 
 Judge line: `critique`, `risk.signoff`, `retry`, `escalate_or_fallback`.
 

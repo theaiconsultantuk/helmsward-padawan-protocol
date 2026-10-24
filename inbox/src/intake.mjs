@@ -35,6 +35,17 @@ function writeAll(rows, dir) {
   renameSync(tmp, path(dir)); // atomic replace
 }
 
+// A free-text message has no subject: its label is the start of the message, cut at a word boundary with "…" when it cuts.
+// A display label only; no reply ever quotes it (the draft quotes the customer's whole first sentence, or nothing).
+export function subjectLabel(body, max = 60) {
+  const t = String(body ?? "").replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const head = t.slice(0, max);
+  const sp = head.lastIndexOf(" ");
+  const cut = sp >= Math.floor(max / 2) ? head.slice(0, sp) : head;
+  return `${cut.replace(/[\s,;:.\-]+$/, "")}\u2026`;
+}
+
 const nextId = (rows) => `F${rows.reduce((m, r) => { const n = /^F(\d+)$/.exec(r.thread_id); return n ? Math.max(m, Number(n[1])) : m; }, 0) + 1}`;
 
 export function appendIntake({ message, from, name, subject, channel, scenario, received_at } = {}, { runtimeDir = RUNTIME_DIR, now = () => new Date() } = {}) {
@@ -46,7 +57,7 @@ export function appendIntake({ message, from, name, subject, channel, scenario, 
     const row = {
       thread_id: nextId(rows), received_at: received_at ?? now().toISOString(), channel: channel ?? "",
       sender_name: name ?? (isEmail ? "" : f), sender_email: isEmail ? f : "",
-      subject: subject || body.slice(0, 60).replace(/\s+/g, " "), body, scenario: scenario ?? "", category: "",
+      subject: subject || subjectLabel(body), body, scenario: scenario ?? "", category: "",
     };
     rows.push(row);
     writeAll(rows, runtimeDir);

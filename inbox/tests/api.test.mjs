@@ -213,7 +213,7 @@ test("POST /run takes a free-text FAQ question: scenario, branch, send, the FAQ 
 });
 
 test("POST /run free-text RFQ escalates to the sales owner with cited product rows", async () => {
-  const r = await post("/run", { run_id: "msg-rfq", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100" } });
+  const r = await post("/run", { run_id: "msg-rfq", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100" } });
   assert.equal(r.status, 200);
   const run = await r.json();
   assert.equal(run.scenario, "rfq");
@@ -364,7 +364,7 @@ test("GET /queue is [] when the queue directory is absent", async () => {
 });
 
 test("a token in a message is absent from /runs, the journey and /queue", async () => {
-  const r = await post("/run", { run_id: "msg-secret2", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: `Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100, key ${TOKEN}` } });
+  const r = await post("/run", { run_id: "msg-secret2", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: `Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100, key ${TOKEN}` } });
   assert.equal(r.status, 200);
   await r.text();
   for (const p of ["/runs", "/runs/msg-secret2/journey", "/queue"]) {

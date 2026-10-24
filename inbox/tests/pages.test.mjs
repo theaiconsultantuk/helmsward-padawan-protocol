@@ -75,7 +75,7 @@ test("the dashboard html loads only /static/ scripts, has no inline handlers, an
 });
 
 test("after a sample RFQ run and an affirm, the counters count it and the queue lists the escalation", async () => {
-  const r = await post("/run", { run_id: "pg-rfq", input: { message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" } });
+  const r = await post("/run", { run_id: "pg-rfq", input: { message: "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" } });
   assert.equal(r.status, 200);
   const run = await r.json();
   assert.equal(run.output.decision, "escalate");

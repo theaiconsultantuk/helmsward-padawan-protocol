@@ -317,7 +317,7 @@ test("a sample-mode FAQ message: question, faq-hit, send, cited, every step trac
 });
 
 test("an RFQ message escalates to sales with the one unit price attached, no price in the draft", async () => {
-  const { result } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
+  const { result } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
   assert.equal(result.scenario, "rfq");
   assert.equal(result.resolved_how, "declared");
   assert.equal(result.output.decision, "escalate");
@@ -393,7 +393,7 @@ test("S5.3-2: a FAQ message with the duplicate check down is held, never sent; t
 });
 
 test("S5.3-5: the queue file keeps the RFQ attachments", async () => {
-  const { d } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
+  const { d } = await msgRun({ message: "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" });
   const q = JSON.parse(readFileSync(join(d.memoryDir, "queue", "F1.json"), "utf8"));
   assert.ok(q.attachments.cited.includes("products:FS-B01"));
 });

@@ -1,7 +1,7 @@
 {
   "run_id": "example-16",
   "input": {
-    "message": "Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.",
+    "message": "Hello, could you send us a quote for 25 Vanta Arc Trainers for our academy? Thank you.",
     "from": "fiorafennick@email.com",
     "name": "Fiora Fennick",
     "channel": "email",

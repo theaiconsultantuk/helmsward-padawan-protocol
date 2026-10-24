@@ -9,7 +9,7 @@ import { stampedBuffer } from "../src/trace_buffer.mjs";
 const ask = (text, extra) => runMessage(msg(text, "contact-form"), extra);
 
 test("3: a refund that threatens a lawyer is a complaint-legal escalation, the refund amount stays in the reasons", async () => {
-  const text = "I want a refund of 80 GC for my Drift Boots or I will sue";
+  const text = "I want a refund of 80 GC for my Drift Boot Wraps or I will sue";
   assert.equal(resolveScenario({ kind: "message", text, decided: { intent: { primary: { id: "refund.request" }, confidence: 0.9 } } }).scenario, "complaint");
   const { result } = await ask(text);
   assert.equal(result.scenario, "complaint");
@@ -20,7 +20,7 @@ test("3: a refund that threatens a lawyer is a complaint-legal escalation, the r
 });
 
 test("3: a quote naming an order id is an RFQ, not a delivery reply", async () => {
-  const text = "Please quote 20 Arc Blade Trainers, same as my order JP-1008";
+  const text = "Please quote 20 Vanta Arc Trainers, same as my order JP-1008";
   const r = resolveScenario({ kind: "message", text, productHit: { row: { sku: "FS-B01" } }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
   assert.equal(r.scenario, "rfq");
   const { result } = await ask(text);
@@ -34,23 +34,23 @@ test("3: an order id alone is not a quantity, so a plain delivery question stays
 });
 
 test("9: the reply team is the owner's team from the rows, and the product reply says so", async () => {
-  const { result } = await ask("How much does the Wayfarer Cloak cost and what is its lead time?");
+  const { result } = await ask("How much does the Wayfarer Long Cloak cost and what is its lead time?");
   assert.equal(result.output.decision, "send");
   assert.match(result.output.draft.text, new RegExp(`Jedi Pack ${result.output.team} team`));
   assert.ok(result.output.team);
 });
 
 test("12: the RFQ fallback names what is missing and never denies the pricing rows", async () => {
-  const none = await ask("Incoming RFQ for price difference between ordering Arc Blade Trainers, no quantity yet");
+  const none = await ask("Incoming RFQ for price difference between ordering Vanta Arc Trainers, no quantity yet");
   assert.doesNotMatch(none.result.output.recommendation, /no volume tiers/);
   assert.match(none.result.output.recommendation, /no quantity was stated/);
-  const two = await ask("Could you quote 100 or 1000 Arc Blade Trainers for me");
+  const two = await ask("Could you quote 100 or 1000 Vanta Arc Trainers for me");
   assert.doesNotMatch(two.result.output.recommendation ?? "", /no volume tiers/);
   assert.equal(two.result.scenario, "rfq");
 });
 
 test("13: price answered but waterproof unknown holds for the product owner, no draft", async () => {
-  const text = "What does the Wayfarer Cloak cost and is it waterproof?";
+  const text = "What does the Wayfarer Long Cloak cost and is it waterproof?";
   const { result } = await ask(text);
   const o = result.output;
   assert.equal(result.branch_id, "product-unanswered");
@@ -62,17 +62,17 @@ test("13: price answered but waterproof unknown holds for the product owner, no 
 });
 
 test("13: price and lead time still auto-reply both; a single unknown still holds", async () => {
-  const { result } = await ask("How much does the Wayfarer Cloak cost and what is its lead time?");
+  const { result } = await ask("How much does the Wayfarer Long Cloak cost and what is its lead time?");
   assert.equal(result.branch_id, "product-hit");
   assert.match(result.output.draft.text, /costs 119 GC/);
   assert.match(result.output.draft.text, /lead time of 9 days/);
-  const w = await ask("Is the Wayfarer Cloak waterproof?");
+  const w = await ask("Is the Wayfarer Long Cloak waterproof?");
   assert.equal(w.result.branch_id, "product-unanswered");
 });
 
 test("13: requestedAttributes lists the unanswered clause", () => {
-  const row = { name: "Wayfarer Cloak", unit_price: "119", currency: "GC", lead_days: "9", material: "", specs: "" };
-  const r = requestedAttributes("What does the Wayfarer Cloak cost and is it waterproof?", row);
+  const row = { name: "Wayfarer Long Cloak", unit_price: "119", currency: "GC", lead_days: "9", material: "", specs: "" };
+  const r = requestedAttributes("What does the Wayfarer Long Cloak cost and is it waterproof?", row);
   assert.deepEqual(r.answers.map((a) => a.field), ["unit_price"]);
   assert.equal(r.unanswered.length, 1);
   assert.match(r.unanswered[0], /waterproof/);

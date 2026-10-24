@@ -33,7 +33,7 @@ const run = async (run_id, input) => {
 const send = (id, body = {}, headers = {}) => post(`/runs/${id}/send`, body, headers);
 const qfile = (j) => resolve(INBOX_ROOT, j.queue_file);
 const LEGAL = { message: "This is unacceptable. I will sue you and contact my lawyer unless you refund my order immediately.", from: "angry@example.com", channel: "email", scenario: "complaint" };
-const RFQ = { message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" };
+const RFQ = { message: "Incoming RFQ for price difference between ordering 100000 Vanta Arc Trainers and 100", from: "buyer@example.com", channel: "chat", scenario: "rfq" };
 
 test("(a) a hold with a draft: handled, one queue file, one /queue row, journey carries sent (cold start)", async () => {
   // T02 is a hold; sample mode writes no queue file for it, so this is also case (i)
@@ -82,7 +82,7 @@ test("(b) an escalation without approval: follow_up, and the existing queue file
   assert.equal(run1.output.decision, "escalate");
   assert.equal(run1.output.courtesy_reply, true);
   assert.ok(!run1.output.queued_for.approval);
-  const file = run1.output.queued_for.queue_file;
+  const file = join(memoryDir, run1.output.queued_for.queue_file); // public queue_file is relative to the memory dir
   assert.ok(existsSync(file));
   const before = JSON.parse(readFileSync(file, "utf8"));
   const r = await send("snd-b", { by: "Soren Adey" });

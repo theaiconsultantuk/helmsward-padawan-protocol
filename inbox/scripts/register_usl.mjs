@@ -26,8 +26,8 @@ export const TABLES = [
     ddl: "CREATE TABLE ticket (thread_id varchar(50) NOT NULL PRIMARY KEY, parent_thread_id varchar(50), channel varchar(50), category varchar(50), agent_category varchar(50), sender_name varchar(200), sender_email varchar(200), subject varchar(500), body varchar(4000), follow_up_kind varchar(50), received_at varchar(50), amount double, may_leave boolean, owner_id int, backup_id int, outcome varchar(50), data_source varchar(20), FOREIGN KEY (sender_email) REFERENCES customer(email), FOREIGN KEY (owner_id) REFERENCES employee(employee_id), FOREIGN KEY (backup_id) REFERENCES employee(employee_id))",
     select: `SELECT COALESCE(thread_id, '') AS thread_id, parent_thread_id, channel, category, agent_category, sender_name, sender_email, subject, body, follow_up_kind, received_at, CAST(amount AS double) AS amount, may_leave, CAST(owner_id AS int) AS owner_id, CAST(backup_id AS int) AS backup_id, outcome, 'parquet' AS data_source FROM ${R}.threads_parquet` },
   { name: "product", from: "products (CSV)",
-    ddl: "CREATE TABLE product (sku varchar(50) NOT NULL PRIMARY KEY, slug varchar(100), name varchar(200), category varchar(50), unit_price double, currency varchar(10), stock varchar(50), min_order_qty int, lead_days int, show_in_store boolean, image varchar(200), model varchar(200), aliases varchar(500), material varchar(500), specs varchar(1000), description varchar(2000))",
-    select: `SELECT COALESCE(sku, '') AS sku, slug, name, category, CAST(unit_price AS double) AS unit_price, currency, stock, CAST(min_order_qty AS int) AS min_order_qty, CAST(lead_days AS int) AS lead_days, CAST(show_in_store AS boolean) AS show_in_store, image, model, aliases, material, specs, description FROM ${R}.products` },
+    ddl: "CREATE TABLE product (sku varchar(50) NOT NULL PRIMARY KEY, slug varchar(100), name varchar(200), category varchar(50), unit_price double, currency varchar(10), stock varchar(50), min_order_qty int, lead_days int, show_in_store boolean, image_url varchar(200), model varchar(200), aliases varchar(500), material varchar(500), specs varchar(1000), description varchar(2000))",
+    select: `SELECT COALESCE(sku, '') AS sku, slug, name, category, CAST(unit_price AS double) AS unit_price, currency, stock, CAST(min_order_qty AS int) AS min_order_qty, CAST(lead_days AS int) AS lead_days, CAST(show_in_store AS boolean) AS show_in_store, image AS image_url, model, aliases, material, specs, description FROM ${R}.products` },
   { name: "policy", from: "policy (CSV)",
     ddl: "CREATE TABLE policy (topic varchar(50) NOT NULL PRIMARY KEY, limit_amount double, currency varchar(10), under_limit_owner_id int, under_limit_backup_id int, over_limit_owner_id int, over_limit_backup_id int, FOREIGN KEY (under_limit_owner_id) REFERENCES employee(employee_id), FOREIGN KEY (over_limit_owner_id) REFERENCES employee(employee_id))",
     select: `SELECT COALESCE(topic, '') AS topic, CAST(limit_amount AS double) AS limit_amount, currency, CAST(under_limit_owner_id AS int) AS under_limit_owner_id, CAST(under_limit_backup_id AS int) AS under_limit_backup_id, CAST(over_limit_owner_id AS int) AS over_limit_owner_id, CAST(over_limit_backup_id AS int) AS over_limit_backup_id FROM ${R}.policy` },
@@ -153,6 +153,10 @@ async function apply() {
 
   // liveness: append one row to a temp copy of the intake file, publish it, count, then publish the real file back
   const live_ = { before: counts.intake ?? null };
+  // SKIP_RUNTIME=1 (a republish from a build worktree): the proof would publish THIS checkout's intake file back as the
+  // real one and overwrite the live intake_runtime table (it did on 24 Oct: 51 rows -> 0), so it is skipped and said so.
+  if (process.env.SKIP_RUNTIME === "1") { live_.error = "skipped: SKIP_RUNTIME=1 leaves intake_runtime as it is"; }
+  else {
   const real = join(HERE, "..", "data", "runtime");
   const tmp = mkdtempSync(join(tmpdir(), "usl-live-"));
   try {
@@ -164,6 +168,7 @@ async function apply() {
     live_.afterRestore = Number((await run(stmts.count({ name: "intake" }))).rows[0][0]);
   } catch (e) { live_.error = err(e); }
   finally { rmSync(tmp, { recursive: true, force: true }); }
+  }
 
   const header = joinR?.headers ?? [];
   const joinRows = joinR?.rows ?? [];

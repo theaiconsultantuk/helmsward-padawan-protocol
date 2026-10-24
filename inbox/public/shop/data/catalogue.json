@@ -188,7 +188,7 @@
       "category": "wayfarer-apparel",
       "name": "Wayfarer Long Cloak",
       "tagline": "Weather for any planet.",
-      "description": "Cut long and heavy, the Wayfarer Cloak is made for arrivals in bad weather. A brushed wool blend with a water-resistant finish falls from the shoulders like a curtain, the deep hood shadows the face, and a hidden inner pocket keeps a star chart dry. It comes in desert sand and storm grey, sized from S to XXL, with enough room to wear over armour or an everyday coat. It smells faintly of woodsmoke after the first trip, and that is how you know it is working.",
+      "description": "Cut long and heavy, the Wayfarer Long Cloak is made for arrivals in bad weather. A brushed wool blend with a water-resistant finish falls from the shoulders like a curtain, the deep hood shadows the face, and a hidden inner pocket keeps a star chart dry. It comes in desert sand and storm grey, sized from S to XXL, with enough room to wear over armour or an everyday coat. It smells faintly of woodsmoke after the first trip, and that is how you know it is working.",
       "description_words": 87,
       "price_usd": 119,
       "currency": "USD",
@@ -323,7 +323,7 @@
       "price_usd": 79,
       "currency": "USD",
       "over_refund_limit": false,
-      "inbox_product_map": "P09 pilgrim pack",
+      "inbox_product_map": "P09 pilgrim field pack",
       "thread_refs": "-",
       "materials_specs": [
         "Waxed canvas, 22 L, leather base",

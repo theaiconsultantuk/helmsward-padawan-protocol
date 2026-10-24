@@ -587,7 +587,7 @@
       .then(function (r) {
         if (typeof cur.postMs !== "number") cur.postMs = Date.now() - cur.started;
         if (r.code === 502 || r.code === 504 || r.code === 524) {
-          setStatus("The gateway timed out; checking whether the run finished…");
+          setStatus("Still working: long runs can take up to 3 minutes…");
           return pollRunUntilDone(runId, 100);
         }
         return r;

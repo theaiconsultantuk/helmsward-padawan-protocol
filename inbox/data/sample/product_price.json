@@ -19,7 +19,7 @@
       "rows": [
         [
           "FS-A01",
-          "Wayfarer Cloak",
+          "Wayfarer Long Cloak",
           "119.0",
           "GC",
           "1",
@@ -53,7 +53,7 @@
       "rows": [
         [
           "FS-A02",
-          "Initiate Robe",
+          "Initiate Training Robe",
           "59.0",
           "GC",
           "1",
@@ -87,7 +87,7 @@
       "rows": [
         [
           "FS-A03",
-          "Drift Boots",
+          "Drift Boot Wraps",
           "29.0",
           "GC",
           "1",
@@ -359,7 +359,7 @@
       "rows": [
         [
           "FS-B01",
-          "Arc Blade Trainer",
+          "Vanta Arc Trainer",
           "189.0",
           "GC",
           "1",
@@ -393,7 +393,7 @@
       "rows": [
         [
           "FS-B02",
-          "Emitter Hilt",
+          "Strand Emitter Hilt",
           "39.0",
           "GC",
           "1",
@@ -665,7 +665,7 @@
       "rows": [
         [
           "FS-C01",
-          "Core Crystal Case",
+          "Ember Core Reliquary",
           "99.0",
           "GC",
           "1",
@@ -733,7 +733,7 @@
       "rows": [
         [
           "FS-C03",
-          "Orbit Stand",
+          "Orbit Display Stand",
           "49.0",
           "GC",
           "1",
@@ -971,7 +971,7 @@
       "rows": [
         [
           "FS-G01",
-          "Quartermaster Belt",
+          "Quartermaster Utility Belt",
           "249.0",
           "GC",
           "1",
@@ -1005,7 +1005,7 @@
       "rows": [
         [
           "FS-G02",
-          "Sidearm Holster",
+          "Ranger Hilt Holster",
           "149.0",
           "GC",
           "1",
@@ -1039,7 +1039,7 @@
       "rows": [
         [
           "FS-G03",
-          "Pilgrim Pack",
+          "Pilgrim Field Pack",
           "79.0",
           "GC",
           "1",
@@ -1047,7 +1047,7 @@
           "waxed canvas, riveted leather straps",
           "volume=24 l;weight=900 g;straps=padded",
           "true",
-          "pilgrim pack;pack;P09"
+          "pack;P09"
         ]
       ],
       "total": 1

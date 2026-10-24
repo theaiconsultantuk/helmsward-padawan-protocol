@@ -1,7 +1,7 @@
 {
   "run_id": "example-13",
   "input": {
-    "message": "I would like another refund, 60 GC, for the strap on my Drift Boots.",
+    "message": "I would like another refund, 60 GC, for the strap on my Drift Boot Wraps.",
     "from": "liravenn@email.com",
     "name": "Lira Venn",
     "channel": "contact-form",

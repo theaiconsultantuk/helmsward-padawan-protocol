@@ -2,8 +2,8 @@
   "run_id": "example-19",
   "input": {
     "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
-    "from": "ilmarironbridge@email.com",
-    "name": "Ilmar Ironbridge",
+    "from": "cass.holm@example.com",
+    "name": "Cass Holm",
     "channel": "contact-form",
     "scenario": "free_text",
     "as_of": "2026-10-25"
