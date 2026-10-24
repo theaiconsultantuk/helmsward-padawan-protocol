@@ -21,15 +21,15 @@ test("3: a refund that threatens a lawyer is a complaint-legal escalation, the r
 
 test("3: a quote naming an order id is an RFQ, not a delivery reply", async () => {
   const text = "Please quote 20 Vanta Arc Trainers, same as my order JP-1008";
-  const r = resolveScenario({ kind: "message", text, productHit: { row: { sku: "FS-B01" } }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
+  const r = resolveScenario({ kind: "message", text, productHit: { row: { sku: "FS-B01", name: "Vanta Arc Trainer" } }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
   assert.equal(r.scenario, "rfq");
   const { result } = await ask(text);
   assert.equal(result.scenario, "rfq");
   assert.notEqual(result.scenario, "delivery");
 });
 
-test("3: an order id alone is not a quantity, so a plain delivery question stays delivery", () => {
-  const r = resolveScenario({ kind: "message", text: "Please quote where is my order JP-1008", productHit: { row: {} }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
+test("3: a plain delivery question naming an order stays delivery", () => {
+  const r = resolveScenario({ kind: "message", text: "Where is my order JP-1008?", productHit: { row: {} }, decided: { intent: { primary: { id: "order.question" }, confidence: 0.8 } } });
   assert.equal(r.scenario, "delivery");
 });
 

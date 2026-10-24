@@ -1,0 +1,14 @@
+{
+  "_note": "The ONLY place the names live. Swap after Jovan picks; every page reads this file (js/brand.js fills [data-brand] elements and <title>). Static fallback text in HTML = the current values.",
+  "shop_name": "Farstrand Supply Co.",
+  "shop_short": "Farstrand",
+  "shop_tagline": "Outfitters for the long way round.",
+  "agent_name": "Helmsward",
+  "agent_tagline": "Every reply holds course.",
+  "world_name": "the Far Strand",
+  "logo": "images/logo-shop.svg",
+  "options": {
+    "shop": ["Farstrand Supply Co.", "Comet & Cord Outfitters", "Starcairn Goods"],
+    "agent": ["Helmsward", "Lanternhelm", "Starreeve"]
+  }
+}

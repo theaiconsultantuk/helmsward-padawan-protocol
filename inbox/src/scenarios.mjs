@@ -29,12 +29,15 @@ const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track
 const ORDER_ID = /\bJP-\d{4}\b/i;
 // a question about what a product is, made of or costs, with or without the product named
 const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
-const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
+const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
 // the cues that put ANY message on the complaint road, whatever intent Scout read: a legal threat, an injury, an unsafe product
-const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open)\b/i;
+const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open)\b/i;
 // a complaint about something other than where the parcel is
 const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
-const QUOTE_WORDS = /\b(quote|quotes|quotation|rfq)\b/i;
+// The one RFQ test (einh, 25 Oct 2026, "simplest rule"): a quote / quotation / RFQ / bulk / wholesale word in the message. Nothing else makes a message an RFQ except a declared rfq scenario:
+// every other price or count question ("How much for 51 Strand Emitter Hilts?") takes the product or question road, whatever Scout read.
+const RFQ_WORD = /\b(quotes?|quotations?|rfqs?|bulk|wholesale)\b/i;
+const lookupRows = (productHit) => (productHit?.all ?? (productHit?.row ? [productHit] : [])).map((f) => f.row).filter(Boolean);
 // a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
 const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
 
@@ -43,20 +46,29 @@ const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|acc
 export function resolveScenario({ kind, declared = null, decided = null, gates = null, faqHit = null, text = null, productHit = null } = {}) {
   if (declared && declared !== "free_text") return { scenario: declared, how: "declared" };
   if (kind === "thread") return { scenario: "legacy", how: "thread" };
-  const id = decided?.intent?.primary?.id ?? "GENERAL";
+  let id = decided?.intent?.primary?.id ?? "GENERAL";
+  const T = String(text ?? "");
   const conf = decided?.intent?.confidence ?? 0;
   const cat = gates?.answers?.category;
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
+  // a quote word inside a complaint ("Your quote is unacceptable") is a complaint; the complaint cues are read first only for a message that carries the RFQ word, everything else keeps its later precedence
+  if (RFQ_WORD.test(T) && COMPLAINT_CUES.test(T)) return { scenario: "complaint", how: "cues" };
+  // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
+  if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
+  if (id === "rfq.request" && text != null) id = "GENERAL";
+  else if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
+  // a pure product question ("What is the Cracked Core Recycling Pouch made of?", "...etiquette cards...") is a product question even when a word of the product's own name reads as a refund or a replacement:
+  // take the product's name and aliases out of the text, and if what is left asks what it is made of or costs and carries no refund, return, order or account word, the catalogue row answers it
+  if (["refund.request", "replacement.request", "appreciation", "follow_up"].includes(id) && productHit && PRODUCT_WORDS.test(T) && T.includes("?")) {
+    let rest = T.toLowerCase();
+    for (const r of lookupRows(productHit)) for (const n of [r.name, ...String(r.aliases ?? "").split(";")]) if (n) rest = rest.replace(new RegExp("(?<![a-z0-9])" + String(n).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:e?s)?(?![a-z0-9])", "g"), " ");
+    if (!/\b(refund\w*|return\w*|replace\w*|exchange\w*|money back|bought|ordered|received|arrived|my|broke\w*|damag\w*|faulty|wrong|missing)\b/.test(rest) && !ACCOUNT_WORDS.test(rest) && !ORDER_ID.test(T) && !COMPLAINT_CUES.test(rest) && !SAFETY_CUES.test(rest) && !OTHER_COMPLAINT.test(rest)) return { scenario: "product", how: "scout" };
+  }
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
   if (id === "complaint") return { scenario: "complaint", how: "scout" };
   // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
   if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  // a quote asked for a counted product ("could you quote 25 Vanta Arc Trainers", "quote 20 ... same as my order JP-1008") is an RFQ even when Scout read a plain order question;
-  // the count is a number that is not part of an order id, and it is checked before the delivery road
-  const counted = /(?<![\w.-])\d[\d,]*(?![\w-])/.test(String(text ?? "").replace(/\bJP-\d{4}\b/gi, " "));
-  if ((id === "order.question" || id === "GENERAL") && QUOTE_WORDS.test(String(text ?? "")) && productHit && counted) return { scenario: "rfq", how: "scout" };
   // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order").
   // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.
   // Safety cues and the complaint cues have already gone by, so a delivery question that threatens or names an injury never gets here.
@@ -119,7 +131,8 @@ export function matchProducts(text, productRows) {
 // The product a message is about, from the product_lookup rows ({ sku, name, aliases }): the name's tokens all in the text, or an alias's.
 // A name match outranks an alias match, then the more tokens matched wins; two equally good products are ambiguous (null, with the skus listed).
 export function matchProductLookup(text, lookupRows) {
-  const t = new Set(tokens(text));
+  // "pouches" stems to "pouche": the -es plural of a -ch/-sh/-x/-ss word also counts as the singular
+  const t = new Set(tokens(text).flatMap((w) => (/(?:ch|sh|x|ss)e$/.test(w) ? [w, w.slice(0, -1)] : [w])));
   const found = [];
   for (const p of lookupRows ?? []) {
     const n = tokens(p.name);

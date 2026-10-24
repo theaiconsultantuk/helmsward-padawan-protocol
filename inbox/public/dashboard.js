@@ -65,6 +65,9 @@
       var line = el("div");
       line.appendChild(el("span", "Waits for: " + who(q.approver || q.owner)));
       line.appendChild(el("span", q.has_draft ? "draft" : "no draft", q.has_draft ? "chip ok" : "chip"));
+      if (q.status === "handled") line.appendChild(el("span", "HANDLED", "chip ok"));
+      else if (q.status === "follow_up") line.appendChild(el("span", "FOLLOW UP", "chip warn"));
+      if (q.status && q.sent_at) line.appendChild(el("span", when(q.sent_at), "muted"));
       li.appendChild(line);
       if (q.recommendation) li.appendChild(el("div", "Recommendation: " + (typeof q.recommendation === "string" ? q.recommendation : JSON.stringify(q.recommendation)), "muted"));
       ul.appendChild(li);
@@ -87,7 +90,7 @@
       if (r.branch_id) li.appendChild(el("div", "branch " + r.branch_id, "muted"));
       var acts = el("div", null, "row-actions");
       var link = el("a", "Journey");
-      link.href = "/?run=" + encodeURIComponent(r.run_id);
+      link.href = "/shop/contact.html?run=" + encodeURIComponent(r.run_id);
       acts.appendChild(link);
       var msg = el("span", "", "muted");
       var buttons = [];

@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
-    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the three POST routes (`/run`, `/ask`, `/feedback`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
+    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
     Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
     Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
     The examples below come from a sample-mode run of thread T02.
@@ -325,6 +325,50 @@ paths:
               example: { run_id: demo-1, thread_id: T02, category: refund, decision: hold, verdict: affirm, delta: 0.05, ts: "2026-10-23T00:10:42.128Z", note: good call, published: true }
         "400": { $ref: "#/components/responses/BadRequest" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /runs/{id}/send:
+    post:
+      security: [{}, {bearer: []}]
+      summary: Send the reply on a held or escalated run
+      description: "Records that the reply went out. Only a run that ended on `hold` or `escalate` can be sent. Body `text` (1 to 4000 characters) is the reply as sent; absent, the run's own draft is used, and a run with no draft and no `text` is a 400, as is a run with no ticket id. Status rule: `hold` gives `handled`; `escalate` with `queued_for.approval` gives `handled`; `escalate` without an approval gives `follow_up`. It writes the ticket's queue file under `data/memory/queue/` and the run's `GET /runs/{id}/journey` then carries `sent` and the overriding `status`. A second send on the same run is a 409."
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SendRequest" }
+            example: { by: Tomas Keller, text: "Hello, thank you for your patience ..." }
+      responses:
+        "200":
+          description: The send was recorded.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SendResult" }
+              example: { run_id: demo-1, ticket_id: F2, status: follow_up, sent: { run_id: demo-1, by: Tomas Keller, at: "2026-10-24T09:00:00.000Z", body: "Hello, thank you for your patience ...", status: follow_up, ticket_id: F2 }, queue_file: data/memory/queue/F2.json }
+        "400":
+          description: The run is not a hold or an escalation, has no draft and no `text`, has no ticket id, or `text` is too long.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: The instance runs with API_TOKEN set and the bearer token is missing or wrong.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "405":
+          description: The route takes POST only.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: This run was already sent.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
   /counters:
     get:
       summary: Decision and feedback counters
@@ -349,13 +393,63 @@ paths:
   /:
     get:
       summary: The front page
-      description: "Serves `public/index.html` (404 with the structured error until the page exists). The page only uses the API."
+      description: "Serves `public/index.html`, a redirect page to the storefront; the reference form is at /inbox. 404 with the structured error until the page exists. The page only uses the API."
       responses:
         "200":
-          description: The unified front end.
+          description: The redirect page.
           content:
             text/html:
               schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /inbox:
+    get:
+      summary: The reference form
+      description: "Serves `public/inbox.html`, the reference inbox form (picker, name, email, message, demo buttons, the two views). 404 with the structured error until the page exists. The page only uses the API."
+      responses:
+        "200":
+          description: The reference form.
+          content:
+            text/html:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /shop:
+    get:
+      summary: The storefront entry
+      description: "302 redirect to `/shop/index.html`."
+      responses:
+        "302":
+          description: Redirect to /shop/index.html.
+          headers:
+            Location: { schema: { type: string, example: /shop/index.html } }
+  /shop/{path}:
+    get:
+      summary: A storefront file
+      description: "Serves `public/shop/<path>` (index.html, shop.html, product.html, faq.html, contact.html, and their scripts, styles, images and models). Closed extension list: `.html .css .js .json .svg .webp .png .jpg .woff2 .glb .mp4 .ico`. Any other extension, a missing file or any traversal is a 404."
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: The file; `Content-Type` follows the extension.
+          content:
+            text/html:
+              schema: { type: string }
+            text/css:
+              schema: { type: string }
+            application/javascript:
+              schema: { type: string }
+            application/json:
+              schema: { type: object }
+            image/*:
+              schema: { type: string, format: binary }
+            font/woff2:
+              schema: { type: string, format: binary }
+            model/gltf-binary:
+              schema: { type: string, format: binary }
+            video/mp4:
+              schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/NotFound" }
   /dashboard:
     get:
@@ -624,6 +718,8 @@ components:
         scenario: { type: string, nullable: true }
         recommendation: { type: string, nullable: true }
         at: { type: string, format: date-time, nullable: true }
+        status: { type: string, nullable: true, enum: [handled, follow_up, null], description: "Set once a reply was sent on this ticket (POST /runs/{id}/send)." }
+        sent_at: { type: string, nullable: true, description: When the reply was sent. }
     JourneyNode:
       type: object
       properties:
@@ -709,7 +805,19 @@ components:
         topic_label: { type: string, nullable: true }
         cc: { type: array, items: { $ref: "#/components/schemas/Participant" } }
         also: { type: array, items: { $ref: "#/components/schemas/Participant" } }
-        status: { type: string, nullable: true, enum: [open, handled, follow_up, null] }
+        status: { type: string, nullable: true, enum: [open, handled, follow_up, null], description: "The lifecycle status. A send (POST /runs/{id}/send) overrides it with `handled` or `follow_up`." }
+        ticket_status: { type: string, nullable: true, description: "The ticket's own status before any send override." }
+        sent:
+          type: object
+          nullable: true
+          description: The reply that was sent on this run; null until a send.
+          properties:
+            by: { type: string, nullable: true }
+            at: { type: string }
+            body: { type: string }
+            status: { type: string, enum: [handled, follow_up] }
+            ticket_id: { type: string }
+            queue_file: { type: string, nullable: true }
         auto_reply: { type: boolean }
         memory_note: { type: string, nullable: true }
         channel_label: { type: string, nullable: true }
@@ -748,6 +856,28 @@ components:
             who: { $ref: "#/components/schemas/Person" }
             what: { type: array, items: { type: string } }
             queue_file: { type: string, nullable: true, description: "queue/<thread_id>.json inside the memory dir; null when the queue write failed; absent on a plain hold" }
+    SendRequest:
+      type: object
+      properties:
+        by: { type: string, maxLength: 120, description: Who is sending. }
+        text: { type: string, minLength: 1, maxLength: 4000, description: "The reply as sent; absent means the run's own draft." }
+    SendResult:
+      type: object
+      required: [run_id, ticket_id, status, sent, queue_file]
+      properties:
+        run_id: { type: string }
+        ticket_id: { type: string }
+        status: { type: string, enum: [handled, follow_up] }
+        sent:
+          type: object
+          properties:
+            run_id: { type: string }
+            by: { type: string, nullable: true }
+            at: { type: string }
+            body: { type: string }
+            status: { type: string, enum: [handled, follow_up] }
+            ticket_id: { type: string }
+        queue_file: { type: string }
     TraceLine:
       type: object
       properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: since the previous line of the run }, elapsed_ms: { type: integer, description: since the run's first line }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }

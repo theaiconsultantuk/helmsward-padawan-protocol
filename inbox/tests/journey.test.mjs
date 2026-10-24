@@ -347,3 +347,48 @@ test("FAQ question in sample mode: the faq node's returned is exactly the hit ro
   assert.equal(node.returned[0].table, "faq");
   assert.equal(node.tech, "Zetaris");
 });
+
+test("sent: nonsense status is null, no extras gives sent null and Plan 1's status", () => {
+  assert.equal(deriveJourney({}, [], { sent: { status: "nonsense" } }).sent.status, null);
+  assert.equal(deriveJourney({}, [], { sent: "x" }).sent, null);
+  // explicit expectations: none of the three committed examples carries a status (output.status or queued_for.status), so each is null
+  const EXPECTED_STATUS = { 1: null, 2: null, 3: null };
+  for (const { n, result, lines } of cases) {
+    assert.equal(result.output?.status, undefined, `example ${n} carries no output.status`);
+    const j = deriveJourney(result, lines);
+    assert.equal(j.sent, null);
+    assert.equal(j.status, EXPECTED_STATUS[n], `example ${n}`);
+    assert.equal(j.ticket_status, EXPECTED_STATUS[n], `example ${n}`);
+  }
+  // the fallback: with no output.status the queued_for.status is used, and output.status wins when both exist
+  const { result: r3, lines: l3 } = cases[2];
+  const viaQueue = { ...r3, output: { ...r3.output, queued_for: { ...r3.output.queued_for, status: "follow_up" } } };
+  assert.equal(deriveJourney(viaQueue, l3).status, "follow_up");
+  assert.equal(deriveJourney(viaQueue, l3).ticket_status, "follow_up");
+  const both = { ...viaQueue, output: { ...viaQueue.output, status: "handled" } };
+  assert.equal(deriveJourney(both, l3).status, "handled");
+  const j0 = deriveJourney({}, []);
+  assert.equal(j0.sent, null);
+});
+
+test("sent: round-trip overrides status, ticket_status is the alias, nonsense status does not override", () => {
+  const sent = { by: "Priya Raman", at: "2026-10-24T18:00:00Z", body: "x", status: "follow_up" };
+  const { result, lines } = cases[0];
+  const j = deriveJourney(result, lines, { sent });
+  assert.deepEqual(j.sent, { by: "Priya Raman", at: "2026-10-24T18:00:00Z", body: "x", status: "follow_up", ticket_id: null, queue_file: null });
+  assert.equal(j.status, "follow_up");
+  assert.equal(j.ticket_status, "follow_up");
+  const base = deriveJourney(result, lines);
+  const bad = deriveJourney(result, lines, { sent: { ...sent, status: "nonsense" } });
+  assert.equal(bad.status, base.status);
+  assert.equal(bad.sent.status, null);
+});
+
+test("sent: node shapes are identical with and without extras", () => {
+  for (const { result, lines } of cases) {
+    const a = deriveJourney(result, lines);
+    const b = deriveJourney(result, lines, { sent: { by: "P", at: "t", body: "b", status: "handled", ticket_id: "T1", queue_file: "f.json" } });
+    assert.equal(JSON.stringify(b.nodes), JSON.stringify(a.nodes));
+    assert.deepEqual(b.human, a.human);
+  }
+});

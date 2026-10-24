@@ -265,6 +265,9 @@
     "name": "Leska Longmire",
     "email": "leskalongmire@email.com",
     "message": "The Drift Boot Wraps arrived scuffed and I am disappointed. Posting my honest review here.",
+    "review": {
+      "title": "Arrived scuffed"
+    },
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -286,6 +289,8 @@
     "name": "Marek Marshgate",
     "email": "marekmarshgate@email.com",
     "message": "Hi, my package arrived with a dented box.",
+    "subject": "Hi, my package arrived with a dented box.",
+    "to": "info@jedipack.com",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",

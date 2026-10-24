@@ -261,7 +261,7 @@ function branchIdOf(result, lines) {
   return null;
 }
 
-export function deriveJourney(result, lines) {
+export function deriveJourney(result, lines, extras = {}) {
   const res = isObj(result) ? result : {};
   const ls = Array.isArray(lines) ? lines.filter(isObj) : [];
   const decision = res.output?.decision ?? null;
@@ -339,6 +339,19 @@ export function deriveJourney(result, lines) {
 
   const o = isObj(res.output) ? res.output : {};
   const pick = (k, dflt = null) => o[k] ?? q?.[k] ?? dflt;
+  const es = isObj(extras) ? extras.sent : null;
+  const sent = isObj(es)
+    ? {
+        by: str(es.by) || null,
+        at: str(es.at) || null,
+        body: str(es.body) || null,
+        status: es.status === "handled" || es.status === "follow_up" ? es.status : null,
+        ticket_id: str(es.ticket_id) || null,
+        queue_file: str(es.queue_file) || null,
+      }
+    : null;
+  // the sent file is the later fact: it overrides the stored run's status
+  const finalStatus = sent?.status ?? pick("status");
   return {
     run_id: res.run_id ?? ls[0]?.run_id ?? null,
     team: pick("team"),
@@ -346,7 +359,9 @@ export function deriveJourney(result, lines) {
     topic_label: pick("topic_label"),
     cc: pick("cc", []),
     also: pick("also", []),
-    status: pick("status"),
+    status: finalStatus,
+    ticket_status: finalStatus,
+    sent,
     auto_reply: pick("auto_reply", false) === true,
     memory_note: pick("memory_note"),
     channel_label: pick("channel_label"),

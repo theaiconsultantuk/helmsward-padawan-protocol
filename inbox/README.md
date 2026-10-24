@@ -80,11 +80,11 @@ Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, N
 
 ## API
 
-The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere, CORS open (`*`), no credentials by default (`API_TOKEN` unset); a shared instance that sets `API_TOKEN` protects the three POST routes, see below.
+The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere, CORS open (`*`), no credentials by default (`API_TOKEN` unset); a shared instance that sets `API_TOKEN` protects the four POST routes, see below.
 
 **Base URL.** `http://127.0.0.1:8000` by default; `PORT` moves it (`8810` on the dev VM) and `HOST` defaults to `127.0.0.1`. Start it with `node src/server.mjs`. `SAMPLE_MODE=true` answers from cached rows with no network (counters then come from the local decisions file); `"options": {"sample_mode": true}` on a `/run` forces it for one call.
 
-**Reaching a shared instance.** A clean run needs no key (Quick start). The team's shared instance is https://jedi.blastworks.ai (until 29 Oct 2026), and only there is a token set, so strangers cannot spend the sponsor quota. When an instance runs with `API_TOKEN` set, the three POST routes (`/run`, `/ask`, `/feedback`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
+**Reaching a shared instance.** A clean run needs no key (Quick start). The team's shared instance is https://jedi.blastworks.ai (until 29 Oct 2026), and only there is a token set, so strangers cannot spend the sponsor quota. When an instance runs with `API_TOKEN` set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
 
 ```bash
 B=http://127.0.0.1:8000
@@ -106,7 +106,16 @@ curl -s $B/openapi.yaml
 
 **Runs, journeys and the queue.** `GET /runs?limit=50` lists the stored runs newest first; `GET /runs/<run_id>/journey` returns how the information travelled (one node per trace step, what each step consulted and what the reply kept, and what reached a human); `GET /queue` lists what is waiting for a person.
 
-**The two pages.** The service also serves two reference pages, driven only by the API above: `GET /` is the unified front end (the "Why are you contacting us?" picker, a free-text field and the demo buttons, with the person's view on the left and "Under the hood" on the right) and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject). Their script, stylesheet and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names. Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
+**The pages.** The service serves a storefront and an internal dashboard, driven only by the API above.
+`GET /` redirects to the storefront (Home, Shop, FAQ and Contact under `/shop/`).
+The contact page, `/shop/contact.html`, is the front end: CONTACT US, the 14 scenarios, the demo flow "How a person sees it" and the "Under the hood" drawer, and its SEND button writes the ticket's queue file and marks it handled or follow up.
+`GET /inbox` is the reference form, and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject).
+Their scripts, stylesheets and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names.
+Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
+
+`GET /faq` returns the FAQ rows (public columns only) for the storefront FAQ page.
+
+`POST /runs/{id}/send` records that a person sent the stored reply, writes the ticket's queue file and sets the journey status to handled or follow up; a second send answers 409.
 
 **The 14 judge scenarios.** `GET /demo/scenarios`, `GET /demo/client` and `GET /faq` serve the demo data; every new field, the status lifecycle and the scenario table are in [docs/API-CONTRACT-judge-scenarios.md](docs/API-CONTRACT-judge-scenarios.md).
 
@@ -365,7 +374,7 @@ Committed traces for judges are in [judging/traces/](judging/traces/trace-two-ru
 - `sample_mode`, `sample_cache`: no network, cached rows match live.
 - `world`, `world_model_bundle`, `world_model_conformance`, `complaint`, `complaint_route`: the World Model domain layer, the bundle against a fresh build, the conformance runner on our bundle, the complaint read, severity and branch.
 - `faq_match`, `rfq`, `customer_service`, `intake`, `scenarios_grid`, `reply_loop`: the FAQ match, the RFQ route, the customer-service default, the intake table, the scenario grid.
-- `journey`, `spec_endpoints`, `pages`: the journey derivation, the list and journey endpoints, the two pages.
+- `journey`, `spec_endpoints`, `pages`: the journey derivation, the list and journey endpoints, the pages.
 - `no_secrets`: no secret value or Bearer token in any shipped or log artefact.
 
 Other checks: `bash scripts/check.sh` (syntax check of every source file), `npm run evals` (Scout harness), `npm run doctor` (live providers), `node scripts/check_links.mjs README.md` (relative links in this file). Run `npm test` for the current count.
@@ -416,7 +425,7 @@ Sample mode:
 - The model's text is judged by another model call and by code rules; there is no human grading in the loop.
 - With `API_TOKEN` unset the API is unauthenticated, CORS is open, and it binds to loopback by default. Do not expose it as is; a shared instance sets `API_TOKEN` (the hosted one does).
 - Results of the last 200 runs are kept in memory; a restart forgets them.
-- The two pages (`GET /` and `GET /dashboard`) are reference pages and, like the API's reads, open; their write calls carry the token when the instance has one.
+- The storefront pages (`/shop/`), the reference form (`GET /inbox`) and the dashboard (`GET /dashboard`) are reference pages and, like the API's reads, open; their write calls carry the token when the instance has one.
 - Severity is a model read on ten levels (OpenJev accepts at most ten score levels), mapped to 1 to 10; escalation is at 9 or above. A different cut-off is a one-line change.
 - The synthetic company has no purchasing team, so an RFQ goes to sales (employee 6, backup 14) and every surface says "sales quotes".
 - A free-text ticket carries no authored `may_leave` flag, so the intake facts set it true and Risk guards the draft through restricted terms and the amount limit only.

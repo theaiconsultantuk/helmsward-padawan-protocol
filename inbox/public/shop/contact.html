@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="api-base" content="">
+<title>Contact · Farstrand Supply Co.</title>
+<meta name="description" content="Contact Farstrand Supply Co.: refunds, product questions, quotes for bulk crew orders and complaints. Tell us what it is about and we get back to you.">
+<meta name="theme-color" content="#050506">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23050506' stroke='%23FF5A1F' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="shared/reset.css">
+<link rel="stylesheet" href="css/totality.css">
+</head>
+<body class="page-contact">
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast">
+  <a class="mast__brand" href="./index.html"><span class="mast__logo" data-logo-slot></span><span data-brand="shop_name">Farstrand Supply Co.</span></a>
+  <nav class="mast__nav" aria-label="Primary"><ul><li><a href="index.html">Home</a></li><li><a href="shop.html">Shop</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html" aria-current="page">Contact</a></li></ul></nav>
+  <button class="mast__menu" type="button" data-open="menu" aria-haspopup="dialog">Menu</button>
+  <button class="mast__cart" type="button" data-open-cart aria-haspopup="dialog">Cart <span class="mast__count" data-cart-count>0</span></button>
+</header>
+<dialog class="menu" id="menu" aria-label="Menu">
+  <div class="menu__top"><span class="menu__brand" data-brand="shop_name">Farstrand Supply Co.</span><button class="btn-line" type="button" data-close>Close</button></div>
+  <nav aria-label="Menu"><ul class="menu__list"><li><a href="index.html" data-close>Home</a></li><li><a href="shop.html" data-close>Shop</a></li><li><a href="faq.html" data-close>FAQ</a></li><li><a href="contact.html" aria-current="page" data-close>Contact</a></li></ul></nav>
+</dialog>
+<main id="main" class="contact-main" data-no-translate>
+  <section class="cu" aria-labelledby="cu-title">
+    <h1 class="cu__title" id="cu-title">Contact us</h1>
+    <p class="cu__lede">Tell us what it is about and we get back to you.</p>
+    <noscript><p class="cu__status">Scripts are needed to send a message from this page.</p></noscript>
+    <form id="contact-form" class="cu__form" autocomplete="off" novalidate>
+      <div class="cu__fields" id="form-fields">
+        <label class="cu__field" for="reason"><span>Reason</span>
+          <select class="cu__select" id="reason" name="reason" required>
+            <option value="refund">Refund</option>
+            <option value="question">Question</option>
+            <option value="rfq">Quote</option>
+            <option value="complaint">Complaint</option>
+            <option value="free_text" selected>Other</option>
+          </select>
+        </label>
+        <div class="cu__row">
+          <label class="cu__field" for="name"><span>Name or callsign</span><input type="text" id="name" name="name" maxlength="120" autocomplete="off"></label>
+          <label class="cu__field" for="email"><span>Email</span><input type="email" id="email" name="email" maxlength="200" autocomplete="off"></label>
+        </div>
+        <label class="cu__field" for="message"><span>Message</span><textarea id="message" name="message" rows="5" maxlength="4000" required></textarea></label>
+      </div>
+      <div id="source-card" hidden></div>
+      <input type="hidden" id="as_of" name="as_of" value="2026-10-20">
+      <input type="hidden" id="channel" name="channel" value="contact-form">
+      <button type="submit" class="btn cu__submit" id="submit">Submit dispatch</button>
+      <p class="cu__status" id="status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+
+  <section class="sc" aria-labelledby="sc-title">
+    <h2 class="sc__title" id="sc-title">Try a scenario</h2>
+    <p class="sc__note">Fills the form with a sample message; nothing runs until you submit.</p>
+    <div id="scenarios"></div>
+    <p class="sc__expected" id="sc-expected" hidden></p>
+  </section>
+
+  <section class="flow" id="flow" hidden aria-live="polite">
+    <div class="flow__head">
+      <h2 class="flow__title">How a person sees it</h2>
+      <span class="flow__state" id="flow-state" data-kind="none"><span class="flow__badge" id="flow-badge"></span></span>
+      <span class="flow__run" id="flow-run"></span>
+      <button type="button" class="btn-line" id="open-drawer">Under the hood</button>
+    </div>
+    <div class="thread" id="thread"></div>
+    <p class="thread__meta" id="send-note" role="status"></p>
+  </section>
+
+  <dialog class="dr" id="drawer" aria-labelledby="dr-title">
+    <div class="dr__head">
+      <h2 id="dr-title">Under the hood</h2>
+      <span id="dr-run"></span>
+      <span id="dr-total"></span>
+      <button class="btn-line dr__close" type="button" data-close>Close</button>
+    </div>
+    <div class="dr__body" id="dr-body">
+      <ol class="dr__list" id="dr-list"></ol>
+      <div class="dr__glossary" id="dr-glossary"></div>
+    </div>
+  </dialog>
+</main>
+<footer class="endcard">
+  <div class="endcard__inner">
+    <span class="endcard__logo" data-logo-slot></span>
+    <p class="endcard__name" data-brand="shop_name">Farstrand Supply Co.</p>
+    <p class="endcard__tag" data-brand="shop_tagline">Outfitters for the long way round.</p>
+    <nav class="endcard__nav" aria-label="Footer"><ul>
+      <li><a href="index.html">Home</a></li><li><a href="shop.html">Shop</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html" aria-current="page">Contact</a></li>
+    </ul></nav>
+    <span class="moth-slot" data-moth-slot><svg class="moth" viewBox="0 0 80 72" width="56" height="50" aria-hidden="true" focusable="false"><defs><linearGradient id="moth-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF5A1F"/><stop offset="1" stop-color="#FF5A1F" stop-opacity="0"/></linearGradient></defs><path class="moth__tail" d="M40 34c-3 10 4 20-2 36" stroke="url(#moth-t)" stroke-width="3" fill="none" stroke-linecap="round"/><g class="moth__wing"><g id="moth-w"><path class="mw" d="M39 22C30 6 12 2 7 10s8 18 32 15z"/><path class="mw2" d="M39 28c-9 3-19 12-15 18s12-4 15-16z"/><circle class="mb" cx="18" cy="12" r="2.6"/></g></g><g class="moth__wing"><use href="#moth-w" transform="matrix(-1 0 0 1 80 0)"/></g><ellipse class="mb" cx="40" cy="26" rx="2.8" ry="10"/><path class="moth__ant" d="M39 17c-2-6-5-9-9-10M41 17c2-6 5-9 9-10" fill="none" stroke-width="1.2"/></svg></span>
+    <p class="endcard__fine">Standard orbital dispatch across all Outer Ring sectors · Registry 04-FARSTRAND.</p>
+  </div>
+</footer>
+<div class="cartbar" data-cartbar>
+  <span class="perch" data-perch></span>
+  <span class="cartbar__label">Cart <span class="cartbar__count" data-cart-count>0</span></span>
+  <button class="btn btn--sm" type="button" data-open-cart aria-haspopup="dialog">Open cart</button>
+</div>
+<dialog class="cart" id="cart" aria-labelledby="cart-title">
+  <div class="cart__head"><h2 class="cart__title" id="cart-title">Cart</h2><button class="btn-line" type="button" data-close>Close</button></div>
+  <p class="cart__empty" data-cart-empty>Your cart is empty. Every piece is on the reel.</p>
+  <ul class="cart__list" data-cart-list></ul>
+  <div class="cart__foot">
+    <p class="cart__total"><span>Total</span><span data-cart-total>0 GC</span></p>
+    <button class="btn btn--wide" type="button" disabled>Checkout</button>
+    <p class="cart__note">Settled in Galactic Credits (GC) upon orbital manifest lock.</p>
+  </div>
+</dialog>
+<p class="sr-only" aria-live="polite" data-live></p>
+<script src="shared/vendor/gsap.min.js" defer></script>
+<script src="shared/vendor/ScrollTrigger.min.js" defer></script>
+<script src="shared/vendor/lenis.min.js" defer></script>
+<script src="shared/brand.js" defer></script>
+<script src="js/core.js" defer></script>
+<script src="js/flow-render.js" defer></script>
+<script src="js/contact.js" defer></script>
+</body>
+</html>
