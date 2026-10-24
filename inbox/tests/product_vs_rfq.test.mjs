@@ -115,3 +115,32 @@ test("corpus: ten representative phrases through the real loop", async () => {
   }
   assert.deepEqual(bad, []);
 });
+
+// ---- Codex 38: the safety family, the whole-word strip, and the rule's own words ----
+const readsOf = (text, reads, productHit = null) => reads.map((id) => resolveScenario({ kind: "message", text, productHit, decided: { intent: { primary: { id }, confidence: 0.9 } } }).scenario);
+
+test("a quote word does not turn a complaint into a quote: burns, injuries and Scout's own complaint read keep the complaint road", () => {
+  for (const t of ["Please quote 10 Vanta Arc Trainers; the last one gave my child burns.", "Please quote 10 hilts, the last one is burning my hand", "Quote 5 hilts: the last batch injured two kids", "Quote for 5 hilts, it hurts to hold"]) {
+    assert.deepEqual(readsOf(t, ["complaint", "rfq.request", "GENERAL", "order.question"]), ["complaint", "complaint", "complaint", "complaint"], t);
+  }
+  assert.equal(readsOf("Please quote 10 Vanta Arc Trainers, the grip is rough", ["complaint"])[0], "complaint");
+});
+
+test("the product name is stripped as whole words only: 'tin' inside 'insulting' is not the Twin Core Travel Tin", () => {
+  const text = "What is the Twin Core Travel Tin made of? Your replies are insulting.";
+  const hit = matchProductLookup(text, lookup);
+  assert.ok(hit.all.length > 0);
+  assert.notEqual(readsOf(text, ["replacement.request"], hit)[0], "product");
+});
+
+test("the rule's words: quotes, quotations, RFQs, bulk, wholesale are RFQ under every read; near-words are not", () => {
+  const reads = ["rfq.request", "GENERAL", "order.question"];
+  for (const t of ["Do you send quotes?", "Where can I get quotations?", "RFQs for hilts", "Bulk pricing for the Strand Emitter Hilt?", "Wholesale price for Drift Boot Wraps?"]) {
+    const hit = matchProductLookup(t, lookup);
+    assert.deepEqual(readsOf(t, reads, hit.all.length ? hit : null), ["rfq", "rfq", "rfq"], t);
+  }
+  for (const t of ["unquoted Vanta Arc Trainer price?", "bulky packaging price?", "tender price for 10 trainers?"]) {
+    const hit = matchProductLookup(t, lookup);
+    for (const r of readsOf(t, reads, hit.all.length ? hit : null)) assert.notEqual(r, "rfq", t);
+  }
+});

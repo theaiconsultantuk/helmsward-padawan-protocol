@@ -29,9 +29,9 @@ const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track
 const ORDER_ID = /\bJP-\d{4}\b/i;
 // a question about what a product is, made of or costs, with or without the product named
 const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
-const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
+const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;
 // the cues that put ANY message on the complaint road, whatever intent Scout read: a legal threat, an injury, an unsafe product
-const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burned|burnt|injur\w*|hurt|unsafe|split open)\b/i;
+const SAFETY_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open)\b/i;
 // a complaint about something other than where the parcel is
 const OTHER_COMPLAINT = /\b(staff|rude\w*|insult\w*|apolog\w*|refund\w*|money back|reimburs\w*|compensat\w*|broke\w*|damag\w*|defect\w*|faulty|wrong|missing|disappoint\w*|complain\w*|ignor\w*|manager|scuff\w*|dent\w*|crushed|cracked|poor service|bad service)\b/i;
 // The one RFQ test (einh, 25 Oct 2026, "simplest rule"): a quote / quotation / RFQ / bulk / wholesale word in the message. Nothing else makes a message an RFQ except a declared rfq scenario:
@@ -53,6 +53,8 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
   // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
+  // Scout's own complaint read keeps its road: a quote word does not make a complaint a quote
+  if (id === "complaint") return { scenario: "complaint", how: "scout" };
   if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
   if (id === "rfq.request" && text != null) id = "GENERAL";
   else if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
@@ -60,7 +62,7 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   // take the product's name and aliases out of the text, and if what is left asks what it is made of or costs and carries no refund, return, order or account word, the catalogue row answers it
   if (["refund.request", "replacement.request", "appreciation", "follow_up"].includes(id) && productHit && PRODUCT_WORDS.test(T) && T.includes("?")) {
     let rest = T.toLowerCase();
-    for (const r of lookupRows(productHit)) for (const n of [r.name, ...String(r.aliases ?? "").split(";")]) if (n) rest = rest.replace(new RegExp(String(n).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:e?s)?", "g"), " ");
+    for (const r of lookupRows(productHit)) for (const n of [r.name, ...String(r.aliases ?? "").split(";")]) if (n) rest = rest.replace(new RegExp("(?<![a-z0-9])" + String(n).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?:e?s)?(?![a-z0-9])", "g"), " ");
     if (!/\b(refund\w*|return\w*|replace\w*|exchange\w*|money back|bought|ordered|received|arrived|my|broke\w*|damag\w*|faulty|wrong|missing)\b/.test(rest) && !ACCOUNT_WORDS.test(rest) && !ORDER_ID.test(T) && !COMPLAINT_CUES.test(rest) && !SAFETY_CUES.test(rest) && !OTHER_COMPLAINT.test(rest)) return { scenario: "product", how: "scout" };
   }
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
