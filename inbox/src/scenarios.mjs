@@ -298,7 +298,7 @@ async function probeComplaint(tb) {
   };
   let read;
   const twin = () => sample.complaintRead(ticket, { worldText: ctx.text });
-  const sampleLine = (r, extra = {}) => readLine(r.model ?? "sample-rules", r, { status: "skipped", output_summary: `sample mode: rules read (${r.model ?? "sample-rules"}), no model call; kind ${r.kind}, face_risk ${r.face_risk}: ${one(r.reasoning, 100)}`, ...extra });
+  const sampleLine = (r, extra = {}) => readLine(r.model ?? "sample/rules", r, { status: "skipped", output_summary: `sample mode: rules read (${r.model ?? "sample/rules"}), no model call; kind ${r.kind}, face_risk ${r.face_risk}: ${one(r.reasoning, 100)}`, ...extra });
   if (tb.sampleOn) {
     read = twin();
     sampleLine(read);
@@ -321,7 +321,7 @@ async function probeComplaint(tb) {
       lines.push({ step: "nvidia.model", agent_name: "Reader", action: "read_complaint", sponsor: "nvidia", input_summary: "nvidia.model failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" },
         { step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after nvidia.model error", output_summary: "complaint read unavailable, rules read used", status: "success" });
       read = twin();
-      readLine(read.model ?? "sample-rules", read, { input_summary: "rules read after the model failed" });
+      readLine(read.model ?? "sample/rules", read, { input_summary: "rules read after the model failed" });
     }
   }
   // severity (the gate logs its own line through the shim)

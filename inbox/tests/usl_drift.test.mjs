@@ -1,15 +1,16 @@
 // Live contract-drift test: the USL changed nothing about the facts. Each switched template's rows equal the raw table's rows.
-// Skipped without inbox/.env. Sample mode serves what the USL serves.
+// Skipped unless inbox/.env points at a Zetaris that answers (tests/helpers/live_zetaris.mjs). Sample mode serves what the USL serves.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { run } from "../src/queries.mjs";
 import * as zetaris from "../src/adapters/zetaris.mjs";
 import { config, INBOX_ROOT } from "../src/config.mjs";
+import { liveZetaris } from "./helpers/live_zetaris.mjs";
 
-const HAS_ENV = existsSync(join(INBOX_ROOT, ".env"));
-const t = (name, fn) => (HAS_ENV ? test(name, { timeout: 120000 }, fn) : test.skip(name, fn));
+const { live, why } = await liveZetaris();
+const t = (name, fn) => (live ? test(name, { timeout: 120000 }, fn) : test(name, { skip: why }, fn));
 const cfg = () => ({ ...config(), SAMPLE_MODE: "false" });
 // A typed layer prints 99.0 where the raw CSV says 99: the FACT is equal, so numeric strings compare as numbers.
 const num = (v) => (typeof v === "string" && v.trim() !== "" && Number.isFinite(Number(v)) ? String(Number(v)) : v);
