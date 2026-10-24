@@ -113,7 +113,7 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 
 1. `memory.read`: ask H-MEM for earlier facts about this customer.
 2. `planner.plan` and `delegate`: choose reply-now or hold-or-escalate.
-3. `executor.act` and `zetaris.query`: read the facts the scenario needs (the ticket, who owns the topic, the owner's holiday row, the backup's only when the owner is out, the contact desk only when both are out; the policy limit only for a refund) through named query templates. A stored thread keeps the full read and also reads the contact desk when nobody is in.
+3. `executor.act` and `zetaris.query`: read the facts the scenario needs (the ticket, who owns the topic, the owner's holiday row, the backup's only when the owner is out, the contact desk only when both are out; the policy limit only for a refund) through named query templates; a scenario's own route may read its own records on top (the FAQ, a wiki page). A stored thread keeps the full read and also reads the contact desk when nobody is in.
 4. `meterless.engine`: Scout classifies the message and issues a signed execution contract. The contract is verified before any model call. A blocked message stops here and escalates.
 5. Typed gates (OpenJev) and `branch`: pick a branch (under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel). An amount over the policy limit (`over-limit`) is a hard fact: Risk refuses on round 1, there is no retry, and the ticket escalates to the policy's over-limit owner (the backup if the owner is out) for approval, with the draft and both critiques attached.
 6. `nvidia.model`: the drafter writes a reply as JSON.

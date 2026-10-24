@@ -137,3 +137,21 @@ test("contact template: validator, sql, raw layer, TABLES, TOPICS untouched", ()
   assert.ok(TABLES.includes("contacts"));
   assert.ok(!TOPICS.includes("default"));
 });
+
+// Codex review 7, MEDIUM: an absent backup counts as out when the owner is out, so nobody-in is one predicate everywhere.
+test("owner out and no backup on the policy row: backup_out true and the contact desk is read", async () => {
+  const s = spy();
+  const base = s.sqlRunImpl;
+  s.sqlRunImpl = async (sql, opts) => {
+    if (opts.name === "policy") return { headers: ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [["refund", "150.00", "USD", "15", "", "3", "4"]], total: 1 };
+    return base(sql, opts);
+  };
+  // employee 15 is out on 2026-01-27 (and 16 is not, which no longer matters: there is no backup)
+  const { facts } = await scoped("refund", "2026-01-27", ["limit"], { amount: 50 }, s);
+  assert.equal(facts.owner_id, 15);
+  assert.equal(facts.backup_id, null);
+  assert.equal(facts.owner_out, true);
+  assert.equal(facts.backup_out, true);
+  assert.equal(facts.fallback_contact?.email, "contact@jedipack.com");
+  assert.equal(s.names().filter((n) => n === "holiday").length, 1, "no backup to look up");
+});

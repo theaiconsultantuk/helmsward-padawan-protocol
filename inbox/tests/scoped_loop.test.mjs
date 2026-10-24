@@ -127,3 +127,12 @@ test("a declared scenario on a thread never scopes it", async () => {
   const pol = lines.find((l) => l.step === "zetaris.query" && l.action === "sql:policy");
   assert.match(JSON.stringify(pol), /150/, "the refund limit is still read for a thread");
 });
+
+// Codex review 7, HIGH: a message resolved to legacy reads no policy row, so a refund promised in its draft has nothing behind it and is never signed.
+test("a legacy-resolved message whose draft promises a refund is never sent", async () => {
+  const d = { ...mkDeps(), sampleDrafter: (ticket) => ({ text: `Hello,\n\nWe will refund 400 USD.\n\nBest regards,\nJedi Pack Support`, model: "test/promiser", route: "sample", promises: { refund_amount: 400, replacement: false, other: null } }) };
+  const { result, lines } = await go("sl-legacy-promise", msg("please replace my cracked saber, it arrived broken"), { d });
+  assert.equal(result.scenario, "legacy");
+  assert.notEqual(result.output.decision, "send");
+  assert.ok(lines.some((l) => l.step === "risk.signoff" && /no policy limit behind it/.test(l.output_summary)), "Risk names the missing limit");
+});

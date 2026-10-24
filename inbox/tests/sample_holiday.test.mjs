@@ -38,9 +38,10 @@ test("other templates without an entry still throw", () => {
   assert.throws(() => queryByName("employee", { employee_id: 999 }, { cfg }), /no cached rows/);
 });
 
-test("critique: null limit passes, set limit fails", () => {
+test("critique: a promised refund fails with a null limit and over a set limit", () => {
   const d = { promises: { refund_amount: 40 }, text: "ok" };
-  assert.equal(critique(d, { policy_limit_usd: null, restricted_terms: [] }).pass, true);
+  // a promised refund with no policy limit behind it fails (Codex review 7, HIGH)
+  assert.equal(critique(d, { policy_limit_usd: null, restricted_terms: [] }).pass, false);
   const r = critique(d, { policy_limit_usd: 30, restricted_terms: [] });
   assert.equal(r.pass, false);
   assert.match(r.reason, /above the limit/);

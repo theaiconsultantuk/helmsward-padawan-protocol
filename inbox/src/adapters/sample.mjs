@@ -66,7 +66,10 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
 
 export function critique(d, facts) {
   const amt = d.promises?.refund_amount;
-  if (typeof amt === "number" && facts.policy_limit_usd != null && amt > facts.policy_limit_usd) {
+  if (typeof amt === "number" && facts.policy_limit_usd == null) {
+    return { pass: false, reason: `promises a refund of ${amt} USD with no policy limit behind it`, model: MODEL };
+  }
+  if (typeof amt === "number" && amt > facts.policy_limit_usd) {
     return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit_usd} USD`, model: MODEL };
   }
   const low = String(d.text ?? "").toLowerCase();
