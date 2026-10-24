@@ -8,6 +8,7 @@ import { createServer as netServer } from "node:net";
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseEnvFile } from "../src/envfile.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const J = join(ROOT, "judging"), T = join(J, "traces");
@@ -44,6 +45,12 @@ if (!base) {
   base = `http://127.0.0.1:${port}`;
 }
 process.on("exit", () => { try { child?.kill(); } catch {} });
+// A shared instance (API_TOKEN set in .env) refuses POST /run without the bearer; the token is read from the environment, then inbox/.env (the environment wins, as in src/config.mjs), and never printed.
+// Read through src/envfile.mjs, never src/config.mjs: that import installs the NO_NETWORK fetch guard in this process too (Codex review 9).
+// Same precedence as config(): a set environment value wins, even an empty one (Codex review 10).
+const fileToken = () => { try { return parseEnvFile(readFileSync(join(ROOT, ".env"), "utf8")).API_TOKEN ?? ""; } catch { return ""; } };
+const TOKEN = process.env.API_TOKEN !== undefined ? process.env.API_TOKEN : fileToken();
+const AUTH = TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {};
 const getJson = async (path, init) => {
   const r = await fetch(base + path, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
   const text = await r.text();
@@ -71,8 +78,10 @@ for (const n of NS) {
     const t0 = Date.now();
     try {
       const body = { run_id, input: ex.input, options: { sample_mode: mode === "sample" } };
-      const r = await getJson("/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const r = await getJson("/run", { method: "POST", headers: { "Content-Type": "application/json", ...AUTH }, body: JSON.stringify(body) });
       rec.http = r.status; rec.result = r.body; rec.seconds = Math.round((Date.now() - t0) / 100) / 10;
+      // a refused POST stores no run: say so, instead of a trace fetch 404 one line later
+      if (r.status !== 200) throw new Error(`POST /run answered ${r.status}${r.body?.error?.type ? ` (${r.body.error.type})` : ""}`);
       const tr = await getJson(`/runs/${run_id}/trace`);
       const jr = await getJson(`/runs/${run_id}/journey`);
       if (tr.status !== 200 || !Array.isArray(tr.body)) throw new Error(`trace fetch ${tr.status}`);
