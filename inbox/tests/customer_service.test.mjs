@@ -59,3 +59,15 @@ test("blanks the model forgot to list are added, not failed", async () => {
   assert.equal(result.output.decision, "hold");
   assert.deepEqual(result.output.draft.blanks.map((b) => b.what), ["order number"]);
 });
+
+test("the customer-service road is for a customer's own purchase or account; off-topic free text is the other road", async () => {
+  const { resolveScenario } = await import("../src/scenarios.mjs");
+  const dec = { intent: { primary: { id: "GENERAL" }, confidence: 0.2 } };
+  assert.deepEqual(resolveScenario({ kind: "message", decided: dec, text: example(9).message }), { scenario: "customer_service", how: "none" });
+  assert.deepEqual(resolveScenario({ kind: "message", decided: dec, text: "Can I book the Coruscant store for a private party?" }), { scenario: "other", how: "none" });
+  // example 9 still gets its recommendation and draft with blanks
+  const { result } = await go("cs-9-road", example(9));
+  assert.equal(result.scenario, "customer_service");
+  assert.equal(result.output.status, "open");
+  assert.equal(result.output.auto_reply, false);
+});

@@ -11,16 +11,25 @@ import { getWorld, toObjects, complaintContext, worldLine, mentionedProducts } f
 import * as sample from "./adapters/sample.mjs";
 
 export const SCENARIOS = ["refund", "question", "rfq", "complaint", "free_text"];
-export const TOPIC_OF = { refund: "refund", question: "question", rfq: "rfq", complaint: "complaint", customer_service: "customer_service" };
+export const TOPIC_OF = { refund: "refund", question: "question", rfq: "rfq", complaint: "complaint", customer_service: "customer_service", product: "product", delivery: "delivery", other: "other" };
 // What a scenario's facts gather may read beyond the ticket row, the owner chain, the trust row and the what-may-leave page.
 // `legacy` is absent on purpose: a typed message resolved to legacy gets `[]` from the loop (scoped, no borrowed limit); a stored thread passes no needs and keeps the full read.
-export const FACT_NEEDS = { refund: ["limit"], question: [], rfq: [], complaint: [], customer_service: [] };
+export const FACT_NEEDS = { refund: ["limit"], question: [], rfq: [], complaint: [], customer_service: [], product: [], delivery: [], other: [] };
 
 const one = (s, n = 160) => { const t = String(s ?? "").replace(/\s+/g, " ").trim(); return t.length > n ? `${t.slice(0, n - 1)}…` : t; };
 const NO_PROMISES = () => ({ refund_amount: null, replacement: false, other: null });
 
+// words that put a message about an order id on the delivery road
+const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track\w*|parcel|package|arriv\w*)\b/i;
+const ORDER_ID = /\bJP-\d{4}\b/i;
+// a question about what a product is, made of or costs, with or without the product named
+const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
+// a message about the customer's own purchase or account: a person has to look at it (the customer-service road)
+const ACCOUNT_WORDS = /\b(order|orders|bought|purchase\w*|deliver\w*|address|account|invoice|parcel|package|shipment|payment|subscription|password|cancel\w*|change)\b/i;
+
 // kind: "thread" | "message". A thread run with nothing declared is the loop exactly as today.
-export function resolveScenario({ kind, declared = null, decided = null, gates = null, faqHit = null } = {}) {
+// text and productHit (the message and the catalogue match, both read by the loop before this call) are optional: without them the product and delivery roads are not taken.
+export function resolveScenario({ kind, declared = null, decided = null, gates = null, faqHit = null, text = null, productHit = null } = {}) {
   if (declared && declared !== "free_text") return { scenario: declared, how: "declared" };
   if (kind === "thread") return { scenario: "legacy", how: "thread" };
   const id = decided?.intent?.primary?.id ?? "GENERAL";
@@ -29,9 +38,19 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (id === "rfq.request") return { scenario: "rfq", how: "scout" };
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
   if (id === "complaint" || (cat?.choice === "complaint" && cat.confidence >= 0.6)) return { scenario: "complaint", how: id === "complaint" ? "scout" : "gates" };
+  // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order")
+  const oid = ORDER_ID.test(String(text ?? "")) || ORDER_ID.test(String(decided?.parameters?.id ?? ""));
+  if (oid && DELIVERY_WORDS.test(String(text ?? "")) && !["replacement.request", "appreciation", "follow_up"].includes(id)) return { scenario: "delivery", how: "scout" };
+  // a product named (by name or alias) or a material/spec/price question: the catalogue row answers it
+  if ((id === "order.question" || id === "GENERAL") && (productHit || PRODUCT_WORDS.test(String(text ?? "")))) return { scenario: "product", how: "scout" };
   if (id === "order.question" || (cat?.choice === "question" && cat.confidence >= 0.6)) return { scenario: "question", how: id === "order.question" ? "scout" : "gates" };
+  // a question the FAQ answers is not a thank-you, whatever word ("gift") Scout read as appreciation
+  if (id === "appreciation" && faqHit && String(text ?? "").includes("?")) return { scenario: "question", how: "faq" };
   if (id === "replacement.request" || id === "appreciation" || id === "follow_up") return { scenario: "legacy", how: "scout" };
+  if (id === "other" || (cat?.choice === "other" && cat.confidence >= 0.6)) return { scenario: "other", how: id === "other" ? "scout" : "gates" };
   if (faqHit) return { scenario: "question", how: "faq" };          // the data is searched before anyone is bothered
+  // free text with no intent: nothing about the customer's own purchase or account means nothing in the records is likely to answer it (the FAQ is searched first by the other road)
+  if (typeof text === "string" && text.trim() && decided?.risk?.level !== "block" && !ACCOUNT_WORDS.test(text)) return { scenario: "other", how: conf < 0.4 ? "none" : "unrouted" };
   return { scenario: "customer_service", how: conf < 0.4 ? "none" : "unrouted" };
 }
 
@@ -56,6 +75,22 @@ export function matchFaq(text, faqRows) {
 export function matchProducts(text, productRows) {
   const t = new Set(tokens(text));
   return (productRows ?? []).filter((p) => { const n = tokens(p.name); return n.length > 0 && n.every((w) => t.has(w)); });
+}
+
+// The product a message is about, from the product_lookup rows ({ sku, name, aliases }): the name's tokens all in the text, or an alias's.
+// A name match outranks an alias match, then the more tokens matched wins; two equally good products are ambiguous (null, with the skus listed).
+export function matchProductLookup(text, lookupRows) {
+  const t = new Set(tokens(text));
+  const found = [];
+  for (const p of lookupRows ?? []) {
+    const n = tokens(p.name);
+    if (n.length && n.every((w) => t.has(w))) { found.push({ row: p, via: "name", n: n.length }); continue; }
+    const best = String(p.aliases ?? "").split(";").map((a) => tokens(a)).filter((a) => a.length && a.every((w) => t.has(w))).sort((a, b) => b.length - a.length)[0];
+    if (best) found.push({ row: p, via: "alias", n: best.length });
+  }
+  found.sort((a, b) => (a.via === b.via ? 0 : a.via === "name" ? -1 : 1) || b.n - a.n || (a.row.sku < b.row.sku ? -1 : 1));
+  const top = found.filter((x) => x.via === found[0]?.via && x.n === found[0]?.n);
+  return { all: found, hit: top.length === 1 ? top[0] : null, ambiguous: top.length > 1 ? top.map((x) => x.row.sku) : [] };
 }
 
 // the inner text of every [[blank: …]] marker
@@ -163,23 +198,27 @@ async function probeQuestion(tb) {
     cited: answerable ? cited : [], data: { faq: null, faqRows: faqRows.length, rows, records: data, checked, owner }, lines };
 }
 
+// The FAQ's canonical answer, sent by itself on behalf of Support (no model: FAQ text is canonical, the floor gates model drafts).
+async function actFaqHit(tb, p) {
+  const B = p.branch_id;
+  const { row } = p.data.faq;
+  skipLine(tb, "nvidia.model", "FAQ canonical text, no model call");
+  skipLine(tb, "critique", "canonical FAQ answer, nothing to evaluate");
+  const draft = { text: sample.frame(tb.ticket ?? tb.f, row.answer, { team: "Support", onBehalf: true }), promises: NO_PROMISES(), model: "faq/canonical" };
+  const sig = signoff(tb, B, draft);
+  skipLine(tb, "retry", "canonical FAQ text: a rewrite cannot change it");
+  if (!sig.pass) {
+    const owner = await ownerOf(tb, "question", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+    tb.escalate([{ source: "Risk", reason: sig.reasons.join("; ") }], `FAQ ${row.faq_id} answer not signed off: ${sig.reasons.join("; ")}`, {}, { owner, draft });
+    return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
+  }
+  tb.skipped("escalate_or_fallback", "FAQ answer sent; nothing to escalate");
+  return { decision: "send", reasons: [`FAQ ${row.faq_id} answers it; ${p.why}`], draft, cited: p.cited, auto_reply: true, team: "Support" };
+}
+
 async function actQuestion(tb, p) {
   const B = p.branch_id;
-  if (B === "faq-hit") {
-    const { row } = p.data.faq;
-    skipLine(tb, "nvidia.model", "FAQ canonical text, no model call");
-    skipLine(tb, "critique", "canonical FAQ answer, nothing to evaluate");
-    const draft = { text: sample.frame(tb.ticket ?? tb.f, row.answer), promises: NO_PROMISES(), model: "faq/canonical" };
-    const sig = signoff(tb, B, draft);
-    skipLine(tb, "retry", "canonical FAQ text: a rewrite cannot change it");
-    if (!sig.pass) {
-      const owner = await ownerOf(tb, "question", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
-      tb.escalate([{ source: "Risk", reason: sig.reasons.join("; ") }], `FAQ ${row.faq_id} answer not signed off: ${sig.reasons.join("; ")}`, {}, { owner, draft });
-      return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
-    }
-    tb.skipped("escalate_or_fallback", "FAQ answer sent; nothing to escalate");
-    return { decision: "send", reasons: [`FAQ ${row.faq_id} answers it; ${p.why}`], draft, cited: p.cited };
-  }
+  if (B === "faq-hit") return actFaqHit(tb, p);
   if (B === "question-records") {
     const rows = p.data.rows;
     const messagesFn = ({ critiques }) => {
@@ -325,7 +364,7 @@ async function probeComplaint(tb) {
     }
   }
   // severity (the gate logs its own line through the shim)
-  const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel === "trustpilot" }, wline,
+  const sev = await severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
     { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
   const sevCls = sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
   const owner = await ownerOf(tb, "complaint", o);
@@ -504,10 +543,159 @@ async function actCustomerService(tb, p) {
   return { decision: "hold", reasons, ...(withheld ? {} : { draft }), queued: owner, recommendation: rec.recommendation, cited: p.cited };
 }
 
+// ---- product (the catalogue row answers; no model, in live mode too) ----
+
+const unit = (v) => { const n = Number(v); return Number.isFinite(n) ? String(n) : String(v ?? ""); };
+const specPairs = (specs) => String(specs ?? "").split(";").map((x) => x.trim()).filter(Boolean).map((x) => { const i = x.indexOf("="); return i < 0 ? null : [x.slice(0, i).trim(), x.slice(i + 1).trim()]; }).filter(Boolean);
+
+// What the row can say about what was asked: [{ field, sentence }], composed from the row alone.
+export function answerFromRow(text, row) {
+  const t = String(text ?? "");
+  const T = new Set(tokens(t));
+  const name = row.name;
+  const out = [];
+  if (row.material && /\b(made of|made from|made out of|material|materials|built from|constructed)\b|\bwhat\b.*\bmade\b/i.test(t)) out.push({ field: "material", sentence: `The ${name} is made of ${row.material}.` });
+  const pairs = specPairs(row.specs);
+  const keyed = pairs.filter(([k]) => { const kt = tokens(k.replace(/[_-]/g, " ")); return kt.length > 0 && kt.every((w) => T.has(w)); });
+  for (const [k, v] of keyed) out.push({ field: `specs.${k}`, sentence: `The ${name} ${k} is ${v}.` });
+  if (!keyed.length && pairs.length && /\b(specs?|specifications?|dimensions?)\b/i.test(t)) out.push({ field: "specs", sentence: `The ${name} specifications: ${pairs.map(([k, v]) => `${k} ${v}`).join(", ")}.` });
+  if (row.unit_price !== undefined && row.unit_price !== "" && /\b(price|priced|cost|costs|how much)\b/i.test(t)) out.push({ field: "unit_price", sentence: `The ${name} costs ${unit(row.unit_price)} ${row.currency || "GC"}.` });
+  if (row.lead_days !== undefined && row.lead_days !== "" && /\blead\b|how long (does|will|would|is the wait|to (ship|arrive|get))|take to (ship|arrive)|how (many days|soon)/i.test(t)) out.push({ field: "lead_days", sentence: `The ${name} has a lead time of ${unit(row.lead_days)} days.` });
+  return out;
+}
+
+async function probeProduct(tb) {
+  const text = tb.inputText ?? "";
+  const { lines: ro, o } = buffer(tb, null);
+  const lookup = (await tb.queries.run("product_lookup", {}, o)).objects;
+  const m = matchProductLookup(text, lookup);
+  const fin = (branch_id, why, cited, data) => ({ branch_id, why, cited, data, lines: ro.map((x) => ({ ...x, branch_id })) });
+  if (!m.hit) {
+    const owner = await ownerOf(tb, "product", o);
+    return fin("product-unanswered", m.ambiguous.length ? `the question fits more than one product (${m.ambiguous.join(", ")}); not in the catalogue row of any one of them` : "no product in the catalogue matches the question; not in the catalogue row",
+      owner.looked_up ? ["responsibility:product"] : [], { owner, sku: null, answers: [] });
+  }
+  const sku = m.hit.row.sku;
+  const row = (await tb.queries.run("product_by_sku", { sku }, o)).objects[0];
+  const answers = row ? answerFromRow(text, row) : [];
+  if (answers.length) {
+    return fin("product-hit", `the catalogue row products:${sku} (${row.name}, matched by ${m.hit.via}) answers it: ${answers.map((a) => a.field).join(", ")}; composed from the row, no model call`,
+      [`products:${sku}`], { sku, row, answers, owner: null });
+  }
+  const owner = await ownerOf(tb, "product", o);
+  return fin("product-unanswered", `${row?.name ?? sku} is in the catalogue (products:${sku}) but not in the catalogue row: no field answers what was asked`,
+    [`products:${sku}`, ...(owner.looked_up ? ["responsibility:product"] : [])], { owner, sku, answers: [] });
+}
+
+async function actProduct(tb, p) {
+  const B = p.branch_id;
+  if (B === "product-hit") {
+    skipLine(tb, "nvidia.model", "product-hit: the answer is composed from the catalogue row, no model call");
+    skipLine(tb, "critique", "composed from the row, nothing to evaluate");
+    const body = p.data.answers.map((a) => a.sentence).join(" ");
+    const draft = { text: sample.frame(tb.ticket ?? tb.f, body, { team: "Product", onBehalf: true }), promises: NO_PROMISES(), model: "catalogue/row" };
+    const sig = signoff(tb, B, draft);
+    skipLine(tb, "retry", "composed from the row: a rewrite cannot change it");
+    if (!sig.pass) {
+      const owner = await ownerOf(tb, "product", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+      tb.escalate([{ source: "Risk", reason: sig.reasons.join("; ") }], `product answer not signed off: ${sig.reasons.join("; ")}`, {}, { owner, draft });
+      return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
+    }
+    tb.skipped("escalate_or_fallback", "product answer sent; nothing to escalate");
+    return { decision: "send", reasons: [p.why], draft, cited: p.cited, auto_reply: true, team: "Product" };
+  }
+  skipLine(tb, "nvidia.model", "product-unanswered: no draft");
+  skipLine(tb, "critique", "product-unanswered: no draft to critique");
+  skipLine(tb, "risk.signoff", "product-unanswered: nothing to sign");
+  skipLine(tb, "retry", "product-unanswered: a rewrite cannot change it");
+  tb.skipped("escalate_or_fallback", "the product owner answers; nothing is escalated");
+  const recommendation = `not in the catalogue row${p.data.sku ? ` of ${p.data.sku}` : ""}; the product owner answers the customer`;
+  return { decision: "hold", reasons: [`${p.why}. Held for the product owner, no draft`], queued: p.data.owner, recommendation, cited: p.cited };
+}
+
+// ---- delivery (the order and the planet's shipping rule answer) ----
+
+async function probeDelivery(tb) {
+  const text = tb.inputText ?? "";
+  const { lines: ro, o } = buffer(tb, null);
+  const order_id = (ORDER_ID.exec(text)?.[0] ?? String(tb.decided?.parameters?.id ?? "")).toUpperCase();
+  const fin = (branch_id, why, cited, data) => ({ branch_id, why, cited, data, lines: ro.map((x) => ({ ...x, branch_id })) });
+  const order = /^JP-\d{4}$/.test(order_id) ? (await tb.queries.run("order", { order_id }, o)).objects[0] : undefined;
+  if (!order) {
+    const owner = await ownerOf(tb, "delivery", o);
+    return fin("delivery-unknown", `order ${order_id || "(none)"} is not in the records; a person checks it`, owner.looked_up ? ["responsibility:delivery"] : [], { order_id, owner });
+  }
+  const planet = String(order.shipping_planet ?? "");
+  const rule = planet ? (await tb.queries.run("shipping_rule", { planet }, o)).objects[0] : undefined;
+  const cited = [`orders:${order.order_id}`, ...(rule ? [`shipping_rules:${rule.planet}`] : [])];
+  const suspended = String(rule?.status ?? "").toLowerCase() === "suspended";
+  return fin(suspended ? "delivery-suspended" : "delivery-status",
+    suspended ? `order ${order.order_id} ships to ${planet}, where deliveries are suspended (shipping_rules:${rule.planet}); the rule's note answers it` : `order ${order.order_id} is ${order.status}, shipping to ${planet}${rule ? ` (rule ${rule.planet}: ${rule.status})` : ""}`,
+    cited, { order, rule, planet });
+}
+
+async function actDelivery(tb, p) {
+  const B = p.branch_id;
+  if (B === "delivery-unknown") {
+    skipLine(tb, "nvidia.model", "delivery-unknown: no draft");
+    skipLine(tb, "critique", "delivery-unknown: no draft to critique");
+    skipLine(tb, "risk.signoff", "delivery-unknown: nothing to sign");
+    skipLine(tb, "retry", "delivery-unknown: a rewrite cannot change it");
+    tb.skipped("escalate_or_fallback", "the delivery owner checks the order; nothing is escalated");
+    return { decision: "hold", reasons: [`${p.why}. Held for the delivery owner, no draft`], queued: p.data.owner, recommendation: `order ${p.data.order_id || "(none)"} not found; ask the customer for the order reference`, cited: p.cited };
+  }
+  const { order, rule, planet } = p.data;
+  skipLine(tb, "nvidia.model", `${B}: the answer is composed from the order and the shipping rule, no model call`);
+  skipLine(tb, "critique", "composed from the rows, nothing to evaluate");
+  const note = String(rule?.note ?? "").trim();
+  const body = B === "delivery-suspended"
+    ? `${note || `Deliveries to ${planet} are currently suspended.`} Your order ${order.order_id} is held for now; our team will contact you as soon as deliveries to ${planet} resume.`
+    : `Your order ${order.order_id} is currently ${order.status}, shipping to ${planet}.${note ? ` ${note}` : ""}`;
+  const draft = { text: sample.frame(tb.ticket ?? tb.f, body, { team: "Support", onBehalf: true }), promises: NO_PROMISES(), model: "orders/rows" };
+  const sig = signoff(tb, B, draft);
+  skipLine(tb, "retry", "composed from the rows: a rewrite cannot change it");
+  if (!sig.pass) {
+    const owner = await ownerOf(tb, "delivery", { ...(tb.o ?? {}), ...(tb.cfg ? { cfg: tb.cfg } : {}) });
+    tb.escalate([{ source: "Risk", reason: sig.reasons.join("; ") }], `delivery answer not signed off: ${sig.reasons.join("; ")}`, {}, { owner, draft });
+    return { decision: "escalate", reasons: sig.reasons, draft, queued: owner, cited: p.cited };
+  }
+  tb.skipped("escalate_or_fallback", "delivery answer sent; nothing to escalate");
+  return { decision: "send", reasons: [p.why], draft, cited: p.cited, auto_reply: true, team: "Support" };
+}
+
+// ---- other (the FAQ first, else a person; never a guess) ----
+
+async function probeOther(tb) {
+  const text = tb.inputText ?? "";
+  const { lines: ro, o } = buffer(tb, null);
+  const faqRows = (await tb.queries.run("faq", {}, o)).objects;
+  const hit = matchFaq(text, faqRows);
+  if (hit) {
+    return { branch_id: "faq-hit", why: `FAQ ${hit.row.faq_id} matches (score ${hit.score.toFixed(2)}, shared: ${hit.shared.join(", ")}); FAQ text is canonical, the floor gates model drafts`,
+      cited: [`faq:${hit.row.faq_id}`], data: { faq: hit, faqRows: faqRows.length }, lines: ro.map((x) => ({ ...x, branch_id: "faq-hit" })) };
+  }
+  const owner = await ownerOf(tb, "other", o);
+  return { branch_id: "other-unanswered", why: `nothing in the records answers this; checked the FAQ (${faqRows.length} rows), no match`,
+    cited: owner.looked_up ? ["responsibility:other"] : [], data: { owner, faqRows: faqRows.length }, lines: ro.map((x) => ({ ...x, branch_id: "other-unanswered" })) };
+}
+
+async function actOther(tb, p) {
+  if (p.branch_id === "faq-hit") return actFaqHit(tb, p);
+  skipLine(tb, "nvidia.model", "other-unanswered: no draft");
+  skipLine(tb, "critique", "other-unanswered: no draft to critique");
+  skipLine(tb, "risk.signoff", "other-unanswered: nothing to sign");
+  skipLine(tb, "retry", "other-unanswered: a rewrite cannot change it");
+  tb.skipped("escalate_or_fallback", "a person answers; nothing is escalated");
+  return { decision: "hold", reasons: [`${p.why}. Held for the owner, no draft`], queued: p.data.owner, recommendation: "nothing in the records answers this; a person replies", cited: p.cited };
+}
+
 export const handleCustomerService = { probe: probeCustomerService, act: actCustomerService };
 
 export const handleComplaint = { probe: probeComplaint, act: actComplaint };
 
 export const handleQuestion = { probe: probeQuestion, act: actQuestion };
 export const handleRfq = { probe: probeRfq, act: actRfq };
-export const HANDLERS = { question: handleQuestion, rfq: handleRfq, complaint: handleComplaint, customer_service: handleCustomerService };
+export const handleProduct = { probe: probeProduct, act: actProduct };
+export const handleDelivery = { probe: probeDelivery, act: actDelivery };
+export const handleOther = { probe: probeOther, act: actOther };
+export const HANDLERS = { question: handleQuestion, rfq: handleRfq, complaint: handleComplaint, customer_service: handleCustomerService, product: handleProduct, delivery: handleDelivery, other: handleOther };

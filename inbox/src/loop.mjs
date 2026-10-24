@@ -15,7 +15,7 @@ import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
-import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
+import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
 import { readRefund } from "./refund_reader.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
 
@@ -493,7 +493,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       try {
         faqHit = matchFaq(row.body, (await queries.run("faq", {}, { cfg, trace: { line: () => {} } })).objects);
       } catch { faqHit = null; }
-      S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit });
+      let productHit = null;
+      try {
+        const pm = matchProductLookup(row.body, (await queries.run("product_lookup", {}, { cfg, trace: { line: () => {} } })).objects);
+        productHit = pm.all.length ? pm : null;
+      } catch { productHit = null; }
+      S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit, text: row.body, productHit });
       const params = preDecided?.parameters ?? {};
       // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
       Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],

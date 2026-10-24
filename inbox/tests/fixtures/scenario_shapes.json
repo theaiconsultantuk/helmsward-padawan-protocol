@@ -181,7 +181,9 @@
         "decision": "hold",
         "owner_id": 15,
         "draft_present": true,
-        "cited_includes": ["channels:trustpilot"]
+        "cited_includes": [
+          "channels:trustpilot"
+        ]
       },
       "sequence": [
         "branch:success:complaint-genuine",
@@ -381,6 +383,223 @@
         "retry:skipped:complaint-severe",
         "escalate_or_fallback:success:complaint-severe",
         "synthesis:success:complaint-severe"
+      ]
+    },
+    {
+      "id": "s05-product-hit",
+      "input": {
+        "message": "What is the primary material used in the Sovereign Arc Duellist?",
+        "from": "a@email.com",
+        "channel": "contact-form"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "product",
+        "resolved_how": "scout",
+        "branch_id": "product-hit",
+        "decision": "send",
+        "cited_includes": [
+          "products:FS-B03"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "tempered duralloy twin-core, hand-wrapped nerf-leather grip",
+          "Sent automatically on behalf of the Product team."
+        ],
+        "auto_reply": true,
+        "status": "handled",
+        "team": "Product"
+      },
+      "sequence": [
+        "branch:success:product-hit",
+        "nvidia.model:skipped:product-hit",
+        "planner.plan:success:product-hit",
+        "nvidia.model:skipped:product-hit",
+        "critique:skipped:product-hit",
+        "risk.signoff:success:product-hit",
+        "retry:skipped:product-hit",
+        "escalate_or_fallback:skipped:product-hit",
+        "memory.write:success:product-hit",
+        "synthesis:success:product-hit"
+      ]
+    },
+    {
+      "id": "s06-product-unanswered",
+      "input": {
+        "message": "Is the Wayfarer Cloak waterproof?",
+        "from": "a@email.com",
+        "channel": "chat"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "product",
+        "resolved_how": "scout",
+        "branch_id": "product-unanswered",
+        "decision": "hold",
+        "owner_id": 5,
+        "draft_absent": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Product"
+      },
+      "sequence": [
+        "branch:success:product-unanswered",
+        "nvidia.model:skipped:product-unanswered",
+        "planner.plan:success:product-unanswered",
+        "nvidia.model:skipped:product-unanswered",
+        "critique:skipped:product-unanswered",
+        "risk.signoff:skipped:product-unanswered",
+        "retry:skipped:product-unanswered",
+        "escalate_or_fallback:skipped:product-unanswered",
+        "memory.write:success:product-unanswered",
+        "synthesis:success:product-unanswered"
+      ]
+    },
+    {
+      "id": "s10-delivery-suspended",
+      "input": {
+        "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
+        "from": "a@email.com",
+        "channel": "contact-form"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "delivery",
+        "resolved_how": "scout",
+        "branch_id": "delivery-suspended",
+        "decision": "send",
+        "cited_includes": [
+          "orders:JP-1001",
+          "shipping_rules:Alderaan"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "Deliveries to Alderaan are currently suspended.",
+          "JP-1001",
+          "Sent automatically on behalf of the Support team."
+        ],
+        "auto_reply": true,
+        "status": "handled",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:delivery-suspended",
+        "nvidia.model:skipped:delivery-suspended",
+        "planner.plan:success:delivery-suspended",
+        "nvidia.model:skipped:delivery-suspended",
+        "critique:skipped:delivery-suspended",
+        "risk.signoff:success:delivery-suspended",
+        "retry:skipped:delivery-suspended",
+        "escalate_or_fallback:skipped:delivery-suspended",
+        "memory.write:success:delivery-suspended",
+        "synthesis:success:delivery-suspended"
+      ]
+    },
+    {
+      "id": "s11-other-faq-hit",
+      "input": {
+        "message": "Do you offer gift wrapping?",
+        "from": "a@email.com",
+        "channel": "chat"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": [
+          "question",
+          "other"
+        ],
+        "resolved_how": [
+          "faq",
+          "declared",
+          "scout"
+        ],
+        "branch_id": "faq-hit",
+        "decision": "send",
+        "cited_includes": [
+          "faq:Q11"
+        ],
+        "draft_present": true,
+        "draft_includes": [
+          "Sent automatically on behalf of the Support team."
+        ],
+        "auto_reply": true,
+        "status": "handled",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:faq-hit",
+        "nvidia.model:skipped:faq-hit",
+        "planner.plan:success:faq-hit",
+        "nvidia.model:skipped:faq-hit",
+        "critique:skipped:faq-hit",
+        "risk.signoff:success:faq-hit",
+        "retry:skipped:faq-hit",
+        "escalate_or_fallback:skipped:faq-hit",
+        "memory.write:success:faq-hit",
+        "synthesis:success:faq-hit"
+      ]
+    },
+    {
+      "id": "s12-other-unanswered",
+      "input": {
+        "message": "Can I book the Coruscant store for a private birthday party?",
+        "from": "a@email.com",
+        "channel": "chat"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "other",
+        "resolved_how": "none",
+        "branch_id": "other-unanswered",
+        "decision": "hold",
+        "owner_id": 15,
+        "draft_absent": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:other-unanswered",
+        "nvidia.model:skipped:other-unanswered",
+        "planner.plan:success:other-unanswered",
+        "nvidia.model:skipped:other-unanswered",
+        "critique:skipped:other-unanswered",
+        "risk.signoff:skipped:other-unanswered",
+        "retry:skipped:other-unanswered",
+        "escalate_or_fallback:skipped:other-unanswered",
+        "memory.write:success:other-unanswered",
+        "synthesis:success:other-unanswered"
+      ]
+    },
+    {
+      "id": "s14-direct-email-complaint",
+      "input": {
+        "message": "Hi, my package arrived with a dented box.",
+        "from": "a@email.com",
+        "channel": "email"
+      },
+      "as_of": "2026-10-20",
+      "expect": {
+        "scenario": "complaint",
+        "resolved_how": "scout",
+        "branch_id": [
+          "complaint-vent",
+          "complaint-genuine",
+          "customer-service"
+        ],
+        "decision": "hold",
+        "owner_id": 15,
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:",
+        "critique:success:",
+        "risk.signoff:success:",
+        "memory.write:success:",
+        "synthesis:success:"
       ]
     }
   ]
