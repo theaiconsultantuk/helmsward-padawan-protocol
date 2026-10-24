@@ -148,6 +148,8 @@ class Stop extends Error {}
 
 const errName = (e) => e?.name ?? "Error";
 const safeMsg = (e) => String(mask(String(e?.message ?? e)));
+// A buffered trace line keeps the moment it was recorded (`at`), so its timestamp and duration_ms are when the step ran, not when the buffer was written out.
+const stampedBuffer = () => { const a = []; a.push = (...xs) => Array.prototype.push.apply(a, xs.map((x) => (x && x.at === undefined ? { ...x, at: Date.now() } : x))); return a; };
 const one = (s, n = 220) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
 // The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
@@ -438,7 +440,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
   async function pipeline() {
     // Facts first, silently: memory.read needs the customer's name. Their zetaris.query lines are logged at step 4.
-    const buf = [];
+    const buf = stampedBuffer();
     let factsErr = null;
     const o = { as_of, trace: { line: (f) => buf.push(f) } };
     // A free-text message: append the intake row, publish it, then run Scout and the gates SILENTLY (their lines are written at their usual
@@ -446,7 +448,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let preDecided = null;
     let preErr = null;
     let preGates = null;
-    let preGbuf = [];
+    let preGbuf = stampedBuffer();
     const factsOpts = {};
     if (isMsg) {
       S.current = "executor.act";
@@ -623,7 +625,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     });
 
     // gates (a model call, so after the contract check); their line is held back until step 7
-    const gbuf = preGates ? preGbuf : [];
+    const gbuf = preGates ? preGbuf : stampedBuffer();
     let gates = preGates;
     if (!gates) {
       try {

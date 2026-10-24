@@ -83,6 +83,47 @@ function consultedOf(line) {
   return out;
 }
 
+// The technology behind a line, from what the line itself records (sponsor, model, agent_name); never guessed.
+//  zetaris sponsor -> Zetaris; meterless -> Meterless Nightshift (<model>); a real (non "sample/") model, or the nvidia
+//  sponsor with one -> OpenJev (<model>); Memory agent / memory steps -> H-MEM; any other named agent, or a sample/rules
+//  model, is deterministic code -> rules; a line with no sponsor, model or agent_name -> unknown.
+export function techOf(line) {
+  const sponsor = str(line?.sponsor);
+  const model = str(line?.model);
+  const agent = str(line?.agent_name);
+  const sample = model === "" || /^sample\//.test(model);
+  if (sponsor === "zetaris") return "Zetaris";
+  if (sponsor === "meterless") return model && !sample ? `Meterless Nightshift (${model})` : "Meterless Nightshift";
+  if (model && !sample) return `OpenJev (${model})`;
+  if (sponsor === "nvidia" && !model) return str(line?.gate_source) === "rules" ? "rules" : "OpenJev";
+  if (agent === "Memory" || /^memory\./.test(str(line?.step))) return "H-MEM";
+  if (model || agent) return "rules";
+  return sponsor ? "OpenJev" : "unknown";
+}
+
+// "table:key" -> its parts; the key fields of a row id as the trace names it
+function rowFields(id) {
+  const i = id.indexOf(":");
+  return i < 0 ? { id, table: null, key: id } : { id, table: id.slice(0, i), key: id.slice(i + 1) };
+}
+
+// What a node handed back. Zetaris: only the HIT rows (the ids this step read that the result cites or keeps), each with its
+// key fields, never the scanned count. A model node: the reply text exactly as the trace recorded it. Anything else: null.
+function returnedOf(line, tech, retained, consulted) {
+  if (line?.status === "skipped") return null;
+  if (tech === "Zetaris") {
+    const detail = str(line?.detail) || null;
+    return retained.map((id) => ({ ...rowFields(id), ...(detail && consulted.length === 1 ? { detail } : {}) }));
+  }
+  if (tech.startsWith("OpenJev")) return str(line?.output_summary) || null;
+  return null;
+}
+
+function tsMs(t) {
+  const n = typeof t === "string" ? Date.parse(t) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
 function safeJson(v) {
   try { return JSON.stringify(v) ?? ""; } catch { return ""; }
 }
@@ -213,12 +254,16 @@ export function deriveJourney(result, lines) {
   ls.forEach((l, i) => { if (l.step === "synthesis") lastSynthesis = i; });
 
   const nodes = ls.map((l, i) => {
+    const tech = techOf(l);
     const skipped = l.status === "skipped";
     const consulted = skipped ? [] : consultedOf(l);
     const retained = consulted.filter((id) => cites.includes(id) || text.includes(id));
     const reached =
       (l.step === "escalate_or_fallback" && l.status === "success") ||
       (decision === "hold" && l.step === "synthesis" && i === lastSynthesis);
+    // duration_ms: the line's own; else the gap to the previous line's timestamp (older traces); null when neither is known
+    const gap = i === 0 ? 0 : (tsMs(l.timestamp) !== null && tsMs(ls[i - 1].timestamp) !== null ? Math.max(0, tsMs(l.timestamp) - tsMs(ls[i - 1].timestamp)) : null);
+    const duration_ms = typeof l.duration_ms === "number" && l.duration_ms >= 0 ? l.duration_ms : gap;
     return {
       n: i + 1,
       step: l.step ?? null,
@@ -232,6 +277,9 @@ export function deriveJourney(result, lines) {
       status: l.status ?? null,
       model: l.model ?? null,
       timestamp: l.timestamp ?? null,
+      duration_ms,
+      tech,
+      returned: returnedOf(l, tech, retained, consulted),
     };
   });
 
@@ -271,8 +319,20 @@ export function deriveJourney(result, lines) {
     };
   }
 
+  const o = isObj(res.output) ? res.output : {};
+  const pick = (k, dflt = null) => o[k] ?? q?.[k] ?? dflt;
   return {
     run_id: res.run_id ?? ls[0]?.run_id ?? null,
+    team: pick("team"),
+    team_label: pick("team_label"),
+    topic_label: pick("topic_label"),
+    cc: pick("cc", []),
+    also: pick("also", []),
+    status: pick("status"),
+    auto_reply: pick("auto_reply", false) === true,
+    memory_note: pick("memory_note"),
+    channel_label: pick("channel_label"),
+    trusted_to_send: o.trusted_to_send === true,
     scenario: res.scenario ?? null,
     resolved_how: res.resolved_how ?? null,
     decision,

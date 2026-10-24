@@ -96,7 +96,7 @@ test("one JSON line per call, timestamp Z, close() returns relative log_file", (
   const lines = fileLines(t);
   assert.equal(lines.length, 3);
   const o = JSON.parse(lines[0]);
-  assert.match(o.timestamp, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/);
+  assert.match(o.timestamp, /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/);
   assert.equal(o.run_id, "demo-001");
   assert.equal(o.trace_id, "demo-001");
   assert.equal(t.lines.length, 3);
@@ -127,4 +127,36 @@ test("F2: console line masks a run_id that carries a secret or Bearer token", ()
   const out2 = captureStdout(() => t2.line(base));
   assert.ok(!out2.includes("abcdefghijkl"), out2);
   assert.ok(out2.includes("[masked]"), out2);
+});
+
+test("duration_ms and elapsed_ms: first line 0/0, durations >= 0, elapsed monotonic and equal to the summed durations", async () => {
+  const { t } = open();
+  const a = t.line(base);
+  await new Promise((r) => setTimeout(r, 15));
+  const b = t.line({ ...base, step: "synthesis" });
+  const c = t.line({ ...base, step: "recovery" });
+  assert.equal(a.duration_ms, 0);
+  assert.equal(a.elapsed_ms, 0);
+  for (const l of [a, b, c]) assert.ok(Number.isInteger(l.duration_ms) && l.duration_ms >= 0);
+  assert.ok(b.duration_ms >= 10, `slept 15ms, got ${b.duration_ms}`);
+  assert.ok(a.elapsed_ms <= b.elapsed_ms && b.elapsed_ms <= c.elapsed_ms);
+  assert.equal(c.elapsed_ms, a.duration_ms + b.duration_ms + c.duration_ms);
+  assert.deepEqual(JSON.parse(fileLines(t)[2]).elapsed_ms, c.elapsed_ms);
+  // a second run starts its own clock
+  const other = Trace.open("demo-002", { logsDir: t.logsDir, secrets: [], stdout: false });
+  assert.equal(other.line(base).elapsed_ms, 0);
+});
+
+test("a buffered line keeps the moment it was recorded: its timestamp is `at`, and `at` is never written out", () => {
+  const { t } = open();
+  const t0 = Date.now() - 5000;
+  const a = t.line({ ...base, at: t0 });
+  const b = t.line({ ...base, at: t0 + 1200 });
+  assert.equal(a.timestamp, new Date(t0).toISOString());
+  assert.equal(b.duration_ms, 1200);
+  assert.equal("at" in a, false);
+  assert.equal("at" in JSON.parse(fileLines(t)[1]), false);
+  const c = t.line({ ...base, at: t0 + 200 }); // flushed after a later line: its own time, never a negative duration
+  assert.equal(c.timestamp, new Date(t0 + 200).toISOString());
+  assert.equal(c.duration_ms, 0);
 });

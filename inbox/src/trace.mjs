@@ -62,6 +62,8 @@ export class Trace {
     this.stdout = stdout;
     this.path = `${logsDir}/trace-${run_id}.jsonl`;
     this._lines = [];
+    this._first = null;
+    this._prev = null;
   }
 
   get lines() {
@@ -79,8 +81,17 @@ export class Trace {
     if (fields.sponsor !== undefined && !SPONSORS.includes(fields.sponsor)) {
       throw new Error(`trace line: unknown sponsor "${fields.sponsor}"`);
     }
+    // millisecond ISO timestamp; duration_ms since the previous line of this run (0 for the first), elapsed_ms since the first
+    // a buffered line passes the moment it was recorded as `at`; it is never written out as a field
+    const now = Number.isFinite(fields.at) ? fields.at : Date.now();
+    if (this._first === null) this._first = now;
+    const duration_ms = this._prev === null ? 0 : Math.max(0, now - this._prev);
+    const elapsed_ms = Math.max(0, now - this._first);
+    this._prev = Math.max(this._prev ?? now, now);
     const raw = {
-      timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+      timestamp: new Date(now).toISOString(),
+      duration_ms,
+      elapsed_ms,
       run_id: this.run_id,
       trace_id: this.trace_id,
     };
