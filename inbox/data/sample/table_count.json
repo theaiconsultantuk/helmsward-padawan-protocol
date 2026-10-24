@@ -17,6 +17,38 @@
   },
   {
     "params": {
+      "table": "bom"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "149"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "bulk_pricing"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "3"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "categories"
     },
     "result": {
@@ -26,6 +58,38 @@
       "rows": [
         [
           "5"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "channels"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "4"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "companyhierarchy"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "207"
         ]
       ],
       "total": 1
@@ -65,6 +129,22 @@
   },
   {
     "params": {
+      "table": "customers"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "58"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "decisions"
     },
     "result": {
@@ -89,7 +169,7 @@
       ],
       "rows": [
         [
-          "200"
+          "207"
         ]
       ],
       "total": 1
@@ -121,7 +201,7 @@
       ],
       "rows": [
         [
-          "12"
+          "18"
         ]
       ],
       "total": 1
@@ -137,7 +217,7 @@
       ],
       "rows": [
         [
-          "1251"
+          "1263"
         ]
       ],
       "total": 1
@@ -161,6 +241,22 @@
   },
   {
     "params": {
+      "table": "orders"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "82"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "policy"
     },
     "result": {
@@ -169,7 +265,7 @@
       ],
       "rows": [
         [
-          "1"
+          "2"
         ]
       ],
       "total": 1
@@ -185,7 +281,7 @@
       ],
       "rows": [
         [
-          "10"
+          "50"
         ]
       ],
       "total": 1
@@ -201,7 +297,23 @@
       ],
       "rows": [
         [
-          "7"
+          "12"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
+      "table": "shipping_rules"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "12"
         ]
       ],
       "total": 1
@@ -249,7 +361,7 @@
       ],
       "rows": [
         [
-          "5"
+          "12"
         ]
       ],
       "total": 1

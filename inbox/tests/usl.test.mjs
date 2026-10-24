@@ -1,13 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { liveZetaris } from "./helpers/live_zetaris.mjs";
 
 const INBOX = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SQL = join(INBOX, "scripts", "zetaris_usl.sql");
-const EXPECTED = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"];
+const EXPECTED = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page", "hierarchy", "client", "sales_order", "shipping_rule", "bulk_tier", "bom_part", "channel"];
 const NS = "lightning.metastore.jedi_pack";
 
 test("committed SQL declares the expected tables and every foreign key resolves", () => {
@@ -26,8 +27,8 @@ test("register_usl.mjs --print regenerates the committed SQL byte-equal", () => 
   assert.ok(before.equals(after), "scripts/zetaris_usl.sql drifted from register_usl.mjs");
 });
 
-const live = existsSync(join(INBOX, ".env"));
-test("live: the USL lists its tables and employee follows the raw count", { skip: live ? false : "no inbox/.env" }, async () => {
+const { live, why } = await liveZetaris();
+test("live: the USL lists its tables and employee follows the raw count", { skip: live ? false : why }, async () => {
   const { config } = await import("../src/config.mjs");
   const zetaris = await import("../src/adapters/zetaris.mjs");
   const cfg = config();

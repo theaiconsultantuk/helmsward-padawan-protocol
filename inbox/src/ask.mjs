@@ -68,7 +68,7 @@ function templateAnswer(question, intent, data) {
   }
   if (data.facts) {
     const f = data.facts;
-    parts.push(`Your ticket ${f.thread_id} (${f.category}${f.amount_usd != null ? `, ${f.amount_usd} USD` : ""}) is with ${f.owner_name ?? "the team"}${f.owner_out ? " who is out, so the backup covers it" : ""}.`);
+    parts.push(`Your ticket ${f.thread_id} (${f.category}${f.amount != null ? `, ${f.amount} GC` : ""}) is with ${f.owner_name ?? "the team"}${f.owner_out ? " who is out, so the backup covers it" : ""}.`);
   }
   if (title) parts.push(`Source: the "${title}" page${intent === "GENERAL" || intent === "appreciation" ? `: ${one(bodyOf(page.preview), 140)}` : ""}.`);
   if (!parts.length) parts.push("I don't have that in the records.");
@@ -103,11 +103,11 @@ export async function rowsForIntent(intent, customer, o, opts = {}) {
     if (ids.length) {
       const f = await queries.factsForTicket(ids[0], o);
       data.facts = f;
-      rows.ticket = { thread_id: f.thread_id, category: f.category, amount_usd: f.amount_usd, received_at: f.received_at, subject: f.subject,
-        policy_limit_usd: f.policy_limit_usd, owner: f.owner_name, owner_out: f.owner_out };
+      rows.ticket = { thread_id: f.thread_id, category: f.category, amount: f.amount, received_at: f.received_at, subject: f.subject,
+        policy_limit: f.policy_limit, owner: f.owner_name, owner_out: f.owner_out };
       if (ids[1]) {
         const parent = await queries.thread(ids[1], o);
-        if (parent) rows.parent_ticket = { thread_id: parent.thread_id, category: parent.category, subject: parent.subject, amount_usd: parent.amount_usd };
+        if (parent) rows.parent_ticket = { thread_id: parent.thread_id, category: parent.category, subject: parent.subject, amount: parent.amount };
       }
     }
   }

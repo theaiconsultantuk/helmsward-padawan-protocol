@@ -2,23 +2,26 @@
   "run_id": "example-2",
   "status": "success",
   "output": {
-    "decision": "send",
+    "decision": "hold",
     "reasons": [
-      "both critics passed on round 1; weight 0.84 meets the floor 0.8, within the limit, someone is available"
+      "both critics passed on round 1; weight 0.84 meets the floor 0.8, within the limit, someone is available",
+      "held for owner 15, draft kept: channels:trustpilot: replies on this channel are sent by a person"
     ],
     "cited_rows": [
       "threads_parquet:T18",
       "policy:refund",
-      "responsibility:fallback",
       "holiday_2026:15@2026-10-22",
-      "holiday_2026:16@2026-10-22",
+      "holiday_2026:27@2026-10-22",
       "employees:15",
-      "employees:16",
+      "employees:27",
+      "companyhierarchy:15",
+      "companyhierarchy:27",
+      "channels:trustpilot",
       "trust_ledger:appreciation",
       "wiki_what_may_leave"
     ],
     "draft": {
-      "text": "Hello Joss Keller,\n\nYou wrote about \"Beautiful saber\". Thank you for getting in touch (policy rows: threads_parquet:T18, policy:refund, responsibility:fallback, holiday_2026:15@2026-10-22, holiday_2026:16@2026-10-22, employees:15, employees:16, trust_ledger:appreciation, wiki_what_may_leave).\n\nBest regards,\nJedi Pack Support",
+      "text": "Hello Joss Keller,\n\nYou wrote about \"Beautiful saber\". Thank you for getting in touch.\n\nBest regards,\nJedi Pack Support team",
       "promises": {
         "refund_amount": null,
         "replacement": false,

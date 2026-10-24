@@ -1,0 +1,11 @@
+{
+  "run_id": "example-18",
+  "input": {
+    "message": "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+    "from": "havihollowell@email.com",
+    "name": "Havi Hollowell",
+    "channel": "email",
+    "scenario": "complaint",
+    "as_of": "2026-10-25"
+  }
+}

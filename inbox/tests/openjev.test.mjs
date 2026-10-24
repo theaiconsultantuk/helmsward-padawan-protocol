@@ -66,8 +66,8 @@ test("queryByName: key order independent, {} fallback, no match, bad name", () =
   assert.throws(() => sample.queryByName("../etc/passwd", {}, { cfg: scfg }), /bad query name/);
 });
 
-const ticket = { thread_id: "T03", subject: "Refund over the limit", body: "I want a refund of 400.00 USD", sender_name: "Cass Holm", category: "refund", amount_usd: 400 };
-const facts = { policy_limit_usd: 150, category: "refund", weight: 0.55, floor: 0.8, owner: "Ann", backup: "Bo", owner_out: false, backup_out: false, may_leave: true, cited_rows: ["policy:refund"], restricted_terms: ["margin"] };
+const ticket = { thread_id: "T03", subject: "Refund over the limit", body: "I want a refund of 400.00 GC", sender_name: "Cass Holm", category: "refund", amount: 400 };
+const facts = { policy_limit: 150, category: "refund", weight: 0.55, floor: 0.8, owner: "Ann", backup: "Bo", owner_out: false, backup_out: false, may_leave: true, cited_rows: ["policy:refund"], restricted_terms: ["margin"] };
 
 test("draft/critique: over-limit refund fails, revised passes, restricted term and nobody-available fail", () => {
   const d = sample.draft(ticket, facts);
@@ -81,7 +81,7 @@ test("draft/critique: over-limit refund fails, revised passes, restricted term a
   assert.equal(sample.critique(r, facts).pass, true);
   assert.equal(sample.critique({ ...r, text: "Our margin is high" }, facts).pass, false);
   assert.equal(sample.critique(r, { ...facts, owner_out: true, backup_out: true }).pass, false);
-  const rep = { ...ticket, category: "replacement", amount_usd: 50 };
+  const rep = { ...ticket, category: "replacement", amount: 50 };
   assert.equal(sample.draft(rep, { ...facts, category: "replacement" }).promises.replacement, true);
   assert.equal(sample.draft(rep, { ...facts, category: "replacement" }, { seed: "misread" }).promises.refund_amount, 50);
 });

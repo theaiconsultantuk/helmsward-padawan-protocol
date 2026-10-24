@@ -1,6 +1,10 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { join } from "node:path";
 import { config, INBOX_ROOT } from "../config.mjs";
+import { readCsv } from "../csv.mjs";
+import { intakeRefundRows, readIntake } from "../intake.mjs";
+import { runLocal } from "../queries.mjs";
 import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS, refundRuleReason } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
@@ -16,17 +20,62 @@ function canon(v) {
 }
 const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
-export function queryByName(name, params = {}, { cfg = config() } = {}) {
+// The SQL's second prior_refunds branch counts the RUNTIME intake refunds (data/runtime/intake.csv) with the same rules as the stored threads.
+// Merge them into an offline answer (idempotent: a thread already in the rows is not added twice); no file or no runtimeDir = unchanged.
+export function withRuntimeRefunds(r, params, runtimeDir) {
+  if (!runtimeDir || !r) return r;
+  let intake = [];
+  try { intake = readIntake({ runtimeDir }); } catch { return r; } // an unreadable file is no evidence
+  const add = intakeRefundRows(intake, params);
+  if (!add.length) return r;
+  const have = new Set((r.rows ?? []).map((x) => `${x[2] ?? "threads_json"}:${x[0]}`));
+  const rows = [...(r.rows ?? []), ...add.filter((x) => !have.has(`${x[2]}:${x[0]}`))]
+    .sort((x, y) => Date.parse(x[1]) - Date.parse(y[1]) || (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0));
+  return { ...r, headers: r.headers?.length ? r.headers : ["thread_id", "received_at", "src"], rows, total: rows.length };
+}
+
+// The holiday table as the offline twin reads it: the synthetic CSV beside the sample dir (cfg.SYNTHETIC_DIR overrides), or null when absent.
+function holidayCsv(cfg) {
+  const f = join(cfg.SYNTHETIC_DIR ?? join(sampleDir(cfg), "..", "synthetic"), "holiday-2026.csv");
+  return existsSync(f) ? readCsv(f) : null;
+}
+
+// opts.runtimeDir (optional): also count that dir's runtime intake refunds in prior_refunds, as the SQL does.
+export function queryByName(name, params = {}, { cfg = config(), runtimeDir } = {}) {
   if (typeof name !== "string" || !/^[a-z_][a-z0-9_]*$/.test(name)) throw new Error(`bad query name: ${JSON.stringify(name)}`);
   const entries = JSON.parse(readFileSync(`${sampleDir(cfg)}/${name}.json`, "utf8"));
   const exact = entries.find((e) => same(e.params ?? {}, params));
   if (!exact && name === "holiday") {
-    // No cached pair: derive the per-employee answer from the full table, as live would.
+    // No cached pair: derive the answer as live would. Through the holiday template's own local() on the CSV (company-wide rows, all four columns);
+    // without the CSV, from the cached full table by the same rule (a blank employee_id is a company-wide day).
+    const csv = holidayCsv(cfg);
+    if (csv) {
+      try { return { ...runLocal("holiday", params, { holiday_2026: csv }), timeUsed: 0 }; } catch (e) { if (!(e instanceof TypeError)) throw e; }
+    }
     const all = JSON.parse(readFileSync(`${sampleDir(cfg)}/holidays.json`, "utf8")).find((e) => same(e.params ?? {}, {}));
     const src = all?.result ?? {};
-    const rows = (src.rows ?? src.data ?? []).filter((r) => String(r[0]) === String(params.employee_id) && r[1] === params.date);
+    const rows = (src.rows ?? src.data ?? []).filter((r) => (r[0] === null || r[0] === undefined || r[0] === "" || String(r[0]) === String(params.employee_id)) && r[1] === params.date);
     return { headers: src.headers ?? ["employee_id", "date"], rows, total: rows.length, timeUsed: 0 };
   }
+  // The new exhaustive caches (CP1) answer what live answers for a key they were not asked about, instead of failing:
+  const lc = (v) => String(v ?? "").toLowerCase();
+  const shape = (src, rows) => ({ headers: src?.headers ?? [], rows, total: rows.length, timeUsed: 0 });
+  if (!exact && name === "prior_refunds") {
+    // A new intake has its own thread id and time: take the sender's SENTINEL entry (all their refund threads, thread F0, year 2099)
+    // and apply the SQL's filter: a different thread, received strictly before this one. No sentinel = no refund thread = no rows.
+    const all = entries.find((e) => lc(e.params?.email) === lc(params.email) && e.params?.thread_id === "F0")?.result;
+    const rows = (all?.rows ?? []).filter((r) => r[0] !== params.thread_id && Date.parse(r[1]) < Date.parse(params.received_at));
+    return withRuntimeRefunds({ ...shape(all ?? entries[0]?.result, rows), headers: (all ?? entries[0]?.result)?.headers ?? ["thread_id", "received_at", "src"] }, params, runtimeDir);
+  }
+  if (!exact && name === "shipping_rule") {
+    const own = entries.find((e) => lc(e.params?.planet) === lc(params.planet)) ?? entries.find((e) => e.params?.planet === "default");
+    if (own) return shape(own.result, own.result.rows ?? []);
+  }
+  if (!exact && ["customer_by_email", "order", "hierarchy", "team_head", "product_by_sku", "bom"].includes(name)) {
+    const ci = entries.find((e) => same(Object.fromEntries(Object.entries(e.params ?? {}).map(([k, v]) => [k, lc(v)])), Object.fromEntries(Object.entries(params).map(([k, v]) => [k, lc(v)]))));
+    return shape((ci ?? entries.find((e) => e.result?.headers?.length))?.result, ci ? ci.result.rows : []); // an unknown key: zero rows, as live
+  }
+  if (exact && name === "prior_refunds" && runtimeDir) return withRuntimeRefunds({ ...exact.result, rows: exact.result.rows ?? [], timeUsed: 0 }, params, runtimeDir);
   const hit = exact
     ?? entries.find((e) => same(e.params ?? {}, {}));
   if (!hit) throw new Error(`no cached rows for ${name} ${JSON.stringify(canon(params))}`);
@@ -38,41 +87,57 @@ export function queryByName(name, params = {}, { cfg = config() } = {}) {
 const REFUND = /refund|money back|my money|reimburse/i;
 const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
-export function draft(ticket, facts, { seed = "correct" } = {}) {
+// opts.overLimit (true when the refund is over the policy limit; 2.1d wires it from the loop): the draft says the request is
+// routed for approval and promises no refund, amount or date.
+export function draft(ticket, facts, { seed = "correct", overLimit = false } = {}) {
   const cat = facts.category ?? ticket.category;
-  const rows = (facts.cited_rows ?? []).join(", ");
-  const cite = rows ? ` (policy rows: ${rows})` : "";
+  // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
-  const ask = `You wrote about "${ticket.subject}".`;
+  // an over-limit reply never quotes the subject: a free-text subject is the body's first 60 characters and can carry the amount or a date
+  const ask = overLimit ? "Thank you for your message." : `You wrote about "${ticket.subject}".`;
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
-  if (seed === "revised") {
-    const lim = facts.policy_limit_usd == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD${cite}, so we are not promising it today`;
-    mid = `${lim}${facts.policy_limit_usd == null ? cite : ""}. ${facts.backup ?? "A colleague"} will follow up with you.`;
+  if (overLimit && (cat === "refund" || seed === "revised")) {
+    mid = "Your refund request is routed for approval. We are not promising an amount or a date yet, and a colleague will follow up with you.";
+  } else if (seed === "revised") {
+    const lim = facts.policy_limit == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit} GC, so we are not promising it today`;
+    mid = `${lim}. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
-    promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
+    promises.refund_amount = ticket.amount ?? null;
+    mid = ticket.amount == null ? "We are looking into your refund request." : `We will refund ${ticket.amount} GC.`;
   } else if (cat === "refund") {
-    promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
+    promises.refund_amount = ticket.amount ?? null;
+    mid = ticket.amount == null ? "We are looking into your refund request." : `We will refund ${ticket.amount} GC.`;
   } else if (cat === "replacement") {
     promises.replacement = true;
-    mid = `We will send you a replacement${cite}.`;
+    mid = "We will send you a replacement.";
   } else {
-    mid = `Thank you for getting in touch${cite}.`;
+    mid = "Thank you for getting in touch.";
   }
-  return { text: `${hi}\n\n${ask} ${mid}\n\nBest regards,\nJedi Pack Support`, model: MODEL, route: "sample", promises };
+  return { text: frame(ticket, `${ask} ${mid}`), model: MODEL, route: "sample", promises };
+}
+
+// The body of a genuine-complaint sample draft, composed from the ticket: an injury is named and taken seriously; anything else
+// keeps the generic apology. No refund, replacement, amount or date is promised either way.
+const INJURY = /\b(burn(?:t|ed|s)?|injur(?:y|ed|ies)|hurt|cut|shock(?:ed)?|bruis(?:e|ed)|blister(?:s|ed)?|sting|fire|smoke|hospital)\b/i;
+const NOUN = { burnt: "burn", burned: "burn", burns: "burn", injured: "injury", injuries: "injury", shocked: "shock", bruised: "bruise", blisters: "blister", blistered: "blister" };
+export function genuineComplaintBody(ticket) {
+  const m = INJURY.exec(`${ticket?.subject ?? ""} ${ticket?.body ?? ""}`);
+  if (!m) return "Thank you for telling us, and we are sorry. This matters to us, and a colleague will look at it personally and come back to you.";
+  const w = m[1].toLowerCase();
+  const what = NOUN[w] ?? w;
+  return `We are very sorry to hear about the ${what}. We take product safety seriously, and our Support team will contact you personally about it.`;
 }
 
 export function critique(d, facts) {
   const rr = refundRuleReason(facts, d);
   if (rr) return { pass: false, reason: rr, model: MODEL };
   const amt = d.promises?.refund_amount;
-  if (typeof amt === "number" && facts.policy_limit_usd == null) {
-    return { pass: false, reason: `promises a refund of ${amt} USD with no policy limit behind it`, model: MODEL };
+  if (typeof amt === "number" && facts.policy_limit == null) {
+    return { pass: false, reason: `promises a refund of ${amt} GC with no policy limit behind it`, model: MODEL };
   }
-  if (typeof amt === "number" && amt > facts.policy_limit_usd) {
-    return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit_usd} USD`, model: MODEL };
+  if (typeof amt === "number" && amt > facts.policy_limit) {
+    return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit} GC`, model: MODEL };
   }
   const low = String(d.text ?? "").toLowerCase();
   const leak = (facts.restricted_terms ?? []).find((t) => t && low.includes(String(t).toLowerCase()));
@@ -83,7 +148,7 @@ export function critique(d, facts) {
 
 export function gates(ticket) {
   const text = `${ticket.subject ?? ""} ${ticket.body ?? ""}`;
-  const money = REFUND.test(text) || /\$|usd|eur|\bcharge/i.test(text) && /refund|back/i.test(text);
+  const money = REFUND.test(text) || /\$|\bgc\b|usd|eur|\bcharge/i.test(text) && /refund|back/i.test(text);
   let category = { choice: "question", confidence: 0.5 };
   if (REFUND.test(text)) category = { choice: "refund", confidence: 0.5 };
   else if (REPLACE.test(text)) category = { choice: "replacement", confidence: 0.5 };
@@ -104,9 +169,11 @@ export function gates(ticket) {
   };
 }
 
-// The greeting and sign-off every sample reply wears (same two lines as draft()).
-export function frame(ticket, body) {
-  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\nBest regards,\nJedi Pack Support`;
+// The ONE greeting and sign-off every sample reply wears. team defaults to Support; onBehalf adds the automatic-reply line, and is
+// only for replies composed from rows (never model drafts, which a human sends).
+export function frame(ticket, body, { team = "Support", onBehalf = false } = {}) {
+  const sign = `Best regards,\nJedi Pack ${team} team`;
+  return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\n${sign}${onBehalf ? `\nSent automatically on behalf of the ${team} team.` : ""}`;
 }
 
 // The RFQ acknowledgement: ACKNOWLEDGEMENT_TEMPLATE filled with the quantities. Code, no model call; never a price.
@@ -125,22 +192,31 @@ export function complaintRead(ticket, { worldText = "" } = {}) {
     face_risk: genuine,
     reasoning: genuine ? "The message names a concrete failure, a repeat or a public audience." : "The customer is upset but names no concrete harm to repair.",
     handle: genuine ? "A person should own this, repair the failure and answer the customer directly." : "A calm acknowledgement is enough; there is nothing to repair.",
-    model: "sample-rules",
+    model: "sample/rules",
   };
 }
 
+// The legal read in code: only the words of a legal threat (injury alone is not one).
+export const LEGAL_WORDS = /lawyer|attorney|legal action|sue\b|court/i;
+export const legalThreat = (ticket) => LEGAL_WORDS.test(`${ticket?.subject ?? ""} ${ticket?.body ?? ""}`);
+
+// Injury is split from legal (auditor fold 3): legal words score 10; injury alone is a genuine 6 that holds with a draft; the
+// public-channel and repeat bumps are capped at 8 so a plain Trustpilot complaint never escalates by channel alone.
 export function severity(ticket, { kind = "vent", repeat = false, publicChannel = false } = {}) {
   const text = `${ticket?.subject ?? ""} ${ticket?.body ?? ""}`;
+  const legal = legalThreat(ticket);
+  const pub = publicChannel || kind === "channel_public";
   let score;
-  if (/lawyer|unsafe|injur/i.test(text)) score = 10;
+  if (/lawyer|attorney|legal|sue\b|court|unsafe/i.test(text)) score = 10;
   else if (/never again|everyone/i.test(text)) score = 9;
   else {
-    score = /furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
-    if (publicChannel) score += 4;
+    score = /injur|cut|hurt|burn|furious|disgusting|worst|terrible/i.test(text) ? 6 : /annoyed|disappointed/i.test(text) ? 4 : 3;
+    if (pub) score += 4;
     if (repeat) score += 2;
+    score = Math.min(8, score);
   }
   score = Math.max(1, Math.min(10, score));
-  return { score, legend: SEVERITY_LEVELS[score - 1] };
+  return { score, legend: SEVERITY_LEVELS[score - 1], legal };
 }
 
 // Customer-service twin (S3.1): a rules recommendation and a draft with two [[blank: …]] markers. No model call.
@@ -155,6 +231,6 @@ export function recommendation(ticket, { candidates = [], pages = [], faqRows = 
   const ds = [...body.matchAll(/\[\[blank:\s*([^\]]*?)\s*\]\]/g)].map((m, i) => ({ id: `blank-${i + 1}`, what: m[1] }));
   return {
     recommendation: `no clear intent; top candidates ${top}; nothing in the FAQ${faqRows ? ` (${faqRows} rows searched)` : ""}; ${seen}. A person confirms the order and what the customer wants changed, then finishes the draft.`,
-    draft: frame(ticket, body), blanks: ds, model: "sample-rules",
+    draft: frame(ticket, body), blanks: ds, model: "sample/rules",
   };
 }

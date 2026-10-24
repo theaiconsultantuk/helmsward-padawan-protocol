@@ -1,0 +1,11 @@
+{
+  "run_id": "example-22",
+  "input": {
+    "message": "The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.",
+    "from": "leskalongmire@email.com",
+    "name": "Leska Longmire",
+    "channel": "trustpilot",
+    "scenario": "complaint",
+    "as_of": "2026-10-25"
+  }
+}

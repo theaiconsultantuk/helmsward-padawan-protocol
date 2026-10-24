@@ -24,7 +24,7 @@ function toolbox(text) {
     hardRisk,
     queries: { run: async (name, params, o) => {
       const r = cache(name, params);
-      o?.trace?.line({ step: "zetaris.query", action: `sql:${name}`, output_summary: `${r.rows.length} rows: ${r.objects.map((x) => x.product_id ?? x.topic ?? x.faq_id).join(", ")}`, status: "success" });
+      o?.trace?.line({ step: "zetaris.query", action: `sql:${name}`, output_summary: `${r.rows.length} rows: ${r.objects.map((x) => x.sku ?? x.topic ?? x.faq_id).join(", ")}`, status: "success" });
       return r;
     } },
   };
@@ -50,13 +50,13 @@ test("price difference, no product named: both quantities, nothing matched, sale
   assert.equal(esc[0][3].owner.owner_id, 6);
 });
 
-test("training sabers named: one price row cited, one unit price, no volume tiers", async () => {
-  const { probe, out, lines, esc } = await run(`${MSG} for training sabers`);
+test("Arc Blade Trainer named: one price row cited, two quantities named, no tier denial", async () => {
+  const { probe, out, lines, esc } = await run(`${MSG} for Arc Blade Trainers`);
   assert.equal(probe.data.prices.length, 1);
-  assert.ok(probe.cited.includes("products:P01"));
-  assert.deepEqual(out.attachments.cited, ["products:P01"]);
-  assert.match(out.recommendation, /one unit price/);
-  assert.match(out.recommendation, /no volume tiers/);
+  assert.ok(probe.cited.includes("products:FS-B01"));
+  assert.deepEqual(out.attachments.cited, ["products:FS-B01"]);
+  assert.match(out.recommendation, /a unit price/);
+  assert.match(out.recommendation, /more than one quantity/);
   assert.equal(out.queued.owner_id, 6);
   assert.ok(probe.lines.some((l) => l.action === "sql:product_price"));
   assert.ok(!out.draft.text.includes("189"), "no price in the acknowledgement");
@@ -69,8 +69,8 @@ test("training sabers named: one price row cited, one unit price, no volume tier
 });
 
 test("matchProducts needs every name token", () => {
-  const rows = [{ product_id: "P01", name: "training saber" }, { product_id: "P02", name: "hilt" }];
-  assert.deepEqual(matchProducts("quote 5 hilts", rows).map((r) => r.product_id), ["P02"]);
+  const rows = [{ sku: "FS-B01", name: "Arc Blade Trainer" }, { sku: "FS-B02", name: "Emitter Hilt" }];
+  assert.deepEqual(matchProducts("quote 5 emitter hilts", rows).map((r) => r.sku), ["FS-B02"]);
   assert.deepEqual(matchProducts("a saber", rows), []);
 });
 
@@ -80,4 +80,33 @@ test("resolveScenario", () => {
   assert.deepEqual(resolveScenario({ kind: "message", decided: { intent: { primary: { id: "rfq.request" }, confidence: 0.9 } } }), { scenario: "rfq", how: "scout" });
   assert.deepEqual(resolveScenario({ kind: "thread", declared: "question" }), { scenario: "question", how: "declared" });
   assert.deepEqual(resolveScenario({ kind: "message", declared: "free_text" }), { scenario: "customer_service", how: "none" });
+});
+
+// ---- the quote road (P29): one product and one quantity are quoted from the tier and the parts; anything less stays the acknowledgement above ----
+
+test("one product and one quantity: the handler probes tiers and parts and holds a quote for the rfq owner (no escalate)", async () => {
+  const { probe, out, esc } = await run("Please quote 25 Arc Blade Trainers for our academy");
+  assert.equal(probe.branch_id, "rfq-quote");
+  assert.deepEqual(probe.data.quote, { sku: "FS-B01", quantity: 25, tier: "squad", unit_price: 170.1, discount_pct: 10, total: 4252.5, currency: "GC",
+    parts: probe.data.quote.parts });
+  assert.ok(probe.lines.some((l) => l.action === "sql:bulk_tiers") && probe.lines.some((l) => l.action === "sql:bom"));
+  assert.equal(out.decision, "hold");
+  assert.equal(out.queued.owner_id, 6);
+  assert.equal(esc.length, 0, "a plain quote is a hold: nothing is escalated");
+  assert.match(out.draft.text, /Total: 4252\.50 GC/);
+  assert.equal(out.attachments.quote.parts.length, 2);
+});
+
+test("the quantity may stand before the product name (Scout counts only before a unit word); two numbers do not make an order", async () => {
+  assert.equal((await run("send a quote for 50 Arc Blade Trainers")).probe.data.quote.quantity, 50);
+  assert.equal((await run("send a quote for 1,000 Arc Blade Trainers")).probe.data.quote.quantity, 1000);
+  assert.equal((await run("the difference between 100000 Arc Blade Trainers and 100")).probe.branch_id, "rfq");
+  assert.equal((await run("Arc Blade Trainers, quantity not decided yet")).probe.branch_id, "rfq");
+});
+
+test("resolveScenario: a quote for a counted product is an RFQ even when Scout read a plain order question; a product question stays a product question", () => {
+  const decided = { intent: { primary: { id: "GENERAL" }, confidence: 0.2 } };
+  const productHit = { row: { sku: "FS-B01" } };
+  assert.deepEqual(resolveScenario({ kind: "message", decided, text: "could you quote 25 Arc Blade Trainers?", productHit }), { scenario: "rfq", how: "scout" });
+  assert.equal(resolveScenario({ kind: "message", decided, text: "What is the Arc Blade Trainer made of?", productHit }).scenario, "product");
 });

@@ -1,0 +1,150 @@
+sku,part_id,part_name,qty_per_unit,stock,fictional
+FS-B01,PT-0001,Humming emitter coil (Mk 1),1,2232,true
+FS-B01,PT-0002,Smug status LED (Mk 2),2,1070,true
+FS-B02,PT-0003,Safety interlock pin (Mk 1),1,4169,true
+FS-B02,PT-0004,Latch with opinions (Mk 2),4,799,true
+FS-B02,PT-0005,Nav-chart ink cartridge (Mk 3),2,2350,true
+FS-B03,PT-0006,Reinforced brass rivet (Mk 1),2,1162,true
+FS-B03,PT-0007,Wobble-free hinge (Mk 2),4,4086,true
+FS-B03,PT-0008,Glow-in-doubt dial (Mk 3),1,1190,true
+FS-B03,PT-0009,Tempered lens cap (Mk 4),4,3138,true
+FS-C01,PT-0010,Resin-cast housing (Mk 1),2,4994,true
+FS-C01,PT-0011,Optimistic fuse (Mk 2),1,876,true
+FS-C02,PT-0012,Hermetic gasket (Mk 1),4,919,true
+FS-C02,PT-0013,Oak grip wrap (Mk 2),2,2756,true
+FS-C02,PT-0014,Stitch-proof thread spool (Mk 3),1,2051,true
+FS-C03,PT-0015,Humming emitter coil (Mk 1),4,2862,true
+FS-C03,PT-0016,Smug status LED (Mk 2),2,4347,true
+FS-C03,PT-0017,Stoic zip pull (Mk 3),4,2843,true
+FS-C03,PT-0018,Gravity-defying spring (Mk 4),2,3501,true
+FS-A01,PT-0019,Safety interlock pin (Mk 1),1,1647,true
+FS-A01,PT-0020,Latch with opinions (Mk 2),1,3992,true
+FS-A02,PT-0021,Reinforced brass rivet (Mk 1),2,3055,true
+FS-A02,PT-0022,Wobble-free hinge (Mk 2),4,3556,true
+FS-A02,PT-0023,Glow-in-doubt dial (Mk 3),1,1943,true
+FS-A03,PT-0024,Resin-cast housing (Mk 1),1,3818,true
+FS-A03,PT-0025,Optimistic fuse (Mk 2),2,3733,true
+FS-A03,PT-0026,Pocket power cell (Mk 3),1,2894,true
+FS-A03,PT-0027,Padded foam insert (Mk 4),2,2821,true
+FS-G01,PT-0028,Hermetic gasket (Mk 1),2,3840,true
+FS-G01,PT-0029,Oak grip wrap (Mk 2),2,1390,true
+FS-G02,PT-0030,Humming emitter coil (Mk 1),2,2119,true
+FS-G02,PT-0031,Smug status LED (Mk 2),1,1375,true
+FS-G02,PT-0032,Stoic zip pull (Mk 3),2,2394,true
+FS-G03,PT-0033,Safety interlock pin (Mk 1),4,4905,true
+FS-G03,PT-0034,Latch with opinions (Mk 2),4,3486,true
+FS-G03,PT-0035,Nav-chart ink cartridge (Mk 3),2,377,true
+FS-G03,PT-0036,Duralloy sleeve (Mk 4),2,3555,true
+FS-B04,PT-0037,Reinforced brass rivet (Mk 1),4,978,true
+FS-B04,PT-0038,Wobble-free hinge (Mk 2),1,0,true
+FS-B05,PT-0039,Resin-cast housing (Mk 1),2,3676,true
+FS-B05,PT-0040,Optimistic fuse (Mk 2),1,2907,true
+FS-B05,PT-0041,Pocket power cell (Mk 3),1,3474,true
+FS-B06,PT-0042,Hermetic gasket (Mk 1),2,286,true
+FS-B06,PT-0043,Oak grip wrap (Mk 2),2,4778,true
+FS-B06,PT-0044,Stitch-proof thread spool (Mk 3),2,1269,true
+FS-B06,PT-0045,Anti-snag lining (Mk 4),4,4942,true
+FS-B07,PT-0046,Humming emitter coil (Mk 1),4,4098,true
+FS-B07,PT-0047,Smug status LED (Mk 2),1,2975,true
+FS-B08,PT-0048,Safety interlock pin (Mk 1),1,507,true
+FS-B08,PT-0049,Latch with opinions (Mk 2),2,1189,true
+FS-B08,PT-0050,Nav-chart ink cartridge (Mk 3),1,2875,true
+FS-B09,PT-0051,Reinforced brass rivet (Mk 1),4,0,true
+FS-B09,PT-0052,Wobble-free hinge (Mk 2),2,4418,true
+FS-B09,PT-0053,Glow-in-doubt dial (Mk 3),1,3226,true
+FS-B09,PT-0054,Tempered lens cap (Mk 4),1,4752,true
+FS-C04,PT-0055,Resin-cast housing (Mk 1),1,4615,true
+FS-C04,PT-0056,Optimistic fuse (Mk 2),1,983,true
+FS-C05,PT-0057,Hermetic gasket (Mk 1),1,2903,true
+FS-C05,PT-0058,Oak grip wrap (Mk 2),1,3996,true
+FS-C05,PT-0059,Stitch-proof thread spool (Mk 3),2,1599,true
+FS-C06,PT-0060,Humming emitter coil (Mk 1),4,890,true
+FS-C06,PT-0061,Smug status LED (Mk 2),1,4474,true
+FS-C06,PT-0062,Stoic zip pull (Mk 3),1,1085,true
+FS-C06,PT-0063,Gravity-defying spring (Mk 4),4,2419,true
+FS-C07,PT-0064,Safety interlock pin (Mk 1),1,0,true
+FS-C07,PT-0065,Latch with opinions (Mk 2),1,4707,true
+FS-C08,PT-0066,Reinforced brass rivet (Mk 1),2,4056,true
+FS-C08,PT-0067,Wobble-free hinge (Mk 2),2,3014,true
+FS-C08,PT-0068,Glow-in-doubt dial (Mk 3),4,2803,true
+FS-C09,PT-0069,Resin-cast housing (Mk 1),4,2291,true
+FS-C09,PT-0070,Optimistic fuse (Mk 2),2,2879,true
+FS-C09,PT-0071,Pocket power cell (Mk 3),4,500,true
+FS-C09,PT-0072,Padded foam insert (Mk 4),1,1291,true
+FS-A04,PT-0073,Hermetic gasket (Mk 1),2,4137,true
+FS-A04,PT-0074,Oak grip wrap (Mk 2),4,2279,true
+FS-A05,PT-0075,Humming emitter coil (Mk 1),2,1828,true
+FS-A05,PT-0076,Smug status LED (Mk 2),4,2441,true
+FS-A05,PT-0077,Stoic zip pull (Mk 3),1,2690,true
+FS-A06,PT-0078,Safety interlock pin (Mk 1),1,4965,true
+FS-A06,PT-0079,Latch with opinions (Mk 2),1,3565,true
+FS-A06,PT-0080,Nav-chart ink cartridge (Mk 3),2,4369,true
+FS-A06,PT-0081,Duralloy sleeve (Mk 4),1,4153,true
+FS-A07,PT-0082,Reinforced brass rivet (Mk 1),2,4374,true
+FS-A07,PT-0083,Wobble-free hinge (Mk 2),2,4207,true
+FS-A08,PT-0084,Resin-cast housing (Mk 1),2,2982,true
+FS-A08,PT-0085,Optimistic fuse (Mk 2),1,1684,true
+FS-A08,PT-0086,Pocket power cell (Mk 3),1,4804,true
+FS-A09,PT-0087,Hermetic gasket (Mk 1),4,2309,true
+FS-A09,PT-0088,Oak grip wrap (Mk 2),1,1071,true
+FS-A09,PT-0089,Stitch-proof thread spool (Mk 3),4,436,true
+FS-A09,PT-0090,Anti-snag lining (Mk 4),1,2173,true
+FS-A10,PT-0091,Humming emitter coil (Mk 1),1,3714,true
+FS-A10,PT-0092,Smug status LED (Mk 2),1,4408,true
+FS-G04,PT-0093,Safety interlock pin (Mk 1),4,2417,true
+FS-G04,PT-0094,Latch with opinions (Mk 2),2,1319,true
+FS-G04,PT-0095,Nav-chart ink cartridge (Mk 3),4,3179,true
+FS-G05,PT-0096,Reinforced brass rivet (Mk 1),1,4563,true
+FS-G05,PT-0097,Wobble-free hinge (Mk 2),1,1445,true
+FS-G05,PT-0098,Glow-in-doubt dial (Mk 3),1,1379,true
+FS-G05,PT-0099,Tempered lens cap (Mk 4),1,4893,true
+FS-G06,PT-0100,Resin-cast housing (Mk 1),2,482,true
+FS-G06,PT-0101,Optimistic fuse (Mk 2),1,2652,true
+FS-G07,PT-0102,Hermetic gasket (Mk 1),2,1340,true
+FS-G07,PT-0103,Oak grip wrap (Mk 2),2,4626,true
+FS-G07,PT-0104,Stitch-proof thread spool (Mk 3),4,1248,true
+FS-G08,PT-0105,Humming emitter coil (Mk 1),1,1578,true
+FS-G08,PT-0106,Smug status LED (Mk 2),1,639,true
+FS-G08,PT-0107,Stoic zip pull (Mk 3),4,1460,true
+FS-G08,PT-0108,Gravity-defying spring (Mk 4),1,4211,true
+FS-G09,PT-0109,Safety interlock pin (Mk 1),1,2662,true
+FS-G09,PT-0110,Latch with opinions (Mk 2),2,4415,true
+FS-G10,PT-0111,Reinforced brass rivet (Mk 1),1,4646,true
+FS-G10,PT-0112,Wobble-free hinge (Mk 2),4,4014,true
+FS-G10,PT-0113,Glow-in-doubt dial (Mk 3),2,1469,true
+FS-G11,PT-0114,Resin-cast housing (Mk 1),1,1393,true
+FS-G11,PT-0115,Optimistic fuse (Mk 2),1,4057,true
+FS-G11,PT-0116,Pocket power cell (Mk 3),1,676,true
+FS-G11,PT-0117,Padded foam insert (Mk 4),2,3091,true
+FS-G12,PT-0118,Hermetic gasket (Mk 1),1,2893,true
+FS-G12,PT-0119,Oak grip wrap (Mk 2),1,1541,true
+FS-G13,PT-0120,Humming emitter coil (Mk 1),4,937,true
+FS-G13,PT-0121,Smug status LED (Mk 2),1,3748,true
+FS-G13,PT-0122,Stoic zip pull (Mk 3),1,1598,true
+FS-G14,PT-0123,Safety interlock pin (Mk 1),4,2040,true
+FS-G14,PT-0124,Latch with opinions (Mk 2),2,0,true
+FS-G14,PT-0125,Nav-chart ink cartridge (Mk 3),4,1498,true
+FS-G14,PT-0126,Duralloy sleeve (Mk 4),4,3666,true
+FS-G15,PT-0127,Reinforced brass rivet (Mk 1),1,3175,true
+FS-G15,PT-0128,Wobble-free hinge (Mk 2),4,2728,true
+FS-G16,PT-0129,Resin-cast housing (Mk 1),4,4779,true
+FS-G16,PT-0130,Optimistic fuse (Mk 2),1,951,true
+FS-G16,PT-0131,Pocket power cell (Mk 3),1,1801,true
+FS-G17,PT-0132,Hermetic gasket (Mk 1),2,845,true
+FS-G17,PT-0133,Oak grip wrap (Mk 2),1,1494,true
+FS-G17,PT-0134,Stitch-proof thread spool (Mk 3),1,1610,true
+FS-G17,PT-0135,Anti-snag lining (Mk 4),1,3751,true
+FS-G18,PT-0136,Humming emitter coil (Mk 1),1,3705,true
+FS-G18,PT-0137,Smug status LED (Mk 2),1,4680,true
+FS-G19,PT-0138,Safety interlock pin (Mk 1),2,2401,true
+FS-G19,PT-0139,Latch with opinions (Mk 2),4,3191,true
+FS-G19,PT-0140,Nav-chart ink cartridge (Mk 3),4,278,true
+FS-G20,PT-0141,Reinforced brass rivet (Mk 1),4,4468,true
+FS-G20,PT-0142,Wobble-free hinge (Mk 2),2,2437,true
+FS-G20,PT-0143,Glow-in-doubt dial (Mk 3),1,4199,true
+FS-G20,PT-0144,Tempered lens cap (Mk 4),1,1080,true
+FS-G21,PT-0145,Resin-cast housing (Mk 1),1,4784,true
+FS-G21,PT-0146,Optimistic fuse (Mk 2),4,3140,true
+FS-G22,PT-0147,Hermetic gasket (Mk 1),1,3291,true
+FS-G22,PT-0148,Oak grip wrap (Mk 2),2,4789,true
+FS-G22,PT-0149,Stitch-proof thread spool (Mk 3),1,2287,true

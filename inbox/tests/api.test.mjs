@@ -213,7 +213,7 @@ test("POST /run takes a free-text FAQ question: scenario, branch, send, the FAQ 
 });
 
 test("POST /run free-text RFQ escalates to the sales owner with cited product rows", async () => {
-  const r = await post("/run", { run_id: "msg-rfq", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: "Incoming RFQ for price difference between ordering 100000 training sabers and 100" } });
+  const r = await post("/run", { run_id: "msg-rfq", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: "Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100" } });
   assert.equal(r.status, 200);
   const run = await r.json();
   assert.equal(run.scenario, "rfq");
@@ -221,7 +221,7 @@ test("POST /run free-text RFQ escalates to the sales owner with cited product ro
   assert.equal(run.output.queued_for.owner_id, 6);
   const att = run.output.queued_for.attachments;
   assert.ok(att.prices.length <= 1);
-  assert.ok(att.cited.includes("products:P01"), JSON.stringify(att.cited));
+  assert.ok(att.cited.includes("products:FS-B01"), JSON.stringify(att.cited));
 });
 
 test("POST /run 400 names the bad message field", async () => {
@@ -364,7 +364,7 @@ test("GET /queue is [] when the queue directory is absent", async () => {
 });
 
 test("a token in a message is absent from /runs, the journey and /queue", async () => {
-  const r = await post("/run", { run_id: "msg-secret2", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: `Incoming RFQ for price difference between ordering 100000 training sabers and 100, key ${TOKEN}` } });
+  const r = await post("/run", { run_id: "msg-secret2", input: { ...MSG, from: "buyer@example.com", scenario: "rfq", message: `Incoming RFQ for price difference between ordering 100000 Arc Blade Trainers and 100, key ${TOKEN}` } });
   assert.equal(r.status, 200);
   await r.text();
   for (const p of ["/runs", "/runs/msg-secret2/journey", "/queue"]) {

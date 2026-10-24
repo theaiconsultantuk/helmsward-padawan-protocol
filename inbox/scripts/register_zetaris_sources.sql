@@ -19,3 +19,10 @@ CREATE LIGHTNING FILESTORE TABLE products FROM JEDI_PACK FORMAT CSV OPTIONS (pat
 CREATE LIGHTNING FILESTORE TABLE faq FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/faq.csv", header "true");
 CREATE LIGHTNING FILESTORE TABLE contacts FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/contacts.csv", header "true");
 CREATE LIGHTNING FILESTORE TABLE intake_runtime FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/intake.csv", header "true", escape '"', multiLine "true");
+CREATE LIGHTNING FILESTORE TABLE companyhierarchy FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/companyhierarchy.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE customers FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/customers.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE orders FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/orders.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE shipping_rules FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/shipping_rules.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE bulk_pricing FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/bulk_pricing.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE bom FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/bom.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE channels FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/channels.csv", header "true");

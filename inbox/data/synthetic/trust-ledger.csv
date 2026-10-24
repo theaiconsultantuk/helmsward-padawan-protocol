@@ -1,6 +1,13 @@
 category,weight,floor,source_id
+appreciation,0.84,0.8,seed-appreciation
+question,0.71,0.8,seed-question
 complaint,0.62,0.8,seed-complaint
 refund,0.55,0.8,seed-refund
-question,0.71,0.8,seed-question
-appreciation,0.84,0.8,seed-appreciation
 other,0.4,0.8,seed-other
+replacement,0.5,0.8,seed-replacement
+rfq,0.4,0.8,seed-rfq
+customer_service,0.4,0.8,seed-customer_service
+billing,0.4,0.8,seed-billing
+delivery,0.85,0.8,seed-delivery
+legal,0.2,0.8,seed-legal
+product,0.71,0.8,seed-product

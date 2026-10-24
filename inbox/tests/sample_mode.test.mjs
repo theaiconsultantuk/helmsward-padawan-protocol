@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
 import { createServer } from "../src/server.mjs";
 
-const EXPECT = { 1: "hold", 2: "send", 3: "escalate" };
+const EXPECT = { 1: "hold", 2: "hold", 3: "escalate" };
 let server, base, logsDir;
 
 before(async () => {

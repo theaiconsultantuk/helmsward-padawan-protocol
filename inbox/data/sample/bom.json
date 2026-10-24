@@ -1,0 +1,1895 @@
+[
+  {
+    "params": {
+      "sku": "FS-A01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A01",
+          "PT-0019",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "1647"
+        ],
+        [
+          "FS-A01",
+          "PT-0020",
+          "Latch with opinions (Mk 2)",
+          "1",
+          "3992"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A02",
+          "PT-0021",
+          "Reinforced brass rivet (Mk 1)",
+          "2",
+          "3055"
+        ],
+        [
+          "FS-A02",
+          "PT-0022",
+          "Wobble-free hinge (Mk 2)",
+          "4",
+          "3556"
+        ],
+        [
+          "FS-A02",
+          "PT-0023",
+          "Glow-in-doubt dial (Mk 3)",
+          "1",
+          "1943"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A03",
+          "PT-0024",
+          "Resin-cast housing (Mk 1)",
+          "1",
+          "3818"
+        ],
+        [
+          "FS-A03",
+          "PT-0025",
+          "Optimistic fuse (Mk 2)",
+          "2",
+          "3733"
+        ],
+        [
+          "FS-A03",
+          "PT-0026",
+          "Pocket power cell (Mk 3)",
+          "1",
+          "2894"
+        ],
+        [
+          "FS-A03",
+          "PT-0027",
+          "Padded foam insert (Mk 4)",
+          "2",
+          "2821"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A04",
+          "PT-0073",
+          "Hermetic gasket (Mk 1)",
+          "2",
+          "4137"
+        ],
+        [
+          "FS-A04",
+          "PT-0074",
+          "Oak grip wrap (Mk 2)",
+          "4",
+          "2279"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A05",
+          "PT-0075",
+          "Humming emitter coil (Mk 1)",
+          "2",
+          "1828"
+        ],
+        [
+          "FS-A05",
+          "PT-0076",
+          "Smug status LED (Mk 2)",
+          "4",
+          "2441"
+        ],
+        [
+          "FS-A05",
+          "PT-0077",
+          "Stoic zip pull (Mk 3)",
+          "1",
+          "2690"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A06",
+          "PT-0078",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "4965"
+        ],
+        [
+          "FS-A06",
+          "PT-0079",
+          "Latch with opinions (Mk 2)",
+          "1",
+          "3565"
+        ],
+        [
+          "FS-A06",
+          "PT-0080",
+          "Nav-chart ink cartridge (Mk 3)",
+          "2",
+          "4369"
+        ],
+        [
+          "FS-A06",
+          "PT-0081",
+          "Duralloy sleeve (Mk 4)",
+          "1",
+          "4153"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A07",
+          "PT-0082",
+          "Reinforced brass rivet (Mk 1)",
+          "2",
+          "4374"
+        ],
+        [
+          "FS-A07",
+          "PT-0083",
+          "Wobble-free hinge (Mk 2)",
+          "2",
+          "4207"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A08",
+          "PT-0084",
+          "Resin-cast housing (Mk 1)",
+          "2",
+          "2982"
+        ],
+        [
+          "FS-A08",
+          "PT-0085",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "1684"
+        ],
+        [
+          "FS-A08",
+          "PT-0086",
+          "Pocket power cell (Mk 3)",
+          "1",
+          "4804"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A09",
+          "PT-0087",
+          "Hermetic gasket (Mk 1)",
+          "4",
+          "2309"
+        ],
+        [
+          "FS-A09",
+          "PT-0088",
+          "Oak grip wrap (Mk 2)",
+          "1",
+          "1071"
+        ],
+        [
+          "FS-A09",
+          "PT-0089",
+          "Stitch-proof thread spool (Mk 3)",
+          "4",
+          "436"
+        ],
+        [
+          "FS-A09",
+          "PT-0090",
+          "Anti-snag lining (Mk 4)",
+          "1",
+          "2173"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-A10"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-A10",
+          "PT-0091",
+          "Humming emitter coil (Mk 1)",
+          "1",
+          "3714"
+        ],
+        [
+          "FS-A10",
+          "PT-0092",
+          "Smug status LED (Mk 2)",
+          "1",
+          "4408"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B01",
+          "PT-0001",
+          "Humming emitter coil (Mk 1)",
+          "1",
+          "2232"
+        ],
+        [
+          "FS-B01",
+          "PT-0002",
+          "Smug status LED (Mk 2)",
+          "2",
+          "1070"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B02",
+          "PT-0003",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "4169"
+        ],
+        [
+          "FS-B02",
+          "PT-0004",
+          "Latch with opinions (Mk 2)",
+          "4",
+          "799"
+        ],
+        [
+          "FS-B02",
+          "PT-0005",
+          "Nav-chart ink cartridge (Mk 3)",
+          "2",
+          "2350"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B03",
+          "PT-0006",
+          "Reinforced brass rivet (Mk 1)",
+          "2",
+          "1162"
+        ],
+        [
+          "FS-B03",
+          "PT-0007",
+          "Wobble-free hinge (Mk 2)",
+          "4",
+          "4086"
+        ],
+        [
+          "FS-B03",
+          "PT-0008",
+          "Glow-in-doubt dial (Mk 3)",
+          "1",
+          "1190"
+        ],
+        [
+          "FS-B03",
+          "PT-0009",
+          "Tempered lens cap (Mk 4)",
+          "4",
+          "3138"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B04",
+          "PT-0037",
+          "Reinforced brass rivet (Mk 1)",
+          "4",
+          "978"
+        ],
+        [
+          "FS-B04",
+          "PT-0038",
+          "Wobble-free hinge (Mk 2)",
+          "1",
+          "0"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B05",
+          "PT-0039",
+          "Resin-cast housing (Mk 1)",
+          "2",
+          "3676"
+        ],
+        [
+          "FS-B05",
+          "PT-0040",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "2907"
+        ],
+        [
+          "FS-B05",
+          "PT-0041",
+          "Pocket power cell (Mk 3)",
+          "1",
+          "3474"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B06",
+          "PT-0042",
+          "Hermetic gasket (Mk 1)",
+          "2",
+          "286"
+        ],
+        [
+          "FS-B06",
+          "PT-0043",
+          "Oak grip wrap (Mk 2)",
+          "2",
+          "4778"
+        ],
+        [
+          "FS-B06",
+          "PT-0044",
+          "Stitch-proof thread spool (Mk 3)",
+          "2",
+          "1269"
+        ],
+        [
+          "FS-B06",
+          "PT-0045",
+          "Anti-snag lining (Mk 4)",
+          "4",
+          "4942"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B07",
+          "PT-0046",
+          "Humming emitter coil (Mk 1)",
+          "4",
+          "4098"
+        ],
+        [
+          "FS-B07",
+          "PT-0047",
+          "Smug status LED (Mk 2)",
+          "1",
+          "2975"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B08",
+          "PT-0048",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "507"
+        ],
+        [
+          "FS-B08",
+          "PT-0049",
+          "Latch with opinions (Mk 2)",
+          "2",
+          "1189"
+        ],
+        [
+          "FS-B08",
+          "PT-0050",
+          "Nav-chart ink cartridge (Mk 3)",
+          "1",
+          "2875"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-B09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-B09",
+          "PT-0051",
+          "Reinforced brass rivet (Mk 1)",
+          "4",
+          "0"
+        ],
+        [
+          "FS-B09",
+          "PT-0052",
+          "Wobble-free hinge (Mk 2)",
+          "2",
+          "4418"
+        ],
+        [
+          "FS-B09",
+          "PT-0053",
+          "Glow-in-doubt dial (Mk 3)",
+          "1",
+          "3226"
+        ],
+        [
+          "FS-B09",
+          "PT-0054",
+          "Tempered lens cap (Mk 4)",
+          "1",
+          "4752"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C01",
+          "PT-0010",
+          "Resin-cast housing (Mk 1)",
+          "2",
+          "4994"
+        ],
+        [
+          "FS-C01",
+          "PT-0011",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "876"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C02",
+          "PT-0012",
+          "Hermetic gasket (Mk 1)",
+          "4",
+          "919"
+        ],
+        [
+          "FS-C02",
+          "PT-0013",
+          "Oak grip wrap (Mk 2)",
+          "2",
+          "2756"
+        ],
+        [
+          "FS-C02",
+          "PT-0014",
+          "Stitch-proof thread spool (Mk 3)",
+          "1",
+          "2051"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C03",
+          "PT-0015",
+          "Humming emitter coil (Mk 1)",
+          "4",
+          "2862"
+        ],
+        [
+          "FS-C03",
+          "PT-0016",
+          "Smug status LED (Mk 2)",
+          "2",
+          "4347"
+        ],
+        [
+          "FS-C03",
+          "PT-0017",
+          "Stoic zip pull (Mk 3)",
+          "4",
+          "2843"
+        ],
+        [
+          "FS-C03",
+          "PT-0018",
+          "Gravity-defying spring (Mk 4)",
+          "2",
+          "3501"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C04",
+          "PT-0055",
+          "Resin-cast housing (Mk 1)",
+          "1",
+          "4615"
+        ],
+        [
+          "FS-C04",
+          "PT-0056",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "983"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C05",
+          "PT-0057",
+          "Hermetic gasket (Mk 1)",
+          "1",
+          "2903"
+        ],
+        [
+          "FS-C05",
+          "PT-0058",
+          "Oak grip wrap (Mk 2)",
+          "1",
+          "3996"
+        ],
+        [
+          "FS-C05",
+          "PT-0059",
+          "Stitch-proof thread spool (Mk 3)",
+          "2",
+          "1599"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C06",
+          "PT-0060",
+          "Humming emitter coil (Mk 1)",
+          "4",
+          "890"
+        ],
+        [
+          "FS-C06",
+          "PT-0061",
+          "Smug status LED (Mk 2)",
+          "1",
+          "4474"
+        ],
+        [
+          "FS-C06",
+          "PT-0062",
+          "Stoic zip pull (Mk 3)",
+          "1",
+          "1085"
+        ],
+        [
+          "FS-C06",
+          "PT-0063",
+          "Gravity-defying spring (Mk 4)",
+          "4",
+          "2419"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C07",
+          "PT-0064",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "0"
+        ],
+        [
+          "FS-C07",
+          "PT-0065",
+          "Latch with opinions (Mk 2)",
+          "1",
+          "4707"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C08",
+          "PT-0066",
+          "Reinforced brass rivet (Mk 1)",
+          "2",
+          "4056"
+        ],
+        [
+          "FS-C08",
+          "PT-0067",
+          "Wobble-free hinge (Mk 2)",
+          "2",
+          "3014"
+        ],
+        [
+          "FS-C08",
+          "PT-0068",
+          "Glow-in-doubt dial (Mk 3)",
+          "4",
+          "2803"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-C09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-C09",
+          "PT-0069",
+          "Resin-cast housing (Mk 1)",
+          "4",
+          "2291"
+        ],
+        [
+          "FS-C09",
+          "PT-0070",
+          "Optimistic fuse (Mk 2)",
+          "2",
+          "2879"
+        ],
+        [
+          "FS-C09",
+          "PT-0071",
+          "Pocket power cell (Mk 3)",
+          "4",
+          "500"
+        ],
+        [
+          "FS-C09",
+          "PT-0072",
+          "Padded foam insert (Mk 4)",
+          "1",
+          "1291"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G01"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G01",
+          "PT-0028",
+          "Hermetic gasket (Mk 1)",
+          "2",
+          "3840"
+        ],
+        [
+          "FS-G01",
+          "PT-0029",
+          "Oak grip wrap (Mk 2)",
+          "2",
+          "1390"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G02"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G02",
+          "PT-0030",
+          "Humming emitter coil (Mk 1)",
+          "2",
+          "2119"
+        ],
+        [
+          "FS-G02",
+          "PT-0031",
+          "Smug status LED (Mk 2)",
+          "1",
+          "1375"
+        ],
+        [
+          "FS-G02",
+          "PT-0032",
+          "Stoic zip pull (Mk 3)",
+          "2",
+          "2394"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G03"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G03",
+          "PT-0033",
+          "Safety interlock pin (Mk 1)",
+          "4",
+          "4905"
+        ],
+        [
+          "FS-G03",
+          "PT-0034",
+          "Latch with opinions (Mk 2)",
+          "4",
+          "3486"
+        ],
+        [
+          "FS-G03",
+          "PT-0035",
+          "Nav-chart ink cartridge (Mk 3)",
+          "2",
+          "377"
+        ],
+        [
+          "FS-G03",
+          "PT-0036",
+          "Duralloy sleeve (Mk 4)",
+          "2",
+          "3555"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G04"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G04",
+          "PT-0093",
+          "Safety interlock pin (Mk 1)",
+          "4",
+          "2417"
+        ],
+        [
+          "FS-G04",
+          "PT-0094",
+          "Latch with opinions (Mk 2)",
+          "2",
+          "1319"
+        ],
+        [
+          "FS-G04",
+          "PT-0095",
+          "Nav-chart ink cartridge (Mk 3)",
+          "4",
+          "3179"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G05"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G05",
+          "PT-0096",
+          "Reinforced brass rivet (Mk 1)",
+          "1",
+          "4563"
+        ],
+        [
+          "FS-G05",
+          "PT-0097",
+          "Wobble-free hinge (Mk 2)",
+          "1",
+          "1445"
+        ],
+        [
+          "FS-G05",
+          "PT-0098",
+          "Glow-in-doubt dial (Mk 3)",
+          "1",
+          "1379"
+        ],
+        [
+          "FS-G05",
+          "PT-0099",
+          "Tempered lens cap (Mk 4)",
+          "1",
+          "4893"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G06"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G06",
+          "PT-0100",
+          "Resin-cast housing (Mk 1)",
+          "2",
+          "482"
+        ],
+        [
+          "FS-G06",
+          "PT-0101",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "2652"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G07"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G07",
+          "PT-0102",
+          "Hermetic gasket (Mk 1)",
+          "2",
+          "1340"
+        ],
+        [
+          "FS-G07",
+          "PT-0103",
+          "Oak grip wrap (Mk 2)",
+          "2",
+          "4626"
+        ],
+        [
+          "FS-G07",
+          "PT-0104",
+          "Stitch-proof thread spool (Mk 3)",
+          "4",
+          "1248"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G08"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G08",
+          "PT-0105",
+          "Humming emitter coil (Mk 1)",
+          "1",
+          "1578"
+        ],
+        [
+          "FS-G08",
+          "PT-0106",
+          "Smug status LED (Mk 2)",
+          "1",
+          "639"
+        ],
+        [
+          "FS-G08",
+          "PT-0107",
+          "Stoic zip pull (Mk 3)",
+          "4",
+          "1460"
+        ],
+        [
+          "FS-G08",
+          "PT-0108",
+          "Gravity-defying spring (Mk 4)",
+          "1",
+          "4211"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G09"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G09",
+          "PT-0109",
+          "Safety interlock pin (Mk 1)",
+          "1",
+          "2662"
+        ],
+        [
+          "FS-G09",
+          "PT-0110",
+          "Latch with opinions (Mk 2)",
+          "2",
+          "4415"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G10"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G10",
+          "PT-0111",
+          "Reinforced brass rivet (Mk 1)",
+          "1",
+          "4646"
+        ],
+        [
+          "FS-G10",
+          "PT-0112",
+          "Wobble-free hinge (Mk 2)",
+          "4",
+          "4014"
+        ],
+        [
+          "FS-G10",
+          "PT-0113",
+          "Glow-in-doubt dial (Mk 3)",
+          "2",
+          "1469"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G11"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G11",
+          "PT-0114",
+          "Resin-cast housing (Mk 1)",
+          "1",
+          "1393"
+        ],
+        [
+          "FS-G11",
+          "PT-0115",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "4057"
+        ],
+        [
+          "FS-G11",
+          "PT-0116",
+          "Pocket power cell (Mk 3)",
+          "1",
+          "676"
+        ],
+        [
+          "FS-G11",
+          "PT-0117",
+          "Padded foam insert (Mk 4)",
+          "2",
+          "3091"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G12"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G12",
+          "PT-0118",
+          "Hermetic gasket (Mk 1)",
+          "1",
+          "2893"
+        ],
+        [
+          "FS-G12",
+          "PT-0119",
+          "Oak grip wrap (Mk 2)",
+          "1",
+          "1541"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G13"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G13",
+          "PT-0120",
+          "Humming emitter coil (Mk 1)",
+          "4",
+          "937"
+        ],
+        [
+          "FS-G13",
+          "PT-0121",
+          "Smug status LED (Mk 2)",
+          "1",
+          "3748"
+        ],
+        [
+          "FS-G13",
+          "PT-0122",
+          "Stoic zip pull (Mk 3)",
+          "1",
+          "1598"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G14"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G14",
+          "PT-0123",
+          "Safety interlock pin (Mk 1)",
+          "4",
+          "2040"
+        ],
+        [
+          "FS-G14",
+          "PT-0124",
+          "Latch with opinions (Mk 2)",
+          "2",
+          "0"
+        ],
+        [
+          "FS-G14",
+          "PT-0125",
+          "Nav-chart ink cartridge (Mk 3)",
+          "4",
+          "1498"
+        ],
+        [
+          "FS-G14",
+          "PT-0126",
+          "Duralloy sleeve (Mk 4)",
+          "4",
+          "3666"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G15"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G15",
+          "PT-0127",
+          "Reinforced brass rivet (Mk 1)",
+          "1",
+          "3175"
+        ],
+        [
+          "FS-G15",
+          "PT-0128",
+          "Wobble-free hinge (Mk 2)",
+          "4",
+          "2728"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G16"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G16",
+          "PT-0129",
+          "Resin-cast housing (Mk 1)",
+          "4",
+          "4779"
+        ],
+        [
+          "FS-G16",
+          "PT-0130",
+          "Optimistic fuse (Mk 2)",
+          "1",
+          "951"
+        ],
+        [
+          "FS-G16",
+          "PT-0131",
+          "Pocket power cell (Mk 3)",
+          "1",
+          "1801"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G17"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G17",
+          "PT-0132",
+          "Hermetic gasket (Mk 1)",
+          "2",
+          "845"
+        ],
+        [
+          "FS-G17",
+          "PT-0133",
+          "Oak grip wrap (Mk 2)",
+          "1",
+          "1494"
+        ],
+        [
+          "FS-G17",
+          "PT-0134",
+          "Stitch-proof thread spool (Mk 3)",
+          "1",
+          "1610"
+        ],
+        [
+          "FS-G17",
+          "PT-0135",
+          "Anti-snag lining (Mk 4)",
+          "1",
+          "3751"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G18"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G18",
+          "PT-0136",
+          "Humming emitter coil (Mk 1)",
+          "1",
+          "3705"
+        ],
+        [
+          "FS-G18",
+          "PT-0137",
+          "Smug status LED (Mk 2)",
+          "1",
+          "4680"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G19"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G19",
+          "PT-0138",
+          "Safety interlock pin (Mk 1)",
+          "2",
+          "2401"
+        ],
+        [
+          "FS-G19",
+          "PT-0139",
+          "Latch with opinions (Mk 2)",
+          "4",
+          "3191"
+        ],
+        [
+          "FS-G19",
+          "PT-0140",
+          "Nav-chart ink cartridge (Mk 3)",
+          "4",
+          "278"
+        ]
+      ],
+      "total": 3
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G20"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G20",
+          "PT-0141",
+          "Reinforced brass rivet (Mk 1)",
+          "4",
+          "4468"
+        ],
+        [
+          "FS-G20",
+          "PT-0142",
+          "Wobble-free hinge (Mk 2)",
+          "2",
+          "2437"
+        ],
+        [
+          "FS-G20",
+          "PT-0143",
+          "Glow-in-doubt dial (Mk 3)",
+          "1",
+          "4199"
+        ],
+        [
+          "FS-G20",
+          "PT-0144",
+          "Tempered lens cap (Mk 4)",
+          "1",
+          "1080"
+        ]
+      ],
+      "total": 4
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G21"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G21",
+          "PT-0145",
+          "Resin-cast housing (Mk 1)",
+          "1",
+          "4784"
+        ],
+        [
+          "FS-G21",
+          "PT-0146",
+          "Optimistic fuse (Mk 2)",
+          "4",
+          "3140"
+        ]
+      ],
+      "total": 2
+    }
+  },
+  {
+    "params": {
+      "sku": "FS-G22"
+    },
+    "result": {
+      "headers": [
+        "sku",
+        "part_id",
+        "part_name",
+        "qty_per_unit",
+        "stock"
+      ],
+      "rows": [
+        [
+          "FS-G22",
+          "PT-0147",
+          "Hermetic gasket (Mk 1)",
+          "1",
+          "3291"
+        ],
+        [
+          "FS-G22",
+          "PT-0148",
+          "Oak grip wrap (Mk 2)",
+          "2",
+          "4789"
+        ],
+        [
+          "FS-G22",
+          "PT-0149",
+          "Stitch-proof thread spool (Mk 3)",
+          "1",
+          "2287"
+        ]
+      ],
+      "total": 3
+    }
+  }
+]

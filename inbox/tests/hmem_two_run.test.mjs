@@ -69,6 +69,26 @@ test("feedback adjusts confidence", () => {
   assert.equal(m.ledger.history(id).filter((e) => e.op === "feedback").length, 3);
 });
 
+test("queueForHuman writes cc, also and status into the queue file", () => {
+  const dir = mk();
+  const m = new HMEM({ persistDir: dir, clock: fixed });
+  const cc = [{ id: 7, name: "A", role: "Head", email: "a@x" }], also = [{ id: 203 }];
+  m.queueForHuman({ id: "T-9", thread_id: "th9" }, [{ reason: "legal" }], { owner: { id: 15 }, cc, also, status: "open" });
+  const q = JSON.parse(fs.readFileSync(path.join(dir, "queue", "th9.json"), "utf-8"));
+  assert.deepEqual(q.cc, cc); assert.deepEqual(q.also, also); assert.equal(q.status, "open");
+  m.queueForHuman({ id: "T-10", thread_id: "th10" }, []);
+  const q2 = JSON.parse(fs.readFileSync(path.join(dir, "queue", "th10.json"), "utf-8"));
+  assert.ok(!("cc" in q2) && !("also" in q2) && !("status" in q2));
+});
+
+test("query: entity matching is case-insensitive (an email entity matches)", () => {
+  const m = new HMEM({ persistDir: mk(), clock: fixed });
+  m.add({ content: "refund for the blade", source: "t", entities: ["LiraVenn@Email.com"] });
+  const hit = m.query("zzz", { threshold: 0.01, entities: ["liravenn@email.com"] });
+  assert.equal(hit.memories.length, 1);
+  assert.ok(Object.values(hit.trace.scores).every((s) => s.entity === 1));
+});
+
 test("queueForHuman writes queue file and tagged memory", () => {
   const dir = mk();
   const m = new HMEM({ persistDir: dir, clock: fixed });

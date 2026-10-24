@@ -1,0 +1,12 @@
+{
+  "note": "P13 free-text probe cases, written from the board's one-line descriptions (Paul's drafts/heldout/ is not in the repo yet). Probe senders are labelled; never a customer's or a judge's address.",
+  "cases": [
+    { "id": "H05", "what": "negation: must not match the refund FAQ", "from": "probe-h05@email.com", "name": "Probe H05", "channel": "contact-form", "subject": "Wrong blade", "message": "I do not want my money back, I want the blade replaced." },
+    { "id": "H08", "what": "appreciation, not a question", "from": "probe-h08@email.com", "name": "Probe H08", "channel": "email", "subject": "Thank you", "message": "I just wanted to say thank you. My new razor arrived early and the shave is the best I have had in years. Lovely service." },
+    { "id": "H09", "what": "Trustpilot complaint, not severe", "from": "probe-h09@email.com", "name": "Probe H09", "channel": "trustpilot", "subject": "Slow delivery", "message": "Delivery took a week longer than promised and nobody told me. Not a disaster, but disappointing." },
+    { "id": "H10", "what": "second appreciation, a public review", "from": "probe-h10@email.com", "name": "Probe H10", "channel": "trustpilot", "subject": "Five stars", "message": "Five stars. The razor is superb, the packaging was neat and support answered within the hour. Would buy again." },
+    { "id": "H13", "what": "the same free text twice (second run must be a duplicate)", "from": "probe-h13@email.com", "name": "Probe H13", "channel": "email", "subject": "Where is my order", "message": "Hello, could you tell me when my order will ship? I have not had any update yet.", "repeat": 2 },
+    { "id": "H16", "what": "a card number in the body: data-block must win", "from": "probe-h16@email.com", "name": "Probe H16", "channel": "contact-form", "subject": "Refund to my card", "message": "Please refund 40 GC to my card 4111 1111 1111 1111, expiry 12/29. The razor arrived broken." },
+    { "id": "H17", "what": "smuggled total: three items of 90 GC listed", "from": "probe-h17@email.com", "name": "Probe H17", "channel": "contact-form", "subject": "Refund request", "message": "I want a refund for three items that arrived damaged: the razor 90 GC, the stand 90 GC and the brush 90 GC." }
+  ]
+}

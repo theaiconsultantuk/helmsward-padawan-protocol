@@ -11,17 +11,19 @@ const full = () => {
   const dir = cfg.SAMPLE_DIR ?? new URL("../data/sample", import.meta.url).pathname;
   return JSON.parse(readFileSync(`${dir}/holidays.json`, "utf8")).find((e) => Object.keys(e.params ?? {}).length === 0).result.rows;
 };
-const byHand = (id, date) => full().filter((r) => String(r[0]) === String(id) && r[1] === date);
+// the holiday SQL's rows: the employee's own AND the company-wide days (blank employee_id), each as [employee_id, date, ...]
+const byHand = (id, date) => full().filter((r) => (r[0] === null || String(r[0]) === String(id)) && r[1] === date).map((r) => r.slice(0, 2));
+const firstTwo = (rows) => rows.map((r) => r.slice(0, 2));
 
 test("holiday derives a per-employee answer from the full table", () => {
   const a = queryByName("holiday", { employee_id: 5, date: "2026-09-29" }, { cfg });
-  assert.equal(a.rows.length, 1);
-  assert.deepEqual(a.rows, byHand(5, "2026-09-29"));
+  assert.ok(a.rows.length >= 1);
+  assert.deepEqual(firstTwo(a.rows), byHand(5, "2026-09-29"));
   const b = queryByName("holiday", { employee_id: 5, date: "2026-10-20" }, { cfg });
-  assert.deepEqual(b.rows, byHand(5, "2026-10-20"));
+  assert.deepEqual(firstTwo(b.rows), byHand(5, "2026-10-20"));
   assert.equal(b.total, b.rows.length);
-  assert.deepEqual(b.headers.slice(0, 2), ["employee_id", "date"]);
-  const none = queryByName("holiday", { employee_id: 5, date: "2026-01-01" }, { cfg });
+  assert.deepEqual(b.headers, ["employee_id", "date", "kind", "holiday_name"]);
+  const none = queryByName("holiday", { employee_id: 5, date: "2026-02-11" }, { cfg });
   assert.equal(none.rows.length, 0);
   assert.equal(none.total, 0);
 });
@@ -41,14 +43,14 @@ test("other templates without an entry still throw", () => {
 test("critique: a promised refund fails with a null limit and over a set limit", () => {
   const d = { promises: { refund_amount: 40 }, text: "ok" };
   // a promised refund with no policy limit behind it fails (Codex review 7, HIGH); the limit rules are refund-category rules
-  assert.equal(critique(d, { category: "refund", policy_limit_usd: null, restricted_terms: [] }).pass, false);
-  const r = critique(d, { category: "refund", policy_limit_usd: 30, restricted_terms: [] });
+  assert.equal(critique(d, { category: "refund", policy_limit: null, restricted_terms: [] }).pass, false);
+  const r = critique(d, { category: "refund", policy_limit: 30, restricted_terms: [] });
   assert.equal(r.pass, false);
   assert.match(r.reason, /above the limit/);
 });
 
 test("revised draft with a null limit never says null", () => {
-  const t = draft({ subject: "s", category: "refund" }, { policy_limit_usd: null, cited_rows: [] }, { seed: "revised" }).text;
+  const t = draft({ subject: "s", category: "refund" }, { policy_limit: null, cited_rows: [] }, { seed: "revised" }).text;
   assert.ok(!t.includes("null"));
   assert.match(t, /We are not promising anything today/);
 });
