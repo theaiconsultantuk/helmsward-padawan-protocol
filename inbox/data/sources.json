@@ -250,6 +250,90 @@
       "licence": "runtime, written by the service",
       "rows": 0,
       "runtime": true
+    },
+    {
+      "name": "companyhierarchy",
+      "path": "companyhierarchy.csv",
+      "format": "CSV",
+      "table": "companyhierarchy",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 207
+    },
+    {
+      "name": "customers",
+      "path": "customers.csv",
+      "format": "CSV",
+      "table": "customers",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 58
+    },
+    {
+      "name": "orders",
+      "path": "orders.csv",
+      "format": "CSV",
+      "table": "orders",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 82
+    },
+    {
+      "name": "shipping_rules",
+      "path": "shipping_rules.csv",
+      "format": "CSV",
+      "table": "shipping_rules",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 12
+    },
+    {
+      "name": "bulk_pricing",
+      "path": "bulk_pricing.csv",
+      "format": "CSV",
+      "table": "bulk_pricing",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 3
+    },
+    {
+      "name": "bom",
+      "path": "bom.csv",
+      "format": "CSV",
+      "table": "bom",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 149
+    },
+    {
+      "name": "channels",
+      "path": "channels.csv",
+      "format": "CSV",
+      "table": "channels",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 4
     }
   ]
 }
