@@ -30,9 +30,12 @@ test("the sample cache agrees with the source data on may_leave for all 100 thre
 });
 
 test("T27 (over-limit refund) escalates and T30 (appreciation) is not blocked, in sample mode", async () => {
-  const go = async (id) => runTicket(id, { run_id: `gen-${id}`, cfg: { ...config(), SAMPLE_MODE: "true" }, deps: { logsDir: mkdtempSync(join(tmpdir(), "gen-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "gen-mem-")), quiet: true } });
+  // decisionsDir: an empty feedback store, so the trust weight is the ledger's seed (0.84 for appreciation) and not whatever
+  // affirm/reject feedback the repo's data/memory holds at the time (Codex review 28).
+  const go = async (id) => runTicket(id, { run_id: `gen-${id}`, cfg: { ...config(), SAMPLE_MODE: "true" },
+    deps: { logsDir: mkdtempSync(join(tmpdir(), "gen-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "gen-mem-")), decisionsDir: mkdtempSync(join(tmpdir(), "gen-dec-")), quiet: true } });
   const t27 = await go("T27");
   assert.equal(t27.output.decision, "escalate"); assert.equal(t27.branch_id, "over-limit");
   const t30 = await go("T30");
-  assert.notEqual(t30.branch_id, "data-block"); assert.notEqual(t30.output.decision, "hold");
+  assert.equal(t30.branch_id, "send-ok"); assert.equal(t30.output.decision, "send");
 });
