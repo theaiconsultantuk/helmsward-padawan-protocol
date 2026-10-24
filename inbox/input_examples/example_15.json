@@ -1,7 +1,7 @@
 {
   "run_id": "example-15",
   "input": {
-    "message": "Is the Wayfarer Cloak waterproof?",
+    "message": "Is the Wayfarer Long Cloak waterproof?",
     "from": "edricembervale@email.com",
     "name": "Edric Embervale",
     "channel": "chat",

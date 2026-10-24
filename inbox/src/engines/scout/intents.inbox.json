@@ -146,6 +146,8 @@
       "roles": ["*"],
       "examples": [
         "Please quote 100 training sabers",
+        "We need a quote for 50 trainers for the new academy wing",
+        "Could you quote 25 units, we need them for a new school",
         "What is your price for 100000 hilts",
         "Request for quote: 250 utility belts delivered to Antwerp",
         "bulk pricing for 500 holsters",

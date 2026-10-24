@@ -84,6 +84,35 @@ export function queryByName(name, params = {}, { cfg = config(), runtimeDir } = 
   return { headers: r.headers ?? [], rows, total: r.total ?? rows.length, timeUsed: 0 };
 }
 
+// What a draft may quote back to the customer: a real subject as it is, or, when the subject is only the start of the message
+// (a free-text intake derives it), the customer's whole first sentence. Never a cut text: a long sentence, or a subject that was
+// cut with no message to complete it, is not quoted at all.
+const QUOTE_MAX = 120;
+export function quotable(ticket) {
+  const clean = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+  const subject = clean(ticket?.subject);
+  const body = clean(ticket?.body);
+  const stem = subject.replace(/\u2026$/, "").trim();
+  const derived = Boolean(stem) && Boolean(body) && body.startsWith(stem) && (subject !== stem || body.length > stem.length);
+  let text = subject;
+  if (derived) {
+    // A sentence boundary is certain only when the word before the full stop is not an abbreviation or an initial ("Mr.", "Dr.", "St.", "e.g.", "J.").
+    // When it is not certain, the whole message is quoted if it fits the limit, else nothing (the length check below).
+    const ABBR = /^(?:mr|mrs|ms|mx|dr|prof|st|sr|jr|vs|etc|no|nr|inc|ltd|co|fig|approx|e\.g|i\.e|a\.m|p\.m)$/i;
+    const re = /([^\s]*?)([.!?])(?=\s|$)/g;
+    let end = -1, uncertain = false, m;
+    while ((m = re.exec(body))) {
+      const word = m[1].replace(/^[("'\u201c]+/, "");
+      if (m[2] === "." && (ABBR.test(word) || /^[A-Za-z]$/.test(word))) { uncertain = true; break; }
+      end = m.index + m[0].length;
+      break;
+    }
+    text = uncertain || end < 0 ? body : body.slice(0, end);
+  } else if (subject.endsWith("\u2026")) return null;
+  text = text.replace(/[.!?]+$/, "").trim();
+  return text && text.length <= QUOTE_MAX ? text : null;
+}
+
 const REFUND = /refund|money back|my money|reimburse/i;
 const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
@@ -94,7 +123,8 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false } = {
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   // an over-limit reply never quotes the subject: a free-text subject is the body's first 60 characters and can carry the amount or a date
-  const ask = overLimit ? "Thank you for your message." : `You wrote about "${ticket.subject}".`;
+  const quoted = overLimit ? null : quotable(ticket);
+  const ask = overLimit ? "Thank you for your message." : quoted ? `You wrote about "${quoted}".` : "Thank you for your message.";
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (overLimit && (cat === "refund" || seed === "revised")) {

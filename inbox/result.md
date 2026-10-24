@@ -62,7 +62,7 @@ The cross-run proof, from the two-run pair (`scripts/two_run_proof.mjs`; the fir
 - Recovery pair (an `error` line, then the `recovery` line that follows it), from the sample-mode run with `FAULT_ZETARIS_REFUSE_ONCE=true`, [judging/traces/trace-recovery.jsonl](judging/traces/trace-recovery.jsonl):
 - run_id `demo-recovery`, step `zetaris.query`, timestamp `2026-10-24T06:16:58Z`, status `error` ([trace-recovery.jsonl line 4](judging/traces/trace-recovery.jsonl)): "UpstreamRefused: zetaris: connection failed (ECONNREFUSED)"
 - run_id `demo-recovery`, step `recovery`, timestamp `2026-10-24T06:16:58Z`, status `success` ([trace-recovery.jsonl line 5](judging/traces/trace-recovery.jsonl)): "Zetaris refused once; answered from the cached rows"
-- The misread pair (Padmé's reply, the ticket reopens, `queueForHuman` fires) is [judging/padme-chain.md](judging/padme-chain.md) with its traces beside it.
+- The misread pair (Seraphine's reply, the ticket reopens, `queueForHuman` fires) is [judging/padme-chain.md](judging/padme-chain.md) with its traces beside it.
 - The refund chain (one customer twice: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first) is [judging/refund-chain.md](judging/refund-chain.md) with its traces beside it.
 
 ## Readiness

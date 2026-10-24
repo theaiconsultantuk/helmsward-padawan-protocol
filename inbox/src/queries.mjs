@@ -88,6 +88,8 @@ const HIER_COLS = [["employee_id", "int"], ["name", "str"], ["role", "str"], ["t
 const CUSTOMER_COLS = [["customer_id", "str"], ["name", "str"], ["callsign", "str"], ["email", "str"], ["home_planet", "str"], ["since", "str"], ["seeded_prior_refund", "bool"], ["fictional", "bool"]];
 const ORDER_COLS = [["order_id", "str"], ["customer_id", "str"], ["sku", "str"], ["quantity", "int"], ["amount", "dbl"], ["currency", "str"], ["shipping_planet", "str"], ["status", "str"], ["ordered_at", "str"]];
 const ts = (s) => Date.parse(s);
+const yn = (v) => (v === true || String(v).toLowerCase() === "true" ? "yes" : "no");
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 // cite(params, objects) -> the row ids a result used
 // detail(params, objects) -> the rows in words, for the trace line (optional; a person reads it, nothing parses it)
@@ -124,6 +126,9 @@ export const TEMPLATES = {
     params: { employee_id: V.employee_id, date: V.date }, cacheable: true, question: "is the employee out on the date",
     sql: (p) => `SELECT * FROM JEDI_PACK.holiday_2026 WHERE (employee_id = ${id(p)} OR employee_id IS NULL OR employee_id = '') AND date = '${p.date}'`,
     cite: (p, o) => o.map((x) => `holiday_2026:${nul(x.employee_id) ?? "company"}@${x.date}`),
+    detail: (p, o) => (o.length
+      ? o.map((x) => `${nul(x.employee_id) == null ? "company-wide day" : `employee ${x.employee_id} out`} on ${x.date}${[x.kind, x.holiday_name].filter(Boolean).length ? ` (${[x.kind, x.holiday_name].filter(Boolean).join(": ")})` : ""}`).join("; ")
+      : `not out on ${p.date}`),
     local: (t, p) => proj(need(t, "holiday_2026").filter((r) => (r.employee_id === "" || Number(r.employee_id) === Number(p.employee_id)) && r.date === p.date),
       [["employee_id", "str"], ["date", "str"], ["kind", "str"], ["holiday_name", "str"]]),
   },
@@ -146,12 +151,14 @@ export const TEMPLATES = {
     params: { category: V.topic }, cacheable: true, question: "the trust weight and floor",
     sql: (p) => `SELECT * FROM JEDI_PACK.trust_ledger WHERE category = '${p.category}'`,
     cite: (p, o) => o.map((x) => `trust_ledger:${x.category}`),
+    detail: (p, o) => o.map((x) => `${x.category}: trust weight ${x.weight}, floor ${x.floor}`).join("; "),
     local: (t, p) => proj(need(t, "trust_ledger").filter((r) => r.category === p.category), [["category", "str"], ["weight", "str"], ["floor", "str"], ["source_id", "str"]]),
   },
   wiki: {
     params: { wiki: V.wiki }, cacheable: true, question: "the wiki page",
     sql: (p) => `SELECT type, format, path, preview FROM JEDI_PACK.${WIKI_TABLE[p.wiki]}`,
     cite: (p) => [WIKI_TABLE[p.wiki]],
+    detail: (p, o) => `${{ refund: "the refund policy", replacement: "the replacement policy", leave: "what may and may not leave the shop" }[p.wiki]}: ${plural(o.length, "wiki page", "wiki pages")} read`,
   },
   table_count: {
     params: { table: V.table }, cacheable: false, question: "the live row count",
@@ -163,6 +170,7 @@ export const TEMPLATES = {
     params: {}, cacheable: true, question: "every thread's sender, subject, body and time, for the duplicate check",
     sql: () => "SELECT thread_id, sender_email, subject, body, received_at FROM JEDI_PACK.threads_json ORDER BY thread_id",
     cite: () => ["threads_json"],
+    detail: (p, o) => `${plural(o.length, "earlier thread", "earlier threads")} read, to compare sender, subject and body`,
     local: (t) => proj([...need(t, "threads_json")].sort(byCol("thread_id")), ["thread_id", "sender_email", "subject", "body", "received_at"].map((c) => [c, "str"])),
   },
   // Scenario tables (S0.2): parameterless reads compared in JS, or one validated id. No customer text reaches SQL.
@@ -170,18 +178,21 @@ export const TEMPLATES = {
     layer: "usl", params: {}, cacheable: true, question: "every FAQ row, matched in JS",
     sql: () => `SELECT faq_id, question, answer, keywords, faq_source AS source FROM ${USL}.faq ORDER BY faq_id`,
     cite: (p, o) => o.map((x) => `faq:${x.faq_id}`),
+    detail: (p, o) => `${plural(o.length, "FAQ answer", "FAQ answers")} read, to match the question against their keywords`,
     local: (t) => proj([...need(t, "faq")].sort(byCol("faq_id")), ["faq_id", "question", "answer", "keywords", "source"].map((c) => [c, "str"])),
   },
   products: {
     layer: "usl", params: {}, cacheable: true, question: "every product, its one unit price, material and specs",
     sql: () => `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product ORDER BY sku`,
     cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    detail: (p, o) => `${plural(o.length, "product", "products")} read, each with its one unit price`,
     local: (t) => proj([...need(t, "products")].sort(byCol("sku")), PRODUCT_COLS),
   },
   product_price: {
     layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the unit price of one product",
     sql: (p) => `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product WHERE sku = '${p.sku}'`,
     cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    detail: (p, o) => o.map((x) => `${x.name}: ${x.unit_price} ${x.currency} a unit`).join("; "),
     local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku), PRODUCT_COLS),
   },
   // every sku with its name and aliases: the catalogue a message is matched against in JS (matchProducts)
@@ -189,12 +200,14 @@ export const TEMPLATES = {
     layer: "usl", params: {}, cacheable: true, question: "every sku with its name and aliases, matched in JS",
     sql: () => `SELECT sku, name, aliases FROM ${USL}.product ORDER BY sku`,
     cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    detail: (p, o) => `${plural(o.length, "product", "products")} read, to match the message against their names`,
     local: (t) => proj([...need(t, "products")].sort(byCol("sku")), [["sku", "str"], ["name", "str"], ["aliases", "str"]]),
   },
   product_by_sku: {
     layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the full product row",
     sql: (p) => `SELECT sku, slug, name, category, unit_price, currency, stock, min_order_qty, lead_days, show_in_store, image_url, model, aliases, material, specs, description FROM ${USL}.product WHERE sku = '${p.sku}'`,
     cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    detail: (p, o) => o.map((x) => [x.name, x.material, x.unit_price != null ? `${x.unit_price} ${x.currency}` : null].filter(Boolean).join(" \u00b7 ")).join("; "),
     // the USL view names the column image_url: Zetaris refuses a USL column called image (COMPILE: "Invalid DDL statement")
     local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku).map((r) => ({ ...r, image_url: r.image })), PRODUCT_FULL),
   },
@@ -218,6 +231,7 @@ export const TEMPLATES = {
     layer: "usl", params: { team: V.team }, cacheable: true, question: "the head of the team",
     sql: (p) => `SELECT employee_id, name, role, team, team_label FROM ${USL}.hierarchy WHERE team = '${p.team}' AND role LIKE 'Head of %' ORDER BY employee_id`,
     cite: (p, o) => o.map((x) => `companyhierarchy:${x.employee_id}`),
+    detail: (p, o) => (o.length ? o.map((x) => `${x.name} \u00b7 ${x.role} \u00b7 ${x.team_label || x.team}`).join("; ") : `no head of ${p.team} named`),
     local: (t, p) => proj(need(t, "companyhierarchy").filter((r) => r.team === p.team && r.role.startsWith("Head of ")).sort((a, b) => Number(a.employee_id) - Number(b.employee_id)), HIER_COLS),
   },
   customer_by_email: {
@@ -239,6 +253,7 @@ export const TEMPLATES = {
         + "ORDER BY CAST(received_at AS timestamp), thread_id";
     },
     cite: (p, o) => o.map((x) => `${x.src ?? "threads_json"}:${x.thread_id}`),
+    detail: (p, o) => (o.length ? `${plural(o.length, "earlier refund ticket", "earlier refund tickets")} from this sender: ${o.map((x) => `${x.thread_id} (${x.received_at})`).join(", ")}` : "no earlier refund ticket from this sender"),
     local: (t, p) => {
       // threads.json plus the runtime intake rows when the caller loaded them (loadTables(dir, { runtimeDir }) -> tables.intake_runtime)
       const stored = need(t, "threads_json")
@@ -253,6 +268,7 @@ export const TEMPLATES = {
     layer: "usl", params: { order_id: V.order_id }, cacheable: true, question: "the order",
     sql: (p) => `SELECT order_id, customer_id, sku, quantity, amount, currency, shipping_planet, status, ordered_at FROM ${USL}.sales_order WHERE order_id = '${p.order_id}'`,
     cite: (p, o) => o.map((x) => `orders:${x.order_id}`),
+    detail: (p, o) => o.map((x) => `order ${x.order_id}: ${x.quantity} x ${x.sku}, ${x.amount} ${x.currency}, ${x.status}, shipping to ${x.shipping_planet}`).join("; "),
     local: (t, p) => proj(need(t, "orders").filter((r) => r.order_id === p.order_id), ORDER_COLS),
   },
   // the planet's rule, else the `default` row
@@ -264,6 +280,7 @@ export const TEMPLATES = {
         + `UNION ALL SELECT planet, status, note FROM ${USL}.shipping_rule WHERE planet = 'default' AND NOT EXISTS (SELECT 1 FROM ${USL}.shipping_rule WHERE LOWER(planet) = '${pl}')`;
     },
     cite: (p, o) => o.map((x) => `shipping_rules:${x.planet}`),
+    detail: (p, o) => o.map((x) => `${x.planet === "default" ? "no special rule for this planet, the default applies" : x.planet}: ${x.status}${x.note ? ` (${x.note})` : ""}`).join("; "),
     local: (t, p) => {
       const all = need(t, "shipping_rules");
       let hit = all.filter((r) => r.planet.toLowerCase() === p.planet.toLowerCase());
@@ -275,29 +292,34 @@ export const TEMPLATES = {
     layer: "usl", params: {}, cacheable: true, question: "the bulk price tiers",
     sql: () => `SELECT tier, min_qty, max_qty, discount_pct FROM ${USL}.bulk_tier ORDER BY min_qty`,
     cite: (p, o) => o.map((x) => `bulk_pricing:${x.tier}`),
+    detail: (p, o) => o.map((x) => `${x.tier}: ${x.min_qty}${x.max_qty ? `-${x.max_qty}` : "+"} units, ${x.discount_pct}% off`).join("; "),
     local: (t) => proj([...need(t, "bulk_pricing")].sort((a, b) => Number(a.min_qty) - Number(b.min_qty)), [["tier", "str"], ["min_qty", "int"], ["max_qty", "int"], ["discount_pct", "dbl"]]),
   },
   bom: {
     layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the parts of the product and their stock",
     sql: (p) => `SELECT sku, part_id, part_name, qty_per_unit, stock FROM ${USL}.bom_part WHERE sku = '${p.sku}' ORDER BY part_id`,
     cite: (p, o) => o.map((x) => `bom:${x.sku}:${x.part_id}`),
+    detail: (p, o) => `${plural(o.length, "part", "parts")} read with their stock`,
     local: (t, p) => proj(need(t, "bom").filter((r) => r.sku === p.sku).sort(byCol("part_id")), [["sku", "str"], ["part_id", "str"], ["part_name", "str"], ["qty_per_unit", "int"], ["stock", "int"]]),
   },
   channel: {
     layer: "usl", params: { channel: V.channel }, cacheable: true, question: "the channel's rules",
     sql: (p) => `SELECT channel, public, autonomous_reply, intake_address, label FROM ${USL}.channel WHERE channel = '${p.channel}'`,
     cite: (p, o) => o.map((x) => `channels:${x.channel}`),
+    detail: (p, o) => o.map((x) => `${x.label || x.channel}: public ${yn(x.public)}, may reply on its own ${yn(x.autonomous_reply)}`).join("; "),
     local: (t, p) => proj(need(t, "channels").filter((r) => r.channel === p.channel), [["channel", "str"], ["public", "bool"], ["autonomous_reply", "bool"], ["intake_address", "str"], ["label", "str"]]),
   },
   reviews: {
     layer: "usl", params: {}, cacheable: true, question: "the public review index",
     sql: () => `SELECT review_id, thread_id, reviewer_name, stars, created_at FROM ${USL}.review ORDER BY review_id`,
     cite: (p, o) => o.map((x) => `trustpilot_reviews:${x.review_id}`),
+    detail: (p, o) => `${plural(o.length, "public review", "public reviews")} listed`,
   },
   world_threads: {
     layer: "usl", params: {}, cacheable: true, minLimit: 1000, question: "every thread's sender, category, owner and outcome, for the world model",
     sql: () => `SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM ${USL}.ticket ORDER BY thread_id`,
     cite: () => ["threads_json"],
+    detail: (p, o) => `${plural(o.length, "earlier thread", "earlier threads")} read, to see who was written to before`,
   },
   // Every holiday row; a blank employee_id (a company-wide day) comes back null.
   holidays: {
@@ -310,12 +332,17 @@ export const TEMPLATES = {
     layer: "usl", params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
     sql: (p) => `SELECT thread_id, received_at, channel, sender_name, sender_email, subject, body, scenario, category FROM ${USL}.intake WHERE thread_id = '${p.thread_id}'`,
     cite: (p, o) => o.map((x) => `intake_runtime:${x.thread_id}`),
+    detail: (p, o) => o.map((x) => `new message ${x.thread_id} from ${x.sender_name || x.sender_email || "an unnamed sender"}${x.channel ? ` via ${x.channel}` : ""}`).join("; "),
   },
   // The trust ledger's feedback: affirm / reject counts for one category, read from the runtime decisions table.
   ledger_adjust: {
     params: { category: V.category }, cacheable: false, question: "the affirm and reject verdicts for the category",
     sql: (p) => `SELECT verdict, COUNT(*) AS n FROM JEDI_PACK.decisions WHERE category = '${p.category}' AND verdict IN ('affirm', 'reject') GROUP BY verdict`,
     cite: () => ["decisions"],
+    detail: (p, o) => {
+      const n = (v) => o.filter((x) => x.verdict === v).reduce((a, x) => a + (Number(x.n ?? x["count(1)"] ?? x["count(*)"]) || 0), 0);
+      return n("affirm") + n("reject") === 0 ? `no human verdicts yet for ${p.category}` : `${plural(n("affirm"), "human affirm", "human affirms")} and ${plural(n("reject"), "reject", "rejects")} for ${p.category}`;
+    },
   },
   decision_counts: {
     params: {}, cacheable: false, question: "the decision counters",

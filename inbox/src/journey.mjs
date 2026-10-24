@@ -47,6 +47,14 @@ const ACTION_LABELS = {
   queue_for_human: "Hand-off",
 };
 
+// The public form of a queue file: its place inside the memory dir ("queue/F12.json"), never the server's absolute path.
+export function publicQueueFile(p) {
+  if (typeof p !== "string" || !p) return p ?? null;
+  const m = /(?:^|[\\/])queue[\\/]([^\\/]+)$/.exec(p);
+  if (m) return `queue/${m[1]}`;
+  return /^(?:[\\/]|[A-Za-z]:)/.test(p) ? `queue/${p.split(/[\\/]/).pop()}` : p;
+}
+
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const str = (v) => (typeof v === "string" ? v : "");
 
@@ -187,7 +195,9 @@ function recipientOf(q) {
   if (fc && typeof fc.email === "string" && fc.email) {
     return { id: null, name: typeof fc.label === "string" && fc.label ? fc.label : fc.email, email: fc.email, role: q.role ?? "default contact" };
   }
-  return { id: q?.owner_id ?? null, name: q?.owner_name ?? null };
+  // the person who holds it (the backup when the owner is out), as the output's owner object says; else the queue entry's owner
+  const o = isObj(q?.owner) && q.owner.employee_id != null ? q.owner : null;
+  return { id: o ? o.employee_id : (q?.owner_id ?? null), name: o ? (o.name ?? null) : (q?.owner_name ?? null) };
 }
 
 export function replyFor(result) {
@@ -322,7 +332,8 @@ export function deriveJourney(result, lines) {
     reached = {
       who: { employee_id: who.id, name: who.name, ...(who.email ? { email: who.email } : {}) },
       what,
-      queue_file: failed ? null : (q?.queue_file ?? res.queue_file ?? null),
+      // null when the queue write failed; absent on a plain hold, which writes no queue file
+      ...(failed ? { queue_file: null } : (q && "queue_file" in q) || res.queue_file !== undefined ? { queue_file: publicQueueFile(q?.queue_file ?? res.queue_file ?? null) } : {}),
     };
   }
 

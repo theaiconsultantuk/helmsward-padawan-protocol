@@ -13,8 +13,8 @@ const THREADS = readFileSync(join(INBOX_ROOT, "data", "synthetic", "threads", "t
 const SHAPE = ["employee_id", "name", "role", "team", "team_label"];
 const dirs = () => ({ logsDir: mkdtempSync(join(tmpdir(), "own-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "own-mem-")), quiet: true });
 
-test("s01: one amount in a refund message is that amount, not double (80 GC for the Drift Boots: hold, under-floor, owner 15)", async () => {
-  const { result, lines } = await runMessage(msg("I would like a refund of 80 GC for my Drift Boots, they are too small for my son.", "contact-form", "s01@email.com", { name: "Sam One", scenario: "refund" }), { as_of: "2026-10-25", run_id: "own-s01" });
+test("s01: one amount in a refund message is that amount, not double (80 GC for the Drift Boot Wraps: hold, under-floor, owner 15)", async () => {
+  const { result, lines } = await runMessage(msg("I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.", "contact-form", "s01@email.com", { name: "Sam One", scenario: "refund" }), { as_of: "2026-10-25", run_id: "own-s01" });
   assert.equal(result.branch_id, "under-floor");
   assert.equal(result.output.decision, "hold");
   assert.equal(result.output.owner.employee_id, 15);

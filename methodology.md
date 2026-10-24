@@ -111,7 +111,7 @@ The trace the demo cites contains every row except `recovery`. The submitted set
 | `escalate_or_fallback` | The escalate gate, item 18. H-MEM `queueForHuman`. Two negative rounds, or a hard fact Risk cannot rewrite. The summary names the ticket file that now holds both critiques. | Escalation or fallback. |
 | `memory.write` | Ids written, and the `run_id` they came from. | Shared memory a second run can read. |
 | `synthesis` | The decision, the cited row ids, and `log_file`. | Final synthesis. The trace of how the output was reached. |
-| `recovery` | The line after a `status` of `error` or `incomplete`. It says what happened next, and its own `status` is `success`. The Jedi Pack samples are two pairs, both `error` then `recovery`: `demo-recovery` is Zetaris refusing port 8888 once, then the fixture rows; `demo-misread` is Padmé's reply that the agent promised a refund she did not ask for, then the ticket reopens and `queueForHuman` fires. | Errors and recovery. |
+| `recovery` | The line after a `status` of `error` or `incomplete`. It says what happened next, and its own `status` is `success`. The Jedi Pack samples are two pairs, both `error` then `recovery`: `demo-recovery` is Zetaris refusing port 8888 once, then the fixture rows; `demo-misread` is Seraphine's reply that the agent promised a refund she did not ask for, then the ticket reopens and `queueForHuman` fires. | Errors and recovery. |
 
 Order in the demo trace:
 

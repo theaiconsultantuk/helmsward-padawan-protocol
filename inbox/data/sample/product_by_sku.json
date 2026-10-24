@@ -26,7 +26,7 @@
         [
           "FS-A01",
           "wayfarer-cloak",
-          "Wayfarer Cloak",
+          "Wayfarer Long Cloak",
           "apparel",
           "119.0",
           "GC",
@@ -72,7 +72,7 @@
         [
           "FS-A02",
           "initiate-robe",
-          "Initiate Robe",
+          "Initiate Training Robe",
           "apparel",
           "59.0",
           "GC",
@@ -118,7 +118,7 @@
         [
           "FS-A03",
           "drift-boots",
-          "Drift Boots",
+          "Drift Boot Wraps",
           "apparel",
           "29.0",
           "GC",
@@ -486,7 +486,7 @@
         [
           "FS-B01",
           "arc-blade-trainer",
-          "Arc Blade Trainer",
+          "Vanta Arc Trainer",
           "arc-blades",
           "189.0",
           "GC",
@@ -532,7 +532,7 @@
         [
           "FS-B02",
           "emitter-hilt",
-          "Emitter Hilt",
+          "Strand Emitter Hilt",
           "arc-blades",
           "39.0",
           "GC",
@@ -900,7 +900,7 @@
         [
           "FS-C01",
           "core-crystal-case",
-          "Core Crystal Case",
+          "Ember Core Reliquary",
           "cores-cases",
           "99.0",
           "GC",
@@ -992,7 +992,7 @@
         [
           "FS-C03",
           "orbit-stand",
-          "Orbit Stand",
+          "Orbit Display Stand",
           "cores-cases",
           "49.0",
           "GC",
@@ -1314,7 +1314,7 @@
         [
           "FS-G01",
           "quartermaster-belt",
-          "Quartermaster Belt",
+          "Quartermaster Utility Belt",
           "gear",
           "249.0",
           "GC",
@@ -1360,7 +1360,7 @@
         [
           "FS-G02",
           "sidearm-holster",
-          "Sidearm Holster",
+          "Ranger Hilt Holster",
           "gear",
           "149.0",
           "GC",
@@ -1406,7 +1406,7 @@
         [
           "FS-G03",
           "pilgrim-pack",
-          "Pilgrim Pack",
+          "Pilgrim Field Pack",
           "gear",
           "79.0",
           "GC",
@@ -1416,7 +1416,7 @@
           "true",
           "/shop/images/pilgrim-pack.webp",
           "/shop/models/pilgrim-pack.glb",
-          "pilgrim pack;pack;P09",
+          "pack;P09",
           "waxed canvas, riveted leather straps",
           "volume=24 l;weight=900 g;straps=padded",
           "Canvas daypack for long walks to remote temples. Currently out of stock, like most remote temples."

@@ -177,7 +177,7 @@ test("detail: the employee, policy and responsibility reads put the rows in word
   assert.equal(lines[3].detail, undefined);
   assert.equal(lines[3].input_summary, 'the employee record {"employee_id":15}');
   await run("trust", { category: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["category", "weight", "floor"], rows: [["refund", 0.55, 0.8]] }) });
-  assert.equal(lines[4].detail, undefined);
+  assert.equal(lines[4].detail, "refund: trust weight 0.55, floor 0.8");
 });
 
 test("G2: run() forwards the trace to sqlRunImpl and writes one line of its own on a throw", async () => {
@@ -312,8 +312,8 @@ test("storefront parity: every storefront sku is in products.csv with the same n
   for (const it of items) {
     const sku = it.sku ?? it.id;
     assert.ok(rows[sku], `${sku} is not in products.csv`);
-    assert.equal(it.name, rows[sku].name, sku);
-    assert.equal(Number(it.price ?? it.unit_price), Number(rows[sku].unit_price), sku);
+    assert.equal(it.name, rows[sku].name, `${sku} name`);
+    assert.equal(Number(it.price_usd ?? it.price ?? it.unit_price), Number(rows[sku].unit_price), `${sku} price`);
   }
 });
 

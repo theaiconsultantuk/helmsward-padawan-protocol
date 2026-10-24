@@ -16,8 +16,8 @@
       "rows": [
         [
           "T01",
-          "padme.amidala@example.com",
-          "Padmé Amidala",
+          "seraphine.kaelborn@example.com",
+          "Seraphine Kaelborn",
           "replacement",
           "email",
           "2026-10-22T09:14:00Z",
@@ -133,7 +133,7 @@
           "2026-10-31T16:59:00Z",
           "5",
           "",
-          "Care for my Arc Blade Trainer"
+          "Care for my Vanta Arc Trainer"
         ],
         [
           "T11",
@@ -364,7 +364,7 @@
           "2026-10-04T15:19:00Z",
           "40",
           "",
-          "Money back for my Quartermaster Belt"
+          "Money back for my Quartermaster Utility Belt"
         ],
         [
           "T32",
@@ -397,7 +397,7 @@
           "2026-10-05T16:13:00Z",
           "15",
           "",
-          "Money back for my Initiate Robe"
+          "Money back for my Initiate Training Robe"
         ],
         [
           "T35",
@@ -408,7 +408,7 @@
           "2026-10-06T14:41:00Z",
           "15",
           "",
-          "Love the Pilgrim Pack"
+          "Love the Pilgrim Field Pack"
         ],
         [
           "T36",
@@ -419,7 +419,7 @@
           "2026-10-06T14:43:00Z",
           "5",
           "",
-          "Care for my Initiate Robe"
+          "Care for my Initiate Training Robe"
         ],
         [
           "T37",
@@ -452,7 +452,7 @@
           "2026-10-07T14:32:00Z",
           "15",
           "",
-          "Money back for my Emitter Hilt"
+          "Money back for my Strand Emitter Hilt"
         ],
         [
           "T40",
@@ -463,7 +463,7 @@
           "2026-10-08T08:16:00Z",
           "5",
           "",
-          "Care for my Emitter Hilt"
+          "Care for my Strand Emitter Hilt"
         ],
         [
           "T41",
@@ -540,7 +540,7 @@
           "2026-10-10T08:58:00Z",
           "5",
           "",
-          "Care for my Core Crystal Case"
+          "Care for my Ember Core Reliquary"
         ],
         [
           "T48",
@@ -551,7 +551,7 @@
           "2026-10-10T11:44:00Z",
           "40",
           "",
-          "Money back for my Orbit Stand"
+          "Money back for my Orbit Display Stand"
         ],
         [
           "T49",
@@ -584,7 +584,7 @@
           "2026-10-11T10:29:00Z",
           "40",
           "",
-          "Money back for my Wayfarer Cloak"
+          "Money back for my Wayfarer Long Cloak"
         ],
         [
           "T52",
@@ -628,7 +628,7 @@
           "2026-10-14T16:20:00Z",
           "40",
           "",
-          "Money back for my Emitter Hilt"
+          "Money back for my Strand Emitter Hilt"
         ],
         [
           "T56",
@@ -639,7 +639,7 @@
           "2026-10-15T12:47:00Z",
           "15",
           "",
-          "Love the Drift Boots"
+          "Love the Drift Boot Wraps"
         ],
         [
           "T57",
@@ -650,7 +650,7 @@
           "2026-10-15T16:33:00Z",
           "5",
           "",
-          "Care for my Drift Boots"
+          "Care for my Drift Boot Wraps"
         ],
         [
           "T58",
@@ -661,7 +661,7 @@
           "2026-10-16T08:45:00Z",
           "40",
           "",
-          "Money back for my Initiate Robe"
+          "Money back for my Initiate Training Robe"
         ],
         [
           "T59",
@@ -793,7 +793,7 @@
           "2026-10-19T11:34:00Z",
           "40",
           "",
-          "Money back for my Arc Blade Trainer"
+          "Money back for my Vanta Arc Trainer"
         ],
         [
           "T71",
@@ -804,7 +804,7 @@
           "2026-10-19T17:06:00Z",
           "15",
           "",
-          "Love the Arc Blade Trainer"
+          "Love the Vanta Arc Trainer"
         ],
         [
           "T72",
@@ -947,7 +947,7 @@
           "2026-10-25T12:21:00Z",
           "40",
           "",
-          "Money back for my Emitter Hilt"
+          "Money back for my Strand Emitter Hilt"
         ],
         [
           "T85",
@@ -980,7 +980,7 @@
           "2026-10-26T10:18:00Z",
           "15",
           "",
-          "Money back for my Initiate Robe"
+          "Money back for my Initiate Training Robe"
         ],
         [
           "T88",
@@ -991,7 +991,7 @@
           "2026-10-27T16:17:00Z",
           "5",
           "",
-          "Care for my Orbit Stand"
+          "Care for my Orbit Display Stand"
         ],
         [
           "T89",
@@ -1090,7 +1090,7 @@
           "2026-10-30T16:21:00Z",
           "15",
           "",
-          "Money back for my Emitter Hilt"
+          "Money back for my Strand Emitter Hilt"
         ],
         [
           "T98",

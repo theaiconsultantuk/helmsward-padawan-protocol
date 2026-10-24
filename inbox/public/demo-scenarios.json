@@ -7,7 +7,7 @@
     "channel": "contact-form",
     "name": "Alvane Ashdown",
     "email": "alvaneashdown@email.com",
-    "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+    "message": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -28,7 +28,7 @@
     "channel": "contact-form",
     "name": "Brisk Brightmoor",
     "email": "briskbrightmoor@email.com",
-    "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+    "message": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
     "as_of": "2026-10-27",
     "expected": {
       "decision": "hold",
@@ -70,7 +70,7 @@
     "channel": "contact-form",
     "name": "Lira Venn",
     "email": "liravenn@email.com",
-    "message": "I would like another refund, 60 GC, for the strap on my Drift Boots.",
+    "message": "I would like another refund, 60 GC, for the strap on my Drift Boot Wraps.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -113,7 +113,7 @@
     "channel": "chat",
     "name": "Edric Embervale",
     "email": "edricembervale@email.com",
-    "message": "Is the Wayfarer Cloak waterproof?",
+    "message": "Is the Wayfarer Long Cloak waterproof?",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -134,7 +134,7 @@
     "channel": "email",
     "name": "Fiora Fennick",
     "email": "fiorafennick@email.com",
-    "message": "Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.",
+    "message": "Hello, could you send us a quote for 25 Vanta Arc Trainers for our academy? Thank you.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -155,7 +155,7 @@
     "channel": "email",
     "name": "Galen Greystoke",
     "email": "galengreystoke@email.com",
-    "message": "This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.",
+    "message": "This is unacceptable: the hot emitter of my Vanta Arc Trainer gave my son a small burn.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
@@ -176,7 +176,7 @@
     "channel": "email",
     "name": "Havi Hollowell",
     "email": "havihollowell@email.com",
-    "message": "The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+    "message": "The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "escalate",
@@ -199,8 +199,8 @@
     "scenario": "free_text",
     "reason": "Other",
     "channel": "contact-form",
-    "name": "Ilmar Ironbridge",
-    "email": "ilmarironbridge@email.com",
+    "name": "Cass Holm",
+    "email": "cass.holm@example.com",
     "message": "Where is my order JP-1001? It was meant to arrive weeks ago.",
     "as_of": "2026-10-25",
     "expected": {
@@ -212,7 +212,7 @@
       "status": "handled",
       "draft": true
     },
-    "client": "random"
+    "client": "seeded-order-owner"
   },
   {
     "id": "s11",
@@ -264,7 +264,7 @@
     "channel": "trustpilot",
     "name": "Leska Longmire",
     "email": "leskalongmire@email.com",
-    "message": "The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.",
+    "message": "The Drift Boot Wraps arrived scuffed and I am disappointed. Posting my honest review here.",
     "as_of": "2026-10-25",
     "expected": {
       "decision": "hold",
