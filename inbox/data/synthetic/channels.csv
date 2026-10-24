@@ -1,0 +1,5 @@
+channel,public,autonomous_reply,intake_address,label
+email,false,true,info@jedipack.com,Direct email
+contact-form,false,true,,Contact form
+trustpilot,true,false,,Trustpilot review
+chat,false,true,,Chat

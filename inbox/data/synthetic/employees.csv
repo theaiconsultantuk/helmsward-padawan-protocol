@@ -199,3 +199,10 @@ employee_id,given_name,family_name,email,team,role,trust_weight_seed
 198,Elin,Reedley,elin.reedley@jedipack.example,Finance,Accountant,0.73
 199,Arin,Ashman,arin.ashman@jedipack.example,Fulfilment,Dispatch Coordinator,0.41
 200,Ivea,Elmson,ivea.elmson@jedipack.example,Engineering,Site Reliability Engineer,0.43
+201,Paul,Jedi,paul.jedi@jedipack.com,Executive,CEO,0.50
+202,Ilsa,Wrenmoor,ilsa.wrenmoor@jedipack.com,Legal,Head of Legal,0.50
+203,Mara,Quillfeather,mara.quillfeather@jedipack.com,Legal,Legal Counsel,0.50
+204,Teo,Brandlewick,teo.brandlewick@jedipack.com,Legal,Legal Counsel,0.50
+205,Ysolde,Fenwarden,ysolde.fenwarden@jedipack.com,Legal,Legal Counsel,0.50
+206,Corvin,Ashgrove,corvin.ashgrove@jedipack.com,Legal,Legal Counsel,0.50
+207,Neva,Thistledown,neva.thistledown@jedipack.com,Legal,Legal Counsel,0.50
