@@ -1,0 +1,13 @@
+planet,status,note
+Alderaan,suspended,Deliveries to Alderaan are currently suspended.
+Coruscant,open,
+Tatooine,open,
+Naboo,open,"Binary-sunset delivery window, sand cover included."
+Bornem,open,Local pickup from the Bornem depot also available.
+Corellia,open,
+Hoth,open,
+Dantooine,open,
+Kamino,open,
+Ryloth,open,
+Mustafar,open,Ships with extra heat shielding.
+default,open,
