@@ -355,9 +355,11 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
 // Loopback: localhost, any 127.x.x.x, ::1 in any spelling (also bracketed, also the IPv4-mapped ::ffff:127.x.x.x).
 export function isLoopback(host) {
   let h = String(host ?? "").trim().toLowerCase();
+  if (h.length > 64) return false;
   if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
   if (h === "localhost") return true;
-  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
+  const v4 = /^127\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (v4) return v4.slice(1).every((o) => Number(o) <= 255);
   if (h.split("::").length > 2) return false; // at most one "::", in any form
   if (h.startsWith("::ffff:")) return isLoopback(h.slice(7)); // IPv4-mapped: judge the IPv4 part
   if (!h.includes(":") || /[^0-9a-f:]/.test(h)) return false;
