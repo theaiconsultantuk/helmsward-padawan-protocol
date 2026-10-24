@@ -358,10 +358,10 @@ export function isLoopback(host) {
   if (h.startsWith("[") && h.endsWith("]")) h = h.slice(1, -1);
   if (h === "localhost") return true;
   if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
-  if (h.startsWith("::ffff:")) return isLoopback(h.slice(7));
+  if (h.split("::").length > 2) return false; // at most one "::", in any form
+  if (h.startsWith("::ffff:")) return isLoopback(h.slice(7)); // IPv4-mapped: judge the IPv4 part
   if (!h.includes(":") || /[^0-9a-f:]/.test(h)) return false;
-  const parts = h.split("::"); // at most one "::", expanded to the full eight groups
-  if (parts.length > 2) return false;
+  const parts = h.split("::"); // expanded to the full eight groups
   const head = parts[0] ? parts[0].split(":") : [], tail = parts[1] ? parts[1].split(":") : [];
   if (![...head, ...tail].every((g) => /^[0-9a-f]{1,4}$/.test(g))) return false;
   const groups = parts.length === 2 ? [...head, ...Array(Math.max(0, 8 - head.length - tail.length)).fill("0"), ...tail] : head;
