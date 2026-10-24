@@ -52,8 +52,8 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   const cat = gates?.answers?.category;
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
-  if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
+  // a quote word inside a complaint ("Your quote is unacceptable") is a complaint; the complaint cues are read first only for a message that carries the RFQ word, everything else keeps its later precedence
+  if (RFQ_WORD.test(T) && COMPLAINT_CUES.test(T)) return { scenario: "complaint", how: "cues" };
   // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
   if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
   if (id === "rfq.request" && text != null) id = "GENERAL";
@@ -67,6 +67,8 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   }
   if (id === "refund.request") return { scenario: "refund", how: "scout" };
   if (id === "complaint") return { scenario: "complaint", how: "scout" };
+  // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
+  if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
   // an order id plus a delivery word: the order and the planet's shipping rule answer it (before the FAQ's "where is my order").
   // It is read before a gate-category complaint: a live gate may call "it was meant to arrive weeks ago" a complaint (0.74), but the order row answers it.
   // Safety cues and the complaint cues have already gone by, so a delivery question that threatens or names an injury never gets here.

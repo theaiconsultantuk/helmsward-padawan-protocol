@@ -79,7 +79,7 @@ test("an order id in a refund or a replacement is not a delivery question", asyn
   assert.equal(refund.result.scenario, "refund");
   const dec = (id) => ({ intent: { primary: { id }, confidence: 0.9 } });
   assert.deepEqual(resolveScenario({ kind: "message", decided: dec("replacement.request"), text: `replace order ${OPEN[0]} please` }), { scenario: "legacy", how: "scout" });
-  assert.deepEqual(resolveScenario({ kind: "message", decided: dec("complaint"), text: `where is order ${OPEN[0]}, I am furious` }), { scenario: "complaint", how: "cues" });
+  assert.deepEqual(resolveScenario({ kind: "message", decided: dec("complaint"), text: `where is order ${OPEN[0]}, I am furious` }), { scenario: "complaint", how: "scout" });
 });
 
 test("resolveScenario: an order id plus a delivery word; no id, no delivery road", () => {

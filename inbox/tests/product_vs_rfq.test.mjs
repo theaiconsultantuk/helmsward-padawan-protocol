@@ -133,6 +133,12 @@ test("a quote word inside a complaint does not make an RFQ: the complaint cues a
   }
 });
 
+test("the early complaint check is only for a message with the RFQ word: a refund keeps its road", () => {
+  const t = "The quality is terrible. I want a refund of 20 GC for order JP-1008.";
+  assert.equal(readsOf(t, ["refund.request"])[0], "refund");
+  assert.deepEqual(readsOf("Please quote 20 Cracked Core Recycling Pouches", ["complaint", "rfq.request", "GENERAL", "order.question"]), ["rfq", "rfq", "rfq", "rfq"]);
+});
+
 test("the product name is stripped as whole words only: 'tin' inside 'insulting' is not the Twin Core Travel Tin", () => {
   const text = "What is the Twin Core Travel Tin made of? Your replies are insulting.";
   const hit = matchProductLookup(text, lookup);
