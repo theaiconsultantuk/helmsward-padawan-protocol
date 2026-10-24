@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Task 1.3 (24 Oct 2026): the refund Reader live probe. Seven crafted drafts go through the real Nightshift reader,
 // then the same decision rule the loop uses (refundReaderReason); one line per case with the verdict against what einh's rule expects.
-// Run it from the live clone (CP4), where config() finds the real .env. It prints no cfg value, header or token. Exit 1 on any FAIL or throw.
+// Run it from the live clone (CP4), where config() finds the real .env. It prints the route and the model that answered (public, as in the README) and
+// never a token, a header or a URL: error messages are printed with their name and with any URL redacted (Codex review 25). Exit 1 on any FAIL or throw.
 import { parseArgs } from "node:util";
 import { config } from "../src/config.mjs";
 import * as nightshift from "../src/adapters/nightshift.mjs";
@@ -39,7 +40,7 @@ for (const c of CASES) {
     row.verdict = row.reason === null ? "allowed" : "refused";
     row.pass = row.verdict === c.expect;
   } catch (e) {
-    row.error = `${e.name}: ${e.message}`;
+    row.error = `${e?.name ?? "Error"}: ${String(e?.message ?? e).replace(/https?:\/\/\S+/g, "<url>").slice(0, 160)}`;
   }
   results.push(row);
 }

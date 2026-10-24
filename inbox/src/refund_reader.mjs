@@ -1,6 +1,8 @@
 // The refund Reader (24 Oct 2026): one Nightshift read of a non-refund draft for MEANING, beside the Evaluator, in front of Risk's word test.
 // The model answers three facts; refundReaderReason is the only place they become a verdict. The reader can only ADD a Risk reason, never remove one.
-// It never imports the Nightshift adapter: the call comes through io.reader, so tests stay offline and NO_NETWORK=1 proofs hold.
+// It never imports the Nightshift adapter: the call comes through io.reader (in the loop, nightshift.draft: primary route, fallback route, then the optional
+// local lane, as for the draft and the critique; a local-lane answer still only tightens). Tests stay offline through stubs; in SAMPLE_MODE the stand-in
+// below runs and no call is made. NO_NETWORK=1 is the sample-mode proof flag: without SAMPLE_MODE it makes the call fail, and the word test stands (Codex review 25).
 import {
   extractJson, normalizeReply, mentionsRefund, refundAsked, refundRuleReason,
   refundOutOfCategory, refundPromisedOutOfCategory, requestText,
