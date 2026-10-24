@@ -51,10 +51,10 @@ Zetaris reads one JSON document per file, so the line-delimited files registered
 
 Live proof (127.0.0.1:8810): `POST /run` T02, `POST /feedback` affirm, then `GET /counters` returned `{"send":0,"hold":0,"escalate":1,"close":0,"queued":1,"affirmed":1,"rejected":0}` from the refreshed Zetaris table; the file in the container matched the local file byte for byte. The test row was removed afterwards (header-only file re-published, `COUNT(*)` = 0).
 
-**REST source `intake_live` (registered).** Docker bridge gateway of `zetaris-driver-1`: `192.168.80.1`. With the service on `HOST=0.0.0.0 PORT=8810`, the driver reached `http://192.168.80.1:8810/intake` (curl from inside the container: HTTP 200) and:
+**REST source `intake_live` (registered).** Docker bridge gateway of `zetaris-driver-1`: `<bridge-gateway>` (the host's address on the driver's Docker network; redacted here). With the service on `HOST=0.0.0.0 PORT=8810`, the driver reached `http://<bridge-gateway>:8810/intake` (curl from inside the container: HTTP 200) and:
 
 ```
-CREATE LIGHTNING REST TABLE intake_live FROM JEDI_PACK REQUEST (endpoint "http://192.168.80.1:8810/intake", method "GET", http_encoding "URLENCODED", response_type "JSON", insecure_ssl "false") HEADER () BODY ()
+CREATE LIGHTNING REST TABLE intake_live FROM JEDI_PACK REQUEST (endpoint "http://<bridge-gateway>:8810/intake", method "GET", http_encoding "URLENCODED", response_type "JSON", insecure_ssl "false") HEADER () BODY ()
 SELECT COUNT(*) FROM JEDI_PACK.intake_live   -> 41
 ```
 
