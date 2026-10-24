@@ -386,7 +386,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   let contactCite = null, fallback_contact = null;
   const readContact = async () => {
     try {
-      const c = (await run("contact", { topic: "default" }, { ...o, why: `default contact: owner ${owner} and backup ${backup} both out on ${day}` })).objects[0];
+      const c = (await run("contact", { topic: "default" }, { ...o, why: `default contact: ${backup == null ? `owner ${owner} out, no backup named` : `owner ${owner} and backup ${backup} both out`} on ${day}` })).objects[0];
       if (c) { fallback_contact = { email: c.email, label: c.label, cited: "contacts:default" }; contactCite = "contacts:default"; }
     } catch { fallback_contact = null; } // run() already traced the error line; the escalation falls back to the owner/backup form
   };

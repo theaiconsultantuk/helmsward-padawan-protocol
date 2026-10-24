@@ -136,3 +136,13 @@ test("a legacy-resolved message whose draft promises a refund is never sent", as
   assert.notEqual(result.output.decision, "send");
   assert.ok(lines.some((l) => l.step === "risk.signoff" && /no policy limit behind it/.test(l.output_summary)), "Risk names the missing limit");
 });
+
+// Codex review 8, LOW: a missing backup is said as "no backup named", never "backup null".
+test("owner out with no backup named: the branch reason names no absent employee", async () => {
+  const { decideBranch } = await import("../src/loop.mjs");
+  const b = decideBranch({ owner_id: 15, backup_id: null, owner_out: true, backup_out: true, as_of: "2026-01-27", category: "refund", ticket: {},
+    fallback_contact: { email: "contact@jedipack.com", label: "Jedi Pack contact desk", cited: "contacts:default" } }, null, []);
+  assert.equal(b.branch_id, "owner-out");
+  assert.match(b.why, /owner 15 is out and no backup is named on 2026-01-27; routed to the default contact contact@jedipack.com/);
+  assert.doesNotMatch(b.why, /null/);
+});

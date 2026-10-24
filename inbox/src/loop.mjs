@@ -111,11 +111,11 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
     return { branch_id: "over-limit", why: `amount ${facts.amount_usd} USD is over the ${facts.policy_limit_usd} USD policy limit` };
   }
   if (facts.owner_out && facts.backup_out) {
-    return { branch_id: "owner-out", why: `owner ${facts.owner_id} and backup ${facts.backup_id} are both out on ${facts.as_of ?? "the day"}` };
+    return { branch_id: "owner-out", why: `${facts.backup_id == null ? `owner ${facts.owner_id} is out and no backup is named` : `owner ${facts.owner_id} and backup ${facts.backup_id} are both out`} on ${facts.as_of ?? "the day"}` };
   }
   const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
-    const who = facts.owner_out ? `owner ${facts.owner_id} out, backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}` : `owner ${facts.owner_id} in`;
+    const who = facts.owner_out ? `owner ${facts.owner_id} out, ${facts.backup_id == null ? "no backup named" : `backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}`}` : `owner ${facts.owner_id} in`;
     return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount_usd == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
   }
   const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
@@ -368,7 +368,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
         ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount_usd} USD over the ${approval.limit_usd} USD limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
-        : fc ? `escalated to the default contact ${fc.email} (owner ${ownerId ?? "?"} and backup ${backupId ?? "?"} both out); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
+        : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
         : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
@@ -521,7 +521,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     if (factsErr) fatal("executor.act", factsErr, "facts unavailable, escalated to human with the ticket id only");
     L({
       step: "executor.act", agent_name: "Executor", action: "act", input_summary: `facts for ${thread_id} as of ${f.as_of ?? as_of ?? "received_at"}`,
-      output_summary: `${f.cited_rows.length} rows cited: ${f.cited_rows.slice(0, 8).join(", ")}${f.cited_rows.length > 8 ? ", ..." : ""}; amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"}; owner ${f.owner_id} ${f.owner_out ? "out" : "in"}, backup ${f.backup_id} ${f.backup_out ? "out" : "in"}`
+      output_summary: `${f.cited_rows.length} rows cited: ${f.cited_rows.slice(0, 8).join(", ")}${f.cited_rows.length > 8 ? ", ..." : ""}; amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"}; owner ${f.owner_id} ${f.owner_out ? "out" : "in"}, ${f.backup_id == null ? "no backup named" : `backup ${f.backup_id} ${f.backup_out ? "out" : "in"}`}`
         + (known ? "; facts rows still read in one call (full reuse from memory is not implemented)" : "")
         + (dup ? `; duplicate check: same sender, subject and body as ${dup.thread_id} (${dup.received_at})` : "; duplicate check: none"),
       status: "success", sponsor: "zetaris",
