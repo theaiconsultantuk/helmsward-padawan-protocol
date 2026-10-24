@@ -1,5 +1,5 @@
 {
-  "_note": "Status x operation grid for the scenario slice. sequence = expected step:status:branch_id SUBSEQUENCE (order, not adjacency).",
+  "_note": "Status x operation grid for the scenario slice. sequence = expected step:status:branch_id SUBSEQUENCE (order, not adjacency). Extra keys: owner = output.owner.employee_id; cc_ids = output.cc[].id (exact set); memory_note_includes.",
   "cells": [
     {
       "id": "question-hit",
@@ -408,7 +408,8 @@
         ],
         "auto_reply": true,
         "status": "handled",
-        "team": "Product"
+        "team": "Product",
+        "owner": 5
       },
       "sequence": [
         "branch:success:product-hit",
@@ -440,7 +441,8 @@
         "draft_absent": true,
         "auto_reply": false,
         "status": "open",
-        "team": "Product"
+        "team": "Product",
+        "owner": 5
       },
       "sequence": [
         "branch:success:product-unanswered",
@@ -480,7 +482,8 @@
         ],
         "auto_reply": true,
         "status": "handled",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:delivery-suspended",
@@ -524,7 +527,8 @@
         ],
         "auto_reply": true,
         "status": "handled",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:faq-hit",
@@ -556,7 +560,8 @@
         "draft_absent": true,
         "auto_reply": false,
         "status": "open",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:other-unanswered",
@@ -592,7 +597,8 @@
         "draft_present": true,
         "auto_reply": false,
         "status": "open",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:",
@@ -632,7 +638,8 @@
         ],
         "auto_reply": false,
         "status": "open",
-        "team": "Sales"
+        "team": "Sales",
+        "owner": 6
       },
       "sequence": [
         "branch:success:rfq-quote",
@@ -670,7 +677,8 @@
         ],
         "auto_reply": false,
         "status": "open",
-        "team": "Sales"
+        "team": "Sales",
+        "owner": 6
       },
       "sequence": [
         "branch:success:rfq-quote-stock",
@@ -708,7 +716,8 @@
         ],
         "auto_reply": false,
         "status": "open",
-        "team": "Sales"
+        "team": "Sales",
+        "owner": 40
       },
       "sequence": [
         "branch:success:rfq-quote-over-limit",
@@ -739,7 +748,8 @@
         ],
         "auto_reply": false,
         "status": "open",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:complaint-genuine",
@@ -776,7 +786,12 @@
         ],
         "auto_reply": false,
         "status": "open",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15,
+        "cc_ids": [
+          7,
+          202
+        ]
       },
       "sequence": [
         "branch:success:complaint-legal",
@@ -813,13 +828,138 @@
         "draft_present": true,
         "auto_reply": false,
         "status": "open",
-        "team": "Support"
+        "team": "Support",
+        "owner": 15
       },
       "sequence": [
         "branch:success:",
         "risk.signoff:success:",
         "memory.write:success:",
         "synthesis:success:"
+      ]
+    },
+    {
+      "id": "s01-refund-in-limit",
+      "input": {
+        "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+        "from": "alvaneashdown@email.com",
+        "name": "Alvane Ashdown",
+        "channel": "contact-form",
+        "scenario": "refund",
+        "as_of": "2026-10-25"
+      },
+      "as_of": "2026-10-25",
+      "expect": {
+        "scenario": "refund",
+        "resolved_how": "declared",
+        "branch_id": "under-floor",
+        "decision": "hold",
+        "owner": 15,
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:under-floor",
+        "critique:success:under-floor",
+        "risk.signoff:success:under-floor",
+        "memory.write:success:under-floor",
+        "synthesis:success:under-floor"
+      ]
+    },
+    {
+      "id": "s02-refund-approver-out",
+      "input": {
+        "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+        "from": "briskbrightmoor@email.com",
+        "name": "Brisk Brightmoor",
+        "channel": "contact-form",
+        "scenario": "refund",
+        "as_of": "2026-10-27"
+      },
+      "as_of": "2026-10-27",
+      "expect": {
+        "scenario": "refund",
+        "resolved_how": "declared",
+        "branch_id": "under-floor",
+        "decision": "hold",
+        "owner": 27,
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support"
+      },
+      "sequence": [
+        "branch:success:under-floor",
+        "critique:success:under-floor",
+        "risk.signoff:success:under-floor",
+        "memory.write:success:under-floor",
+        "synthesis:success:under-floor"
+      ]
+    },
+    {
+      "id": "s03-refund-over-limit",
+      "input": {
+        "message": "I would like a refund of 400 GC for my Sovereign Arc Duellist, the blade will not ignite.",
+        "from": "camrencobbleton@email.com",
+        "name": "Camren Cobbleton",
+        "channel": "contact-form",
+        "scenario": "refund",
+        "as_of": "2026-10-25"
+      },
+      "as_of": "2026-10-25",
+      "expect": {
+        "scenario": "refund",
+        "resolved_how": "declared",
+        "branch_id": "over-limit",
+        "decision": "escalate",
+        "owner": 40,
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Sales"
+      },
+      "sequence": [
+        "branch:success:over-limit",
+        "critique:success:over-limit",
+        "risk.signoff:refused:over-limit",
+        "escalate_or_fallback:success:over-limit",
+        "memory.write:success:over-limit",
+        "synthesis:success:over-limit"
+      ]
+    },
+    {
+      "id": "s04-second-refund",
+      "input": {
+        "message": "I would like another refund, 60 GC, for the strap on my Drift Boots.",
+        "from": "liravenn@email.com",
+        "name": "Lira Venn",
+        "channel": "contact-form",
+        "scenario": "refund",
+        "as_of": "2026-10-25"
+      },
+      "as_of": "2026-10-25",
+      "expect": {
+        "scenario": "refund",
+        "resolved_how": "declared",
+        "branch_id": "under-floor",
+        "decision": "hold",
+        "owner": 15,
+        "draft_present": true,
+        "auto_reply": false,
+        "status": "open",
+        "team": "Support",
+        "memory_note_includes": [
+          "Second Refund Request from this client (2 earlier: T02, T06)."
+        ]
+      },
+      "sequence": [
+        "branch:success:under-floor",
+        "critique:success:under-floor",
+        "risk.signoff:success:under-floor",
+        "memory.write:success:under-floor",
+        "synthesis:success:under-floor"
       ]
     }
   ]

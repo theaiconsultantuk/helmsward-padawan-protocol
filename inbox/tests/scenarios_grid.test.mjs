@@ -39,6 +39,9 @@ test("the scenario grid: every cell decides to its expected branch, decision and
     oneOf(e.branch_id, result.branch_id, `${c.id} branch_id`);
     if (e.decision) assert.equal(o.decision, e.decision, `${c.id} decision`);
     if (e.owner_id !== undefined) assert.equal(o.queued_for?.owner_id ?? o.queued_for?.approval?.approver_id, e.owner_id, `${c.id} owner`);
+    if (e.owner !== undefined) assert.equal(o.owner?.employee_id, e.owner, `${c.id} output.owner`);
+    if (e.cc_ids) assert.deepEqual((o.cc ?? []).map((x) => x.id).sort((p, q) => p - q), e.cc_ids, `${c.id} cc`);
+    for (const x of e.memory_note_includes ?? []) assert.ok((o.memory_note ?? "").includes(x), `${c.id} memory_note has "${x}": ${o.memory_note}`);
     for (const x of e.cited_includes ?? []) assert.ok(o.cited_rows.includes(x), `${c.id} cites ${x}`);
     for (const x of e.recommendation_includes ?? []) assert.ok((o.recommendation ?? "").includes(x), `${c.id} recommendation has "${x}": ${o.recommendation}`);
     for (const x of e.draft_includes ?? []) assert.ok((o.draft?.text ?? "").includes(x), `${c.id} draft includes "${x}"`);
