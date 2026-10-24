@@ -17,7 +17,7 @@
       "wiki_what_may_leave"
     ],
     "draft": {
-      "text": "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 USD (policy rows: threads_parquet:T02, policy:refund, holiday_2026:15@2026-10-22, holiday_2026:16@2026-10-22, employees:15, employees:16, trust_ledger:refund, wiki_what_may_leave).\n\nBest regards,\nJedi Pack Support",
+      "text": "Hello Lira Venn,\n\nYou wrote about \"Refund for order JP-1042\". We will refund 40.0 GC (policy rows: threads_parquet:T02, policy:refund, holiday_2026:15@2026-10-22, holiday_2026:16@2026-10-22, employees:15, employees:16, trust_ledger:refund, wiki_what_may_leave).\n\nBest regards,\nJedi Pack Support",
       "promises": {
         "refund_amount": "40.0",
         "replacement": false,

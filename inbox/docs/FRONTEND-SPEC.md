@@ -105,7 +105,7 @@ The stored runs and asks, newest first; `limit` 1 to 200, default 50; a bad `lim
 What is waiting for a human, newest first (queue files plus runs that ended on `hold` with a draft); `[]` when empty.
 
 ```json
-{ "ticket_id": "F2", "file": "F2.json", "category": "rfq", "decision_reason": "rfq: one unit price (189 USD), no volume tiers. Sales to quote.", "owner": { "employee_id": 6, "name": "Tomas Keller" }, "has_draft": true, "critiques": [], "mtime": "2026-10-23T05:17:41.690Z" }
+{ "ticket_id": "F2", "file": "F2.json", "category": "rfq", "decision_reason": "rfq: one unit price (189 GC), no volume tiers. Sales to quote.", "owner": { "employee_id": 6, "name": "Tomas Keller" }, "has_draft": true, "critiques": [], "mtime": "2026-10-23T05:17:41.690Z" }
 ```
 
 `GET /counters`
@@ -121,7 +121,7 @@ Returns the decision row, for example `{ "run_id": "demo-1", "thread_id": "T02",
 `POST /ask`
 
 A question about policy, owners or a customer: body `{ "question": "Can I get a refund on my lightsaber?", "customer": "optional email or name" }`.
-Returns `{ "run_id": "ask_...", "answer": "The refund limit is 150 USD: ...", "intent": "refund.request", "cited_rows": ["policy:refund"], "model": "sample/rules", "confidence": 0.294, "trace_id": "ask_..." }`.
+Returns `{ "run_id": "ask_...", "answer": "The refund limit is 150 GC: ...", "intent": "refund.request", "cited_rows": ["policy:refund"], "model": "sample/rules", "confidence": 0.294, "trace_id": "ask_..." }`.
 A blocked question carries a `refused` object instead of an answer.
 
 Also available, not needed by a front end:
@@ -153,8 +153,8 @@ Trimmed from `openapi.yaml`:
   "input": { "kind": "message", "thread_id": "F2", "text": "Incoming RFQ for price difference ...", "from": "buyer@example.com", "name": null, "channel": "chat", "received_at": "...", "as_of": "2026-10-20" },
   "nodes": [ { "n": 1, "step": "memory.read", "agent": "Memory", "label": "Memory read", "route": "empty (cold first run)", "detail": null, "consulted": [], "retained": [], "reached_human": false, "status": "success", "model": null, "timestamp": "..." } ],
   "human": { "input": "...", "path": ["Memory read", "Plan", "Branch: rfq", "Hand-off", "Reply"],
-             "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:P01"], "blanks": [], "recommendation": "..." } },
-  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:P01"], "queue_file": "data/memory/queue/F2.json" } }
+             "reply": { "kind": "escalation", "text": "Hello,\n\nThank you, ...", "to": { "employee_id": 6, "name": "Tomas Keller", "role": "rfq owner" }, "attachments": ["products:FS-B01"], "blanks": [], "recommendation": "..." } },
+  "reached_human": { "who": { "employee_id": 6, "name": "Tomas Keller" }, "what": ["the draft", "both critiques", "products:FS-B01"], "queue_file": "data/memory/queue/F2.json" } }
 ```
 
 The derivation, in plain words:
