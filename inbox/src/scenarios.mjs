@@ -53,8 +53,6 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   // safety first, for every intent: a refund or a quote that threatens a lawyer or names an injury is a complaint, and Legal reads it
   if (SAFETY_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
   // the one RFQ rule, the same for an rfq.request read and for every other read: the word is in the message (a quote naming an order is still an RFQ). An rfq.request read without the word is only a read, "What is the Vanta Arc Trainer made of?" shares a noun with an example.
-  // Scout's own complaint read keeps its road: a quote word does not make a complaint a quote
-  if (id === "complaint") return { scenario: "complaint", how: "scout" };
   if (RFQ_WORD.test(T)) return { scenario: "rfq", how: "scout" };
   if (id === "rfq.request" && text != null) id = "GENERAL";
   else if (id === "rfq.request") return { scenario: "rfq", how: "scout" };

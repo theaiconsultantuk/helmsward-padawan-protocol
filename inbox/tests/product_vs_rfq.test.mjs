@@ -123,7 +123,8 @@ test("a quote word does not turn a complaint into a quote: burns, injuries and S
   for (const t of ["Please quote 10 Vanta Arc Trainers; the last one gave my child burns.", "Please quote 10 hilts, the last one is burning my hand", "Quote 5 hilts: the last batch injured two kids", "Quote for 5 hilts, it hurts to hold"]) {
     assert.deepEqual(readsOf(t, ["complaint", "rfq.request", "GENERAL", "order.question"]), ["complaint", "complaint", "complaint", "complaint"], t);
   }
-  assert.equal(readsOf("Please quote 10 Vanta Arc Trainers, the grip is rough", ["complaint"])[0], "complaint");
+  // no safety cue: the quote word decides, under a complaint read too (a product name such as "Cracked" is not a complaint)
+  assert.deepEqual(readsOf("Please quote 20 Cracked Core Recycling Pouches", ["complaint", "rfq.request", "GENERAL", "order.question"]), ["rfq", "rfq", "rfq", "rfq"]);
 });
 
 test("the product name is stripped as whole words only: 'tin' inside 'insulting' is not the Twin Core Travel Tin", () => {
@@ -134,10 +135,10 @@ test("the product name is stripped as whole words only: 'tin' inside 'insulting'
 });
 
 test("the rule's words: quotes, quotations, RFQs, bulk, wholesale are RFQ under every read; near-words are not", () => {
-  const reads = ["rfq.request", "GENERAL", "order.question"];
+  const reads = ["rfq.request", "GENERAL", "order.question", "complaint"];
   for (const t of ["Do you send quotes?", "Where can I get quotations?", "RFQs for hilts", "Bulk pricing for the Strand Emitter Hilt?", "Wholesale price for Drift Boot Wraps?"]) {
     const hit = matchProductLookup(t, lookup);
-    assert.deepEqual(readsOf(t, reads, hit.all.length ? hit : null), ["rfq", "rfq", "rfq"], t);
+    assert.deepEqual(readsOf(t, reads, hit.all.length ? hit : null), ["rfq", "rfq", "rfq", "rfq"], t);
   }
   for (const t of ["unquoted Vanta Arc Trainer price?", "bulky packaging price?", "tender price for 10 trainers?"]) {
     const hit = matchProductLookup(t, lookup);
