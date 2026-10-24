@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { USL, TABLES_USL, TEMPLATES, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { USL, TABLES_USL, TEMPLATES, CATEGORIES, INTENTS, TABLES, TOPICS, INTAKE_CHANNELS, validate, run, counters, sources, wikiFor, employeeAvailability, parseRestricted, factsForTicket } from "../src/queries.mjs";
+import { readCsv } from "../src/csv.mjs";
 import { config } from "../src/config.mjs";
 import { withMockFetch } from "./helpers/mock_fetch.mjs";
 
@@ -13,7 +14,7 @@ test("validate rejects injection and bad values before any fetch", async () => {
   const bad = [
     ["thread", { thread_id: "T02'" }], ["thread", { thread_id: "T02; DROP" }], ["thread", { thread_id: "1 OR 1=1" }],
     ["thread", { thread_id: "T02 " }], ["trust", { category: "bogus" }], ["holiday", { employee_id: 15, date: "22/10/2026" }],
-    ["holiday", { employee_id: "15 OR 1=1", date: "2026-10-22" }], ["employee", { employee_id: 201 }],
+    ["holiday", { employee_id: "15 OR 1=1", date: "2026-10-22" }], ["employee", { employee_id: 211 }], ["employee", { employee_id: 0 }],
     ["nope", {}], ["thread", { thread_id: "T02", extra: "x" }], ["thread", {}],
   ];
   await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
@@ -28,8 +29,10 @@ test("validate rejects injection and bad values before any fetch", async () => {
 
 test("templates render deterministic SQL for valid params", () => {
   assert.equal(TEMPLATES.thread.sql({ thread_id: "T02" }), "SELECT * FROM JEDI_PACK.threads_parquet WHERE thread_id = 'T02'");
+  // a blank employee_id is a company-wide day (P15) and matches every employee
   assert.equal(TEMPLATES.holiday.sql({ employee_id: "15", date: "2026-10-22" }),
-    "SELECT * FROM JEDI_PACK.holiday_2026 WHERE employee_id = 15 AND date = '2026-10-22'");
+    "SELECT * FROM JEDI_PACK.holiday_2026 WHERE (employee_id = 15 OR employee_id IS NULL OR employee_id = '') AND date = '2026-10-22'");
+  assert.equal(TEMPLATES.employee.sql({ employee_id: 210 }), "SELECT * FROM JEDI_PACK.employees WHERE employee_id = 210");
   assert.equal(TEMPLATES.trust.sql({ category: "refund" }), "SELECT * FROM JEDI_PACK.trust_ledger WHERE category = 'refund'");
   assert.equal(TEMPLATES.thread.sql({ thread_id: "T02" }), TEMPLATES.thread.sql({ thread_id: "T02" }));
 });
@@ -125,7 +128,7 @@ test("factsForTicket: an appreciation thread with no owner resolves without thro
   const g = await factsForTicket("T18", { cfg: live, sqlRunImpl: bare });
   assert.equal(g.owner_id, null);
   assert.equal(g.owner_out, false);
-  assert.deepEqual(g.notes, ["owner: none (no responsibility row)"]);
+  assert.deepEqual(g.notes, ["owner: none (no responsibility row)", "trust_ledger:missing:appreciation"]);
 });
 
 // ---- code-review findings G1-G3 ----
@@ -204,7 +207,8 @@ test("S0.2: TOPICS and TABLES carry the scenario entries", async () => {
 
 test("S0.2: new templates refuse bad params before any fetch", async () => {
   const bad = [
-    ["product_price", { product_id: "P3" }], ["product_price", { product_id: "P03'" }], ["product_price", { product_id: "p03" }],
+    ["product_price", { sku: "P3" }], ["product_price", { sku: "FS-B03'" }], ["product_price", { sku: "fs-b03" }], ["product_price", { product_id: "FS-B03" }],
+    ["product_price", { sku: "FS-B3" }], ["product_price", { sku: "FS-B003" }],
     ["intake_thread", { thread_id: "T1" }], ["intake_thread", { thread_id: "F1'; DROP" }], ["intake_thread", { thread_id: "F" }],
     ["responsibility", { topic: "purchasing" }], ["policy", { topic: "purchasing" }],
     ["faq", { q: "x" }], ["products", { product_id: "P01" }], ["holidays", { employee_id: 1 }],
@@ -224,7 +228,7 @@ test("S0.2: a message-like string passed as any param of a new template throws b
     for (const n of ["faq", "products", "reviews", "world_threads", "holidays"]) {
       await assert.rejects(run(n, { text: msg }, { cfg: live }), TypeError, n);
     }
-    for (const [n, k] of [["product_price", "product_id"], ["intake_thread", "thread_id"]]) {
+    for (const [n, k] of [["product_price", "sku"], ["intake_thread", "thread_id"]]) {
       await assert.rejects(run(n, { [k]: msg }, { cfg: live }), TypeError, n);
     }
     assert.equal(calls.length, 0);
@@ -233,13 +237,16 @@ test("S0.2: a message-like string passed as any param of a new template throws b
 
 test("S0.2: new templates render fixed SQL built only from whitelisted params", () => {
   assert.equal(TEMPLATES.faq.sql({}), "SELECT faq_id, question, answer, keywords, faq_source AS source FROM lightning.metastore.jedi_pack.jedi_pack.faq ORDER BY faq_id");
-  assert.match(TEMPLATES.product_price.sql({ product_id: "P03" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.product WHERE product_id = 'P03'$/);
+  assert.equal(TEMPLATES.product_price.sql({ sku: "FS-B03" }),
+    `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product WHERE sku = 'FS-B03'`);
+  assert.equal(TEMPLATES.products.sql({}),
+    `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product ORDER BY sku`);
   assert.match(TEMPLATES.intake_thread.sql({ thread_id: "F12" }), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.intake WHERE thread_id = 'F12'$/);
   assert.match(TEMPLATES.world_threads.sql({}), /FROM lightning\.metastore\.jedi_pack\.jedi_pack\.ticket ORDER BY thread_id$/);
   assert.equal(TEMPLATES.holidays.sql({}), "SELECT employee_id, date FROM lightning.metastore.jedi_pack.jedi_pack.holiday");
   assert.equal(TEMPLATES.reviews.sql({}), "SELECT review_id, thread_id, reviewer_name, stars, created_at FROM lightning.metastore.jedi_pack.jedi_pack.review ORDER BY review_id");
   assert.deepEqual(TEMPLATES.faq.cite({}, [{ faq_id: "Q01" }]), ["faq:Q01"]);
-  assert.deepEqual(TEMPLATES.product_price.cite({}, [{ product_id: "P03" }]), ["products:P03"]);
+  assert.deepEqual(TEMPLATES.product_price.cite({}, [{ sku: "FS-B03" }]), ["products:FS-B03"]);
   assert.deepEqual(TEMPLATES.intake_thread.cite({}, [{ thread_id: "F1" }]), ["intake_runtime:F1"]);
 });
 
@@ -260,27 +267,118 @@ test("S0.2: every number in a FAQ answer appears in a policy row or a wiki page 
   };
   const faq = parse(readFileSync(new URL("faq.csv", dir), "utf8"));
   assert.deepEqual(faq[0], ["faq_id", "question", "answer", "keywords", "source"]);
-  assert.equal(faq.length - 1, 12);
+  assert.equal(faq.length - 1, 18);
   const nums = (s) => (s.match(/\d+(?:\.\d+)?/g) ?? []).map(Number);
   const backing = new Set(readFileSync(new URL("policy.csv", dir), "utf8").split(/\r?\n/).flatMap(nums));
   for (const f of readdirSync(new URL("wiki/", dir))) for (const n of nums(readFileSync(new URL(`wiki/${f}`, dir), "utf8"))) backing.add(n);
+  // The answers now say GC and the six added ones (CP1) carry authored figures no policy or wiki row holds. They are pinned here, per row,
+  // so a NEW unbacked number still fails: Q14 returns window 30 days, Q15 warranty 24 months, Q16 the order-reference example JP-1234, Q18 opening hours 09:00-18:00 (parsed as 9, 0, 18).
+  const AUTHORED = { Q14: [30], Q15: [24], Q16: [1234], Q18: [9, 0, 18] };
   let numbered = 0;
   for (const [id, , answer, , source] of faq.slice(1)) {
     assert.ok(source, `${id} has a source`);
-    for (const n of nums(answer)) { numbered++; assert.ok(backing.has(n), `${id}: number ${n} has no policy or wiki row behind it`); }
+    for (const n of nums(answer)) { numbered++; assert.ok(backing.has(n) || (AUTHORED[id] ?? []).includes(n), `${id}: number ${n} has no policy or wiki row behind it`); }
   }
   assert.ok(numbered >= 1, "the returns answer quotes the refund limit");
   const returns = faq.find((r) => /refund/i.test(r[1]));
-  assert.match(returns[2], /150/);
+  assert.match(returns[2], /150 GC/);
   assert.match(returns[4], /refund-policy/);
 });
 
-test("S0.2: products have one price each and no tier columns", async () => {
+test("S0.2: products: 50 skus, one price each, GC, no tier columns; the template header is the new one", async () => {
   const { readFileSync } = await import("node:fs");
-  const lines = readFileSync(new URL("../data/synthetic/products.csv", import.meta.url), "utf8").trim().split("\n");
-  assert.equal(lines[0], "product_id,name,unit_price_usd,currency,min_order_qty,lead_days");
-  assert.equal(lines.length, 11);
-  assert.deepEqual(lines.slice(1).map((l) => Number(l.split(",")[2])).sort((a, b) => a - b), [29, 39, 49, 59, 79, 99, 119, 149, 189, 249]);
+  const head = readFileSync(new URL("../data/synthetic/products.csv", import.meta.url), "utf8").split(/\r?\n/)[0];
+  assert.equal(head, "sku,slug,name,category,unit_price,currency,stock,min_order_qty,lead_days,show_in_store,image,model,aliases,material,specs,description");
+  const rows = readCsv(new URL("../data/synthetic/products.csv", import.meta.url).pathname);
+  assert.equal(rows.length, 50);
+  assert.ok(rows.every((r) => /^FS-[A-Z]\d{2}$/.test(r.sku) && r.currency === "GC" && Number(r.unit_price) > 0));
+  assert.equal(new Set(rows.map((r) => r.sku)).size, 50);
+  const l = TEMPLATES.products.local({ products: rows });
+  assert.deepEqual(l.headers, ["sku", "name", "unit_price", "currency", "min_order_qty", "lead_days", "material", "specs", "show_in_store", "aliases"]);
+  assert.equal(l.rows.length, 50); assert.equal(l.total, 50);
+  const byName = Object.fromEntries(rows.map((r) => [r.sku, r]));
+  for (const x of l.rows) assert.equal(Number(x[2]), Number(byName[x[0]].unit_price), x[0]);
+  assert.deepEqual(l.rows.map((x) => x[0]), rows.map((r) => r.sku).sort());
+  assert.equal(l.rows.find((x) => x[0] === "FS-B01")[2], "189.0"); // a double comes back in Java's form
+});
+
+test("storefront parity: every storefront sku is in products.csv with the same name and price", (t) => {
+  const path = new URL("../public/shop/data/catalogue.json", import.meta.url);
+  if (!existsSync(path)) return t.skip("storefront not on main yet");
+  const cat = JSON.parse(readFileSync(path, "utf8"));
+  const items = Array.isArray(cat) ? cat : cat.products ?? cat.items ?? [];
+  const rows = Object.fromEntries(readCsv(new URL("../data/synthetic/products.csv", import.meta.url).pathname).map((r) => [r.sku, r]));
+  assert.ok(items.length > 0);
+  for (const it of items) {
+    const sku = it.sku ?? it.id;
+    assert.ok(rows[sku], `${sku} is not in products.csv`);
+    assert.equal(it.name, rows[sku].name, sku);
+    assert.equal(Number(it.price ?? it.unit_price), Number(rows[sku].unit_price), sku);
+  }
+});
+
+test("1.4b: TABLES carries the seven new raw tables, TABLES_USL the seven new views in order; CATEGORIES has other", () => {
+  for (const t of ["companyhierarchy", "customers", "orders", "shipping_rules", "bulk_pricing", "bom", "channels"]) assert.ok(TABLES.includes(t), t);
+  assert.deepEqual(TABLES_USL.slice(-7), ["hierarchy", "client", "sales_order", "shipping_rule", "bulk_tier", "bom_part", "channel"]);
+  assert.deepEqual(TABLES_USL.slice(0, 12), ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"]);
+  assert.ok(CATEGORIES.includes("other"));
+  for (const x of ["delivery", "legal", "product", "other"]) assert.ok(TOPICS.includes(x), x);
+  assert.deepEqual(INTENTS, ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"]);
+});
+
+test("1.4b: the channel list mirrors the server's CHANNELS and the channels seed", async () => {
+  const { CHANNELS } = await import("../src/server.mjs");
+  assert.deepEqual(INTAKE_CHANNELS, CHANNELS);
+  const seeded = readCsv(new URL("../data/synthetic/channels.csv", import.meta.url).pathname).map((r) => r.channel);
+  assert.deepEqual([...seeded].sort(), [...CHANNELS].sort());
+});
+
+test("1.4b: new validators accept the good and refuse the bad before any fetch", async () => {
+  const good = [
+    ["product_by_sku", { sku: "FS-B03" }], ["bom", { sku: "FS-G21" }], ["hierarchy", { employee_id: 210 }], ["team_head", { team: "Sales" }],
+    ["customer_by_email", { email: "LiraVenn@email.com" }], ["order", { order_id: "JP-1001" }], ["shipping_rule", { planet: "Alderaan" }],
+    ["channel", { channel: "trustpilot" }], ["trust", { category: "rfq" }], ["trust", { category: "legal" }], ["bulk_tiers", {}], ["product_lookup", {}],
+    ["prior_refunds", { email: "a@b.co", thread_id: "T06", received_at: "2026-10-22T11:05:00Z" }],
+    ["prior_refunds", { email: "a@b.co", thread_id: "F12", received_at: "2026-10-22T11:05:00.000Z" }],
+  ];
+  for (const [n, p] of good) assert.doesNotThrow(() => validate(n, p), `${n} ${JSON.stringify(p)}`);
+  const bad = [
+    ["product_by_sku", { sku: "FS-B03'; --" }], ["order", { order_id: "JP-10" }], ["order", { order_id: "JP-1001'" }], ["hierarchy", { employee_id: 211 }],
+    ["shipping_rule", { planet: "Alder'aan" }], ["shipping_rule", { planet: "A" }], ["shipping_rule", { planet: "x; DROP" }], ["channel", { channel: "fax" }],
+    ["team_head", { team: "Sales'--" }], ["customer_by_email", { email: "a'b@x.com" }], ["customer_by_email", { email: "not-an-email" }],
+    ["customer_by_email", { email: "a@b.co'; DROP TABLE client; --" }],
+    ["prior_refunds", { email: "a@b.co", thread_id: "T06", received_at: "yesterday" }], ["prior_refunds", { email: "a@b.co", thread_id: "T06'", received_at: "2026-10-22T11:05:00Z" }],
+    ["prior_refunds", { email: "a@b.co", thread_id: "T06" }], ["bulk_tiers", { tier: "crew" }], ["trust", { category: "bogus" }],
+  ];
+  await withMockFetch(async () => { throw new Error("fetch must not be called"); }, async (calls) => {
+    for (const [n, p] of bad) {
+      assert.throws(() => validate(n, p), TypeError, `${n} ${JSON.stringify(p)}`);
+      await assert.rejects(run(n, p, { cfg: live }), TypeError);
+    }
+    assert.equal(calls.length, 0);
+  });
+});
+
+test("1.4b: the new templates render the pinned SQL", () => {
+  assert.equal(TEMPLATES.product_lookup.sql({}), `SELECT sku, name, aliases FROM ${USL}.product ORDER BY sku`);
+  assert.equal(TEMPLATES.hierarchy.sql({ employee_id: 15 }),
+    `SELECT h.employee_id, h.name, h.role, h.team, h.team_label, h.manager_id, m.name AS manager_name, m.role AS manager_role FROM ${USL}.hierarchy h LEFT JOIN ${USL}.hierarchy m ON m.employee_id = h.manager_id WHERE h.employee_id = 15`);
+  assert.equal(TEMPLATES.team_head.sql({ team: "Sales" }), `SELECT employee_id, name, role, team, team_label FROM ${USL}.hierarchy WHERE team = 'Sales' AND role LIKE 'Head of %' ORDER BY employee_id`);
+  assert.equal(TEMPLATES.customer_by_email.sql({ email: "LiraVenn@Email.com" }),
+    `SELECT customer_id, name, callsign, email, home_planet, since, seeded_prior_refund, fictional FROM ${USL}.client WHERE LOWER(email) = 'liravenn@email.com' ORDER BY customer_id`);
+  const pr = TEMPLATES.prior_refunds.sql({ email: "LiraVenn@email.com", thread_id: "T06", received_at: "2026-10-22T11:05:00Z" });
+  assert.match(pr, /FROM JEDI_PACK\.threads_json WHERE category = 'refund' AND LOWER\(sender_email\) = 'liravenn@email\.com' AND thread_id <> 'T06' AND CAST\(received_at AS timestamp\) < CAST\('2026-10-22T11:05:00Z' AS timestamp\)/);
+  assert.match(pr, new RegExp(`UNION ALL SELECT thread_id, received_at, 'intake_runtime' AS src FROM ${USL.replaceAll(".", "\\.")}\\.intake WHERE \\(category = 'refund' OR scenario = 'refund'\\)`));
+  assert.match(pr, /ORDER BY CAST\(received_at AS timestamp\), thread_id$/);
+  assert.equal(TEMPLATES.order.sql({ order_id: "JP-1001" }), `SELECT order_id, customer_id, sku, quantity, amount, currency, shipping_planet, status, ordered_at FROM ${USL}.sales_order WHERE order_id = 'JP-1001'`);
+  const sr = TEMPLATES.shipping_rule.sql({ planet: "Naboo" });
+  assert.equal(sr, `SELECT planet, status, note FROM ${USL}.shipping_rule WHERE LOWER(planet) = 'naboo' UNION ALL SELECT planet, status, note FROM ${USL}.shipping_rule WHERE planet = 'default' AND NOT EXISTS (SELECT 1 FROM ${USL}.shipping_rule WHERE LOWER(planet) = 'naboo')`);
+  assert.equal(TEMPLATES.bulk_tiers.sql({}), `SELECT tier, min_qty, max_qty, discount_pct FROM ${USL}.bulk_tier ORDER BY min_qty`);
+  assert.equal(TEMPLATES.bom.sql({ sku: "FS-B04" }), `SELECT sku, part_id, part_name, qty_per_unit, stock FROM ${USL}.bom_part WHERE sku = 'FS-B04' ORDER BY part_id`);
+  assert.equal(TEMPLATES.channel.sql({ channel: "chat" }), `SELECT channel, public, autonomous_reply, intake_address, label FROM ${USL}.channel WHERE channel = 'chat'`);
+  assert.equal(TEMPLATES.responsibility.sql({ topic: "refund" }), `SELECT topic, owner_id, backup_id, label FROM ${USL}.responsibility WHERE topic = 'refund'`);
+  assert.deepEqual(TEMPLATES.holiday.cite({}, [{ employee_id: null, date: "2026-12-25" }, { employee_id: "15", date: "2026-12-25" }]), ["holiday_2026:company@2026-12-25", "holiday_2026:15@2026-12-25"]);
+  assert.deepEqual(TEMPLATES.prior_refunds.cite({}, [{ thread_id: "T02", src: "threads_json" }, { thread_id: "F3", src: "intake_runtime" }]), ["threads_json:T02", "intake_runtime:F3"]);
 });
 
 // ---- S1.1: free-text (F) tickets ----
@@ -296,7 +394,7 @@ test("F ticket, rfq: owner 6 / backup 14, both in, cited local", async () => {
   assert.equal(f.owner_out, false); assert.equal(f.backup_out, false);
   assert.equal(f.category_weight, 0.4); assert.equal(f.floor, 0.8);
   assert.ok(f.cited_rows.includes("intake_runtime:F1 (local)"));
-  assert.ok(f.cited_rows.includes("responsibility:rfq"));
+  assert.ok(f.cited_rows.includes("policy:rfq")); // rfq has a policy row now (limit 5000, 6/14 under, 40/201 over)
   assert.equal(f.may_leave, true); // a free-text ticket carries no authored flag
   assert.equal(f.as_of, "2026-10-20");
 });
@@ -305,20 +403,20 @@ test("F ticket, refund with a typed amount over the limit goes to the over-limit
   const f = await intakeFacts("refund", { amount: 400 });
   assert.equal(f.policy_limit_usd, 150);
   assert.equal(f.amount_usd, 400);
-  assert.equal(f.owner_id, 3); assert.equal(f.backup_id, 4);
+  assert.equal(f.owner_id, 40); assert.equal(f.backup_id, 201); // the Sales head, then the CEO
   assert.ok(f.cited_rows.includes("amount from the message"));
   const under = await intakeFacts("refund", { amount: 50 });
-  assert.equal(under.owner_id, 15);
+  assert.equal(under.owner_id, 15); assert.equal(under.backup_id, 27);
 });
 
-test("F ticket, customer_service: 7 / 15; owner 7 is out on 2026-10-23", async () => {
+test("F ticket, customer_service: 15 / 27; owner 15 is out on 2026-10-27", async () => {
   const a = await intakeFacts("customer_service");
-  assert.equal(a.owner_id, 7); assert.equal(a.backup_id, 15);
+  assert.equal(a.owner_id, 15); assert.equal(a.backup_id, 27);
   assert.equal(a.owner_out, false);
-  const b = await intakeFacts("customer_service", { as_of: "2026-10-23" });
+  const b = await intakeFacts("customer_service", { as_of: "2026-10-27" });
   assert.equal(b.owner_out, true);
   assert.equal(b.backup_out, false);
-  assert.ok(b.cited_rows.includes("holiday_2026:7@2026-10-23"));
+  assert.ok(b.cited_rows.includes("holiday_2026:15@2026-10-27"));
 });
 
 test("F ticket read through intake_thread when published, cited without (local)", async () => {
@@ -360,8 +458,11 @@ test("(14) counters: a bare HTTP 400, or a 400 with another body, surfaces inste
 });
 
 test("USL: the switched templates read the Unified Semantic Layer, the legacy ones the raw tables", async () => {
-  const switched = ["faq", "products", "product_price", "responsibility", "holidays", "world_threads", "reviews", "intake_thread"];
-  const args = { product_price: { product_id: "P01" }, responsibility: { topic: "rfq" }, intake_thread: { thread_id: "F1" } };
+  const switched = ["faq", "products", "product_price", "product_lookup", "product_by_sku", "hierarchy", "team_head", "customer_by_email", "prior_refunds", "order",
+    "shipping_rule", "bulk_tiers", "bom", "channel", "responsibility", "holidays", "world_threads", "reviews", "intake_thread"];
+  const args = { product_price: { sku: "FS-B01" }, product_by_sku: { sku: "FS-B01" }, bom: { sku: "FS-B01" }, responsibility: { topic: "rfq" }, intake_thread: { thread_id: "F1" },
+    hierarchy: { employee_id: 15 }, team_head: { team: "Sales" }, customer_by_email: { email: "a@b.co" }, order: { order_id: "JP-1001" }, shipping_rule: { planet: "Naboo" },
+    channel: { channel: "chat" }, prior_refunds: { email: "a@b.co", thread_id: "T06", received_at: "2026-10-22T11:05:00Z" } };
   assert.equal(USL, "lightning.metastore.jedi_pack.jedi_pack");
   assert.ok(TABLES_USL.includes("ticket") && TABLES_USL.includes("wiki_page"));
   const legacyArgs = { thread: { thread_id: "T02" }, policy: { topic: "refund" }, employee: { employee_id: 15 }, holiday: { employee_id: 15, date: "2026-10-22" },
@@ -380,7 +481,7 @@ test("USL: the switched templates read the Unified Semantic Layer, the legacy on
   assert.equal(TEMPLATES.contact.layer, undefined);
   assert.ok(TEMPLATES.contact.sql({ topic: "default" }).includes("JEDI_PACK.contacts"));
   assert.throws(() => validate("responsibility", { topic: "x'; DROP" }), TypeError);
-  assert.throws(() => validate("product_price", { product_id: "P01'" }), TypeError);
+  assert.throws(() => validate("product_price", { sku: "FS-B01'" }), TypeError);
 });
 
 test("USL: the trace line of a switched read says it went via the USL; a legacy read does not", async () => {
@@ -392,4 +493,23 @@ test("USL: the trace line of a switched read says it went via the USL; a legacy 
   assert.match(lines[0].input_summary, / via the USL$/);
   assert.deepEqual(lines[0].output_summary, "1 rows: faq:Q01");
   assert.doesNotMatch(lines[1].input_summary, /USL/);
+});
+
+test("1.4b: the trust gate reads the row for every topic and notes a missing one", async () => {
+  const seen = [];
+  const mk = (rows) => async (sql, o) => {
+    if (o?.name === "trust") { seen.push(o.params.category); return { headers: ["category", "weight", "floor", "source_id"], rows: rows[o.params.category] ? [rows[o.params.category]] : [] }; }
+    if (o?.name === "employee") return { headers: ["employee_id", "given_name", "family_name"], rows: [["15", "A", "B"]] };
+    return { headers: ["x"], rows: [] };
+  };
+  const rows = { rfq: ["rfq", "0.4", "0.8", "seed-rfq"], delivery: ["delivery", "0.85", "0.8", "seed-delivery"], other: ["other", "0.4", "0.8", "seed-other"] };
+  const f = await factsForTicket("F9", { ticketSource: "intake", intakeRow: intakeRow({ thread_id: "F9" }), topic: "delivery", as_of: "2026-10-20", cfg: live, sqlRunImpl: mk(rows) });
+  assert.equal(f.category_weight, 0.85);
+  assert.ok(f.cited_rows.includes("trust_ledger:delivery"));
+  assert.ok(!f.notes.some((n) => n.startsWith("trust_ledger:missing")));
+  const g = await factsForTicket("F9", { ticketSource: "intake", intakeRow: intakeRow({ thread_id: "F9" }), topic: "billing", as_of: "2026-10-20", cfg: live, sqlRunImpl: mk(rows) });
+  assert.equal(g.category_weight, 0.4); assert.equal(g.floor, 0.8);
+  assert.ok(g.notes.includes("trust_ledger:missing:billing"));
+  assert.ok(!g.cited_rows.some((c) => c.startsWith("trust_ledger:")));
+  assert.deepEqual(seen, ["delivery", "billing"]);
 });

@@ -5,26 +5,44 @@ import { join } from "node:path";
 import { config, INBOX_ROOT } from "./config.mjs";
 import * as zetaris from "./adapters/zetaris.mjs";
 
-export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation"];
+export const CATEGORIES = ["refund", "replacement", "question", "complaint", "appreciation", "other"];
 export const INTENTS = ["refund.request", "replacement.request", "question", "complaint", "appreciation", "other"];
-export const TOPICS = [...CATEGORIES, "billing", "rfq", "customer_service"];
+// delivery, legal and product have responsibility and trust rows (CP1 seeds) but no policy row; billing/rfq/customer_service as before
+export const TOPICS = [...CATEGORIES, "billing", "rfq", "customer_service", "delivery", "legal", "product"];
 export const TABLES = [
   "employees", "holiday_2026", "responsibility", "policy", "categories", "trust_ledger", "automation_matrix",
   "threads_parquet", "threads_json", "wiki_refund_policy", "wiki_replacement_policy", "wiki_what_may_leave", "escalation_notes",
   "contact_form_submissions", "trustpilot_reviews", "decisions", "intake_live",
   "products", "faq", "intake_runtime", "contacts",
+  "companyhierarchy", "customers", "orders", "shipping_rules", "bulk_pricing", "bom", "channels",
 ];
 // The Unified Semantic Layer (USL) Zetaris compiles over JEDI_PACK: live views, same facts. Scenario routes and the World Model read it;
 // the legacy thread road keeps the raw JEDI_PACK tables.
 export const USL = "lightning.metastore.jedi_pack.jedi_pack";
-export const TABLES_USL = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page"];
+export const TABLES_USL = ["employee", "customer", "ticket", "product", "policy", "responsibility", "faq", "holiday", "intake", "review", "decision", "wiki_page",
+  "hierarchy", "client", "sales_order", "shipping_rule", "bulk_tier", "bom_part", "channel"];
 const WIKI_TABLE = { refund: "wiki_refund_policy", replacement: "wiki_replacement_policy", leave: "wiki_what_may_leave" };
+
+// The server's CHANNELS list, mirrored (server.mjs imports this module, so importing it back would be circular).
+// tests/queries.test.mjs pins the two lists equal.
+export const INTAKE_CHANNELS = ["email", "contact-form", "chat", "trustpilot"];
+// intake.mjs's EMAIL pattern is not exported; this is the same shape, minus quote, backslash and % characters because an email reaches SQL here.
+const SQL_SAFE_EMAIL = /^[^\s@,;<>'"\\`%]+@[^\s@,;<>'"\\`%]+\.[^\s@,;<>'"\\`%]+$/;
 
 const V = {
   thread_id: (v) => typeof v === "string" && /^T\d{1,3}$/.test(v),
-  product_id: (v) => typeof v === "string" && /^P\d{2}$/.test(v),
+  // the ticket being read: a stored thread (T) or a free-text intake row (F)
+  any_thread_id: (v) => typeof v === "string" && /^(T\d{1,3}|F\d{1,6})$/.test(v),
+  sku: (v) => typeof v === "string" && /^FS-[A-Z]\d{2}$/.test(v),
   intake_id: (v) => typeof v === "string" && /^F\d{1,6}$/.test(v),
-  employee_id: (v) => (typeof v === "number" || (typeof v === "string" && /^\d{1,3}$/.test(v))) && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 200,
+  employee_id: (v) => (typeof v === "number" || (typeof v === "string" && /^\d{1,3}$/.test(v))) && Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 210,
+  order_id: (v) => typeof v === "string" && /^JP-\d{4}$/.test(v),
+  // the plan's pattern without the apostrophe: a planet name is interpolated into SQL
+  planet: (v) => typeof v === "string" && /^[A-Za-z][A-Za-z -]{1,40}$/.test(v),
+  team: (v) => typeof v === "string" && /^[A-Za-z][A-Za-z -]{1,40}$/.test(v),
+  email: (v) => typeof v === "string" && v.length <= 200 && SQL_SAFE_EMAIL.test(v),
+  channel: (v) => INTAKE_CHANNELS.includes(v),
+  received_at: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z?$/.test(v),
   category: (v) => CATEGORIES.includes(v),
   topic: (v) => TOPICS.includes(v),
   contact_topic: (v) => v === "default" || TOPICS.includes(v),
@@ -37,8 +55,37 @@ const V = {
 const id = (p) => String(Number(p.employee_id));
 const row = (headers, r) => Object.fromEntries(headers.map((h, i) => [h, r[i]]));
 
+// ---- offline twins -------------------------------------------------------------------------------------------
+// A template's local(tables, params) answers from the CSV/JSON files and returns the SAME {headers, rows, total} the live
+// sql would, in the representation Zetaris's REST API gives: every value a string, NULL as null. That is:
+//   raw table columns   -> the cell text as is ("150.00"), an empty CSV cell is null
+//   USL view columns    -> as the view casts them: int "15", double "189.0" (Java's Double.toString), varchar as is
+// TYPES below are the view column types this module assumes (register_usl.mjs owns the DDL; usl_drift compares the two live).
+const nul = (v) => (v === undefined || v === null || v === "" ? null : v);
+const CAST = {
+  str: (v) => (nul(v) === null ? null : String(v)),
+  int: (v) => { if (nul(v) === null) return null; const n = Number(v); return Number.isFinite(n) ? String(Math.trunc(n)) : null; },
+  dbl: (v) => { if (nul(v) === null) return null; const n = Number(v); return !Number.isFinite(n) ? null : Number.isInteger(n) ? n.toFixed(1) : String(n); },
+};
+// spec: [outName, type, srcName = outName][]
+const proj = (rows, spec) => ({ headers: spec.map((s) => s[0]), rows: rows.map((r) => spec.map(([o, t, src]) => CAST[t](r[src ?? o]))), total: rows.length });
+const byCol = (col) => (a, b) => (String(a[col]) < String(b[col]) ? -1 : String(a[col]) > String(b[col]) ? 1 : 0);
+const need = (tables, name) => { if (!Array.isArray(tables?.[name])) throw new Error(`local: table ${name} not loaded`); return tables[name]; };
+
+const RAW_EMPLOYEE = [["employee_id", "str"], ["given_name", "str"], ["family_name", "str"], ["email", "str"], ["team", "str"], ["role", "str"], ["trust_weight_seed", "str"]];
+const RAW_POLICY = ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"].map((c) => [c, "str"]);
+const PRODUCT_COLS = [["sku", "str"], ["name", "str"], ["unit_price", "dbl"], ["currency", "str"], ["min_order_qty", "int"], ["lead_days", "int"],
+  ["material", "str"], ["specs", "str"], ["show_in_store", "str"], ["aliases", "str"]];
+const PRODUCT_FULL = [["sku", "str"], ["slug", "str"], ["name", "str"], ["category", "str"], ["unit_price", "dbl"], ["currency", "str"], ["stock", "str"],
+  ["min_order_qty", "int"], ["lead_days", "int"], ["show_in_store", "str"], ["image", "str"], ["model", "str"], ["aliases", "str"], ["material", "str"], ["specs", "str"], ["description", "str"]];
+const HIER_COLS = [["employee_id", "int"], ["name", "str"], ["role", "str"], ["team", "str"], ["team_label", "str"]];
+const CUSTOMER_COLS = [["customer_id", "str"], ["name", "str"], ["callsign", "str"], ["email", "str"], ["home_planet", "str"], ["since", "str"], ["seeded_prior_refund", "str"], ["fictional", "str"]];
+const ORDER_COLS = [["order_id", "str"], ["customer_id", "str"], ["sku", "str"], ["quantity", "int"], ["amount", "dbl"], ["currency", "str"], ["shipping_planet", "str"], ["status", "str"], ["ordered_at", "str"]];
+const ts = (s) => Date.parse(s);
+
 // cite(params, objects) -> the row ids a result used
 // detail(params, objects) -> the rows in words, for the trace line (optional; a person reads it, nothing parses it)
+// local(tables, params) -> the same {headers, rows, total} from the CSV/JSON files (absent: the template reads Parquet, Markdown, XML or a runtime table)
 export const TEMPLATES = {
   thread: {
     params: { thread_id: V.thread_id }, cacheable: true, question: "the thread row",
@@ -50,23 +97,29 @@ export const TEMPLATES = {
     sql: (p) => `SELECT * FROM JEDI_PACK.policy WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `policy:${x.topic}`),
     detail: (p, o) => o.map((x) => `limit ${x.limit_amount} ${x.currency} · under: owner ${x.under_limit_owner_id}, backup ${x.under_limit_backup_id} · over: owner ${x.over_limit_owner_id}, backup ${x.over_limit_backup_id}`).join("; "),
+    local: (t, p) => proj(need(t, "policy").filter((r) => r.topic === p.topic), RAW_POLICY),
   },
   responsibility: {
     layer: "usl", params: { topic: V.topic }, cacheable: true, question: "who owns the topic",
-    sql: (p) => `SELECT * FROM ${USL}.responsibility WHERE topic = '${p.topic}'`,
+    sql: (p) => `SELECT topic, owner_id, backup_id, label FROM ${USL}.responsibility WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `responsibility:${x.topic}`),
     detail: (p, o) => o.map((x) => `owner ${x.owner_id}, backup ${x.backup_id}`).join("; "),
+    local: (t, p) => proj(need(t, "responsibility").filter((r) => r.topic === p.topic), [["topic", "str"], ["owner_id", "int"], ["backup_id", "int"], ["label", "str"]]),
   },
   employee: {
     params: { employee_id: V.employee_id }, cacheable: true, question: "the employee record",
     sql: (p) => `SELECT * FROM JEDI_PACK.employees WHERE employee_id = ${id(p)}`,
     cite: (p, o) => o.map((x) => `employees:${x.employee_id}`),
     detail: (p, o) => o.map((x) => [`${x.given_name} ${x.family_name}`, x.role, x.team].filter(Boolean).join(" · ")).join("; "),
+    local: (t, p) => proj(need(t, "employees").filter((r) => Number(r.employee_id) === Number(p.employee_id)), RAW_EMPLOYEE),
   },
+  // A row with a BLANK employee_id is a company-wide day (P15): it matches every employee, and cites as holiday_2026:company@<date>.
   holiday: {
     params: { employee_id: V.employee_id, date: V.date }, cacheable: true, question: "is the employee out on the date",
-    sql: (p) => `SELECT * FROM JEDI_PACK.holiday_2026 WHERE employee_id = ${id(p)} AND date = '${p.date}'`,
-    cite: (p, o) => o.map((x) => `holiday_2026:${x.employee_id}@${x.date}`),
+    sql: (p) => `SELECT * FROM JEDI_PACK.holiday_2026 WHERE (employee_id = ${id(p)} OR employee_id IS NULL OR employee_id = '') AND date = '${p.date}'`,
+    cite: (p, o) => o.map((x) => `holiday_2026:${nul(x.employee_id) ?? "company"}@${x.date}`),
+    local: (t, p) => proj(need(t, "holiday_2026").filter((r) => (r.employee_id === "" || Number(r.employee_id) === Number(p.employee_id)) && r.date === p.date),
+      [["employee_id", "str"], ["date", "str"], ["kind", "str"], ["holiday_name", "str"]]),
   },
   // The default contact desk: a raw table (no USL view), read only when nobody on the owner chain is in.
   contact: {
@@ -74,16 +127,20 @@ export const TEMPLATES = {
     sql: (p) => `SELECT * FROM JEDI_PACK.contacts WHERE topic = '${p.topic}'`,
     cite: (p, o) => o.map((x) => `contacts:${x.topic}`),
     detail: (p, o) => o.map((x) => `${x.label} \u00b7 ${x.email}`).join("; "),
+    local: (t, p) => proj(need(t, "contacts").filter((r) => r.topic === p.topic), [["topic", "str"], ["email", "str"], ["label", "str"]]),
   },
   category: {
     params: { category: V.category }, cacheable: true, question: "the category label",
     sql: (p) => `SELECT * FROM JEDI_PACK.categories WHERE category = '${p.category}'`,
     cite: (p, o) => o.map((x) => `categories:${x.category}`),
+    local: (t, p) => proj(need(t, "categories").filter((r) => r.category === p.category), [["category", "str"], ["label", "str"]]),
   },
+  // one trust row per topic (the ledger has all twelve): the param is still called category
   trust: {
-    params: { category: V.category }, cacheable: true, question: "the trust weight and floor",
+    params: { category: V.topic }, cacheable: true, question: "the trust weight and floor",
     sql: (p) => `SELECT * FROM JEDI_PACK.trust_ledger WHERE category = '${p.category}'`,
     cite: (p, o) => o.map((x) => `trust_ledger:${x.category}`),
+    local: (t, p) => proj(need(t, "trust_ledger").filter((r) => r.category === p.category), [["category", "str"], ["weight", "str"], ["floor", "str"], ["source_id", "str"]]),
   },
   wiki: {
     params: { wiki: V.wiki }, cacheable: true, question: "the wiki page",
@@ -100,22 +157,127 @@ export const TEMPLATES = {
     params: {}, cacheable: true, question: "every thread's sender, subject, body and time, for the duplicate check",
     sql: () => "SELECT thread_id, sender_email, subject, body, received_at FROM JEDI_PACK.threads_json ORDER BY thread_id",
     cite: () => ["threads_json"],
+    local: (t) => proj([...need(t, "threads_json")].sort(byCol("thread_id")), ["thread_id", "sender_email", "subject", "body", "received_at"].map((c) => [c, "str"])),
   },
   // Scenario tables (S0.2): parameterless reads compared in JS, or one validated id. No customer text reaches SQL.
   faq: {
     layer: "usl", params: {}, cacheable: true, question: "every FAQ row, matched in JS",
     sql: () => `SELECT faq_id, question, answer, keywords, faq_source AS source FROM ${USL}.faq ORDER BY faq_id`,
     cite: (p, o) => o.map((x) => `faq:${x.faq_id}`),
+    local: (t) => proj([...need(t, "faq")].sort(byCol("faq_id")), ["faq_id", "question", "answer", "keywords", "source"].map((c) => [c, "str"])),
   },
   products: {
-    layer: "usl", params: {}, cacheable: true, question: "every product and its one unit price",
-    sql: () => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product ORDER BY product_id`,
-    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+    layer: "usl", params: {}, cacheable: true, question: "every product, its one unit price, material and specs",
+    sql: () => `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product ORDER BY sku`,
+    cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    local: (t) => proj([...need(t, "products")].sort(byCol("sku")), PRODUCT_COLS),
   },
   product_price: {
-    layer: "usl", params: { product_id: V.product_id }, cacheable: true, question: "the unit price of one product",
-    sql: (p) => `SELECT product_id, name, unit_price_usd, currency, min_order_qty, lead_days FROM ${USL}.product WHERE product_id = '${p.product_id}'`,
-    cite: (p, o) => o.map((x) => `products:${x.product_id}`),
+    layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the unit price of one product",
+    sql: (p) => `SELECT sku, name, unit_price, currency, min_order_qty, lead_days, material, specs, show_in_store, aliases FROM ${USL}.product WHERE sku = '${p.sku}'`,
+    cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku), PRODUCT_COLS),
+  },
+  // every sku with its name and aliases: the catalogue a message is matched against in JS (matchProducts)
+  product_lookup: {
+    layer: "usl", params: {}, cacheable: true, question: "every sku with its name and aliases, matched in JS",
+    sql: () => `SELECT sku, name, aliases FROM ${USL}.product ORDER BY sku`,
+    cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    local: (t) => proj([...need(t, "products")].sort(byCol("sku")), [["sku", "str"], ["name", "str"], ["aliases", "str"]]),
+  },
+  product_by_sku: {
+    layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the full product row",
+    sql: (p) => `SELECT sku, slug, name, category, unit_price, currency, stock, min_order_qty, lead_days, show_in_store, image, model, aliases, material, specs, description FROM ${USL}.product WHERE sku = '${p.sku}'`,
+    cite: (p, o) => o.map((x) => `products:${x.sku}`),
+    local: (t, p) => proj(need(t, "products").filter((r) => r.sku === p.sku), PRODUCT_FULL),
+  },
+  // the employee and the manager, one row (the CEO is their own manager)
+  hierarchy: {
+    layer: "usl", params: { employee_id: V.employee_id }, cacheable: true, question: "the employee's place in the hierarchy and their manager",
+    sql: (p) => `SELECT h.employee_id, h.name, h.role, h.team, h.team_label, h.manager_id, m.name AS manager_name, m.role AS manager_role FROM ${USL}.hierarchy h LEFT JOIN ${USL}.hierarchy m ON m.employee_id = h.manager_id WHERE h.employee_id = ${id(p)}`,
+    cite: (p, o) => o.map((x) => `companyhierarchy:${x.employee_id}`),
+    detail: (p, o) => o.map((x) => `${x.name} · ${x.role} · ${x.team}; manager ${x.manager_id} ${x.manager_name ?? ""}`.trim()).join("; "),
+    local: (t, p) => {
+      const h = need(t, "companyhierarchy");
+      const rows = h.filter((r) => Number(r.employee_id) === Number(p.employee_id)).map((r) => {
+        const m = h.find((x) => Number(x.employee_id) === Number(r.manager_id));
+        return [CAST.int(r.employee_id), CAST.str(r.name), CAST.str(r.role), CAST.str(r.team), CAST.str(r.team_label), CAST.int(r.manager_id), CAST.str(m?.name), CAST.str(m?.role)];
+      });
+      return { headers: ["employee_id", "name", "role", "team", "team_label", "manager_id", "manager_name", "manager_role"], rows, total: rows.length };
+    },
+  },
+  // the team's head: the row whose role is "Head of ..." in that team (CP1 seeds one per team; the CEO's team has none)
+  team_head: {
+    layer: "usl", params: { team: V.team }, cacheable: true, question: "the head of the team",
+    sql: (p) => `SELECT employee_id, name, role, team, team_label FROM ${USL}.hierarchy WHERE team = '${p.team}' AND role LIKE 'Head of %' ORDER BY employee_id`,
+    cite: (p, o) => o.map((x) => `companyhierarchy:${x.employee_id}`),
+    local: (t, p) => proj(need(t, "companyhierarchy").filter((r) => r.team === p.team && r.role.startsWith("Head of ")).sort((a, b) => Number(a.employee_id) - Number(b.employee_id)), HIER_COLS),
+  },
+  customer_by_email: {
+    layer: "usl", params: { email: V.email }, cacheable: true, question: "the client with this email",
+    sql: (p) => `SELECT customer_id, name, callsign, email, home_planet, since, seeded_prior_refund, fictional FROM ${USL}.client WHERE LOWER(email) = '${p.email.toLowerCase()}' ORDER BY customer_id`,
+    cite: (p, o) => o.map((x) => `customers:${x.customer_id}`),
+    local: (t, p) => proj(need(t, "customers").filter((r) => r.email.toLowerCase() === p.email.toLowerCase()).sort(byCol("customer_id")), CUSTOMER_COLS),
+  },
+  // Earlier refund tickets from the same sender: category refund, same sender_email (case-insensitive), a DIFFERENT thread, received STRICTLY BEFORE this one.
+  // One row per earlier ticket (count = rows, ids = thread_id), oldest first; `src` says which table (threads_json | intake_runtime) for the cite.
+  // local() reads threads.json only: the runtime intake rows exist only live.
+  prior_refunds: {
+    layer: "usl", params: { email: V.email, thread_id: V.any_thread_id, received_at: V.received_at }, cacheable: true, question: "the sender's earlier refund tickets",
+    sql: (p) => {
+      const e = p.email.toLowerCase();
+      const tail = `LOWER(sender_email) = '${e}' AND thread_id <> '${p.thread_id}' AND CAST(received_at AS timestamp) < CAST('${p.received_at}' AS timestamp)`;
+      return `SELECT thread_id, received_at, src FROM (SELECT thread_id, received_at, 'threads_json' AS src FROM JEDI_PACK.threads_json WHERE category = 'refund' AND ${tail} `
+        + `UNION ALL SELECT thread_id, received_at, 'intake_runtime' AS src FROM ${USL}.intake WHERE (category = 'refund' OR scenario = 'refund') AND ${tail}) u `
+        + "ORDER BY CAST(received_at AS timestamp), thread_id";
+    },
+    cite: (p, o) => o.map((x) => `${x.src ?? "threads_json"}:${x.thread_id}`),
+    local: (t, p) => {
+      const rows = need(t, "threads_json")
+        .filter((r) => r.category === "refund" && String(r.sender_email ?? "").toLowerCase() === p.email.toLowerCase() && r.thread_id !== p.thread_id && ts(r.received_at) < ts(p.received_at))
+        .sort((a, b) => ts(a.received_at) - ts(b.received_at) || (a.thread_id < b.thread_id ? -1 : 1));
+      return { headers: ["thread_id", "received_at", "src"], rows: rows.map((r) => [String(r.thread_id), String(r.received_at), "threads_json"]), total: rows.length };
+    },
+  },
+  order: {
+    layer: "usl", params: { order_id: V.order_id }, cacheable: true, question: "the order",
+    sql: (p) => `SELECT order_id, customer_id, sku, quantity, amount, currency, shipping_planet, status, ordered_at FROM ${USL}.sales_order WHERE order_id = '${p.order_id}'`,
+    cite: (p, o) => o.map((x) => `orders:${x.order_id}`),
+    local: (t, p) => proj(need(t, "orders").filter((r) => r.order_id === p.order_id), ORDER_COLS),
+  },
+  // the planet's rule, else the `default` row
+  shipping_rule: {
+    layer: "usl", params: { planet: V.planet }, cacheable: true, question: "the shipping rule for the planet (the default row when none)",
+    sql: (p) => {
+      const pl = p.planet.toLowerCase();
+      return `SELECT planet, status, note FROM ${USL}.shipping_rule WHERE LOWER(planet) = '${pl}' `
+        + `UNION ALL SELECT planet, status, note FROM ${USL}.shipping_rule WHERE planet = 'default' AND NOT EXISTS (SELECT 1 FROM ${USL}.shipping_rule WHERE LOWER(planet) = '${pl}')`;
+    },
+    cite: (p, o) => o.map((x) => `shipping_rules:${x.planet}`),
+    local: (t, p) => {
+      const all = need(t, "shipping_rules");
+      let hit = all.filter((r) => r.planet.toLowerCase() === p.planet.toLowerCase());
+      if (!hit.length) hit = all.filter((r) => r.planet === "default");
+      return proj(hit, [["planet", "str"], ["status", "str"], ["note", "str"]]);
+    },
+  },
+  bulk_tiers: {
+    layer: "usl", params: {}, cacheable: true, question: "the bulk price tiers",
+    sql: () => `SELECT tier, min_qty, max_qty, discount_pct FROM ${USL}.bulk_tier ORDER BY min_qty`,
+    cite: (p, o) => o.map((x) => `bulk_pricing:${x.tier}`),
+    local: (t) => proj([...need(t, "bulk_pricing")].sort((a, b) => Number(a.min_qty) - Number(b.min_qty)), [["tier", "str"], ["min_qty", "int"], ["max_qty", "int"], ["discount_pct", "dbl"]]),
+  },
+  bom: {
+    layer: "usl", params: { sku: V.sku }, cacheable: true, question: "the parts of the product and their stock",
+    sql: (p) => `SELECT sku, part_id, part_name, qty_per_unit, stock FROM ${USL}.bom_part WHERE sku = '${p.sku}' ORDER BY part_id`,
+    cite: (p, o) => o.map((x) => `bom:${x.sku}:${x.part_id}`),
+    local: (t, p) => proj(need(t, "bom").filter((r) => r.sku === p.sku).sort(byCol("part_id")), [["sku", "str"], ["part_id", "str"], ["part_name", "str"], ["qty_per_unit", "int"], ["stock", "int"]]),
+  },
+  channel: {
+    layer: "usl", params: { channel: V.channel }, cacheable: true, question: "the channel's rules",
+    sql: (p) => `SELECT channel, public, autonomous_reply, intake_address, label FROM ${USL}.channel WHERE channel = '${p.channel}'`,
+    cite: (p, o) => o.map((x) => `channels:${x.channel}`),
+    local: (t, p) => proj(need(t, "channels").filter((r) => r.channel === p.channel), ["channel", "public", "autonomous_reply", "intake_address", "label"].map((c) => [c, "str"])),
   },
   reviews: {
     layer: "usl", params: {}, cacheable: true, question: "the public review index",
@@ -127,10 +289,12 @@ export const TEMPLATES = {
     sql: () => `SELECT thread_id, sender_email, sender_name, category, channel, received_at, owner_id, outcome, subject FROM ${USL}.ticket ORDER BY thread_id`,
     cite: () => ["threads_json"],
   },
+  // Every holiday row; a blank employee_id (a company-wide day) comes back null.
   holidays: {
     layer: "usl", params: {}, cacheable: true, minLimit: 2000, question: "every holiday row, filtered by date in JS",
     sql: () => `SELECT employee_id, date FROM ${USL}.holiday`,
     cite: () => ["holiday_2026"],
+    local: (t) => proj(need(t, "holiday_2026"), [["employee_id", "int"], ["date", "str"]]),
   },
   intake_thread: {
     layer: "usl", params: { thread_id: V.intake_id }, cacheable: false, question: "one free-text intake row",
@@ -149,6 +313,18 @@ export const TEMPLATES = {
     cite: () => ["decisions"],
   },
 };
+
+// Templates with NO local(): they read Parquet, Markdown previews, XML, the runtime tables or the USL review/ticket views, so their
+// caches stay live-exported. Pinned by tests/local_templates.test.mjs.
+export const LOCAL_EXEMPT = ["thread", "wiki", "table_count", "reviews", "world_threads", "intake_thread", "ledger_adjust", "decision_counts"];
+
+// Run a template's offline twin: validate the params exactly as run() does, then answer from `tables` (loadTables(dir) in csv.mjs).
+// Returns {headers, rows, total}, the shape the sample cache stores. Throws TypeError for an exempt template.
+export function runLocal(name, params = {}, tables) {
+  const t = validate(name, params);
+  if (typeof t.local !== "function") throw new TypeError(`${name}: no local twin (reads Parquet, Markdown, XML or a runtime table)`);
+  return t.local(tables, params);
+}
 
 export function validate(name, params = {}) {
   if (typeof name !== "string" || !Object.hasOwn(TEMPLATES, name)) throw new TypeError(`unknown query template: ${JSON.stringify(name)}`);
@@ -312,7 +488,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   if (intake && amountOpt != null && Number.isFinite(Number(amountOpt))) { amount = Number(amountOpt); cited.push("amount from the message"); }
   const topic = TOPICS.includes(ticket.category) ? ticket.category : "question";
 
-  const valid = (n) => Number.isInteger(n) && n >= 1 && n <= 200;
+  const valid = (n) => Number.isInteger(n) && n >= 1 && n <= 210; // 201-207 are the CEO and Legal (CP1); the bound matches V.employee_id
   const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
   const scoped = Array.isArray(needs);
   const wantLimit = scoped && needs.includes("limit");
@@ -419,11 +595,13 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   }
   const name = (e) => (e.objects[0] ? `${e.objects[0].given_name} ${e.objects[0].family_name}` : null);
 
-  let weight = intake ? OTHER_WEIGHT : 0, floor = intake ? DEFAULT_FLOOR : 0.8;
-  if (CATEGORIES.includes(ticket.category)) {
-    const led = (await run("trust", { category: ticket.category }, o)).objects[0];
-    if (led) { weight = Number(led.weight); floor = Number(led.floor); cited.push(`trust_ledger:${ticket.category}`); }
-  }
+  // the trust row for EVERY category/topic (the ledger has all twelve); a category outside TOPICS reads the "other" row.
+  // Only when no row exists does the weight fall back to OTHER_WEIGHT, and the note says so.
+  const trustKey = TOPICS.includes(ticket.category) ? ticket.category : "other";
+  let weight = OTHER_WEIGHT, floor = intake ? DEFAULT_FLOOR : 0.8;
+  const led = (await run("trust", { category: trustKey }, o)).objects[0];
+  if (led) { weight = Number(led.weight); floor = Number(led.floor); cited.push(`trust_ledger:${trustKey}`); }
+  else notes.push(`trust_ledger:missing:${trustKey}`);
 
   let restricted = [];
   let disclosure_unknown = false;
