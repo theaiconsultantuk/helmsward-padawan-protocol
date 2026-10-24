@@ -15,14 +15,14 @@ test("T02 facts match live", async () => {
   assert.equal(f.floor, 0.8);
   assert.equal(f.owner_out, true);
   assert.equal(f.backup_out, false);
-  assert.equal(f.amount ?? f.amount_usd, 39, "T02 is 39 GC (the amount is read from the thread's `amount` column)");
+  assert.equal(f.amount, 39, "T02 is 39 GC (the amount is read from the thread's `amount` column)");
   assert.equal(f.owner_id, 15); assert.equal(f.backup_id, 27);
 });
 
 test("T03 is 400 over 150, so the over-limit owners 40 / 201", async () => {
   const f = await factsForTicket("T03", { cfg });
-  assert.equal(f.amount ?? f.amount_usd, 400);
-  assert.equal(f.policy_limit ?? f.policy_limit_usd, 150);
+  assert.equal(f.amount, 400);
+  assert.equal(f.policy_limit, 150);
   assert.equal(f.owner_id, 40); assert.equal(f.backup_id, 201);
 });
 

@@ -87,7 +87,7 @@ function draftFacts(facts) {
   const who = (id, name, out) => (id == null ? null : `${name ?? `employee ${id}`} (employee ${id}) is ${out ? "out" : "in"}`);
   return [
     line("Category", facts.category),
-    line("Amount asked", facts.amount_usd == null ? null : `${facts.amount_usd} USD`),
+    line("Amount asked", facts.amount == null ? null : `${facts.amount} GC`),
     line("Owner", who(facts.owner_id, facts.owner_name, facts.owner_out)),
     line("Backup", who(facts.backup_id, facts.backup_name, facts.backup_out)),
     line("Policy rows cited", (facts.cited_rows ?? []).join(", ")),
@@ -117,8 +117,8 @@ export function evaluatorMessages({ draft, facts, ticket } = {}) {
     "Facts (including the limit):",
     [
       line("Category", facts?.category),
-      line("Amount asked", facts?.amount_usd == null ? null : `${facts.amount_usd} USD`),
-      line("Policy limit", facts?.policy_limit_usd == null ? null : `${facts.policy_limit_usd} USD`),
+      line("Amount asked", facts?.amount == null ? null : `${facts.amount} GC`),
+      line("Policy limit", facts?.policy_limit == null ? null : `${facts.policy_limit} GC`),
       line("Owner out", facts?.owner_out),
       line("Backup out", facts?.backup_out),
       line("May leave the company", facts?.may_leave),

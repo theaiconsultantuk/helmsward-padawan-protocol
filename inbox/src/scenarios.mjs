@@ -230,14 +230,14 @@ async function probeRfq(tb) {
   const matched = matchProducts(text, products);
   const prices = [];
   for (const m of matched) {
-    const r = (await tb.queries.run("product_price", { product_id: m.product_id }, o)).objects[0];
+    const r = (await tb.queries.run("product_price", { sku: m.sku }, o)).objects[0];
     if (r) prices.push(r);
   }
   const owner = await ownerOf(tb, "rfq", o);
-  const ids = prices.map((x) => `products:${x.product_id}`);
+  const ids = prices.map((x) => `products:${x.sku}`);
   const q = said(quantities);
   const recommendation = prices.length
-    ? `The records hold one unit price for ${prices.map((x) => `${x.name} (${Number(x.unit_price_usd)} ${x.currency ?? "USD"}, minimum ${Number(x.min_order_qty)})`).join(" and for ")}; no volume tiers exist, so ${q} cannot be priced from the data. Sales to quote.`
+    ? `The records hold one unit price for ${prices.map((x) => `${x.name} (${Number(x.unit_price)} ${x.currency ?? "GC"}, minimum ${Number(x.min_order_qty)})`).join(" and for ")}; no volume tiers exist, so ${q} cannot be priced from the data. Sales to quote.`
     : `Quantities asked: ${q}; no product in the records matches; sales to identify.`;
   return { branch_id: "rfq", why: `request for a quote: ${prices.length ? `${prices.map((x) => x.name).join(", ")} found` : "no product matched"}, quantities ${quantities.join(", ") || "none stated"}; sales quotes, prices attached`,
     cited: [...ids, ...(owner.looked_up ? ["responsibility:rfq"] : [])],
@@ -250,7 +250,7 @@ async function actRfq(tb, p) {
   skipLine(tb, "nvidia.model", "acknowledgement template, no model call");
   skipLine(tb, "critique", "template, nothing to evaluate");
   // a quantity that equals a unit price would put a price in the draft: say it without numbers
-  const safeQ = quantities.filter((n) => !prices.some((x) => String(Number(x.unit_price_usd)) === String(n)));
+  const safeQ = quantities.filter((n) => !prices.some((x) => String(Number(x.unit_price)) === String(n)));
   const ack = sample.acknowledgement(tb.ticket ?? tb.f, { quantities: safeQ.length === quantities.length ? quantities : [] });
   const draft = { text: ack.text, promises: ack.promises, model: ack.model };
   const sig = signoff(tb, B, draft);
@@ -263,7 +263,7 @@ async function actRfq(tb, p) {
 
 // ---- complaint ----
 
-const NO_HISTORY = () => ({ text: "no earlier threads for this sender", provenance: [], summary: { earlier_threads: 0, complaints: 0, public_before: false, product_complaints: {} }, customer_id: null, product_ids: [] });
+const NO_HISTORY = () => ({ text: "no earlier threads for this sender", provenance: [], summary: { earlier_threads: 0, complaints: 0, public_before: false, product_complaints: {} }, customer_id: null, skus: [] });
 
 async function probeComplaint(tb) {
   const f = tb.f ?? {};
@@ -280,11 +280,11 @@ async function probeComplaint(tb) {
     products = toObjects(rows.products);
     const dir = process.env.WORLD_MODEL_DIR;
     const world = await getWorld({ rows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
-    const mentioned = mentionedProducts(`${ticket.subject} ${ticket.body}`, products).map((p) => (typeof p === "object" ? p.product_id : p));
-    ctx = complaintContext(world, { sender_email: f.sender_email, product_ids: mentioned, thread_id: f.thread_id, channel: f.channel });
+    const mentioned = mentionedProducts(`${ticket.subject} ${ticket.body}`, products).map((p) => (typeof p === "object" ? p.sku : p));
+    ctx = complaintContext(world, { sender_email: f.sender_email, skus: mentioned, thread_id: f.thread_id, channel: f.channel });
     wline = worldLine(world, ctx);
     lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless",
-      input_summary: `history of ${f.sender_email ?? "the sender"} and ${ctx.product_ids.length ? ctx.product_ids.join(", ") : "no product"}`,
+      input_summary: `history of ${f.sender_email ?? "the sender"} and ${ctx.skus.length ? ctx.skus.join(", ") : "no product"}`,
       output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
   } catch (e) {
     lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", input_summary: "meterless.engine failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error" },
@@ -329,7 +329,7 @@ async function probeComplaint(tb) {
     { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
   const sevCls = sev.score >= 9 ? "complaint-severe" : read.kind === "genuine" ? "complaint-genuine" : "complaint-vent";
   const owner = await ownerOf(tb, "complaint", o);
-  const cited = ["world_threads", ...ctx.product_ids.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
+  const cited = ["world_threads", ...ctx.skus.map((p) => `products:${p}`), ...(owner.looked_up ? ["responsibility:complaint"] : [])];
   const hist = ctx.summary.earlier_threads ? `${ctx.summary.earlier_threads} earlier thread${ctx.summary.earlier_threads === 1 ? "" : "s"} on record` : "no earlier threads";
   return { branch_id: sevCls, why: `severity ${sev.score} (${sev.legend}), the customer reads as ${read.kind} (${hist}); ${sevCls === "complaint-severe" ? "a person handles it" : sevCls === "complaint-genuine" ? "the owner gets the draft and the handling note" : "a calm acknowledgement closes it"}`,
     cited, data: { ctx, read, severity: sev, owner }, lines: lines.map((x) => ({ ...x, branch_id: sevCls })) };
@@ -374,7 +374,7 @@ async function actComplaint(tb, p) {
 // ---- customer service (the default when nothing else fits; a person gets a head start) ----
 
 // every amount the text names (a currency sign or code beside a number)
-const amountsIn = (text) => [...String(text ?? "").matchAll(/(?:[$€£]\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:usd|eur|dollars?|euros?|[$€£]))/gi)]
+const amountsIn = (text) => [...String(text ?? "").matchAll(/(?:[$€£]\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:gc|usd|eur|dollars?|euros?|[$€£]))/gi)]
   .map((m) => Number(String(m[1] ?? m[2]).replace(/,(?=\d{3}\b)/g, "").replace(/[.,]$/, ""))).filter(Number.isFinite);
 
 // the draft's blanks, completed: every marker in the text is in the list (missing ones are added, not failed)
@@ -407,8 +407,8 @@ async function probeCustomerService(tb) {
       for (const k of ["world_threads", "products", "reviews"]) wrows[k] = (await tb.queries.run(k, {}, o)).objects;
       const dir = process.env.WORLD_MODEL_DIR;
       const world = await getWorld({ rows: wrows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
-      const mentioned = mentionedProducts(text, toObjects(wrows.products)).map((p) => (typeof p === "object" ? p.product_id : p));
-      const ctx = complaintContext(world, { sender_email: email, product_ids: mentioned, thread_id: f.thread_id, channel: f.channel });
+      const mentioned = mentionedProducts(text, toObjects(wrows.products)).map((p) => (typeof p === "object" ? p.sku : p));
+      const ctx = complaintContext(world, { sender_email: email, skus: mentioned, thread_id: f.thread_id, channel: f.channel });
       worldText = ctx.text; wline = worldLine(world, ctx);
       lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless", branch_id: "customer-service",
         input_summary: `history of ${email}`, output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
@@ -431,7 +431,7 @@ async function actCustomerService(tb, p) {
   const f = tb.f ?? {};
   const { candidates, rows, worldText, pages, faqRows, owner } = p.data;
   const ticket = { ...(tb.ticket ?? {}), subject: f.subject ?? tb.ticket?.subject ?? "", body: tb.inputText ?? f.body ?? "", sender_name: f.sender_name ?? tb.ticket?.sender_name };
-  const limit = f.policy_limit_usd ?? (rows.policy?.[0]?.limit_amount != null ? Number(rows.policy[0].limit_amount) : null);
+  const limit = f.policy_limit ?? (rows.policy?.[0]?.limit_amount != null ? Number(rows.policy[0].limit_amount) : null);
   const twin = () => sample.recommendation(ticket, { candidates, pages, faqRows });
   const callLine = (model, rec, extra = {}) => {
     const { local, ...rest } = extra;
@@ -465,7 +465,7 @@ async function actCustomerService(tb, p) {
     const hr = tb.hardRisk(f, draft);
     const reasons = [...hr.reasons];
     const bad = amountsIn(draft.text).filter((a) => limit == null || a > limit);
-    if (bad.length) reasons.push(`draft names an amount (${bad.join(", ")}) ${limit == null ? "with no limit to support it" : `over the ${limit} USD limit`}`);
+    if (bad.length) reasons.push(`draft names an amount (${bad.join(", ")}) ${limit == null ? "with no limit to support it" : `over the ${limit} GC limit`}`);
     return reasons;
   };
   const max = tb.maxRounds ?? 2;

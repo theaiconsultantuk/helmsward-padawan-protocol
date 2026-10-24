@@ -484,7 +484,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
     if (!ticket) throw new Error(`no thread ${thread_id}`);
     cited = [`threads_parquet:${thread_id}`];
   }
-  let amount = ticket.amount_usd === "" || ticket.amount_usd == null ? null : Number(ticket.amount_usd);
+  let amount = ticket.amount === "" || ticket.amount == null ? null : Number(ticket.amount);
   if (intake && amountOpt != null && Number.isFinite(Number(amountOpt))) { amount = Number(amountOpt); cited.push("amount from the message"); }
   const topic = TOPICS.includes(ticket.category) ? ticket.category : "question";
 
@@ -614,7 +614,7 @@ export async function factsForTicket(thread_id, { as_of, trace, cfg = config(), 
   if (contactCite) cited.push(contactCite);
 
   return {
-    thread_id, category: ticket.category, amount_usd: amount, policy_limit_usd: limit,
+    thread_id, category: ticket.category, amount, policy_limit: limit,
     category_weight: weight, floor, owner_id: owner, backup_id: backup, owner_name: name(emps[0]), backup_name: name(emps[1]),
     owner_out: ownerAv.out, backup_out: backupAv.out || (ownerAv.out && backup == null), fallback_contact, // an absent backup counts as out when the owner is out, so nobody-in is one predicate everywhere (Codex review 7, MEDIUM)
     // a free-text ticket carries no authored may_leave flag; Risk guards the draft through restricted terms and the amount limit, so a false flag would hard-refuse every FAQ send

@@ -32,7 +32,7 @@ function factsSummary(facts = {}) {
   const parts = [];
   if (facts.owner_out !== undefined) parts.push(`owner ${facts.owner_out ? "out" : "in"}`);
   if (facts.backup_out !== undefined) parts.push(`backup ${facts.backup_out ? "out" : "in"}`);
-  if (facts.policy_limit_usd != null) parts.push(`policy limit ${facts.policy_limit_usd} USD`);
+  if (facts.policy_limit != null) parts.push(`policy limit ${facts.policy_limit} GC`);
   if (facts.category_weight != null) parts.push(`category weight ${facts.category_weight}`);
   return parts.join("; ");
 }
@@ -126,8 +126,8 @@ export function trustFloor(facts, gates, { ledgerAdjust = { affirmed: 0, rejecte
 
 export function hardRisk(facts, draft = null) {
   const reasons = [];
-  const limit = facts.policy_limit_usd;
-  if (facts.amount_usd != null && limit != null && facts.amount_usd > limit) reasons.push(`amount ${facts.amount_usd} over the policy limit ${limit}`);
+  const limit = facts.policy_limit;
+  if (facts.amount != null && limit != null && facts.amount > limit) reasons.push(`amount ${facts.amount} over the policy limit ${limit}`);
   const low = String(draft?.text ?? "").toLowerCase();
   const leaked = (facts.restricted_terms ?? []).find((t) => t && low.includes(String(t).toLowerCase()));
   if (facts.may_leave === false) reasons.push("fact may not leave");

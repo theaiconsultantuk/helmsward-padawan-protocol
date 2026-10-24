@@ -24,7 +24,7 @@ function toolbox(text) {
     hardRisk,
     queries: { run: async (name, params, o) => {
       const r = cache(name, params);
-      o?.trace?.line({ step: "zetaris.query", action: `sql:${name}`, output_summary: `${r.rows.length} rows: ${r.objects.map((x) => x.product_id ?? x.topic ?? x.faq_id).join(", ")}`, status: "success" });
+      o?.trace?.line({ step: "zetaris.query", action: `sql:${name}`, output_summary: `${r.rows.length} rows: ${r.objects.map((x) => x.sku ?? x.topic ?? x.faq_id).join(", ")}`, status: "success" });
       return r;
     } },
   };
@@ -50,11 +50,11 @@ test("price difference, no product named: both quantities, nothing matched, sale
   assert.equal(esc[0][3].owner.owner_id, 6);
 });
 
-test("training sabers named: one price row cited, one unit price, no volume tiers", async () => {
-  const { probe, out, lines, esc } = await run(`${MSG} for training sabers`);
+test("Arc Blade Trainer named: one price row cited, one unit price, no volume tiers", async () => {
+  const { probe, out, lines, esc } = await run(`${MSG} for Arc Blade Trainers`);
   assert.equal(probe.data.prices.length, 1);
-  assert.ok(probe.cited.includes("products:P01"));
-  assert.deepEqual(out.attachments.cited, ["products:P01"]);
+  assert.ok(probe.cited.includes("products:FS-B01"));
+  assert.deepEqual(out.attachments.cited, ["products:FS-B01"]);
   assert.match(out.recommendation, /one unit price/);
   assert.match(out.recommendation, /no volume tiers/);
   assert.equal(out.queued.owner_id, 6);
@@ -69,8 +69,8 @@ test("training sabers named: one price row cited, one unit price, no volume tier
 });
 
 test("matchProducts needs every name token", () => {
-  const rows = [{ product_id: "P01", name: "training saber" }, { product_id: "P02", name: "hilt" }];
-  assert.deepEqual(matchProducts("quote 5 hilts", rows).map((r) => r.product_id), ["P02"]);
+  const rows = [{ sku: "FS-B01", name: "Arc Blade Trainer" }, { sku: "FS-B02", name: "Emitter Hilt" }];
+  assert.deepEqual(matchProducts("quote 5 emitter hilts", rows).map((r) => r.sku), ["FS-B02"]);
   assert.deepEqual(matchProducts("a saber", rows), []);
 });
 

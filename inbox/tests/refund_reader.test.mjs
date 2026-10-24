@@ -9,7 +9,7 @@ const says = (text, refund_amount = null) => ({ text, promises: { refund_amount,
 const RULE = /refund wording on a (complaint|question|replacement|non-refund) message: refunds are mentioned only on refund requests/;
 const MONEY = /draft promises a refund on a (complaint|question|replacement|non-refund) message: money is promised only on refund requests/;
 const base = { cited_rows: [] };
-const vent = { ...base, category: "complaint", body: "the box was dented and I paid 400 USD, just so you know" };
+const vent = { ...base, category: "complaint", body: "the box was dented and I paid 400 GC, just so you know" };
 const q = { ...base, category: "question", body: "How long does shipping take?" };
 const qAsk = { ...base, category: "question", body: "What is your refund policy?" };
 const qNeg = { ...base, category: "question", body: "I'm not asking you about refunds, how long does shipping take?" };
@@ -67,7 +67,7 @@ test("refundReaderReason grid: category x reader answer x word test", () => {
   assert.match(o, /\(reader: will get\)/);
   assert.match(refundReaderReason(vent, credit, rd({ offers_money: true })), MONEY, "offers alone is enough");
   // question + mentions + both ask -> allowed
-  const quote = says("Refunds under 150 USD can be approved.");
+  const quote = says("Refunds under 150 GC can be approved.");
   assert.equal(refundReaderReason(qAsk, quote, rd({ mentions_money_back: true, customer_asks_refund: true })), null, `question asked: ${qAsk.body}`);
   // sarcasm: the reader says the customer did not ask
   assert.match(refundReaderReason(qAsk, quote, rd({ mentions_money_back: true, customer_asks_refund: false })), RULE, "reader says not asked");
@@ -84,7 +84,7 @@ test("refundReaderReason grid: category x reader answer x word test", () => {
 
 test("readRefund never unlocks: a draft the word test refuses is not_needed, the reader is not called, no line is logged", async () => {
   const refused = [
-    [vent, says("We are sorry. We will refund your 400 USD.")],
+    [vent, says("We are sorry. We will refund your 400 GC.")],
     [q, says("Thank you; a colleague will reimburse the difference.")],
     [qNeg, says("Refunds are handled by our refund owner.")],
     [vent, { text: "ok", promises: { refund_amount: null, replacement: false, other: "a refund of the difference" } }],

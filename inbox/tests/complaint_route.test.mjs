@@ -50,7 +50,7 @@ test("severe: round 1 hard refusal, no retry, escalates to the complaint owner w
   assert.equal(risk.retry_count, 0);
   assert.equal(find(lines, "retry").status, "skipped");
   assert.equal(result.output.decision, "escalate");
-  assert.equal(result.output.queued_for.owner_id, 5);
+  assert.equal(result.output.queued_for.owner_id, 15);
   assert.ok(result.output.draft?.text, "the draft sits on output.draft (queued_for carries only the owner, queue file and escalation)");
   assert.ok(result.output.queued_for.escalation.severity >= 9);
   assert.ok(result.output.queued_for.escalation.world.length > 0);

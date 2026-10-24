@@ -46,13 +46,13 @@ const QTY_AFTER_UNIT = new RegExp(`^(?:\\s+(?:[\\w-]+\\s+){0,2}?(?:${QTY_UNIT}))
 const QTY_BARE = new RegExp(`^\\s+(?:${QTY_CONNECT})\\s+$`, "i");
 
 // Quantities: integers counted by a unit or product word, plus bare integers joined to a counted one.
-// Money amounts ("100 USD", "$100") are not quantities.
+// Money amounts ("100 GC", "$100") are not quantities.
 export function extractQuantities(s) {
   const nums = [];
   for (const m of s.matchAll(QTY_NUM)) {
     const end = m.index + m[0].length;
     if (/[$€£]\s*$/.test(s.slice(0, m.index))) continue;
-    if (/^\s?[kKmM]?\s?(?:USD|EUR|GBP|dollars?|euros?)\b/i.test(s.slice(end))) continue;
+    if (/^\s?[kKmM]?\s?(?:GC|USD|EUR|GBP|dollars?|euros?)\b/i.test(s.slice(end))) continue;
     nums.push({ start: m.index, end, value: parseInt(m[0].replace(/[, .]/g, ""), 10), counted: QTY_COUNTED.test(s.slice(end)) });
   }
   for (let changed = true; changed;) {
@@ -71,7 +71,7 @@ export function extractQuantities(s) {
 
 export function extractParams(prompt) {
   const p = {}, s = String(prompt ?? "");
-  const money = s.match(/([$€£])\s?(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?|(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?\s?(USD|EUR|GBP|dollars?|euros?)\b/);
+  const money = s.match(/([$€£])\s?(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?|(\d[\d,]*(?:\.\d+)?)\s?([kKmM])?\s?(GC|USD|EUR|GBP|dollars?|euros?)\b/);
   if (money) {
     const num = parseFloat((money[2] ?? money[4]).replace(/,/g, ""));
     const suf = (money[3] ?? money[5] ?? "").toLowerCase();

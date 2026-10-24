@@ -132,9 +132,9 @@ test("blank markers are extracted from the draft", () => {
 });
 
 test("queued_for owner fields and attachments map into reply.to", () => {
-  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, owner_name: "Tomas Keller", role: "rfq owner", attachments: ["products:P03", { id: "faq:Q01" }] } } });
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, owner_name: "Tomas Keller", role: "rfq owner", attachments: ["products:FS-C01", { id: "faq:Q01" }] } } });
   assert.deepEqual(r.to, { employee_id: 6, name: "Tomas Keller", role: "rfq owner" });
-  assert.deepEqual(r.attachments, ["products:P03", "faq:Q01"]);
+  assert.deepEqual(r.attachments, ["products:FS-C01", "faq:Q01"]);
   assert.equal(r.kind, "escalation");
 });
 
@@ -171,14 +171,14 @@ test("a malformed fallback contact is ignored and never throws", () => {
 });
 
 test("object attachments contribute their cited id strings", () => {
-  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ product_id: "P01" }], quantities: [100], cited: ["products:P01"] } } } });
-  assert.deepEqual(r.attachments, ["products:P01"]);
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ sku: "FS-B01" }], quantities: [100], cited: ["products:FS-B01"] } } } });
+  assert.deepEqual(r.attachments, ["products:FS-B01"]);
 });
 
 // ---- S5.3 review fixes (16, 18, 19) ----
 test("(16) an over-limit approval names the approver, not the owner, in reply.to and reached_human.who", () => {
   const result = { run_id: "syn", output: { decision: "escalate", draft: { text: "d" }, queued_for: {
-    owner_id: "E1", owner_name: "Away Owner", queue_file: "/q/x.json", approval: { approver_id: "E9", approver_name: "Backup Boss", amount_usd: 900, limit_usd: 500 } } } };
+    owner_id: "E1", owner_name: "Away Owner", queue_file: "/q/x.json", approval: { approver_id: "E9", approver_name: "Backup Boss", amount: 900, limit: 500 } } } };
   const lines = [{ step: "escalate_or_fallback", status: "success", output_summary: "escalated; both critiques stored" }];
   const j = deriveJourney(result, lines);
   assert.equal(j.human.reply.to.employee_id, "E9");

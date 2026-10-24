@@ -45,7 +45,7 @@ const write = (name, entries) => {
 // Until CP6 re-exports them live, they are REBUILT from the regenerated synthetic files with the typing Zetaris's REST API
 // gives (every value a string, NULL as null; int "15", double "40.0", boolean "true"). Nothing is typed by hand:
 // verified by running this against the pre-regeneration checkout (--data=<old data>) and comparing with its committed caches.
-const TYPE = { amount: "dbl", amount_usd: "dbl", owner_id: "int", backup_id: "int", may_leave: "bool", owner_out: "bool", fictional: "bool" };
+const TYPE = { amount: "dbl", owner_id: "int", backup_id: "int", may_leave: "bool", owner_out: "bool", fictional: "bool" };
 const cell = (k, v) => {
   if (v === null || v === undefined) return null;
   const t = TYPE[k];

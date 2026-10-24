@@ -41,14 +41,14 @@ test("other templates without an entry still throw", () => {
 test("critique: a promised refund fails with a null limit and over a set limit", () => {
   const d = { promises: { refund_amount: 40 }, text: "ok" };
   // a promised refund with no policy limit behind it fails (Codex review 7, HIGH); the limit rules are refund-category rules
-  assert.equal(critique(d, { category: "refund", policy_limit_usd: null, restricted_terms: [] }).pass, false);
-  const r = critique(d, { category: "refund", policy_limit_usd: 30, restricted_terms: [] });
+  assert.equal(critique(d, { category: "refund", policy_limit: null, restricted_terms: [] }).pass, false);
+  const r = critique(d, { category: "refund", policy_limit: 30, restricted_terms: [] });
   assert.equal(r.pass, false);
   assert.match(r.reason, /above the limit/);
 });
 
 test("revised draft with a null limit never says null", () => {
-  const t = draft({ subject: "s", category: "refund" }, { policy_limit_usd: null, cited_rows: [] }, { seed: "revised" }).text;
+  const t = draft({ subject: "s", category: "refund" }, { policy_limit: null, cited_rows: [] }, { seed: "revised" }).text;
   assert.ok(!t.includes("null"));
   assert.match(t, /We are not promising anything today/);
 });

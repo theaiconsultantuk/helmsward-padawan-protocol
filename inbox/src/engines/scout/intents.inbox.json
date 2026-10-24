@@ -25,12 +25,12 @@
       "roles": ["*"],
       "examples": [
         "Please refund order JP-1042, the hilt color is not what I ordered",
-        "I want a refund of 400.00 USD for order JP-1104",
-        "Refund 90.00 USD for order JP-1077",
+        "I want a refund of 400.00 GC for order JP-1104",
+        "Refund 90.00 GC for order JP-1077",
         "I want to know if I can get my money back",
-        "I still need the 40.00 USD back",
+        "I still need the 40.00 GC back",
         "Any news on the refund, I still need the money back",
-        "The charge was 40.00 USD, refund the charge",
+        "The charge was 40.00 GC, refund the charge",
         "Refund and my card details, send the card number I paid with"
       ],
       "version": 1

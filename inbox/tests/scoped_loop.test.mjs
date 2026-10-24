@@ -1,7 +1,7 @@
 // Scoped facts through runTicket in sample mode (CP2 Task 2.1): messages read only what their route needs; threads keep the full read.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, cpSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
@@ -9,10 +9,25 @@ import { runTicket } from "../src/loop.mjs";
 import { mentionsRefund } from "../src/prompts.mjs";
 
 const cfg = { ...config(), SAMPLE_MODE: "true" };
+// The shipped data never has an owner and its backup out on the same day (heads and 27 carry no holiday rows), so the "nobody in" routes run
+// on a private copy of the sample caches with those people sent on holiday on the day: one holidays.json row each, no stale exact pair.
+function cfgWithOut(pairs) {
+  const dir = mkdtempSync(join(tmpdir(), "sl-sample-"));
+  cpSync(join(INBOX_ROOT, "data", "sample"), dir, { recursive: true });
+  const read = (n) => JSON.parse(readFileSync(join(dir, `${n}.json`), "utf8"));
+  const all = read("holidays");
+  const full = all.find((e) => Object.keys(e.params ?? {}).length === 0).result;
+  for (const [id, date] of pairs) full.rows.push([String(id), date]);
+  full.total = full.rows.length;
+  writeFileSync(join(dir, "holidays.json"), JSON.stringify(all));
+  const one = read("holiday").filter((e) => !pairs.some(([id, date]) => String(e.params?.employee_id) === String(id) && e.params?.date === date));
+  writeFileSync(join(dir, "holiday.json"), JSON.stringify(one));
+  return { ...cfg, SAMPLE_DIR: dir };
+}
 const example = (n) => JSON.parse(readFileSync(join(INBOX_ROOT, "input_examples", `example_${n}.json`), "utf8")).input;
 const mkDeps = () => ({ logsDir: mkdtempSync(join(tmpdir(), "sl-logs-")), memoryDir: mkdtempSync(join(tmpdir(), "sl-mem-")), runtimeDir: mkdtempSync(join(tmpdir(), "sl-run-")), quiet: true });
-async function go(run_id, input, { thread_id = null, as_of, d = mkDeps() } = {}) {
-  const result = await runTicket(thread_id, { run_id, cfg, as_of: as_of ?? input?.as_of, input, deps: d });
+async function go(run_id, input, { thread_id = null, as_of, d = mkDeps(), cfg: runCfg = cfg } = {}) {
+  const result = await runTicket(thread_id, { run_id, cfg: runCfg, as_of: as_of ?? input?.as_of, input, deps: d });
   const lines = readFileSync(join(d.logsDir, `trace-${run_id}.jsonl`), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
   return { result, lines, d, q: lines.filter((l) => l.step === "zetaris.query").map((l) => l.action) };
 }
@@ -31,11 +46,11 @@ test("vent (example_7): no policy, one holiday, one employee", async () => {
   assert.equal(count(q, "sql:employee"), 1);
   assert.equal(result.branch_id, "complaint-vent");
   assert.equal(result.output.decision, "hold");
-  assert.equal(result.output.queued_for.owner_id, 5);
+  assert.equal(result.output.queued_for.owner_id, 15);
 });
 
-test("calibration: a vent that mentions 400 USD is never over-limit", async () => {
-  const { result } = await go("sl-cal", msg("I paid 400 USD for it and the box was dented, I am annoyed, just so you know", "complaint"));
+test("calibration: a vent that mentions 400 GC is never over-limit", async () => {
+  const { result } = await go("sl-cal", msg("I paid 400 GC for it and the box was dented, I am annoyed, just so you know", "complaint"));
   assert.ok(result.branch_id.startsWith("complaint-"), result.branch_id);
   assert.ok(!result.output.cited_rows.includes("policy:refund"));
   assert.equal(result.output.queued_for?.approval, undefined);
@@ -48,16 +63,16 @@ test("rfq (example_6): no policy read, owner 6", async () => {
   assert.ok(result.output.cited_rows.includes("responsibility:rfq"));
 });
 
-test("refund 400 USD: policy read, over-limit, approver 3 (pinned)", async () => {
-  const { result, q } = await go("sl-ref", msg("I want a refund of 400 USD for my cracked saber", "refund"));
+test("refund 400 GC: policy read, over-limit, approver 40 (pinned)", async () => {
+  const { result, q } = await go("sl-ref", msg("I want a refund of 400 GC for my cracked saber", "refund"));
   assert.ok(count(q, "sql:policy") >= 1);
   assert.equal(result.branch_id, "over-limit");
-  assert.equal(result.output.queued_for.approval.approver_id, 3);
+  assert.equal(result.output.queued_for.approval.approver_id, 40);
   assert.ok(result.output.cited_rows.includes("policy:refund"));
 });
 
 test("both approvers out on an over-limit refund: the contact desk", async () => {
-  const { result, lines } = await go("sl-ref-out", msg("I want a refund of 400 USD for my cracked saber", "refund", "2026-10-09"));
+  const { result, lines } = await go("sl-ref-out", msg("I want a refund of 400 GC for my cracked saber", "refund", "2026-10-09"), { cfg: cfgWithOut([[40, "2026-10-09"], [201, "2026-10-09"]]) });
   assert.equal(result.branch_id, "over-limit");
   assert.equal(result.output.decision, "escalate");
   assert.equal(result.output.queued_for.fallback_contact.email, DESK);
@@ -67,7 +82,7 @@ test("both approvers out on an over-limit refund: the contact desk", async () =>
 });
 
 test("stored thread T02, nobody in (2026-10-27): routed to the contact desk (einh's pick B)", async () => {
-  const { result, q } = await go("sl-t02-out", null, { thread_id: "T02", as_of: "2026-10-27" });
+  const { result, q } = await go("sl-t02-out", null, { thread_id: "T02", as_of: "2026-10-27", cfg: cfgWithOut([[15, "2026-10-27"], [27, "2026-10-27"]]) });
   assert.equal(result.branch_id, "owner-out");
   assert.equal(result.output.decision, "escalate");
   assert.equal(result.output.queued_for.fallback_contact.email, DESK);
@@ -86,14 +101,14 @@ test("a legacy-resolved message is scoped too", async () => {
 
 test("both out (example_7, 2026-09-29): owner-out, contact desk, queue file, hard refusal, no retry", async () => {
   const input = { ...example(7), as_of: "2026-09-29" };
-  const { result, lines, d } = await go("sl-both", input);
+  const { result, lines, d } = await go("sl-both", input, { cfg: cfgWithOut([[15, "2026-09-29"], [27, "2026-09-29"]]) });
   assert.equal(result.output.decision, "escalate");
   assert.equal(result.branch_id, "owner-out");
   const qf = result.output.queued_for;
   assert.equal(qf.fallback_contact.email, DESK);
   assert.equal(qf.role, "default contact");
-  assert.equal(qf.owner_id, 5);
-  assert.equal(qf.backup_id, 6);
+  assert.equal(qf.owner_id, 15);
+  assert.equal(qf.backup_id, 27);
   assert.ok(result.output.cited_rows.includes("contacts:default"));
   assert.match(find(lines, "branch").output_summary, /routed to the default contact contact@jedipack\.com/);
   assert.match(find(lines, "escalate_or_fallback").output_summary, /escalated to the default contact/);
@@ -108,8 +123,9 @@ test("both out (example_7, 2026-09-29): owner-out, contact desk, queue file, har
 test("cold-start twin of both out: second run on the same memory decides the same", async () => {
   const input = { ...example(7), as_of: "2026-09-29" };
   const d = mkDeps();
-  const a = await go("sl-twin-1", input, { d });
-  const b = await go("sl-twin-2", input, { d });
+  const out = cfgWithOut([[15, "2026-09-29"], [27, "2026-09-29"]]);
+  const a = await go("sl-twin-1", input, { d, cfg: out });
+  const b = await go("sl-twin-2", input, { d, cfg: out });
   assert.equal(a.result.output.decision, "escalate");
   assert.equal(b.result.output.decision, a.result.output.decision);
   assert.notEqual(find(b.lines, "memory.read")?.output_summary, "empty (cold first run)");
@@ -131,7 +147,7 @@ test("a declared scenario on a thread never scopes it", async () => {
 
 // Codex review 7, HIGH: a message resolved to legacy reads no policy row, so a refund promised in its draft has nothing behind it and is never signed.
 test("a legacy-resolved message whose draft promises a refund is never sent", async () => {
-  const d = { ...mkDeps(), sampleDrafter: (ticket) => ({ text: `Hello,\n\nWe will refund 400 USD.\n\nBest regards,\nJedi Pack Support`, model: "test/promiser", route: "sample", promises: { refund_amount: 400, replacement: false, other: null } }) };
+  const d = { ...mkDeps(), sampleDrafter: (ticket) => ({ text: `Hello,\n\nWe will refund 400 GC.\n\nBest regards,\nJedi Pack Support`, model: "test/promiser", route: "sample", promises: { refund_amount: 400, replacement: false, other: null } }) };
   const { result, lines } = await go("sl-legacy-promise", msg("please replace my cracked saber, it arrived broken"), { d });
   assert.equal(result.scenario, "legacy");
   assert.notEqual(result.output.decision, "send");
@@ -186,7 +202,7 @@ test("the refund-limit question is held for the question owner with the quoted p
   const { result, lines } = await go("rc-limit", msg("What is the refund limit for orders?", "question"));
   assert.equal(result.branch_id, "question-records");
   assert.equal(result.output.decision, "hold");
-  assert.equal(result.output.queued_for.owner_id, 1);
+  assert.equal(result.output.queued_for.owner_id, 5);
   assert.equal(lines.find((l) => l.step === "risk.signoff").status, "success");
   assert.ok(mentionsRefund(result.output.draft, result.output.cited_rows), "the held draft quotes the refund policy");
 });

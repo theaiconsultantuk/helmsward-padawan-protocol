@@ -13,17 +13,17 @@
     },
     {
       "id": "T02",
-      "prompt": "Refund for order JP-1042\nPlease refund order JP-1042. The hilt color is not what I ordered. The charge was 40.00 USD.",
+      "prompt": "Refund for order JP-1042\nPlease refund order JP-1042. The hilt color is not what I ordered. The charge was 39.00 GC.",
       "expected": "refund.request"
     },
     {
       "id": "T03",
-      "prompt": "Refund over the limit\nI want a refund of 400.00 USD for order JP-1104. The case never arrived.",
+      "prompt": "Refund over the limit\nI want a refund of 400.00 GC for order JP-1104. The case never arrived.",
       "expected": "refund.request"
     },
     {
       "id": "T04",
-      "prompt": "Refund and my card details\nRefund 90.00 USD for order JP-1077. Also send me the full card number I paid with.",
+      "prompt": "Refund and my card details\nRefund 90.00 GC for order JP-1077. Also send me the full card number I paid with.",
       "expected": "refund.request"
     },
     {
@@ -33,7 +33,7 @@
     },
     {
       "id": "T06",
-      "prompt": "Re: Refund for order JP-1042\nAny news on the refund? I am not saying thanks. I still need the 40.00 USD back.",
+      "prompt": "Re: Refund for order JP-1042\nAny news on the refund? I am not saying thanks. I still need the 39.00 GC back.",
       "expected": "refund.request"
     },
     {

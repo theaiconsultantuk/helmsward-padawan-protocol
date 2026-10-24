@@ -26,7 +26,7 @@ test("scoped complaint, owner in: one holiday, one employee, no policy, no holid
   const { facts: f, s } = await scoped("complaint", "2026-10-20", []);
   assert.deepEqual(s.names(), ["responsibility", "holiday", "employee", "trust", "wiki"]);
   assert.ok(!f.cited_rows.some((c) => c.startsWith("policy:")));
-  assert.equal(f.policy_limit ?? f.policy_limit_usd, null);
+  assert.equal(f.policy_limit, null);
   assert.equal(f.owner_id, 15); assert.equal(f.backup_id, 27);
   assert.ok(f.owner_name); assert.equal(f.backup_name, null);
   assert.equal(f.owner_out, false); assert.equal(f.backup_out, false);
@@ -77,7 +77,7 @@ test("scoped refund with needs [limit]: policy first, over/under-limit owners, l
   const over = await scoped("refund", "2026-10-20", ["limit"], { amount: 400 });
   assert.equal(over.s.names()[0], "policy");
   assert.equal(over.facts.owner_id, 40); assert.equal(over.facts.backup_id, 201); // over the limit: the Sales head, then the CEO
-  assert.equal(over.facts.policy_limit ?? over.facts.policy_limit_usd, 150);
+  assert.equal(over.facts.policy_limit, 150);
   assert.ok(over.facts.cited_rows.includes("policy:refund"));
   assert.ok(over.facts.cited_rows.includes("amount from the message"));
   const under = await scoped("refund", "2026-10-20", ["limit"], { amount: 50 });

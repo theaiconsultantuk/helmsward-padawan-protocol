@@ -109,8 +109,8 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   if (facts.category === "complaint" && facts.channel === "trustpilot") {
     return { branch_id: "public-channel", why: "a complaint on a public channel (trustpilot): public image risk" };
   }
-  if (facts.amount_usd != null && facts.policy_limit_usd != null && facts.amount_usd > facts.policy_limit_usd) {
-    return { branch_id: "over-limit", why: `amount ${facts.amount_usd} USD is over the ${facts.policy_limit_usd} USD policy limit` };
+  if (facts.amount != null && facts.policy_limit != null && facts.amount > facts.policy_limit) {
+    return { branch_id: "over-limit", why: `amount ${facts.amount} GC is over the ${facts.policy_limit} GC policy limit` };
   }
   if (facts.owner_out && facts.backup_out) {
     return { branch_id: "owner-out", why: `${facts.backup_id == null ? `owner ${facts.owner_id} is out and no backup is named` : `owner ${facts.owner_id} and backup ${facts.backup_id} are both out`} on ${facts.as_of ?? "the day"}` };
@@ -118,7 +118,7 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, ${facts.backup_id == null ? "no backup named" : `backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}`}` : `owner ${facts.owner_id} in`;
-    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount_usd == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
+    return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${facts.amount == null && /refund/.test(String(facts.category)) ? "; no amount stated" : ""}${memory?.length ? "; memory consulted" : ""}` };
   }
   const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
   if (unavailable.length) {
@@ -137,14 +137,14 @@ const one = (s, n = 220) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0,
 const approverOf = (f) => (f?.owner_out && !f?.backup_out
   ? { id: f.backup_id ?? null, name: f.backup_name ?? null }
   : { id: f?.owner_id ?? null, name: f?.owner_name ?? null });
-const overLimit = (f) => f?.amount_usd != null && f?.policy_limit_usd != null && f.amount_usd > f.policy_limit_usd;
+const overLimit = (f) => f?.amount != null && f?.policy_limit != null && f.amount > f.policy_limit;
 
 // The default hardRefusal of replyLoop: an amount over the policy limit is a hard fact on the round it appears. Risk refuses and the
 // ticket goes to the approver (unless owner and backup are both out). Returns the refusal reason, or null.
 export function overLimitRefusal(f) {
   if (!overLimit(f) || (f.owner_out && f.backup_out)) return null;
   const ap = approverOf(f);
-  return `amount ${f.amount_usd} USD is over the ${f.policy_limit_usd} USD limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`;
+  return `amount ${f.amount} GC is over the ${f.policy_limit} GC limit: needs approval by ${ap.name ?? `employee ${ap.id}`} (policy over-limit owner)`;
 }
 
 // The reply rounds: draft, critique, Risk sign-off, one retry. Reads everything from the toolbox tb
@@ -381,7 +381,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
-        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount_usd} USD over the ${approval.limit_usd} USD limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
+        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
         : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
         : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
@@ -448,7 +448,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       const params = preDecided?.parameters ?? {};
       // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
       Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
-        amount: params.currency === "USD" ? params.amount : undefined });
+        amount: params.currency === "GC" ? params.amount : undefined });
     } else {
       S.scenario = resolveScenario({ kind: "thread", declared: input?.scenario });
     }
@@ -519,7 +519,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
-        + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"})` : ""),
+        + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -536,7 +536,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     if (factsErr) fatal("executor.act", factsErr, "facts unavailable, escalated to human with the ticket id only");
     L({
       step: "executor.act", agent_name: "Executor", action: "act", input_summary: `facts for ${thread_id} as of ${f.as_of ?? as_of ?? "received_at"}`,
-      output_summary: `${f.cited_rows.length} rows cited: ${f.cited_rows.slice(0, 8).join(", ")}${f.cited_rows.length > 8 ? ", ..." : ""}; amount ${f.amount_usd ?? "none"} vs limit ${f.policy_limit_usd ?? "?"}; owner ${f.owner_id} ${f.owner_out ? "out" : "in"}, ${f.backup_id == null ? "no backup named" : `backup ${f.backup_id} ${f.backup_out ? "out" : "in"}`}`
+      output_summary: `${f.cited_rows.length} rows cited: ${f.cited_rows.slice(0, 8).join(", ")}${f.cited_rows.length > 8 ? ", ..." : ""}; amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"}; owner ${f.owner_id} ${f.owner_out ? "out" : "in"}, ${f.backup_id == null ? "no backup named" : `backup ${f.backup_id} ${f.backup_out ? "out" : "in"}`}`
         + (known ? "; facts rows still read in one call (full reuse from memory is not implemented)" : "")
         + (dup ? `; duplicate check: same sender, subject and body as ${dup.thread_id} (${dup.received_at})` : "; duplicate check: none"),
       status: "success", sponsor: "zetaris",
@@ -611,7 +611,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     if (probe) S.branch = { ...S.branch, branch_id: probe.branch_id, why: probe.why };
     const B = S.branch.branch_id;
-    L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount_usd ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
+    L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
 
     // 7a. the typed gates line
     S.current = "nvidia.model";
@@ -676,7 +676,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const critiques = S.rounds.flatMap((r) => [{ round: r.n, source: "Evaluator", pass: r.critique.pass, reason: r.critique.reason }, { round: r.n, source: "Risk", pass: r.risk.pass, reason: r.risk.reasons.join("; ") || "signed off" }]);
     if (approvalNeeded) {
       const ap = approverOf(f);
-      const approval = { kind: "amount", amount_usd: f.amount_usd, limit_usd: f.policy_limit_usd, approver_id: ap.id, approver_name: ap.name };
+      const approval = { kind: "amount", amount: f.amount, limit: f.policy_limit, approver_id: ap.id, approver_name: ap.name };
       escalate([...critiques, { source: "Draft", reason: `proposed reply, attached for approval: ${draft.text}` }],
         `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount`, {}, { approval, draft });
       return;

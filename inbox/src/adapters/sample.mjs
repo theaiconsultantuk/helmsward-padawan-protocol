@@ -64,14 +64,14 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (seed === "revised") {
-    const lim = facts.policy_limit_usd == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD, so we are not promising it today`;
+    const lim = facts.policy_limit == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit} GC, so we are not promising it today`;
     mid = `${lim}. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
-    promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? "We are looking into your refund request." : `We will refund ${ticket.amount_usd} USD.`;
+    promises.refund_amount = ticket.amount ?? null;
+    mid = ticket.amount == null ? "We are looking into your refund request." : `We will refund ${ticket.amount} GC.`;
   } else if (cat === "refund") {
-    promises.refund_amount = ticket.amount_usd ?? null;
-    mid = ticket.amount_usd == null ? "We are looking into your refund request." : `We will refund ${ticket.amount_usd} USD.`;
+    promises.refund_amount = ticket.amount ?? null;
+    mid = ticket.amount == null ? "We are looking into your refund request." : `We will refund ${ticket.amount} GC.`;
   } else if (cat === "replacement") {
     promises.replacement = true;
     mid = "We will send you a replacement.";
@@ -85,11 +85,11 @@ export function critique(d, facts) {
   const rr = refundRuleReason(facts, d);
   if (rr) return { pass: false, reason: rr, model: MODEL };
   const amt = d.promises?.refund_amount;
-  if (typeof amt === "number" && facts.policy_limit_usd == null) {
-    return { pass: false, reason: `promises a refund of ${amt} USD with no policy limit behind it`, model: MODEL };
+  if (typeof amt === "number" && facts.policy_limit == null) {
+    return { pass: false, reason: `promises a refund of ${amt} GC with no policy limit behind it`, model: MODEL };
   }
-  if (typeof amt === "number" && amt > facts.policy_limit_usd) {
-    return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit_usd} USD`, model: MODEL };
+  if (typeof amt === "number" && amt > facts.policy_limit) {
+    return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit} GC`, model: MODEL };
   }
   const low = String(d.text ?? "").toLowerCase();
   const leak = (facts.restricted_terms ?? []).find((t) => t && low.includes(String(t).toLowerCase()));
@@ -100,7 +100,7 @@ export function critique(d, facts) {
 
 export function gates(ticket) {
   const text = `${ticket.subject ?? ""} ${ticket.body ?? ""}`;
-  const money = REFUND.test(text) || /\$|usd|eur|\bcharge/i.test(text) && /refund|back/i.test(text);
+  const money = REFUND.test(text) || /\$|\bgc\b|usd|eur|\bcharge/i.test(text) && /refund|back/i.test(text);
   let category = { choice: "question", confidence: 0.5 };
   if (REFUND.test(text)) category = { choice: "refund", confidence: 0.5 };
   else if (REPLACE.test(text)) category = { choice: "replacement", confidence: 0.5 };

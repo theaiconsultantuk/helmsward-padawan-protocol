@@ -108,7 +108,7 @@ test("parseRestricted extracts the forbidden list", () => {
 
 test("factsForTicket: an appreciation thread with no owner resolves without throwing", async () => {
   const tbl = {
-    threads_parquet: { headers: ["thread_id", "category", "amount_usd", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "", "", "2026-10-01T09:00:00", "true"]] },
+    threads_parquet: { headers: ["thread_id", "category", "amount", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "", "", "2026-10-01T09:00:00", "true"]] },
     policy: { headers: ["topic", "limit_amount", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [] },
     responsibility: { headers: ["topic", "owner_id", "backup_id"], rows: [] },
     holiday_2026: { headers: ["employee_id", "date"], rows: [] },
@@ -134,7 +134,7 @@ test("factsForTicket: an appreciation thread with no owner resolves without thro
 // ---- code-review findings G1-G3 ----
 const factsStub = (failWiki) => async (sql, o) => {
   if (failWiki && o?.name === "wiki") throw new Error("wiki down");
-  if (sql.includes("threads_parquet")) return { headers: ["thread_id", "category", "amount_usd", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "15", "16", "2026-10-01T09:00:00", "true"]] };
+  if (sql.includes("threads_parquet")) return { headers: ["thread_id", "category", "amount", "owner_id", "backup_id", "received_at", "may_leave"], rows: [["T18", "appreciation", "", "15", "16", "2026-10-01T09:00:00", "true"]] };
   if (o?.name === "wiki") return { headers: ["preview"], rows: [["A reply may not include a stored card number."]] };
   if (o?.name === "employee") return { headers: ["employee_id", "given_name", "family_name"], rows: [["15", "A", "B"]] };
   return { headers: ["x"], rows: [] };
@@ -167,8 +167,8 @@ test("detail: the employee, policy and responsibility reads put the rows in word
   assert.equal(lines[0].output_summary, "1 rows: employees:15");
   assert.equal(lines[0].detail, "Soren Adey · Support Agent · Support");
   assert.equal(lines[0].input_summary, 'the employee record {"employee_id":15} · owner for refund: under the refund limit 150 (policy:refund)');
-  await run("policy", { topic: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [["refund", "150.00", "USD", 15, 16, 3, 4]] }) });
-  assert.equal(lines[1].detail, "limit 150.00 USD · under: owner 15, backup 16 · over: owner 3, backup 4");
+  await run("policy", { topic: "refund" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["topic", "limit_amount", "currency", "under_limit_owner_id", "under_limit_backup_id", "over_limit_owner_id", "over_limit_backup_id"], rows: [["refund", "150.00", "GC", 15, 27, 40, 201]] }) });
+  assert.equal(lines[1].detail, "limit 150.00 GC · under: owner 15, backup 27 · over: owner 40, backup 201");
   await run("responsibility", { topic: "rfq" }, { trace, cfg: live, sqlRunImpl: async () => ({ headers: ["topic", "owner_id", "backup_id"], rows: [["rfq", 6, 14]] }) });
   assert.equal(lines[2].detail, "owner 6, backup 14");
   assert.match(lines[2].input_summary, /^who owns the topic \{"topic":"rfq"\} via the USL$/);
@@ -401,8 +401,8 @@ test("F ticket, rfq: owner 6 / backup 14, both in, cited local", async () => {
 
 test("F ticket, refund with a typed amount over the limit goes to the over-limit owners", async () => {
   const f = await intakeFacts("refund", { amount: 400 });
-  assert.equal(f.policy_limit_usd, 150);
-  assert.equal(f.amount_usd, 400);
+  assert.equal(f.policy_limit, 150);
+  assert.equal(f.amount, 400);
   assert.equal(f.owner_id, 40); assert.equal(f.backup_id, 201); // the Sales head, then the CEO
   assert.ok(f.cited_rows.includes("amount from the message"));
   const under = await intakeFacts("refund", { amount: 50 });
