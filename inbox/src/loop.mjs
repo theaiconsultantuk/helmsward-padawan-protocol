@@ -16,6 +16,7 @@ import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
 import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
+import { readRefund } from "./refund_reader.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
 
 // The 15 ids, in the methodology table order. (The actual trace order is the demo order: branch comes before nvidia.model.)
@@ -147,7 +148,7 @@ export function overLimitRefusal(f) {
 }
 
 // The reply rounds: draft, critique, Risk sign-off, one retry. Reads everything from the toolbox tb
-// ({ f, ticket, L, skipped, fatal, S, sampleOn, memCtx, hardRisk, maxRounds, io: { drafter, sampleDrafter, critic, adapterTrace } }).
+// ({ f, ticket, L, skipped, fatal, S, sampleOn, memCtx, hardRisk, maxRounds, io: { drafter, sampleDrafter, critic, reader, adapterTrace }, readerOn }).
 //   messagesFn({ critiques }) -> drafter messages        (default: the draftMessages of the ticket, facts and memory)
 //   sampleDraftFn(seed)       -> sample-mode draft        (default: the run's sample drafter)
 //   hardRefusal(f, draft, n)  -> a reason string that makes the round a hard Risk refusal, or null (default: the over-limit rule)
@@ -216,13 +217,17 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     return r;
   };
 
-  const doRisk = (draft, n) => {
+  // The refund Reader (24 Oct 2026): beside the Evaluator, a model read of a non-refund draft for money back in any wording; its signal is the round's.
+  const doRead = (draft, n, signal) => readRefund({ draft, facts: f, ticket, io, sampleOn, enabled: tb.readerOn !== false, L, branch: B, round: n, signal, recovered: S.recovered });
+
+  const doRisk = (draft, n, readerReason = null) => {
     const hr = draft.failed ? { reasons: ["no usable draft"] } : tb.hardRisk(f, draft);
     const bothOut = Boolean(f.owner_out && f.backup_out);
     const refusal = refusalOf(f, draft, n) ?? null;
     if (refusal) refused = true;
     const reasons = hr.reasons.filter((r) => !BRANCH_RE.test(r) && !(refusal && /^draft promises refund above/.test(r)));
     if (refusal) reasons.unshift(refusal);
+    if (readerReason) reasons.push(readerReason); // a reader catch is a negative round, never hard (einh's pick 3 A, 24 Oct 2026)
     const hard = f.may_leave === false || bothOut || Boolean(refusal);
     const pass = reasons.length === 0;
     const noted = "";
@@ -239,12 +244,19 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   let retried = false;
   let crit, risk;
   for (;;) {
-    crit = await doCritique(draft, round);
-    risk = doRisk(draft, round);
+    // critique and reader run side by side; a dying critique (fatal throws Stop) cancels the reader so no late line lands after the escalation
+    const readAbort = new AbortController();
+    const readP = doRead(draft, round, readAbort.signal);
+    let c;
+    try { c = await doCritique(draft, round); } catch (e) { readAbort.abort(e); await readP.catch(() => {}); throw e; }
+    const rd = await readP;
+    crit = c;
+    if (rd.status === "success") S.models.reader = rd.model;
+    risk = doRisk(draft, round, rd.reason);
     S.rounds.push({ n: round, critique: crit, risk });
     if ((crit.pass && risk.pass) || round >= max || risk.hard) break;
     // a negative round, gate not met: retry
-    const next = "decline anything above the limit, promise only what the cited rows allow, mention a refund only on a refund request or a question about refunds, and name who follows up";
+    const next = "decline anything above the limit, promise only what the cited rows allow, mention a refund only on a refund request or a question about refunds in any wording or language, and name who follows up";
     const both = [`Evaluator: ${crit.reason}`, `Risk: ${risk.reasons.join("; ") || "signed off"}`];
     L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Drafter", branch_id: B, retry_count: round, input_summary: `round ${round} negative`,
       output_summary: `${both.join(" | ")}. Next draft must: ${next}`, status: "retrying", memory_ids: S.memRead });
@@ -317,6 +329,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose, signal: o.signal ?? runAbort.signal }));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
+  const reader = deps.reader ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: "refund_read", signal: o.signal ?? runAbort.signal }));
   const critic = deps.critic ?? (async ({ draft, facts, ticket }) => {
     const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique", signal: runAbort.signal });
     const j = parseCriticJson(r.text);
@@ -573,7 +586,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
-      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, adapterTrace, signal: runAbort.signal },
+      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, reader, adapterTrace, signal: runAbort.signal },
+      readerOn: !(["false", "0"].includes(String(cfg.REFUND_READER ?? "true").trim().toLowerCase())),
     };
 
     // 6. branch
@@ -702,8 +716,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     new Promise((resolve) => { timer = setTimeout(() => { timedOut = true; resolve(); }, runTimeoutMs); }),
   ]);
   clearTimeout(timer);
+  runAbort.abort(new Error(timedOut ? "RunTimeout" : "RunEnded")); // 24 Oct 2026: always, so a late model answer cannot write a line after synthesis
   if (timedOut) {
-    runAbort.abort(new Error("RunTimeout"));
     const msg = `run exceeded ${runTimeoutMs} ms at ${S.current}`;
     S.recovered.push({ step: S.current, type: "RunTimeout", message: msg });
     L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "run_timeout", input_summary: "whole-run cap", output_summary: msg, status: "error" });
@@ -755,6 +769,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       { name: "Planner", role: "plan and delegate" }, { name: "Executor", role: "facts from Zetaris" },
       { name: "Drafter", role: "draft the reply", ...(S.models.drafter ? { model: S.models.drafter } : {}) },
       { name: "Evaluator", role: "critique the draft", ...(S.models.evaluator ? { model: S.models.evaluator } : {}) },
+      ...(trace.lines.some((l) => l.action === "read_refund") ? [{ name: "RefundReader", role: "refund meaning read", ...(S.models.reader ? { model: S.models.reader } : {}) }] : []),
       { name: "Risk", role: "policy sign-off (code)" }, { name: "Memory", role: "H-MEM read and write" },
       ...(trace.lines.some((l) => l.agent_name === "WorldModel") ? [{ name: "WorldModel", role: "customer and product history" }] : []),
       ...(trace.lines.some((l) => l.agent_name === "Severity") ? [{ name: "Severity", role: "severity gate" }] : []),

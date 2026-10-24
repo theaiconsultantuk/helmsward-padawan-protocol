@@ -13,7 +13,7 @@ const KNOWN_KEYS = [
   "NIGHTSHIFT_ROUTE_FALLBACK", "NIGHTSHIFT_TIMEOUT_MS", "OPENJEV_BASE_URL",
   "LOCAL_LANE_BASE_URL", "LOCAL_LANE_MODELS", "LOCAL_LANE_TIMEOUT_MS",
   "OPENJEV_API_KEY", "SCOUT_SECRET", "SAMPLE_MODE", "FAULT_ZETARIS_REFUSE_ONCE",
-  "LOG_LEVEL", "ZETARIS_SHARED_DIR", "ZETARIS_FILE_ROOT", "NO_NETWORK", "API_TOKEN",
+  "LOG_LEVEL", "ZETARIS_SHARED_DIR", "ZETARIS_FILE_ROOT", "NO_NETWORK", "API_TOKEN", "REFUND_READER",
 ];
 
 const DEFAULTS = {
@@ -22,6 +22,7 @@ const DEFAULTS = {
   NIGHTSHIFT_TIMEOUT_MS: "120000", // 23 Oct: a Nemotron critique answers in 40 to 80 s when it answers. Two primary attempts plus the fallback route can take up to 360 s, so the whole-run cap (300 s, loop.mjs) may cut the sequence short: the run then ends as a capped escalation, never a silent wait
   NIGHTSHIFT_ROUTE_FALLBACK: "meterless/local",
   SAMPLE_MODE: "false",
+  REFUND_READER: "true", // 24 Oct: the refund Reader (one Nemotron read of each non-refund draft, beside the Evaluator); false turns it into a logged skip, the word test still runs
   FAULT_ZETARIS_REFUSE_ONCE: "false",
   LOG_LEVEL: "INFO",
   ZETARIS_ORG_ID: "1",
