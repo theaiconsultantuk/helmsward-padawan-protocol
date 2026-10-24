@@ -74,7 +74,7 @@ paths:
                   channel: email
                   name: Havi Hollowell
                   email: havihollowell@email.com
-                  message: The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.
+                  message: The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.
                   as_of: "2026-10-25"
                   expected: { decision: escalate, branch: complaint-legal, owner_id: 15, team: Support, auto_reply: false, status: open, draft: true, cc: [7, 202] }
                   client: random

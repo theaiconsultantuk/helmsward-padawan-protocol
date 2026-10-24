@@ -1,11 +1,11 @@
 ---
-title: Padmé email chain, run sequentially
+title: Seraphine email chain, run sequentially
 description: Her original email and her follow-up processed one after the other through the real loop, with the first draft's promises and memory carried into the second step.
 date: 2026-10-23
 tags: [judging, demo]
 ---
 
-# Padmé email chain, run sequentially
+# Seraphine email chain, run sequentially
 
 Command: `node inbox/scripts/chain_run.mjs --chain T01` (run `padme-live`, steps `padme-live_1` and `padme-live_2`).
 

@@ -1,7 +1,7 @@
 {
   "run_id": "example-11",
   "input": {
-    "message": "I would like a refund of 80 GC for my Drift Boots, they are too small for my son.",
+    "message": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
     "from": "briskbrightmoor@email.com",
     "name": "Brisk Brightmoor",
     "channel": "contact-form",

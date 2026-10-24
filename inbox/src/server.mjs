@@ -12,7 +12,7 @@ import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
-import { deriveJourney } from "./journey.mjs";
+import { deriveJourney, publicQueueFile } from "./journey.mjs";
 import { readCsv } from "./csv.mjs";
 import { generateClient } from "./demo_names.mjs";
 
@@ -350,8 +350,12 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       const result = isMsg
         ? await runTicket(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
         : await runTicket(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+      // the server keeps its own absolute queue path; the public result names the file inside the memory dir only
+      const publicOutput = result.output?.queued_for?.queue_file
+        ? { ...result.output, queued_for: { ...result.output.queued_for, queue_file: publicQueueFile(result.output.queued_for.queue_file) } }
+        : result.output;
       const out = {
-        run_id: result.run_id, status: result.status, output: result.output, agents: result.agents,
+        run_id: result.run_id, status: result.status, output: publicOutput, agents: result.agents,
         trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
         ...(result.scenario !== undefined ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
         ...(result.input ? { input: result.input } : {}),

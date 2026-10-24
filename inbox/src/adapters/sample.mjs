@@ -84,6 +84,25 @@ export function queryByName(name, params = {}, { cfg = config(), runtimeDir } = 
   return { headers: r.headers ?? [], rows, total: r.total ?? rows.length, timeUsed: 0 };
 }
 
+// What a draft may quote back to the customer: a real subject as it is, or, when the subject is only the start of the message
+// (a free-text intake derives it), the customer's whole first sentence. Never a cut text: a long sentence, or a subject that was
+// cut with no message to complete it, is not quoted at all.
+const QUOTE_MAX = 120;
+export function quotable(ticket) {
+  const clean = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+  const subject = clean(ticket?.subject);
+  const body = clean(ticket?.body);
+  const stem = subject.replace(/\u2026$/, "").trim();
+  const derived = Boolean(stem) && Boolean(body) && body.startsWith(stem) && (subject !== stem || body.length > stem.length);
+  let text = subject;
+  if (derived) {
+    const m = /^(.+?[.!?])(?:\s|$)/.exec(body);
+    text = m ? m[1] : body;
+  } else if (subject.endsWith("\u2026")) return null;
+  text = text.replace(/[.!?]+$/, "").trim();
+  return text && text.length <= QUOTE_MAX ? text : null;
+}
+
 const REFUND = /refund|money back|my money|reimburse/i;
 const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
@@ -94,7 +113,8 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false } = {
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   // an over-limit reply never quotes the subject: a free-text subject is the body's first 60 characters and can carry the amount or a date
-  const ask = overLimit ? "Thank you for your message." : `You wrote about "${ticket.subject}".`;
+  const quoted = overLimit ? null : quotable(ticket);
+  const ask = overLimit ? "Thank you for your message." : quoted ? `You wrote about "${quoted}".` : "Thank you for your message.";
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (overLimit && (cat === "refund" || seed === "revised")) {

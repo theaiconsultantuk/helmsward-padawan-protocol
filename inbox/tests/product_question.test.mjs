@@ -49,14 +49,14 @@ test("a spec key asked by name is read from the specs column", async () => {
 });
 
 test("price and lead time in one question are both answered from the row", async () => {
-  const { result } = await ask("How much does the Wayfarer Cloak cost and what is its lead time?");
+  const { result } = await ask("How much does the Wayfarer Long Cloak cost and what is its lead time?");
   assert.equal(result.branch_id, "product-hit");
-  assert.match(result.output.draft.text, /The Wayfarer Cloak costs 119 GC\. The Wayfarer Cloak has a lead time of 9 days\./);
+  assert.match(result.output.draft.text, /The Wayfarer Long Cloak costs 119 GC\. The Wayfarer Long Cloak has a lead time of 9 days\./);
   assert.ok(result.output.cited_rows.includes("products:FS-A01"));
 });
 
 test("s06: a product in the catalogue but not in the row holds for the Product owner with no draft", async () => {
-  const { result, lines } = await ask("Is the Wayfarer Cloak waterproof?");
+  const { result, lines } = await ask("Is the Wayfarer Long Cloak waterproof?");
   const o = result.output;
   assert.equal(result.scenario, "product");
   assert.equal(result.branch_id, "product-unanswered");
@@ -84,12 +84,12 @@ test("a product-shaped question with no product named holds for the Product owne
 
 test("matchProductLookup: name beats alias, longer beats shorter, a tie is ambiguous", () => {
   const rows = [
-    { sku: "FS-X1", name: "Arc Blade Trainer", aliases: "training blade;blade" },
-    { sku: "FS-X2", name: "Emitter Hilt", aliases: "hilt;blade" },
+    { sku: "FS-X1", name: "Vanta Arc Trainer", aliases: "training blade;blade" },
+    { sku: "FS-X2", name: "Strand Emitter Hilt", aliases: "hilt;blade" },
     { sku: "FS-X3", name: "Blade Stand", aliases: "stand" },
   ];
-  assert.equal(matchProductLookup("is the arc blade trainer safe", rows).hit.row.sku, "FS-X1");
-  assert.equal(matchProductLookup("is the arc blade trainer safe", rows).hit.via, "name");
+  assert.equal(matchProductLookup("is the vanta arc trainer safe", rows).hit.row.sku, "FS-X1");
+  assert.equal(matchProductLookup("is the vanta arc trainer safe", rows).hit.via, "name");
   assert.equal(matchProductLookup("tell me about the hilt", rows).hit.row.sku, "FS-X2");
   assert.equal(matchProductLookup("tell me about the hilt", rows).hit.via, "alias");
   const tie = matchProductLookup("does the blade glow", rows);
@@ -99,7 +99,7 @@ test("matchProductLookup: name beats alias, longer beats shorter, a tie is ambig
 });
 
 test("answerFromRow: only the fields the question asks for; no field, no sentence", () => {
-  const row = { name: "Wayfarer Cloak", unit_price: "119.0", currency: "GC", lead_days: "9", material: "linen", specs: "length=135 cm;hood=yes" };
+  const row = { name: "Wayfarer Long Cloak", unit_price: "119.0", currency: "GC", lead_days: "9", material: "linen", specs: "length=135 cm;hood=yes" };
   assert.deepEqual(answerFromRow("what material is it made of", row).map((a) => a.field), ["material"]);
   assert.deepEqual(answerFromRow("does it have a hood", row).map((a) => a.field), ["specs.hood"]);
   assert.deepEqual(answerFromRow("list the specs", row).map((a) => a.field), ["specs"]);
@@ -110,6 +110,6 @@ test("resolveScenario: a product match or a material question is a product, an o
   const dec = (id) => ({ intent: { primary: { id }, confidence: 0.9 } });
   assert.deepEqual(resolveScenario({ kind: "message", decided: dec("order.question"), text: "x", productHit: { all: [{}] } }), { scenario: "product", how: "scout" });
   assert.deepEqual(resolveScenario({ kind: "message", decided: dec("GENERAL"), text: "what is it made of" }), { scenario: "product", how: "scout" });
-  assert.deepEqual(resolveScenario({ kind: "message", decided: dec("refund.request"), text: "refund the Wayfarer Cloak", productHit: { all: [{}] } }), { scenario: "refund", how: "scout" });
+  assert.deepEqual(resolveScenario({ kind: "message", decided: dec("refund.request"), text: "refund the Wayfarer Long Cloak", productHit: { all: [{}] } }), { scenario: "refund", how: "scout" });
   assert.deepEqual(resolveScenario({ kind: "message", declared: "product" }), { scenario: "product", how: "declared" });
 });

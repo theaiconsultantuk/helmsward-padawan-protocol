@@ -47,6 +47,14 @@ const ACTION_LABELS = {
   queue_for_human: "Hand-off",
 };
 
+// The public form of a queue file: its place inside the memory dir ("queue/F12.json"), never the server's absolute path.
+export function publicQueueFile(p) {
+  if (typeof p !== "string" || !p) return p ?? null;
+  const m = /(?:^|[\\/])queue[\\/]([^\\/]+)$/.exec(p);
+  if (m) return `queue/${m[1]}`;
+  return /^(?:[\\/]|[A-Za-z]:)/.test(p) ? `queue/${p.split(/[\\/]/).pop()}` : p;
+}
+
 const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const str = (v) => (typeof v === "string" ? v : "");
 
@@ -322,7 +330,7 @@ export function deriveJourney(result, lines) {
     reached = {
       who: { employee_id: who.id, name: who.name, ...(who.email ? { email: who.email } : {}) },
       what,
-      queue_file: failed ? null : (q?.queue_file ?? res.queue_file ?? null),
+      queue_file: failed ? null : publicQueueFile(q?.queue_file ?? res.queue_file ?? null),
     };
   }
 

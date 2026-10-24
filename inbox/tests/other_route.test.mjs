@@ -92,7 +92,7 @@ test("the FAQ edge: exactly 0.6 is a hit, 0.4 is not, one shared word is never o
 test("sweep: across the three row-answered routes and the holds, auto_reply is true only on a sent draft", async () => {
   const messages = [
     msg("What is the primary material used in the Sovereign Arc Duellist?", "contact-form"),
-    msg("Is the Wayfarer Cloak waterproof?"),
+    msg("Is the Wayfarer Long Cloak waterproof?"),
     msg("Where is my order JP-1001?", "contact-form"),
     msg("Where is my order JP-1008?", "contact-form"),
     msg("Where is my order JP-9999?", "contact-form"),

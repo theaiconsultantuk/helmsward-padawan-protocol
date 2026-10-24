@@ -151,7 +151,15 @@ const errName = (e) => e?.name ?? "Error";
 const safeMsg = (e) => String(mask(String(e?.message ?? e)));
 // A buffered trace line keeps the moment it was recorded (`at`), so its timestamp and duration_ms are when the step ran, not when the buffer was written out.
 const stampedBuffer = () => { const a = []; a.push = (...xs) => Array.prototype.push.apply(a, xs.map((x) => (x && x.at === undefined ? { ...x, at: Date.now() } : x))); return a; };
-const one = (s, n = 220) => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+// Cut at a word boundary with "…" when the text is longer than n; never mid-word.
+const one = (s, n = 220) => {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  if (t.length <= n) return t;
+  const head = t.slice(0, n);
+  const sp = head.lastIndexOf(" ");
+  const cut = sp >= Math.floor(n / 2) ? head.slice(0, sp) : head;
+  return `${cut.replace(/[\s,;:.\-(]+$/, "")}\u2026`;
+};
 
 // The approver of an over-limit amount: the policy's over-limit owner (facts.owner_*), or its backup when the owner is out.
 const approverOf = (f) => (f?.owner_out && !f?.backup_out
@@ -458,6 +466,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     const tid = String(thread_id).replace(/[^A-Za-z0-9._-]/g, "_");
     const queue_file = join(memoryDir, "queue", `${tid}.json`);
+    const queue_name = `queue/${tid}.json`; // the trace names the file inside the memory dir, never the server's absolute path
     S.decision = "escalate";
     S.queued = { owner_id: ownerId, backup_id: backupId, owner_name: f?.owner_name ?? null, backup_name: f?.backup_name ?? null, queue_file: queueFailed ? null : queue_file, ...(approval ? { approval } : {}),
       ...(attachments !== undefined ? { attachments } : {}), ...(recommendation !== undefined ? { recommendation } : {}), ...(escalation !== undefined ? { escalation } : {}),
@@ -468,9 +477,9 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({
       step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
       input_summary: one(reason), output_summary: approval
-        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_file}`}`
-        : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`
-        : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_file}`}`,
+        ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_name}`}`
+        : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_name}`}`
+        : `escalated to owner ${ownerId ?? "?"} / backup ${backupId ?? "?"}; ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_name}`}`,
       status: queueFailed ? "incomplete" : "success", ...(S.branch ? { branch_id: S.branch.branch_id } : {}), ...(memId ? { memory_ids: [memId] } : {}), ...extra,
     });
     S.reasons.push(reason);
@@ -514,7 +523,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
         buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after intake_publish error", output_summary: "intake publish unavailable: the ticket row is read from the local file", status: "success" });
       } else {
         buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
-          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success" });
+          output_summary: pub.published ? "published: true, uncached: true" : `published: false (${one(pub.reason ?? "not published", 120)}); the row is read locally`, status: "success",
+          detail: pub.published ? `the new message was saved as ${tid} and published, so the next read sees it` : `the new message was saved as ${tid}; it was not published, so it is read from the local file` });
       }
       S.msg = { row, published: pub.published === true };
       const rowTicket = { ...row, thread_id: tid };

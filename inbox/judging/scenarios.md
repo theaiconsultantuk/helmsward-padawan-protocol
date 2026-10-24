@@ -188,7 +188,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_10.json`):
 
-- message: `I would like a refund of 80 GC for my Drift Boots, they are too small for my son.`
+- message: `I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.`
 - from: `alvaneashdown@email.com` (Alvane Ashdown)
 - channel: `contact-form`; scenario: `refund`; as_of: `2026-10-25`
 
@@ -203,7 +203,7 @@ This leg was skipped (no live config). It runs against the live service after th
 - decision: `hold`; scenario `refund`; resolved `declared`; branch `under-floor`; 0 s
 - branch line, why: refund weight 0.55 is under the floor 0.8; owner 15 in
 - journey human.reply: kind `draft_for_human`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Alvane Ashdown, You wrote about "I would like a refund of 80 GC for my Drift Boots, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
+- reply text (first 200 chars): `Hello Alvane Ashdown, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
 - owner `15 Soren Adey (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-10-sample.jsonl` (26 lines); subsequence check: ok
 
@@ -213,7 +213,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_11.json`):
 
-- message: `I would like a refund of 80 GC for my Drift Boots, they are too small for my son.`
+- message: `I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.`
 - from: `briskbrightmoor@email.com` (Brisk Brightmoor)
 - channel: `contact-form`; scenario: `refund`; as_of: `2026-10-27`
 
@@ -228,7 +228,7 @@ This leg was skipped (no live config). It runs against the live service after th
 - decision: `hold`; scenario `refund`; resolved `declared`; branch `under-floor`; 0 s
 - branch line, why: refund weight 0.55 is under the floor 0.8; owner 15 out, backup 27 in; memory consulted
 - journey human.reply: kind `draft_for_human`, to `null`, attachments none, recommendation `none`
-- reply text (first 200 chars): `Hello Brisk Brightmoor, You wrote about "I would like a refund of 80 GC for my Drift Boots, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
+- reply text (first 200 chars): `Hello Brisk Brightmoor, You wrote about "I would like a refund of 80 GC for my Drift Boot Wraps, they are ". We are looking into your refund request. Best regards, Jedi Pack Support team`
 - owner `27 Galmel Kernfield (Support)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-11-sample.jsonl` (29 lines); subsequence check: ok
 
@@ -263,7 +263,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_13.json`):
 
-- message: `I would like another refund, 60 GC, for the strap on my Drift Boots.`
+- message: `I would like another refund, 60 GC, for the strap on my Drift Boot Wraps.`
 - from: `liravenn@email.com` (Lira Venn)
 - channel: `contact-form`; scenario: `refund`; as_of: `2026-10-25`
 
@@ -313,7 +313,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_15.json`):
 
-- message: `Is the Wayfarer Cloak waterproof?`
+- message: `Is the Wayfarer Long Cloak waterproof?`
 - from: `edricembervale@email.com` (Edric Embervale)
 - channel: `chat`; scenario: `free_text`; as_of: `2026-10-25`
 
@@ -326,7 +326,7 @@ This leg was skipped (no live config). It runs against the live service after th
 ### Sample (`scenario-15-sample`)
 
 - decision: `hold`; scenario `product`; resolved `scout`; branch `product-unanswered`; 0 s
-- branch line, why: Wayfarer Cloak is in the catalogue (products:FS-A01) but not in the catalogue row: no field answers what was asked
+- branch line, why: Wayfarer Long Cloak is in the catalogue (products:FS-A01) but not in the catalogue row: no field answers what was asked
 - journey human.reply: kind `none`, to `{"employee_id":5,"name":"Priya Raman","role":"product owner"}`, attachments none, recommendation `not in the catalogue row of FS-A01; the product owner answers the customer`
 - reply text (first 200 chars): `(no text)`
 - owner `5 Priya Raman (Product)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
@@ -338,7 +338,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_16.json`):
 
-- message: `Hello, could you send us a quote for 25 Arc Blade Trainers for our academy? Thank you.`
+- message: `Hello, could you send us a quote for 25 Vanta Arc Trainers for our academy? Thank you.`
 - from: `fiorafennick@email.com` (Fiora Fennick)
 - channel: `email`; scenario: `rfq`; as_of: `2026-10-25`
 
@@ -351,9 +351,9 @@ This leg was skipped (no live config). It runs against the live service after th
 ### Sample (`scenario-16-sample`)
 
 - decision: `hold`; scenario `rfq`; resolved `declared`; branch `rfq-quote`; 0 s
-- branch line, why: quote for 25 x Arc Blade Trainer: tier squad (10% off), unit 170.10 GC, total 4252.50 GC, lead 12 days; parts Humming emitter coil (Mk 1) 25 of 2232, Smug status LED (Mk 2) 50 of 1070
-- journey human.reply: kind `draft_for_human`, to `{"employee_id":6,"name":"Tomas Keller","role":"rfq owner"}`, attachments `products:FS-B01, bulk_pricing:squad, bom:FS-B01:PT-0001, bom:FS-B01:PT-0002, policy:rfq`, recommendation `Quote ready: 25 x Arc Blade Trainer, tier squad, 4252.50 GC. Sales checks it and sends it.`
-- reply text (first 200 chars): `Hello Fiora Fennick, Thank you for your request. Here is your quote. Product: Arc Blade Trainer Quantity: 25 Tier: squad (10% off) Unit price: 170.10 GC Total: 4252.50 GC Lead time: 12 days Parts need`
+- branch line, why: quote for 25 x Vanta Arc Trainer: tier squad (10% off), unit 170.10 GC, total 4252.50 GC, lead 12 days; parts Humming emitter coil (Mk 1) 25 of 2232, Smug status LED (Mk 2) 50 of 1070
+- journey human.reply: kind `draft_for_human`, to `{"employee_id":6,"name":"Tomas Keller","role":"rfq owner"}`, attachments `products:FS-B01, bulk_pricing:squad, bom:FS-B01:PT-0001, bom:FS-B01:PT-0002, policy:rfq`, recommendation `Quote ready: 25 x Vanta Arc Trainer, tier squad, 4252.50 GC. Sales checks it and sends it.`
+- reply text (first 200 chars): `Hello Fiora Fennick, Thank you for your request. Here is your quote. Product: Vanta Arc Trainer Quantity: 25 Tier: squad (10% off) Unit price: 170.10 GC Total: 4252.50 GC Lead time: 12 days Parts need`
 - owner `6 Tomas Keller (Sales)`; cc `[]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-16-sample.jsonl` (30 lines); subsequence check: ok
 
@@ -363,7 +363,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_17.json`):
 
-- message: `This is unacceptable: the hot emitter of my Arc Blade Trainer gave my son a small burn.`
+- message: `This is unacceptable: the hot emitter of my Vanta Arc Trainer gave my son a small burn.`
 - from: `galengreystoke@email.com` (Galen Greystoke)
 - channel: `email`; scenario: `complaint`; as_of: `2026-10-25`
 
@@ -400,7 +400,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_18.json`):
 
-- message: `The Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.`
+- message: `The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.`
 - from: `havihollowell@email.com` (Havi Hollowell)
 - channel: `email`; scenario: `complaint`; as_of: `2026-10-25`
 
@@ -427,7 +427,7 @@ This leg was skipped (no live config). It runs against the live service after th
 ```
 
 - journey human.reply: kind `escalation`, to `{"employee_id":15,"name":"Soren Adey","role":"complaint owner"}`, attachments none, recommendation `courtesy reply now, Legal reviews; the send marks follow-up`
-- reply text (first 200 chars): `Hello Havi Hollowell, We are sorry to read what happened with your Emitter Hilt. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support team`
+- reply text (first 200 chars): `Hello Havi Hollowell, We are sorry to read what happened with your Strand Emitter Hilt. We are looking into it now and will come back to you within two working days. Best regards, Jedi Pack Support team`
 - owner `15 Soren Adey (Support)`; cc `[7,202]`; auto_reply `false`; status `open`; memory_note `none`
 - trace: `judging/traces/trace-scenario-18-sample.jsonl` (42 lines); subsequence check: ok
 
@@ -512,7 +512,7 @@ Live vs sample: live skipped (no live config); sample subsequence ok. Subsequenc
 
 Input (`input_examples/example_22.json`):
 
-- message: `The Drift Boots arrived scuffed and I am disappointed. Posting my honest review here.`
+- message: `The Drift Boot Wraps arrived scuffed and I am disappointed. Posting my honest review here.`
 - from: `leskalongmire@email.com` (Leska Longmire)
 - channel: `trustpilot`; scenario: `complaint`; as_of: `2026-10-25`
 

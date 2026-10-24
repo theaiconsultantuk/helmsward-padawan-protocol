@@ -47,7 +47,7 @@ export function resolveScenario({ kind, declared = null, decided = null, gates =
   if (id === "complaint" || (cat?.choice === "complaint" && cat.confidence >= 0.6)) return { scenario: "complaint", how: id === "complaint" ? "scout" : "gates" };
   // a legal threat, an injury or fury is a complaint even when the message also names a product or an order: a person reads it, no catalogue row answers it
   if (COMPLAINT_CUES.test(String(text ?? ""))) return { scenario: "complaint", how: "cues" };
-  // a quote asked for a counted product ("could you quote 25 Arc Blade Trainers", "quote 20 ... same as my order JP-1008") is an RFQ even when Scout read a plain order question;
+  // a quote asked for a counted product ("could you quote 25 Vanta Arc Trainers", "quote 20 ... same as my order JP-1008") is an RFQ even when Scout read a plain order question;
   // the count is a number that is not part of an order id, and it is checked before the delivery road
   const counted = /(?<![\w.-])\d[\d,]*(?![\w-])/.test(String(text ?? "").replace(/\bJP-\d{4}\b/gi, " "));
   if ((id === "order.question" || id === "GENERAL") && QUOTE_WORDS.test(String(text ?? "")) && productHit && counted) return { scenario: "rfq", how: "scout" };
@@ -360,11 +360,11 @@ const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 const num = (v) => (v === "" || v == null ? NaN : Number(v));
 const cut = (v) => round2(v).toFixed(2);
 
-// "50 Arc Blade Trainers": the integer written directly before the product's name (Scout counts a quantity only before a unit word)
+// "50 Vanta Arc Trainers": the integer written directly before the product's name (Scout counts a quantity only before a unit word)
 function quantityBeforeProduct(text, name) {
   const words = String(name ?? "").split(/\s+/).filter(Boolean).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (!words.length) return null;
-  // two numbers in the message ("the difference between 100000 Arc Blade Trainers and 100") is a comparison, not an order
+  // two numbers in the message ("the difference between 100000 Vanta Arc Trainers and 100") is a comparison, not an order
   if ((String(text ?? "").match(/(?<![\w.-])\d[\d,]*(?![\w-])/g) ?? []).length !== 1) return null;
   const m = new RegExp(`(?<![\\w.,-])(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\s*x)?\\s+(?:of\\s+(?:the\\s+)?)?${words.join("\\s+")}s?\\b`, "i").exec(String(text ?? ""));
   return m ? parseInt(m[1].replace(/,/g, ""), 10) : null;
