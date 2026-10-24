@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runMessage, msg } from "./helpers/route_run.mjs";
-import { resolveScenario, hasQuantity } from "../src/scenarios.mjs";
+import { resolveScenario, hasQuantity, matchProductLookup } from "../src/scenarios.mjs";
 
 const ask = (text) => runMessage(msg(text, "contact-form", "q@email.com", { scenario: "free_text" }));
 const products = JSON.parse(readFileSync(new URL("../public/shop/data/catalogue.json", import.meta.url), "utf8")).products;
@@ -138,6 +138,43 @@ test("table: every named phrase takes its expected road", async () => {
   for (const [text, want, rule] of TABLE) {
     const { result } = await ask(text);
     if (want.startsWith("!") ? result.scenario === want.slice(1) : result.scenario !== want) bad.push(`[${rule}] ${text} -> ${result.scenario}/${result.branch_id}, wanted ${want}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+// ---- the labelled corpus: families of phrases, each with the Scout read it arrives with and the road it must take ----
+// tests/fixtures/rfq_corpus.json: { family, text, scout_read, road }. Every phrase Codex reviews 34 to 36 named is in it.
+const corpus = JSON.parse(readFileSync(new URL("./fixtures/rfq_corpus.json", import.meta.url), "utf8"));
+const lookup = catalogue.map((p) => ({ sku: p.sku, name: p.name, aliases: p.aliases.join(";") }));
+const ROADS = { rfq: ["rfq"], product: ["product"], refund: ["refund"], complaint: ["complaint"], "refund/legacy": ["refund", "legacy"], "question/other": ["question", "other", "customer_service"] };
+
+test("corpus: at least 120 phrases, every family has at least 8 variants", () => {
+  assert.ok(corpus.length >= 120, `${corpus.length} phrases`);
+  const n = {};
+  for (const c of corpus) n[c.family] = (n[c.family] ?? 0) + 1;
+  for (const [f, k] of Object.entries(n)) if (f !== "non-product-counts" && f !== "complaints-refunds") assert.ok(k >= 8, `${f}: ${k}`);
+  assert.ok(new Set(corpus.map((c) => c.scout_read)).size >= 5);
+});
+
+test("corpus: every phrase takes its labelled road through resolveScenario with the stated Scout read", () => {
+  const bad = [];
+  for (const c of corpus) {
+    const hit = matchProductLookup(c.text, lookup);
+    const r = resolveScenario({ kind: "message", text: c.text, productHit: hit.all.length ? hit : null, decided: { intent: { primary: { id: c.scout_read }, confidence: 0.9 } } });
+    if (!ROADS[c.road].includes(r.scenario)) bad.push(`[${c.family}] (${c.scout_read}) ${c.text} -> ${r.scenario}, wanted ${c.road}`);
+  }
+  assert.deepEqual(bad, []);
+});
+
+test("corpus: ten representative phrases through the real loop", async () => {
+  const pick = ["How much for 51 Strand Emitter Hilts?", "How much for 50 Crimson Cadet Trainers?", "What is the price for 50 pieces of the Vanta Arc Trainer?", "Please send a quotation for the Vanta Arc Trainer", "I haven't ordered yet. What is the price for 50 Vanta Arc Trainers?", "What is the price for 50 Wayfarer Long Cloaks in size XL?",
+    "I bought 50 Vanta Arc Trainers in bulk. What are they made of?", "I'd like to know the warranty on 2 Vanta Arc Trainers", "How much do 2 Vanta Arc Trainers weigh?", "I have 2 questions: Vanta Arc Trainer price and materials?"];
+  const bad = [];
+  for (const text of pick) {
+    const c = corpus.find((x) => x.text === text);
+    assert.ok(c, `${text} is in the corpus`);
+    const { result } = await ask(text);
+    if (!ROADS[c.road].includes(result.scenario) && !(c.road === "product" && result.scenario === "question")) bad.push(`${text} -> ${result.scenario}/${result.branch_id}, wanted ${c.road}`);
   }
   assert.deepEqual(bad, []);
 });

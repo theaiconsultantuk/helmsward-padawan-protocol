@@ -1,0 +1,746 @@
+[
+ {
+  "family": "counted-digits",
+  "text": "How much for 51 Strand Emitter Hilts?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "What is the price for 50 Strand Emitter Hilts?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "What would 73 Quartermaster Utility Belts cost?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "Price for 300 Wayfarer Long Cloaks please",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "I want to order 12 Vanta Arc Trainers",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "51 Drift Vault Cases, how much?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "Could you tell me the cost of 25 Ember Core Reliquaries?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "We would like to buy 40 Initiate Training Robes",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "Can we order 8 Pilgrim Field Packs?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-digits",
+  "text": "Cost of 200 Ranger Hilt Holsters?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "We need a price for fifty Vanta Arc Trainers for the new academy wing",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "Please quote twenty-five Vanta Arc Trainers",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "How much for a dozen Strand Emitter Hilts?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "price for two hundred hilts",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "What is the cost of ten Drift Vault Cases?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "How much for thirty Orbit Display Stands?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "I would like to buy twelve Wayfarer Long Cloaks",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "Price for one hundred Quartermaster Utility Belts",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "counted-words",
+  "text": "How much for forty-two Pilgrim Field Packs?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "What is the price for 50 pieces of the Vanta Arc Trainer?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "What is your price for 100000 pieces",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "How much for 20 crates of Strand Emitter Hilts?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "Price for 30 sets of the Drift Boot Wraps?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "How much for 10 boxes of Orbit Display Stands?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "Cost of 500 units of the Wayfarer Long Cloak?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "What is the price for 25 units?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "How much for 60 pieces?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "units",
+  "text": "Price for 15 crates please",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "How much for 50 Crimson Cadet Trainers?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "How much for 50 red trainers?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "How much for 50 blue milk?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "Price for 20 Cerulean Milk Powder packs?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "What would 30 Crimson Cadet Trainers cost?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "How much for 12 Humidity-Controlled Core Cabinets?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "How much for 40 Carbonite-Style Ice Trays?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "Price for 100 Bad Feeling About This Tees?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "colour-adjective-names",
+  "text": "Cost of 25 Emitter-Print Socks?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Please send a quotation for the Vanta Arc Trainer",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Could I get a quote for the Strand Emitter Hilt?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "We would like a quote for your Drift Vault Cases",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Request for quote: Quartermaster Utility Belt",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "RFQ for the Orbit Display Stand",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Can you send a quotation for the Wayfarer Long Cloak?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "I need a quote for the Pilgrim Field Pack for our school",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Please quote the Ranger Hilt Holster",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-no-number",
+  "text": "Wholesale pricing for the Initiate Training Robe?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "Please quote 20 Vanta Arc Trainers, same as my order JP-1008",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "Quote 30 Strand Emitter Hilts like the ones I ordered last month",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "I ordered 10 Drift Vault Cases before, please quote 40 more",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "Can you quote 15 Orbit Display Stands, as in my order JP-1002?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "I bought 5 Wayfarer Long Cloaks and need a quote for 50 more",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "Quote for 100 Quartermaster Utility Belts, same as JP-1005",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "We received our order JP-1001; please send a quotation for 60 Pilgrim Field Packs",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "explicit-with-history",
+  "text": "Bulk pricing for 200 Vanta Arc Trainers as per my earlier order",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "I'd like to know the warranty on 2 Vanta Arc Trainers",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "We need help with 2 Vanta Arc Trainers",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "I have a question about my 2 Strand Emitter Hilts",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "Wondering if the 3 Drift Vault Cases come with a warranty",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "Can you tell me about the 4 Orbit Display Stands?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "I want to ask about 2 Wayfarer Long Cloaks",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "Please help me with 5 Pilgrim Field Packs",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "info-help-with-count",
+  "text": "I would like to know more about the 2 Quartermaster Utility Belts",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "How much do 2 Vanta Arc Trainers weigh?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "How much do 3 Drift Vault Cases weigh?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "What are 4 Strand Emitter Hilts made of?",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "What colour are the 2 Orbit Display Stands?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "What size are 6 Wayfarer Long Cloaks?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "I received 4 Strand Emitter Hilts, what colour are they?",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "What are the dimensions of 2 Pilgrim Field Packs?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "attribute-with-count",
+  "text": "What is the material of 10 Quartermaster Utility Belts?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "What is the price for 50 Wayfarer Long Cloaks in size XL?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "How much for 30 Initiate Training Robes in size M?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "Price for 20 Vanta Arc Trainers in red?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "How much for 40 Orbit Display Stands in black?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "What is the cost of 25 Wayfarer Long Cloaks in size large?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "How much for 60 Drift Boot Wraps in size 42?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "Price for 100 Strand Emitter Hilts in silver?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "purchase-spec",
+  "text": "I want to order 15 Initiate Training Robes in size S, what is the price?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "I haven't ordered yet. What is the price for 50 Vanta Arc Trainers?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "We have not bought any yet, how much for 30 Strand Emitter Hilts?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "I never ordered before; price for 20 Drift Vault Cases?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "We haven't purchased yet. How much for 100 Orbit Display Stands?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "I have not ordered anything yet, what would 40 Wayfarer Long Cloaks cost?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "No order placed yet, how much for 12 Pilgrim Field Packs?",
+  "scout_read": "GENERAL",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "I haven't bought yet; cost of 25 Quartermaster Utility Belts?",
+  "scout_read": "rfq.request",
+  "road": "rfq"
+ },
+ {
+  "family": "negated-history",
+  "text": "We have yet to order. Price for 60 Initiate Training Robes?",
+  "scout_read": "order.question",
+  "road": "rfq"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "I bought 50 Vanta Arc Trainers in bulk. What are they made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "We ordered 100 Strand Emitter Hilts wholesale; what are they made of?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "I bought 30 Drift Vault Cases in bulk, how much do they weigh?",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "We purchased 20 Orbit Display Stands wholesale. What is the material?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "I received 40 Wayfarer Long Cloaks in bulk, what colour are they?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "I bought 5 Pilgrim Field Packs, what are they made of?",
+  "scout_read": "GENERAL",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "I bought 2 Vanta Arc Trainers, what are they made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "past-with-bulk-attribute",
+  "text": "We ordered 60 Initiate Training Robes in bulk; what is the material?",
+  "scout_read": "order.question",
+  "road": "product"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "I want a refund for the 2 Vanta Arc Trainers",
+  "scout_read": "refund.request",
+  "road": "refund"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "Please refund my 3 Strand Emitter Hilts, they were the wrong size",
+  "scout_read": "refund.request",
+  "road": "refund"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "Refund 5 Drift Vault Cases, I changed my mind",
+  "scout_read": "refund.request",
+  "road": "refund"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "I bought 2 Orbit Display Stands and one arrived broken, please send a replacement",
+  "scout_read": "replacement.request",
+  "road": "refund/legacy"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "2 of my Wayfarer Long Cloaks arrived damaged, I need replacements",
+  "scout_read": "replacement.request",
+  "road": "refund/legacy"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "Replace the 3 Pilgrim Field Packs please",
+  "scout_read": "replacement.request",
+  "road": "refund/legacy"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "The 2 Vanta Arc Trainers burned my hand, I will sue",
+  "scout_read": "refund.request",
+  "road": "complaint"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "4 Strand Emitter Hilts split open and hurt my child",
+  "scout_read": "order.question",
+  "road": "complaint"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "I bought 50 Quartermaster Utility Belts and they are unsafe",
+  "scout_read": "GENERAL",
+  "road": "complaint"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "The hilt is cracked and this is unacceptable, what is it made of?",
+  "scout_read": "replacement.request",
+  "road": "complaint"
+ },
+ {
+  "family": "complaints-refunds",
+  "text": "The hilt burned my hand, what is it made of?",
+  "scout_read": "replacement.request",
+  "road": "complaint"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "I have 2 questions: Vanta Arc Trainer price and materials?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "I have 2 questions about the Vanta Arc Trainer, how much is it?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "On 24/10 the Vanta Arc Trainer costs 189 GC, what is it made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "I have 2 questions",
+  "scout_read": "rfq.request",
+  "road": "question/other"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "See you on 2026/10/24",
+  "scout_read": "rfq.request",
+  "road": "question/other"
+ },
+ {
+  "family": "non-product-counts",
+  "text": "I have 3 problems with my account",
+  "scout_read": "rfq.request",
+  "road": "question/other"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Vanta Arc Trainer made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Strand Emitter Hilt made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Sovereign Arc Duellist made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Drift Vault Case made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Orbit Display Stand made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Wayfarer Long Cloak made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Initiate Training Robe made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Drift Boot Wraps made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "Is the Vanta Arc Trainer good for kids?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the volume and price of the Core Crystal Cleaning Solution?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "Do you give a discount on the Vanta Arc Trainer?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What is the Cracked Core Recycling Pouch made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ },
+ {
+  "family": "pure-product",
+  "text": "What are the etiquette cards made of?",
+  "scout_read": "rfq.request",
+  "road": "product"
+ }
+]
