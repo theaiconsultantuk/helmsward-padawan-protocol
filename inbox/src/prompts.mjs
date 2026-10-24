@@ -3,9 +3,59 @@
 
 export const NUDGE = "Your last answer was not valid JSON. Return only the JSON object, with no prose and no code fence.";
 
+// Refunds are mentioned only on refund requests (einh, 24 Oct 2026: "refunds should only be mentioned in the context of refund requests
+// (category)"; his pick B the same day: "Questions may quote policy"). Outside the refund category a draft that PROMISES money (refund_amount,
+// or "other" naming a refund) is refused on every category; refund WORDING in the reply is refused too, except on a question whose own text asks
+// about refunds, which may quote the policy (the FAQ "returns and refund policy", "what is the refund limit"). Risk (hardRisk) and the sample
+// critic apply it, the drafter and the evaluator are told the same, so such a draft is rewritten on the retry or the ticket is held or
+// escalated. The approval limit stays a refund-category rule.
+// A draft mentions a refund when its promises say so (refund_amount set, or "other" naming one) or its words do. The text is read as words:
+// the row ids the sample twin cites in its reply ("policy:refund", "wiki_refund_policy:1") are removed first, each exactly as cited and only
+// when cited, then accents, Markdown emphasis and hyphens inside words are normalised, so "Refund:", "_refund_", "re-fund", "money-back"
+// and "réfund" all count (Codex review 14). Risk's word test is the guarantee; the Evaluator is told the same rule as a second reader.
+export const REFUND_WORDS = /refund|money ?back|reimburs/;
+export function normalizeReply(text, cited = []) {
+  let s = String(text ?? "");
+  for (const id of cited ?? []) if (id) s = s.split(String(id)).join(" ");
+  // typographic apostrophes become the plain one, so "don’t" stays one word (Codex review 20)
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\u2018\u2019\u02bc\u2032]/g, "'").replace(/[*_~`]/g, " ").replace(/(\p{L})[-\u2010-\u2015](?=\p{L})/gu, "$1").toLowerCase();
+}
+export function mentionsRefund(draft, cited = draft?.cited_rows ?? []) {
+  const p = draft?.promises ?? {};
+  return p.refund_amount != null || REFUND_WORDS.test(normalizeReply(p.other)) || REFUND_WORDS.test(normalizeReply(draft?.text ?? draft?.reply_text, cited));
+}
+export const refundOutOfCategory = (category) => `refund wording on a ${category ?? "non-refund"} message: refunds are mentioned only on refund requests`;
+export const refundPromisedOutOfCategory = (category) => `draft promises a refund on a ${category ?? "non-refund"} message: money is promised only on refund requests`;
+// The customer's own words ask about refunds (the message, or the follow-up body on a follow-up): a refund word with no negation earlier in
+// its own clause (clauses end at . ? ! ; , and "but"). "What is your refund policy?" asks; "I'm not asking you about refunds" and "no refund
+// question, just shipping" do not (Codex reviews 16 and 18). A message that both negates and asks ("don't refund me yet, but what is the
+// policy on refunds?") asks, because the asking clause carries no negation.
+// a negation token: the bare words, every contraction carrying "n't" (apostrophes are canonical by now; "wouldn't've" included), and the
+// apostrophe-less typings of the common auxiliaries
+const NEGATION = /^(?:not|no|never|without|nor|neither|none|nothing|cannot|\w+n't(?:'\w+)*|(?:do|does|did|is|are|was|were|wo|ca|could|should|would|have|has|had|need|must|ai)nt)$/;
+const REFUND_TOKEN = (w, next) => /^(?:refund|reimburs)/.test(w) || (w === "money" && next === "back");
+export function refundAsked(facts) {
+  const clauses = normalizeReply(requestText(facts ?? {}, facts?.ticket)).split(/[.?!;,]|\bbut\b/);
+  return clauses.some((c) => {
+    const words = c.split(/[^a-z0-9']+/).filter(Boolean);
+    return words.some((w, i) => REFUND_TOKEN(w, words[i + 1]) && !words.slice(0, i).some((x) => NEGATION.test(x)));
+  });
+}
+// The reason Risk and the sample critic give, or null. facts.category is the message's category; facts.cited_rows the row ids its reply may cite.
+export function refundRuleReason(facts, draft) {
+  const cat = facts?.category;
+  if (cat === "refund") return null;
+  const p = draft?.promises ?? {};
+  if (p.refund_amount != null || REFUND_WORDS.test(normalizeReply(p.other))) return refundPromisedOutOfCategory(cat);
+  if (!REFUND_WORDS.test(normalizeReply(draft?.text ?? draft?.reply_text, facts?.cited_rows ?? []))) return null;
+  if (cat === "question" && refundAsked(facts)) return null; // einh's B: a question that asks about refunds may quote the policy
+  return refundOutOfCategory(cat);
+}
+
 export const DRAFTER_SYSTEM = [
   "You write the customer reply for the Jedi Pack support inbox.",
   "Answer what the customer actually asked, in a short, polite email, using only the facts you are given.",
+  "Promise money only when the Category is refund. Mention a refund only on a refund request, or when the customer's question itself asks about refunds; on any other message do not mention refunds or money back.",
   "Return strict JSON and nothing else, in exactly this shape:",
   '{"reply_text": string, "promises": {"refund_amount": number|null, "replacement": boolean, "other": string|null}}',
   "promises states what the reply commits us to: refund_amount is the amount you promise to refund (null if none),",
@@ -14,8 +64,10 @@ export const DRAFTER_SYSTEM = [
 
 export const EVALUATOR_SYSTEM = [
   "You are the Evaluator for the Jedi Pack support inbox. You vet one draft reply against the facts.",
-  "Fail the draft if it promises a refund above the policy limit, commits to anything the cited facts do not support,",
-  "names a fact that may not leave the company, or promises help from a person who is out with no one covering.",
+  "Fail the draft if it promises money on a message whose Category is not refund, mentions a refund on a message that is not a refund request",
+  "(a question that itself asks about refunds may quote the policy), promises a refund above the policy limit,",
+  "commits to anything the cited facts do not support, names a fact that may not leave the company,",
+  "or promises help from a person who is out with no one covering.",
   "Return strict JSON and nothing else, in exactly this shape:",
   '{"pass": boolean, "reason": string}',
   "reason is one sentence the planner can apply to the next draft.",

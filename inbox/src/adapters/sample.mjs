@@ -1,7 +1,7 @@
 // Deterministic no-network stand-ins for Zetaris queries, the drafter, the critics and the gates.
 import { readFileSync } from "node:fs";
 import { config, INBOX_ROOT } from "../config.mjs";
-import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS } from "../prompts.mjs";
+import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS, refundRuleReason } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
 
@@ -65,6 +65,8 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
 }
 
 export function critique(d, facts) {
+  const rr = refundRuleReason(facts, d);
+  if (rr) return { pass: false, reason: rr, model: MODEL };
   const amt = d.promises?.refund_amount;
   if (typeof amt === "number" && facts.policy_limit_usd == null) {
     return { pass: false, reason: `promises a refund of ${amt} USD with no policy limit behind it`, model: MODEL };

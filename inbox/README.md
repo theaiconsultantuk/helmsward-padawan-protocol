@@ -120,14 +120,15 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 7. `critique` (a model) and `risk.signoff` (code) read the draft.
 8. If either fails on round 1: `retry`, a revised plan, one redraft with both critiques. That is the only retry.
 9. Two negative rounds, or a hard fact Risk cannot rewrite: `escalate_or_fallback` queues the ticket for a human with both critiques stored. No third draft.
+10. Refunds are mentioned only on refund requests (the `refund` category); questions may quote policy. On any other message a draft that promises money (its promises fields) is refused by Risk; a draft that names a refund in its words (read with the cited row ids removed and accents, emphasis and hyphens normalised) is refused too, except on a question whose own text asks about refunds (a refund word not negated in the three words before it), which may quote the policy. The Evaluator and the drafter are told the same rule; a refused draft is rewritten on the retry, else the ticket is held or escalated. Risk's word test is the guarantee, the Evaluator the second reader. The approval limit is a refund-category rule.
 10. `memory.write` stores one factual memory; `synthesis` ends the trace. `recovery` lines follow any `error` line.
 
 Steps a branch does not reach are still logged with status `skipped`.
 
 **Scenario routes (`src/scenarios.mjs`).** After the typed gates, a reply branch can be taken over by a scenario handler, a `{probe, act}` pair that borrows the loop's toolbox. A resolver picks the scenario (a declared `scenario` wins; otherwise Scout, the FAQ and the gates decide) and the `branch` line then carries one of these ids:
 
-- `faq-hit`: the FAQ row text is the reply and sends automatically (the FAQ text is canonical; Risk still signs it).
-- `question-records`: no FAQ match, but the Zetaris records answer it; the answer is drafted and held for the question owner.
+- `faq-hit`: the FAQ row text is the reply and sends automatically (the FAQ text is canonical; Risk still signs it). The returns-and-refund FAQ names refunds, which Risk allows because the question itself asks about them (rule 10).
+- `question-records`: no FAQ match, but the Zetaris records answer it; the answer is drafted and held for the question owner. A question that asks about refunds (the refund limit, say) may quote the policy; a question about anything else whose draft names a refund is refused and rewritten.
 - `question-unanswered`: neither; the ticket escalates to a person with a recommendation.
 - `rfq`: a request for quote escalates to sales with the product price rows attached and a short acknowledgement, written by a code template, for the person to send. No price is quoted to the customer.
 - `complaint-severe`, `complaint-genuine`, `complaint-vent`: the complaint route (see World Model below). Severity 9 or above escalates with the draft attached; genuine holds with the handling note; vent holds with a calm acknowledgement.

@@ -16,7 +16,7 @@ import * as sample from "./adapters/sample.mjs";
 import * as queries from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
 import { HANDLERS, resolveScenario, matchFaq, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
-import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE } from "./prompts.mjs";
+import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
 
 // The 15 ids, in the methodology table order. (The actual trace order is the demo order: branch comes before nvidia.model.)
 export const STEP_ORDER = [
@@ -60,14 +60,15 @@ function faultingSqlRun(cfg, trace) {
 }
 
 const BRANCH_RE = /^amount .* over the policy limit/;
+const LEGACY_CATEGORY = { "refund.request": "refund", "replacement.request": "replacement", complaint: "complaint", appreciation: "appreciation" };
 
 // What a structured draft committed us to: "refund", "replacement" or null. Reads the promises fields first, then the reply text.
 export function promisedKind(d) {
   const p = d?.promises ?? {};
   const text = String(d?.text ?? d?.reply_text ?? "");
-  if (p.refund_amount != null || /refund/i.test(String(p.other ?? ""))) return "refund";
+  if (p.refund_amount != null || REFUND_WORDS.test(normalizeReply(p.other))) return "refund";
   if (p.replacement === true) return "replacement";
-  if (/refund|money back/i.test(text)) return "refund";
+  if (mentionsRefund({ text, cited_rows: d?.cited_rows })) return "refund"; // the same word test as Risk; a draft handed over carries the row ids it cited
   return null;
 }
 
@@ -243,7 +244,7 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     S.rounds.push({ n: round, critique: crit, risk });
     if ((crit.pass && risk.pass) || round >= max || risk.hard) break;
     // a negative round, gate not met: retry
-    const next = "decline anything above the limit, promise only what the cited rows allow, and name who follows up";
+    const next = "decline anything above the limit, promise only what the cited rows allow, mention a refund only on a refund request or a question about refunds, and name who follows up";
     const both = [`Evaluator: ${crit.reason}`, `Risk: ${risk.reasons.join("; ") || "signed off"}`];
     L({ step: "retry", agent_name: "Planner", action: "retry_round", target_agent: "Drafter", branch_id: B, retry_count: round, input_summary: `round ${round} negative`,
       output_summary: `${both.join(" | ")}. Next draft must: ${next}`, status: "retrying", memory_ids: S.memRead });
@@ -432,7 +433,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       } catch { faqHit = null; }
       S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit });
       const params = preDecided?.parameters ?? {};
-      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
+      // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
+      Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
         amount: params.currency === "USD" ? params.amount : undefined });
     } else {
       S.scenario = resolveScenario({ kind: "thread", declared: input?.scenario });

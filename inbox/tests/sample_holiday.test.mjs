@@ -40,9 +40,9 @@ test("other templates without an entry still throw", () => {
 
 test("critique: a promised refund fails with a null limit and over a set limit", () => {
   const d = { promises: { refund_amount: 40 }, text: "ok" };
-  // a promised refund with no policy limit behind it fails (Codex review 7, HIGH)
-  assert.equal(critique(d, { policy_limit_usd: null, restricted_terms: [] }).pass, false);
-  const r = critique(d, { policy_limit_usd: 30, restricted_terms: [] });
+  // a promised refund with no policy limit behind it fails (Codex review 7, HIGH); the limit rules are refund-category rules
+  assert.equal(critique(d, { category: "refund", policy_limit_usd: null, restricted_terms: [] }).pass, false);
+  const r = critique(d, { category: "refund", policy_limit_usd: 30, restricted_terms: [] });
   assert.equal(r.pass, false);
   assert.match(r.reason, /above the limit/);
 });

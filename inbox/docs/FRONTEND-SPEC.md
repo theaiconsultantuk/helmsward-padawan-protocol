@@ -50,7 +50,7 @@ Two input shapes, one `input` object:
 - Message: `message` (1 to 4000 chars), `from` (email or name), `channel` (`email | contact-form | chat | trustpilot`), optional `scenario`, `name`, `subject`, `as_of`.
 - A message run's facts gather reads only the rows its scenario needs: the owner's holiday first, the backup's holiday and record only when the owner is out, the contact desk only when nobody is in, and the policy limit only for a refund. A vent cites no policy row.
 - A scenario's own route may read its own records on top of that (the FAQ, a wiki page, and for a question that names refunds the refund policy); those reads are in the trace too.
-- A draft that promises a refund on a ticket with no policy limit behind it is never signed off.
+- A draft that promises a refund on a ticket with no policy limit behind it is never signed off, and outside the refund category a draft that promises money is not signed off by Risk, nor one that names a refund in its words, unless the message is a question that itself asks about refunds (the returns-and-refund FAQ, the refund limit), which may quote the policy (a word test on the reply and its promises; the Evaluator is told the same rule): rewritten on the retry, else held or escalated.
 - `scenario` is one of `refund | question | rfq | complaint | free_text`; absent means `free_text` (the loop works it out and says how in `resolved_how`).
 - `as_of` is `YYYY-MM-DD` and fixes the date the facts are read as of (holidays, who is in); the demos pin `2026-10-20`. Absent means today.
 - `run_id` is optional (`^[A-Za-z0-9._-]{1,80}$`); a reused one answers 409.
