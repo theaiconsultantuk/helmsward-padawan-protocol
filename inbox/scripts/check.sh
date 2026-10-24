@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Level-1 syntax check: node --check on every src/**/*.mjs (src/scenarios.mjs, src/intake.mjs, src/journey.mjs, src/engines/world-model/world.mjs included) and scripts/*.mjs,
-# on public/app.js and public/dashboard.js, check_links over the scenario markdown, py_compile on gen_company.py.
+# on public/app.js, public/dashboard.js and the storefront scripts public/shop/js/{contact,flow-render,faq}.js, check_links over the scenario markdown, py_compile on gen_company.py.
 # One line per file; exits non-zero if any file fails.
 set -uo pipefail
 INBOX="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,7 +10,7 @@ while IFS= read -r f; do
   else echo "FAIL  ${f#"$INBOX"/}: $(printf '%s' "$out" | head -n 3 | tr '\n' ' ')"; fail=1; fi
 done < <(find "$INBOX/src" -type f -name '*.mjs' -not -path '*/node_modules/*' | sort; find "$INBOX/scripts" -maxdepth 1 -type f -name '*.mjs' | sort)
 # the browser scripts are plain .js files (not .mjs), so they are named here; node --check parses them as scripts
-for f in "$INBOX/public/app.js" "$INBOX/public/dashboard.js"; do
+for f in "$INBOX/public/app.js" "$INBOX/public/dashboard.js" "$INBOX/public/shop/js/contact.js" "$INBOX/public/shop/js/flow-render.js" "$INBOX/public/shop/js/faq.js"; do
   if out=$(node --check "$f" 2>&1); then echo "ok    ${f#"$INBOX"/}"
   else echo "FAIL  ${f#"$INBOX"/}: $(printf '%s' "$out" | head -n 3 | tr '\n' ' ')"; fail=1; fi
 done

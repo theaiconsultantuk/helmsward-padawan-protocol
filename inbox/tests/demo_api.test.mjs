@@ -51,7 +51,10 @@ test("GET /demo/scenarios returns the 14 entries of the file; every reason of th
   const set = ["Refund", "Question", "Quote", "Complaint", "Other", "Review", "Email"];
   for (const d of list) {
     assert.ok(set.includes(d.reason), `${d.id} reason ${d.reason}`);
-    assert.deepEqual(Object.keys(d), ["id", "label", "scenario", "reason", "channel", "name", "email", "message", "as_of", "expected", "client"]);
+    // Plan 1's keys in order; the pages plan adds only the source-card fields (s14 subject and to, s13 review)
+    const base = ["id", "label", "scenario", "reason", "channel", "name", "email", "message", "as_of", "expected", "client"];
+    assert.deepEqual(Object.keys(d).filter((k) => base.includes(k)), base);
+    assert.deepEqual(Object.keys(d).filter((k) => !base.includes(k)).filter((k) => !["subject", "to", "review"].includes(k)), [], `${d.id} carries an unknown key`);
     assert.ok(["random", "seeded-second-refund"].includes(d.client));
   }
   for (const r2 of set) assert.ok(list.some((d) => d.reason === r2), `no entry with reason ${r2}`);
