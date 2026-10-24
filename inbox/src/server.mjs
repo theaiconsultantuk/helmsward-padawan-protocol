@@ -360,8 +360,11 @@ export function isLoopback(host) {
   if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true;
   if (h.startsWith("::ffff:")) return isLoopback(h.slice(7));
   if (!h.includes(":") || /[^0-9a-f:]/.test(h)) return false;
-  const [head, tail = ""] = h.split("::"); // expand one "::" to the full eight groups
-  const groups = (head ? head.split(":") : []).concat(h.includes("::") ? Array(8 - (head ? head.split(":").length : 0) - (tail ? tail.split(":").length : 0)).fill("0") : [], tail ? tail.split(":") : []);
+  const parts = h.split("::"); // at most one "::", expanded to the full eight groups
+  if (parts.length > 2) return false;
+  const head = parts[0] ? parts[0].split(":") : [], tail = parts[1] ? parts[1].split(":") : [];
+  if (![...head, ...tail].every((g) => /^[0-9a-f]{1,4}$/.test(g))) return false;
+  const groups = parts.length === 2 ? [...head, ...Array(Math.max(0, 8 - head.length - tail.length)).fill("0"), ...tail] : head;
   return groups.length === 8 && groups.slice(0, 7).every((g) => /^0{1,4}$/.test(g)) && /^0{0,3}1$/.test(groups[7]);
 }
 export function listenHost(cfg, env = globalThis.process?.env ?? {}) {

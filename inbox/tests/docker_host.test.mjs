@@ -10,7 +10,7 @@ test("loopback is recognised in every spelling; other addresses are not", () => 
   for (const h of ["127.0.0.1", "127.0.0.2", "127.255.255.254", "localhost", "LOCALHOST", "::1", "[::1]", "0:0:0:0:0:0:0:1", "0000:0000:0000:0000:0000:0000:0000:0001", "::ffff:127.0.0.1", "[::ffff:127.0.0.1]"]) {
     assert.equal(isLoopback(h), true, h);
   }
-  for (const h of ["0.0.0.0", "10.0.0.5", "128.0.0.1", "1270.0.0.1", "::", "::2", "fe80::1", "::ffff:10.0.0.1", "", "example.com", "127.0.0.1:8000"]) {
+  for (const h of ["0.0.0.0", "10.0.0.5", "128.0.0.1", "1270.0.0.1", "::", "::2", "fe80::1", "::ffff:10.0.0.1", "", "example.com", "127.0.0.1:8000", ":::1", "::1::", "::ffff:::1", "1::", "1::1", "0:0:0:0:0:0:0:0:1", "00000::1", null, undefined, 7]) {
     assert.equal(isLoopback(h), false, h);
   }
 });
