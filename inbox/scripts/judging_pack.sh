@@ -195,14 +195,19 @@ const first = hero[0]?.o;
 const stepsPresent = [...new Set(hero.map((l) => l.o.step))];
 const need = ["memory.read", "planner.plan", "delegate", "executor.act", "zetaris.query", "meterless.engine", "nvidia.model", "branch", "critique", "risk.signoff", "retry", "escalate_or_fallback", "memory.write", "synthesis"];
 const missing = need.filter((s) => !stepsPresent.includes(s));
-// each model by the role its trace line names: typed gates (nvidia.model, action typed_gates), the draft (action draft_reply or draft_revised), the critique (step critique)
+// each model by the role its trace line names: typed gates (nvidia.model, action typed_gates), the draft (action draft_reply or draft_revised), the critique (step critique), the refund reader (nvidia.model, action read_refund)
 const modelsOf = (pred) => [...new Set(hero.filter(pred).map((l) => l.o.model).filter(Boolean))];
 const live = (l) => l.o.status !== "skipped" && l.o.status !== "error";
 const modelRoles = [
   ["typed gates", modelsOf((l) => l.o.step === "nvidia.model" && l.o.action === "typed_gates" && live(l))],
   ["draft", modelsOf((l) => l.o.step === "nvidia.model" && /^draft_/.test(String(l.o.action)) && live(l))],
   ["critique", modelsOf((l) => l.o.step === "critique" && live(l))],
-].map(([role, ms]) => `${role}: ${ms.length ? ms.map((m) => `\`${m}\``).join(", ") : "none logged"}`).join("; ");
+  ["refund reader", modelsOf((l) => l.o.step === "nvidia.model" && l.o.action === "read_refund" && live(l))],
+].map(([role, ms]) => {
+  // the hero T03 is a refund request, so the reader never runs on it; "none logged" would read as "the model never ran" (24 Oct 2026)
+  const none = role === "refund reader" && !hero.some((l) => l.o.action === "read_refund") ? "not run (the hero is a refund ticket; the reader runs on non-refund drafts)" : "none logged";
+  return `${role}: ${ms.length ? ms.map((m) => `\`${m}\``).join(", ") : none}`;
+}).join("; ");
 
 const md = `---
 title: Jedi Pack inbox result

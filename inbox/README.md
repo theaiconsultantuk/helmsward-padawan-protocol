@@ -117,10 +117,10 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 4. `meterless.engine`: Scout classifies the message and issues a signed execution contract. The contract is verified before any model call. A blocked message stops here and escalates.
 5. Typed gates (OpenJev) and `branch`: pick a branch (under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel). An amount over the policy limit (`over-limit`) is a hard fact: Risk refuses on round 1, there is no retry, and the ticket escalates to the policy's over-limit owner (the backup if the owner is out) for approval, with the draft and both critiques attached.
 6. `nvidia.model`: the drafter writes a reply as JSON.
-7. `critique` (a model) and `risk.signoff` (code) read the draft.
+7. `critique` (a model), the refund read (a model, non-refund drafts only) and `risk.signoff` (code) read the draft.
 8. If either fails on round 1: `retry`, a revised plan, one redraft with both critiques. That is the only retry.
 9. Two negative rounds, or a hard fact Risk cannot rewrite: `escalate_or_fallback` queues the ticket for a human with both critiques stored. No third draft.
-10. Refunds are mentioned only on refund requests (the `refund` category); questions may quote policy. On any other message a draft that promises money (its promises fields) is refused by Risk; a draft that names a refund in its words (read with the cited row ids removed and accents, emphasis and hyphens normalised) is refused too, except on a question whose own text asks about refunds (a refund word not negated in the three words before it), which may quote the policy. The Evaluator and the drafter are told the same rule; a refused draft is rewritten on the retry, else the ticket is held or escalated. Risk's word test is the guarantee, the Evaluator the second reader. The approval limit is a refund-category rule.
+10. Refunds are mentioned only on refund requests (the `refund` category); questions may quote policy. On any other message a draft that promises money (its promises fields) is refused by Risk; a draft that names a refund in its words (read with the cited row ids removed and accents, emphasis and hyphens normalised) is refused too, except on a question whose own text asks about refunds (a refund word not negated in the three words before it), which may quote the policy. The Evaluator and the drafter are told the same rule; a refused draft is rewritten on the retry, else the ticket is held or escalated. Risk's word test is the guarantee, the Evaluator the second reader, and the refund Reader (below, under Providers) a third that reads meaning and can only add a reason. The approval limit is a refund-category rule.
 10. `memory.write` stores one factual memory; `synthesis` ends the trace. `recovery` lines follow any `error` line.
 
 Steps a branch does not reach are still logged with status `skipped`.
@@ -158,7 +158,7 @@ typed gates (OpenJev, or code rules) -> branch
   |       --> escalate to the policy's over-limit owner (backup if out) with the draft and both critiques attached
   |
   +-- reply branches:
-        draft (Nemotron via Nightshift) -> critique + risk.signoff
+        draft (Nemotron via Nightshift) -> critique + refund read + risk.signoff
            | both pass ------------------------------> send, or hold for a person
            | fail, round 1 --> retry --> redraft (with both critiques)
                                           | both pass --> send / hold
@@ -215,9 +215,11 @@ Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformanc
 
 ## Providers
 
-**Nightshift (Meterless) is the primary provider** for the draft, the critique and `/ask`. The app calls `POST {METERLESS_BASE_URL}/chat/completions` with the primary route `NIGHTSHIFT_ROUTE_PRIMARY`, pinned to `nvidia/nemotron-3.5-lightning-30b-a3b`. Nightshift lists NVIDIA Nemotron routes next to its own `meterless/*` routes ([judging/nightshift-models.json](judging/nightshift-models.json)).
+**Nightshift (Meterless) is the primary provider** for the draft, the critique, the refund reader and `/ask`. The app calls `POST {METERLESS_BASE_URL}/chat/completions` with the primary route `NIGHTSHIFT_ROUTE_PRIMARY`, pinned to `nvidia/nemotron-3.5-lightning-30b-a3b`. Nightshift lists NVIDIA Nemotron routes next to its own `meterless/*` routes ([judging/nightshift-models.json](judging/nightshift-models.json)).
 
 **Which model handled a request.** The route is not enough. Nightshift chooses the lane, so each call logs the model that answered: the `model` field of the `nvidia.model` line comes from the response body (`body.model`), with response headers as a fallback (`handledModel()` in `src/adapters/nightshift.mjs`).
+
+**The refund Reader.** On a non-refund draft that the word test passed, a second model read runs beside the Evaluator (`readRefund` in `src/refund_reader.mjs`). It reads meaning, in any wording or language: a credit, a voucher, a waived cost or a hint of money back that the word list does not contain. It answers three questions: does the draft mention money back, does it promise it to this customer, and did the customer ask about refunds. Code turns the answers into a verdict. The Reader can only tighten Risk: it adds a reason, so the round counts as negative and the draft is rewritten once; it never removes one. If Nightshift is down or answers badly, the word test stands and the trace carries an `error` line and a `recovery` line. `REFUND_READER=false` turns the call off and logs a `skipped` line. In sample mode a phrase list stands in (status `skipped`, model `sample/rules`); that list is not the guarantee. The `nvidia.model` line with action `read_refund` carries the `model` that answered, so the route is not taken for the model. The hero thread is a refund request, so the Reader does not run on it.
 
 **The honest state.**
 

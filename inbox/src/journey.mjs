@@ -41,6 +41,7 @@ const ACTION_LABELS = {
   typed_gates: "Typed gates",
   draft_reply: "Draft",
   critique_draft: "Critique",
+  read_refund: "Refund read",
   risk_signoff: "Risk sign-off",
   decide_contract: "Scout contract",
   queue_for_human: "Hand-off",

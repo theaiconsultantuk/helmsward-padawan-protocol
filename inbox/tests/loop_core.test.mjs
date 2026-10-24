@@ -56,6 +56,9 @@ function assertWholeTrace({ result, lines, file }) {
   assert.match(lines.at(-1).output_summary, new RegExp(`decision ${result.output.decision}`));
 }
 
+// 24 Oct 2026: live-mode runs get an offline refund reader, otherwise the default one would call Nightshift
+const readerStub = async () => ({ text: JSON.stringify({ mentions_money_back: false, offers_money: false, customer_asks_refund: false, reason: "stub" }), model: "stub/reader" });
+
 test("STEP_ORDER carries the 15 ids", () => {
   assert.equal(STEP_ORDER.length, 15);
   assert.equal(new Set(STEP_ORDER).size, 15);
@@ -194,7 +197,7 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   };
   const critic = async ({ draft }) => (draft.promises.refund_amount > 150 ? { pass: false, reason: "refund above the limit", model: "nvidia/nemotron-test" } : { pass: true, reason: "ok", model: "nvidia/nemotron-test" });
   // 140 USD is under the 150 limit, so the bad first draft is a retryable round, not the over-limit approval refusal
-  const t = await run("T03", { cfg: live, patch: { T03: { amount_usd: 140 } }, extra: { drafter, gates, critic } });
+  const t = await run("T03", { cfg: live, patch: { T03: { amount_usd: 140 } }, extra: { drafter, gates, critic, reader: readerStub } });
   assertWholeTrace(t);
   const drafts = t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action));
   assert.equal(drafts.length, 2);
@@ -218,7 +221,7 @@ test("a drafter failure logs error then recovery and the run still ends with a r
   const drafter = async () => { throw Object.assign(new Error("upstream down"), { name: "UpstreamTimeout" }); };
   const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
   // live cfg: the duplicate check and the trust ledger would read Zetaris; stubbed so the test runs without .env
-  const t = await run("T18", { cfg: live, extra: { drafter, gates, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
+  const t = await run("T18", { cfg: live, extra: { drafter, gates, reader: readerStub, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
   const seq = pairs(t.lines);
   assert.ok(seq.indexOf("nvidia.model:error") > -1);
   assert.equal(seq[seq.indexOf("nvidia.model:error") + 1], "recovery:success");
@@ -244,7 +247,7 @@ test("H4: an always-negative critic stops at exactly two rounds, then escalates;
   const drafter = async () => { drafts += 1; return { text: JSON.stringify({ reply_text: "Thanks, Employee 4 will follow up.", promises: { refund_amount: null, replacement: false, other: null } }), model: "nvidia/nemotron-test" }; };
   const critic = async () => ({ pass: false, reason: "still not right", model: "nvidia/nemotron-test" });
   const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
-  const t = await run("T18", { cfg: live, extra: { drafter, critic, gates, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
+  const t = await run("T18", { cfg: live, extra: { drafter, critic, gates, reader: readerStub, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
   const n = (step) => t.lines.filter((l) => l.step === step);
   assert.equal(drafts, 2, "exactly two draft calls");
   assert.equal(n("critique").length, 2);
@@ -335,7 +338,7 @@ test("(b) the run timeout aborts the in-flight provider call: the signal handed 
   });
   const gates = async () => ({ answers: { is_follow_up: 0.1 }, model: "rules", gate_source: "rules", confidence: 0.5 });
   const t0 = Date.now();
-  const t = await run("T18", { cfg: live, extra: { drafter, gates, runTimeoutMs: 60, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
+  const t = await run("T18", { cfg: live, extra: { drafter, gates, reader: readerStub, runTimeoutMs: 60, findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }) } });
   assert.ok(seenSignal, "the drafter received a signal");
   assert.equal(seenSignal.aborted, true);
   assert.ok(Date.now() - t0 < 2000);
