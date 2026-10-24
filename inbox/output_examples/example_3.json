@@ -18,7 +18,7 @@
     "queued_for": {
       "owner_id": 8,
       "backup_id": 9,
-      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--inbox-build/inbox/data/memory/queue/T01.json"
+      "queue_file": "data/memory/queue/T01.json"
     }
   },
   "agents": [
@@ -49,5 +49,5 @@
   ],
   "trace_id": "example-3",
   "log_file": "logs/trace-example-3.jsonl",
-  "execution_time_seconds": 0.02
+  "execution_time_seconds": 0.006
 }

@@ -17,4 +17,5 @@ CREATE LIGHTNING FILESTORE TABLE escalation_notes FROM JEDI_PACK FORMAT TEXT OPT
 CREATE LIGHTNING FILESTORE TABLE decisions FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/decisions.csv", header "true", escape '"', multiLine "true");
 CREATE LIGHTNING FILESTORE TABLE products FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/products.csv", header "true");
 CREATE LIGHTNING FILESTORE TABLE faq FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/faq.csv", header "true");
+CREATE LIGHTNING FILESTORE TABLE contacts FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/contacts.csv", header "true");
 CREATE LIGHTNING FILESTORE TABLE intake_runtime FROM JEDI_PACK FORMAT CSV OPTIONS (path "file:///home/zetaris/customer-data/shared/jedi-pack/runtime/intake.csv", header "true", escape '"', multiLine "true");

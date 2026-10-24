@@ -365,7 +365,8 @@ test("USL: the switched templates read the Unified Semantic Layer, the legacy on
   assert.equal(USL, "lightning.metastore.jedi_pack.jedi_pack");
   assert.ok(TABLES_USL.includes("ticket") && TABLES_USL.includes("wiki_page"));
   const legacyArgs = { thread: { thread_id: "T02" }, policy: { topic: "refund" }, employee: { employee_id: 15 }, holiday: { employee_id: 15, date: "2026-10-22" },
-    category: { category: "refund" }, trust: { category: "refund" }, wiki: { wiki: "refund" }, table_count: { table: "decisions" }, ledger_adjust: { category: "refund" } };
+    category: { category: "refund" }, trust: { category: "refund" }, wiki: { wiki: "refund" }, table_count: { table: "decisions" }, ledger_adjust: { category: "refund" },
+    contact: { topic: "default" } };
   for (const [name, t] of Object.entries(TEMPLATES)) {
     const sql = t.sql(args[name] ?? legacyArgs[name] ?? {});
     if (switched.includes(name)) {
@@ -376,6 +377,8 @@ test("USL: the switched templates read the Unified Semantic Layer, the legacy on
       assert.notEqual(t.layer, "usl", name);
     }
   }
+  assert.equal(TEMPLATES.contact.layer, undefined);
+  assert.ok(TEMPLATES.contact.sql({ topic: "default" }).includes("JEDI_PACK.contacts"));
   assert.throws(() => validate("responsibility", { topic: "x'; DROP" }), TypeError);
   assert.throws(() => validate("product_price", { product_id: "P01'" }), TypeError);
 });

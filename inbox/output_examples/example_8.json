@@ -8,12 +8,9 @@
     ],
     "cited_rows": [
       "intake_runtime:F1 (local)",
-      "policy:refund",
       "responsibility:complaint",
       "holiday_2026:5@2026-10-20",
-      "holiday_2026:6@2026-10-20",
       "employees:5",
-      "employees:6",
       "trust_ledger:complaint",
       "wiki_what_may_leave",
       "world_threads",
@@ -33,7 +30,7 @@
     "queued_for": {
       "owner_id": 5,
       "backup_id": 6,
-      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--scenarios/inbox/data/memory/queue/F1.json",
+      "queue_file": "data/memory/queue/F1.json",
       "recommendation": "A person should own this, repair the failure and answer the customer directly.",
       "escalation": {
         "severity": 10,
@@ -54,7 +51,7 @@
         ]
       },
       "owner_name": "Priya Raman",
-      "backup_name": "Tomas Keller",
+      "backup_name": null,
       "role": "complaint owner"
     }
   },
@@ -104,10 +101,10 @@
     "from": "tilda.moss@example.com",
     "name": "Tilda Moss",
     "channel": "chat",
-    "received_at": "2026-10-23T05:18:00.224Z",
+    "received_at": "2026-10-24T04:26:06.507Z",
     "as_of": "2026-10-20"
   },
   "trace_id": "example-8",
   "log_file": "logs/trace-example-8.jsonl",
-  "execution_time_seconds": 0.052
+  "execution_time_seconds": 0.005
 }

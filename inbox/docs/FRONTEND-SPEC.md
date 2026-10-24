@@ -48,6 +48,9 @@ Two input shapes, one `input` object:
 
 - Stored thread: `thread_id` (unknown ids are 404), optional `as_of`.
 - Message: `message` (1 to 4000 chars), `from` (email or name), `channel` (`email | contact-form | chat | trustpilot`), optional `scenario`, `name`, `subject`, `as_of`.
+- A message run's facts gather reads only the rows its scenario needs: the owner's holiday first, the backup's holiday and record only when the owner is out, the contact desk only when nobody is in, and the policy limit only for a refund. A vent cites no policy row.
+- A scenario's own route may read its own records on top of that (the FAQ, a wiki page, and for a question that names refunds the refund policy); those reads are in the trace too.
+- A draft that promises a refund on a ticket with no policy limit behind it is never signed off.
 - `scenario` is one of `refund | question | rfq | complaint | free_text`; absent means `free_text` (the loop works it out and says how in `resolved_how`).
 - `as_of` is `YYYY-MM-DD` and fixes the date the facts are read as of (holidays, who is in); the demos pin `2026-10-20`. Absent means today.
 - `run_id` is optional (`^[A-Za-z0-9._-]{1,80}$`); a reused one answers 409.
@@ -160,6 +163,7 @@ The derivation, in plain words:
 - `consulted` is the ids that step looked at: the memory ids, the rows a Zetaris query returned, the ids on the World Model line.
 - `retained` is the part of `consulted` that survived into the answer: it appears in the cited rows, in the memory written, in the draft text, or in what was attached for the human.
 - `reached_human` is true on the hand-off step when it succeeded or was incomplete, and on the final reply step when the decision is `hold`. `reached_human` at the top level is `null` when nobody got anything.
+- `human.reply.to` carries `email` and `employee_id: null` (its `name` is the desk label) when owner and backup are both out and the run was routed to the default contact desk. The page shows the desk label where it shows a name; the email is in `to.email`. `queued_for` keeps `owner_id` and `backup_id` and adds `fallback_contact` (`email`, `label`, `cited`), with `role` set to `default contact`.
 - `model` is the model id when the step used one, else `null`. `label` is the plain-words name; `route` is what the step decided.
 - `detail` is the rows in words when a Zetaris query read a record a person would want to see, else `null`: an employee as `Soren Adey · Support Agent · Support`, a policy as its limit and owners, a topic as its owner and backup. The same step's `route` keeps the count and the row ids. When the query ran for a reason the caller named, that reason sits in the trace line's `input_summary` after the parameters (`the employee record {"employee_id":15} · owner for refund: under the refund limit 150 (policy:refund)`).
 - The function never throws: a missing piece is `null`.

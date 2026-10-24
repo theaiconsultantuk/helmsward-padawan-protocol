@@ -19,7 +19,15 @@ const same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 export function queryByName(name, params = {}, { cfg = config() } = {}) {
   if (typeof name !== "string" || !/^[a-z_][a-z0-9_]*$/.test(name)) throw new Error(`bad query name: ${JSON.stringify(name)}`);
   const entries = JSON.parse(readFileSync(`${sampleDir(cfg)}/${name}.json`, "utf8"));
-  const hit = entries.find((e) => same(e.params ?? {}, params))
+  const exact = entries.find((e) => same(e.params ?? {}, params));
+  if (!exact && name === "holiday") {
+    // No cached pair: derive the per-employee answer from the full table, as live would.
+    const all = JSON.parse(readFileSync(`${sampleDir(cfg)}/holidays.json`, "utf8")).find((e) => same(e.params ?? {}, {}));
+    const src = all?.result ?? {};
+    const rows = (src.rows ?? src.data ?? []).filter((r) => String(r[0]) === String(params.employee_id) && r[1] === params.date);
+    return { headers: src.headers ?? ["employee_id", "date"], rows, total: rows.length, timeUsed: 0 };
+  }
+  const hit = exact
     ?? entries.find((e) => same(e.params ?? {}, {}));
   if (!hit) throw new Error(`no cached rows for ${name} ${JSON.stringify(canon(params))}`);
   const r = hit.result ?? {};
@@ -39,7 +47,8 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
   if (seed === "revised") {
-    mid = `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD${cite}, so we are not promising it today. ${facts.backup ?? "A colleague"} will follow up with you.`;
+    const lim = facts.policy_limit_usd == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit_usd} USD${cite}, so we are not promising it today`;
+    mid = `${lim}${facts.policy_limit_usd == null ? cite : ""}. ${facts.backup ?? "A colleague"} will follow up with you.`;
   } else if (seed === "misread" && cat === "replacement") {
     promises.refund_amount = ticket.amount_usd ?? null;
     mid = ticket.amount_usd == null ? `We are looking into your refund request${cite}.` : `We will refund ${ticket.amount_usd} USD${cite}.`;
@@ -57,6 +66,9 @@ export function draft(ticket, facts, { seed = "correct" } = {}) {
 
 export function critique(d, facts) {
   const amt = d.promises?.refund_amount;
+  if (typeof amt === "number" && facts.policy_limit_usd == null) {
+    return { pass: false, reason: `promises a refund of ${amt} USD with no policy limit behind it`, model: MODEL };
+  }
   if (typeof amt === "number" && amt > facts.policy_limit_usd) {
     return { pass: false, reason: `promises a refund above the limit in policy row ${(facts.cited_rows ?? [])[0] ?? "?"}: ${amt} > ${facts.policy_limit_usd} USD`, model: MODEL };
   }

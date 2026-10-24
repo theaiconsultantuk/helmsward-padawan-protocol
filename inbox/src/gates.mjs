@@ -134,5 +134,7 @@ export function hardRisk(facts, draft = null) {
   else if (leaked) reasons.push(`fact may not leave: ${leaked}`);
   if (facts.owner_out && facts.backup_out) reasons.push("owner and backup both out");
   if (draft?.promises?.refund_amount != null && limit != null && draft.promises.refund_amount > limit) reasons.push("draft promises refund above the limit");
+  // a ticket whose scenario reads no policy row has no limit: a refund promised there has nothing behind it (Codex review 7, HIGH)
+  if (draft?.promises?.refund_amount != null && limit == null) reasons.push("draft promises a refund with no policy limit behind it");
   return { hard: reasons.length > 0, reasons };
 }

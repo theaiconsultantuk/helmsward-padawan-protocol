@@ -138,6 +138,38 @@ test("queued_for owner fields and attachments map into reply.to", () => {
   assert.equal(r.kind, "escalation");
 });
 
+const FB = { email: "contact@jedipack.com", label: "Jedi Pack contact desk", cited: "contacts:default" };
+test("both out: the contact desk is the reply target and queued_for keeps the pair", () => {
+  const q = { owner_id: 5, owner_name: "Priya Raman", backup_id: 6, role: "default contact", fallback_contact: FB };
+  const result = { output: { decision: "escalate", queued_for: q } };
+  assert.deepEqual(replyFor(result).to, { employee_id: null, name: "Jedi Pack contact desk", role: "default contact", email: "contact@jedipack.com" });
+  const j = deriveJourney(result, []);
+  assert.equal(j.reached_human.who.email, "contact@jedipack.com");
+  assert.equal(j.reached_human.who.employee_id, null);
+  assert.equal(q.owner_id, 5);
+});
+
+test("a fallback contact without a label or role uses the email and 'default contact'", () => {
+  const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 5, fallback_contact: { email: "a@b.c" } } } });
+  assert.deepEqual(r.to, { employee_id: null, name: "a@b.c", role: "default contact", email: "a@b.c" });
+});
+
+test("an approval still wins over a fallback contact", () => {
+  const result = { output: { decision: "escalate", queued_for: { owner_id: 5, owner_name: "O", fallback_contact: FB,
+    approval: { approver_id: "E9", approver_name: "Backup Boss" } } } };
+  const r = replyFor(result);
+  assert.equal(r.to.employee_id, "E9");
+  assert.equal(r.to.email, undefined);
+  assert.equal(deriveJourney(result, []).reached_human.who.email, undefined);
+});
+
+test("a malformed fallback contact is ignored and never throws", () => {
+  for (const fc of [null, 7, "x", [], {}, { email: 3 }]) {
+    const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 5, owner_name: "O", role: "r", fallback_contact: fc } } });
+    assert.deepEqual(r.to, { employee_id: 5, name: "O", role: "r" });
+  }
+});
+
 test("object attachments contribute their cited id strings", () => {
   const r = replyFor({ output: { decision: "escalate", queued_for: { owner_id: 6, attachments: { prices: [{ product_id: "P01" }], quantities: [100], cited: ["products:P01"] } } } });
   assert.deepEqual(r.attachments, ["products:P01"]);

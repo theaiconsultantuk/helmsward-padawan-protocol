@@ -225,6 +225,18 @@
       "rows": 12
     },
     {
+      "name": "contacts",
+      "path": "contacts.csv",
+      "format": "CSV",
+      "table": "contacts",
+      "database": "JEDI_PACK",
+      "options": {
+        "header": "true"
+      },
+      "licence": "synthetic, CC0",
+      "rows": 1
+    },
+    {
       "name": "intake_runtime",
       "path": "runtime/intake.csv",
       "format": "CSV",

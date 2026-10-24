@@ -49,6 +49,22 @@
   },
   {
     "params": {
+      "table": "contacts"
+    },
+    "result": {
+      "headers": [
+        "n"
+      ],
+      "rows": [
+        [
+          "1"
+        ]
+      ],
+      "total": 1
+    }
+  },
+  {
+    "params": {
       "table": "decisions"
     },
     "result": {

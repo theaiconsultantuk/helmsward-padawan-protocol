@@ -8,12 +8,9 @@
     ],
     "cited_rows": [
       "intake_runtime:F1 (local)",
-      "policy:refund",
       "responsibility:rfq",
       "holiday_2026:6@2026-10-20",
-      "holiday_2026:14@2026-10-20",
       "employees:6",
-      "employees:14",
       "wiki_what_may_leave"
     ],
     "recommendation": "Quantities asked: 100000 and 100; no product in the records matches; sales to identify.",
@@ -29,7 +26,7 @@
     "queued_for": {
       "owner_id": 6,
       "backup_id": 14,
-      "queue_file": "/opt/glitch/workspaces/open-agent-hackathon-2026--scenarios/inbox/data/memory/queue/F1.json",
+      "queue_file": "data/memory/queue/F1.json",
       "attachments": {
         "prices": [],
         "quantities": [
@@ -41,7 +38,7 @@
       },
       "recommendation": "Quantities asked: 100000 and 100; no product in the records matches; sales to identify.",
       "owner_name": "Tomas Keller",
-      "backup_name": "An-Na Nguyen",
+      "backup_name": null,
       "role": "rfq owner"
     }
   },
@@ -81,10 +78,10 @@
     "from": "einh@example.com",
     "name": null,
     "channel": "chat",
-    "received_at": "2026-10-23T05:19:01.748Z",
+    "received_at": "2026-10-24T04:26:06.469Z",
     "as_of": "2026-10-20"
   },
   "trace_id": "example-6",
   "log_file": "logs/trace-example-6.jsonl",
-  "execution_time_seconds": 0.019
+  "execution_time_seconds": 0.005
 }

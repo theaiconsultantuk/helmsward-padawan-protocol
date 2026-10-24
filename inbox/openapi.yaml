@@ -418,8 +418,16 @@ components:
                 owner_id: { type: integer }
                 owner_name: { type: string }
                 backup_id: { type: integer }
-                backup_name: { type: string }
-                role: { type: string }
+                backup_name: { type: string, nullable: true, description: "Read only when the owner is out; null otherwise." }
+                role: { type: string, description: "The owner's role, or default contact when the contact desk is the target." }
+                fallback_contact:
+                  type: object
+                  nullable: true
+                  description: "Set when owner and backup are both out: the contact desk the ticket is routed to, read from JEDI_PACK.contacts."
+                  properties:
+                    email: { type: string }
+                    label: { type: string }
+                    cited: { type: string, description: "The row id, contacts:default." }
                 attachments:
                   type: object
                   description: The rows the owner needs, attached to a queued item.
@@ -563,7 +571,7 @@ components:
               properties:
                 kind: { type: string, enum: [auto_reply, draft_for_human, escalation, answer, none] }
                 text: { type: string, nullable: true }
-                to: { type: object, nullable: true }
+                to: { type: object, nullable: true, description: "The person or desk the reply waits for: employee_id and name, or email when the default contact desk is the recipient." }
                 attachments: { type: array, items: { type: string } }
                 blanks: { type: array, items: { type: string } }
                 recommendation: { type: string, nullable: true }
