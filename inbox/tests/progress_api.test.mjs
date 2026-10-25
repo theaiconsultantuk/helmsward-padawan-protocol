@@ -1,7 +1,7 @@
 // Boundaries: live polling before completion, safe read payloads, restart parity and admission failures.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 import { createServer, runs } from "../src/server.mjs";
@@ -81,9 +81,15 @@ test("finished board and disk-derived progress agree, including elapsed time and
   const deps = { ...dirs(), persistRuns: true }; const s = await server({ deps });
   try {
     const res = await s.post("/run", { run_id: "c-disk", input: { thread_id: "T03", as_of: "2026-10-19" } }); assert.equal(res.status, 200);
-    const run = await res.json(); const board = await (await s.get("/runs/c-disk/progress")).json(); runs.clear();
+    const run = await res.json();
+    for (const value of [run, await (await s.get("/runs/c-disk")).json(), await (await s.get("/runs/c-disk/journey")).json()]) {
+      assert.ok(typeof value.wall_ms === "number" && value.wall_ms >= 0 && value.wall_ms <= run.execution_time_seconds * 1000 + 50, "wall_ms survives the served boundary");
+    }
+    const board = await (await s.get("/runs/c-disk/progress")).json(); runs.clear();
     const reloaded = await server({ deps });
-    try { const restored = await (await reloaded.get("/runs/c-disk/progress")).json(); assert.equal(restored.state, "done"); assert.deepEqual(restored, board);
+    try {
+      for (const path of ["/runs/c-disk", "/runs/c-disk/journey"]) assert.equal((await (await reloaded.get(path)).json()).wall_ms, run.wall_ms, "wall_ms survives persistence");
+      const restored = await (await reloaded.get("/runs/c-disk/progress")).json(); assert.equal(restored.state, "done"); assert.deepEqual(restored, board);
       unlinkSync(join(deps.logsDir, basename(run.log_file))); const missing = await (await reloaded.get("/runs/c-disk/progress")).json(); assert.deepEqual(missing.steps, []);
     } finally { reloaded.srv.close(); }
     const evicted = await server({ deps: { ...deps, persistRuns: false }, board: createProgressBoard({ cap: 0 }) });
@@ -100,4 +106,16 @@ test("progress operation grid: unknown, invalid, ask, non-GET and crashed run", 
   } finally { s.srv.close(); }
   const file = join(mk("bad"), "file"); writeFileSync(file, "file"); const bad = await server({ deps: { ...dirs(), logsDir: file } });
   try { assert.equal((await bad.post("/run", { run_id: "c-crash", input: { thread_id: "T02" } })).status, 500); const p = await (await bad.get("/runs/c-crash/progress")).json(); assert.equal(p.state, "done"); assert.equal(p.status, "error"); } finally { bad.srv.close(); }
+});
+
+// Review 51: legacy early decisions must satisfy the nullable field contract on both read routes.
+test("old stored early decisions expose seen_s null on result and progress reads", async () => {
+  const deps = { ...dirs(), persistRuns: true };
+  const early = { decision: "escalate", branch_id: "over-limit", why: "over limit", draft_pending: true, at_s: 1.2 };
+  mkdirSync(join(deps.runtimeDir, "runs"), { recursive: true });
+  writeFileSync(join(deps.runtimeDir, "runs", "f-old.json"), JSON.stringify({ result: { run_id: "f-old", output: { decision: "escalate" }, decision_early: early, execution_time_seconds: 2, status: "success" } }));
+  const s = await server({ deps });
+  try {
+    for (const path of ["/runs/f-old", "/runs/f-old/progress"]) assert.deepEqual((await (await s.get(path)).json()).decision_early, { seen_s: null, ...early });
+  } finally { runs.delete("f-old"); s.srv.close(); }
 });

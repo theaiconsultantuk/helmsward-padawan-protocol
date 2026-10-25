@@ -328,7 +328,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Progress" }
-              example: {"run_id": "demo-s03", "state": "running", "mode": "live", "elapsed_s": 23.4, "working": [{"agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1}], "steps": [{"step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01}, {"step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0}], "decision_early": {"decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1}, "decision": null, "status": null, "provider": {"primary_used": null, "fallback_reason": null}}
+              example: {"run_id": "demo-s03", "state": "running", "mode": "live", "elapsed_s": 23.4, "working": [{"agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1}], "steps": [{"step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01, "ran_s": 2.0, "seen_s": 2.0}, {"step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0, "ran_s": 2.1, "seen_s": 2.1}], "decision_early": {"decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1, "seen_s": 2.1}, "decision": null, "status": null, "provider": {"primary_used": null, "fallback_reason": null}}
         "404": { $ref: "#/components/responses/NotFound" }
   /runs/{id}/trace:
     get:
@@ -593,7 +593,7 @@ components:
         why: { type: string, maxLength: 200 }
         draft_pending: { type: boolean }
         at_s: { type: number, description: "Decision time in seconds since trace start, rounded to 0.1 s." }
-        seen_s: { type: number, description: "Arrival at the progress board since board start, rounded to 0.1 s." }
+        seen_s: { type: number, nullable: true, description: "Arrival at the progress board since board start, rounded to 0.1 s; null on runs stored before this field existed." }
     ProgressStep:
       type: object
       required: [step, agent, label, tech, status, seconds, ran_s, seen_s]

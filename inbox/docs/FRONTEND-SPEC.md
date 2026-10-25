@@ -101,7 +101,7 @@ The trace as a JSON array, one object per step, in order; 404 when unknown.
 { "timestamp": "2026-10-23T00:10:42Z", "run_id": "demo-1", "trace_id": "demo-1", "step": "memory.read", "agent_name": "Memory", "action": "memory_read", "input_summary": "Lira Venn refund T02", "output_summary": "4 memories: mem-7 (...)", "status": "success" }
 ```
 
-Optional fields a line may carry: `target_agent`, `model`, `confidence`, `retry_count`, `branch_id`, `memory_ids`, `sponsor`, `gate_source`, and on a Zetaris query `detail` (the rows in words; section 3).
+Optional fields a line may carry: `target_agent`, `model`, `confidence`, `retry_count`, `branch_id`, `memory_ids`, `sponsor`, `gate_source`, `ran_s`, `seen_s`, and on a Zetaris query `detail` (the rows in words; section 3).
 
 `GET /runs/{id}/journey`
 
@@ -137,6 +137,7 @@ Live progress, open like every GET. **Front end: built by the teammate Paul assi
 - `working`: the provider calls in flight right now, oldest first; empty when none (or done). The critic and the refund reader run side by side, so two entries is normal.
 - `steps`: every trace line written so far, in trace order, as `{ step, agent, label, tech, status, seconds, ran_s, seen_s }` with `label = labelFor(line.step, line)`, `tech = techOf(line)`, `agent = line.agent_name`, `seconds = round(duration_ms / 1000, 2)`. The buffered early lines (facts, gates) appear in one burst when the run reaches `executor.act`; until then `working` shows them live.
 - Each step adds `ran_s` (completion since trace start) and `seen_s` (arrival at `board.line` since board start), rounded to 0.1 s and retained on stored progress reads; their difference exposes buffered delivery waits. Older lines without timing fall back to elapsed time (0 when unknown).
+- `decision_early.seen_s` is null on runs stored before the field existed.
 - `decision_early.seen_s` records arrival since board start, rounded to 0.1 s, beside `at_s` (decision since trace start).
 - `decision_early`: `null` until the branch decides; then set once and never changed. Only for a fixed branch (table below). `draft_pending: true` means the final result may still attach a draft.
 - `decision`, `status`: `null` while running; the result's `output.decision` and `status` once done.

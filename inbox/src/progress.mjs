@@ -37,7 +37,7 @@ export function progressPayload(entry, nowMs) {
 }
 export function progressFromStored(result, lines) {
   return { run_id: result.run_id, state: "done", mode: result.provider?.mode ?? null, elapsed_s: result.execution_time_seconds,
-    working: [], steps: lines.map(stepOf), decision_early: result.decision_early ?? null, decision: result.output?.decision ?? null,
+    working: [], steps: lines.map(stepOf), decision_early: result.decision_early ? { seen_s: null, ...result.decision_early } : null, decision: result.output?.decision ?? null,
     status: result.status ?? null, provider: publicProvider(result.provider) };
 }
 export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
