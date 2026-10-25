@@ -77,6 +77,15 @@
     return n < 1000 ? Math.round(n) + " ms" : (n / 1000).toFixed(1) + " s";
   }
 
+  // How long a run took: the server's wall_ms (start to decision) is exact; older journeys lack it, so the nodes'
+  // duration_ms sum stands in, marked not exact. Null when neither is there.
+  function runTime(j) {
+    if (j && typeof j.wall_ms === "number" && isFinite(j.wall_ms)) return { ms: j.wall_ms, exact: true };
+    var nodes = Array.isArray(j && j.nodes) ? j.nodes : [], sum = 0, all = nodes.length > 0;
+    nodes.forEach(function (n) { if (n && typeof n.duration_ms === "number") sum += n.duration_ms; else all = false; });
+    return all ? { ms: sum, exact: false } : null;
+  }
+
   function setStatus(msg, bad) {
     var s = $("status");
     if (!s) return;
@@ -624,10 +633,8 @@
     var run = $("dr-run"), total = $("dr-total");
     if (run) run.textContent = str(j.run_id);
     if (total) {
-      var nodes = Array.isArray(j.nodes) ? j.nodes : [];
-      var sum = 0, all = nodes.length > 0;
-      nodes.forEach(function (n) { if (typeof n.duration_ms === "number") sum += n.duration_ms; else all = false; });
-      total.textContent = all ? "Total " + fmtMs(sum) : "";
+      var rt = runTime(j);
+      total.textContent = rt ? "Total " + (rt.exact ? "" : "about ") + fmtMs(rt.ms) : "";
     }
   }
 
@@ -651,13 +658,12 @@
     showFlow();
     var slot = $("flow-run");
     if (slot) {
-      // The run's own time: the sum of the nodes' duration_ms, or (no durations) the POST /run wall time.
-      // Both are fixed once the run is done, so a send (which re-renders) never changes it.
-      var nodes = Array.isArray(j.nodes) ? j.nodes : [], sum = 0, all = nodes.length > 0;
-      nodes.forEach(function (n) { if (n && typeof n.duration_ms === "number") sum += n.duration_ms; else all = false; });
-      var ms = all ? sum : (cur.runId === j.run_id && typeof cur.postMs === "number" ? cur.postMs : null);
+      // The run's own time: the server's wall_ms, else (older runs) about the nodes' summed duration_ms, else the POST /run time.
+      // All are fixed once the run is done, so a send (which re-renders) never changes it.
+      var rt = runTime(j), post = cur.runId === j.run_id && typeof cur.postMs === "number" ? cur.postMs : null;
+      var took = rt ? (rt.exact ? "" : "about ") + fmtMs(rt.ms) : (post !== null ? "about " + fmtMs(post) : "");
       var sim = cur.runId === j.run_id && cur.sim;
-      slot.textContent = (sim ? "Simulated, not counted · " : "") + str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
+      slot.textContent = (sim ? "Simulated, not counted · " : "") + str(j.run_id) + (took ? " · " + took : "");
     }
     paint(j);
     nudgeDrawer();
