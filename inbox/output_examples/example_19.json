@@ -1,0 +1,99 @@
+{
+  "run_id": "example-19",
+  "status": "success",
+  "output": {
+    "decision": "send",
+    "owner": {
+      "employee_id": 15,
+      "name": "Soren Adey",
+      "role": "customer_service owner",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "order JP-1001 ships to Alderaan, where deliveries are suspended (shipping_rules:Alderaan); the rule's note answers it"
+    ],
+    "cited_rows": [
+      "intake_runtime:F34 (local)",
+      "responsibility:delivery",
+      "holiday_2026:15@2026-10-25",
+      "employees:15",
+      "companyhierarchy:15",
+      "channels:contact-form",
+      "trust_ledger:delivery",
+      "wiki_what_may_leave",
+      "orders:JP-1001",
+      "shipping_rules:Alderaan"
+    ],
+    "draft": {
+      "text": "Hello Cass Holm,\n\nDeliveries to Alderaan are currently suspended. Your order JP-1001 is held for now; our team will contact you as soon as deliveries to Alderaan resume.\n\nBest regards,\nFarstrand Support team\nSent automatically on behalf of the Support team.",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "orders/rows"
+    },
+    "status": "handled",
+    "auto_reply": true,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": null,
+    "topic_label": "Parcels and Perils Dispatch",
+    "cc": [],
+    "also": [],
+    "channel_label": "Contact form",
+    "trusted_to_send": true
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-19",
+  "log_file": "logs/trace-example-19.jsonl",
+  "execution_time_seconds": 0.005,
+  "scenario": "delivery",
+  "resolved_how": "scout",
+  "branch_id": "delivery-suspended",
+  "input": {
+    "kind": "message",
+    "thread_id": "F34",
+    "text": "Where is my order JP-1001? It was meant to arrive weeks ago.",
+    "from": "cass.holm@example.com",
+    "name": "Cass Holm",
+    "channel": "contact-form",
+    "received_at": "2026-10-25T15:05:42.958Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-12"
+    ],
+    "written": [
+      "mem-42"
+    ]
+  }
+}

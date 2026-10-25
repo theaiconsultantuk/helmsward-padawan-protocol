@@ -1,0 +1,100 @@
+{
+  "run_id": "example-20",
+  "status": "success",
+  "output": {
+    "decision": "send",
+    "owner": {
+      "employee_id": 15,
+      "name": "Soren Adey",
+      "role": "customer_service owner",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "FAQ Q11 answers it; FAQ Q11 matches (score 1.00, shared: offer, gift, wrapping); FAQ text is canonical, the floor gates model drafts"
+    ],
+    "cited_rows": [
+      "intake_runtime:F35 (local)",
+      "responsibility:question",
+      "holiday_2026:5@2026-10-25",
+      "employees:5",
+      "companyhierarchy:5",
+      "channels:chat",
+      "trust_ledger:question",
+      "wiki_what_may_leave",
+      "faq:Q11"
+    ],
+    "draft": {
+      "text": "Hello Jessa Jasperly,\n\nNot at the moment, but we can add a gift note to your order.\n\nBest regards,\nFarstrand Support team\nSent automatically on behalf of the Support team.",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "faq/canonical"
+    },
+    "status": "handled",
+    "auto_reply": true,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": null,
+    "topic_label": "Ministry of Curious Inquiries",
+    "cc": [],
+    "also": [],
+    "channel_label": "Chat",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-20",
+  "log_file": "logs/trace-example-20.jsonl",
+  "execution_time_seconds": 0.006,
+  "scenario": "question",
+  "resolved_how": "faq",
+  "branch_id": "faq-hit",
+  "input": {
+    "kind": "message",
+    "thread_id": "F35",
+    "text": "Do you offer gift wrapping?",
+    "from": "jessajasperly@email.com",
+    "name": "Jessa Jasperly",
+    "channel": "chat",
+    "received_at": "2026-10-25T15:05:42.965Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-25",
+      "mem-23",
+      "mem-16"
+    ],
+    "written": [
+      "mem-43"
+    ]
+  }
+}

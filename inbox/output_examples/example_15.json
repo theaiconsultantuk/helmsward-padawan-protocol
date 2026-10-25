@@ -1,0 +1,115 @@
+{
+  "run_id": "example-15",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "owner": {
+      "employee_id": 5,
+      "name": "Priya Raman",
+      "role": "Product Specialist",
+      "team": "Product",
+      "team_label": "Gizmo Forge"
+    },
+    "reasons": [
+      "Wayfarer Long Cloak is in the catalogue (products:FS-A01) but not in the catalogue row: no field answers what was asked. Held for the product owner, no draft"
+    ],
+    "cited_rows": [
+      "intake_runtime:F30 (local)",
+      "responsibility:product",
+      "holiday_2026:5@2026-10-25",
+      "employees:5",
+      "companyhierarchy:5",
+      "channels:chat",
+      "trust_ledger:product",
+      "wiki_what_may_leave",
+      "products:FS-A01"
+    ],
+    "recommendation": "not in the catalogue row of FS-A01; the product owner answers the customer",
+    "queued_for": {
+      "owner_id": 5,
+      "backup_id": 13,
+      "owner_name": "Priya Raman",
+      "backup_name": null,
+      "role": "product owner",
+      "team": "Product",
+      "team_label": "Gizmo Forge",
+      "backup_team": null,
+      "topic_label": "Gadget Wrangling Guild",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Chat",
+      "owner": {
+        "employee_id": 5,
+        "name": "Priya Raman",
+        "role": "Product Specialist",
+        "team": "Product",
+        "team_label": "Gizmo Forge"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Product",
+    "team_label": "Gizmo Forge",
+    "backup_team": null,
+    "topic_label": "Gadget Wrangling Guild",
+    "cc": [],
+    "also": [],
+    "channel_label": "Chat",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-15",
+  "log_file": "logs/trace-example-15.jsonl",
+  "execution_time_seconds": 0.007,
+  "scenario": "product",
+  "resolved_how": "scout",
+  "branch_id": "product-unanswered",
+  "input": {
+    "kind": "message",
+    "thread_id": "F30",
+    "text": "Is the Wayfarer Long Cloak waterproof?",
+    "from": "edricembervale@email.com",
+    "name": "Edric Embervale",
+    "channel": "chat",
+    "received_at": "2026-10-25T15:05:42.909Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-15",
+      "mem-36"
+    ],
+    "written": [
+      "mem-37"
+    ]
+  }
+}

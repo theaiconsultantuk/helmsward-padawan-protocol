@@ -1,0 +1,137 @@
+{
+  "run_id": "example-12",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "owner": {
+      "employee_id": 40,
+      "name": "Zanva Groveley",
+      "role": "Sales Lead",
+      "team": "Sales",
+      "team_label": "Bargain Bazaar Brigade"
+    },
+    "reasons": [
+      "amount 400 GC is over the 150 GC policy limit; Risk refused, Zanva Groveley approves the amount"
+    ],
+    "cited_rows": [
+      "intake_runtime:F27 (local)",
+      "amount from the message",
+      "policy:refund",
+      "companyhierarchy:40",
+      "companyhierarchy:201",
+      "holiday_2026:40@2026-10-25",
+      "employees:40",
+      "channels:contact-form",
+      "trust_ledger:refund",
+      "wiki_what_may_leave"
+    ],
+    "draft": {
+      "text": "Hello Camren Cobbleton,\n\nThank you for your message. Your refund request is routed for approval. We are not promising an amount or a date yet, and a colleague will follow up with you.\n\nBest regards,\nFarstrand Support team",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    },
+    "queued_for": {
+      "owner_id": 40,
+      "backup_id": 201,
+      "owner_name": "Zanva Groveley",
+      "backup_name": "Paul Jedi",
+      "queue_file": "queue/F27.json",
+      "approval": {
+        "kind": "amount",
+        "amount": 400,
+        "limit": 150,
+        "approver_id": 40,
+        "approver_name": "Zanva Groveley"
+      },
+      "team": "Sales",
+      "team_label": "Bargain Bazaar Brigade",
+      "backup_team": "Executive",
+      "topic_label": "Department of Giving It Back",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Contact form",
+      "owner": {
+        "employee_id": 40,
+        "name": "Zanva Groveley",
+        "role": "Sales Lead",
+        "team": "Sales",
+        "team_label": "Bargain Bazaar Brigade"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Sales",
+    "team_label": "Bargain Bazaar Brigade",
+    "backup_team": "Executive",
+    "topic_label": "Department of Giving It Back",
+    "cc": [],
+    "also": [],
+    "channel_label": "Contact form",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-12",
+  "log_file": "logs/trace-example-12.jsonl",
+  "execution_time_seconds": 0.007,
+  "scenario": "refund",
+  "resolved_how": "declared",
+  "branch_id": "over-limit",
+  "input": {
+    "kind": "message",
+    "thread_id": "F27",
+    "text": "I would like a refund of 400 GC for my Sovereign Arc Duellist, the blade will not ignite.",
+    "from": "camrencobbleton@email.com",
+    "name": "Camren Cobbleton",
+    "channel": "contact-form",
+    "received_at": "2026-10-25T15:05:42.886Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-27",
+      "mem-31",
+      "mem-28",
+      "mem-26",
+      "mem-14"
+    ],
+    "written": [
+      "mem-33",
+      "mem-34"
+    ]
+  }
+}

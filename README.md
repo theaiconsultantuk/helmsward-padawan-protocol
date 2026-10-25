@@ -13,6 +13,33 @@ Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/REA
 The service serves a storefront at `GET /` (Home, Shop, FAQ and a Contact page that is the front end, with what happens under the hood beside it) and an internal dashboard at `GET /dashboard`.
 It handles five scenarios (refund, question, request for quote, complaint, free text), and the complaint route uses the Meterless World Model: see [inbox/judging/scenarios.md](inbox/judging/scenarios.md).
 
+## Try it
+
+- **Live demo:** [jedi.blastworks.ai/shop/contact.html](https://jedi.blastworks.ai/shop/contact.html). Pick a scenario under "Try a scenario", choose **Live** (real models and data, some runs take minutes) or **Simulated** (rules and sample data, a second or less, not counted), submit, then open **Under the hood** for every step the agent took.
+- **The desk:** [jedi.blastworks.ai/shop/desk.html](https://jedi.blastworks.ai/shop/desk.html), what the staff see: the queue, who holds what, a kanban per team and the Sign-off chain for refunds over the limit and legal threats. Deadlines, the clock and sign-off emails on the desk are simulated; the first two sign-off steps are the run's real record.
+- **Video:** _link to come_. **Deck:** _link to come_.
+
+## What is new (25 Oct)
+
+- Contact page: Live or Simulated, and a running indicator while the agent works.
+- Desk: Teams kanban, Sign-off dialog (Support then Legal for a legal threat, heads in Cc), Sign-off on cards without a run.
+- Runs survive a server restart; each run gets a fresh customer so a repeat is not closed as a duplicate.
+- 23 input examples, each with its stored sample output; a [held-out set](inbox/judging/heldout/README.md) the rules were never tuned on.
+
+## Meterless engines
+
+| Engine | What it does here | Proof |
+|---|---|---|
+| Scout Intent | Classifies the message, blocks injection, redacts PII, signs the contract the loop checks before any model call | Scout eval harness exits 0 on the 32-example v1 set: [engine-scout-evals.md](inbox/judging/engine-scout-evals.md) |
+| H-MEM | Stores one sourced memory per run and reads it before planning | Run B names the chunk it skipped because run A wrote it: [engine-hmem-two-run.md](inbox/judging/engine-hmem-two-run.md) |
+| World Model | Reads the customer's history on a complaint: vent, genuine or legal | Conformance 8/8 on the reference and our bundle: [engine-world-model.md](inbox/judging/engine-world-model.md) |
+
+Nightshift routes the model calls (Nemotron 3.5 Lightning drafts and critiques): [sponsor-explanation.md](inbox/judging/sponsor-explanation.md).
+
+## Held-out result
+
+On 20 messages the rules were never tuned on (8 adversarial), main in sample mode matches the expected decision on **13**. It promised no refund amount, and it blocked the prompt injection before any model call. The one real miss: a thank-you with a refund request tacked on got a thank-you back and the request was dropped. Details and how to rerun: [inbox/judging/heldout/README.md](inbox/judging/heldout/README.md).
+
 ## Run it
 
 The submission is the `inbox/` app. From this folder:

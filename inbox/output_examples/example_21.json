@@ -1,0 +1,115 @@
+{
+  "run_id": "example-21",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "owner": {
+      "employee_id": 15,
+      "name": "Soren Adey",
+      "role": "Support Agent",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "nothing in the records answers this; checked the FAQ (18 rows), no match. Held for the owner, no draft"
+    ],
+    "cited_rows": [
+      "intake_runtime:F36 (local)",
+      "responsibility:other",
+      "holiday_2026:15@2026-10-25",
+      "employees:15",
+      "companyhierarchy:15",
+      "channels:chat",
+      "trust_ledger:other",
+      "wiki_what_may_leave"
+    ],
+    "recommendation": "nothing in the records answers this; a person replies",
+    "queued_for": {
+      "owner_id": 15,
+      "backup_id": 27,
+      "owner_name": "Soren Adey",
+      "backup_name": null,
+      "role": "other owner",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar",
+      "backup_team": null,
+      "topic_label": "Office of Miscellaneous Matters",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Chat",
+      "owner": {
+        "employee_id": 15,
+        "name": "Soren Adey",
+        "role": "Support Agent",
+        "team": "Support",
+        "team_label": "Helpful Hands Hangar"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": null,
+    "topic_label": "Office of Miscellaneous Matters",
+    "cc": [],
+    "also": [],
+    "channel_label": "Chat",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-21",
+  "log_file": "logs/trace-example-21.jsonl",
+  "execution_time_seconds": 0.005,
+  "scenario": "other",
+  "resolved_how": "none",
+  "branch_id": "other-unanswered",
+  "input": {
+    "kind": "message",
+    "thread_id": "F36",
+    "text": "Can I book the Coruscant store for a private birthday party?",
+    "from": "kovankettleby@email.com",
+    "name": "Kovan Kettleby",
+    "channel": "chat",
+    "received_at": "2026-10-25T15:05:42.972Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-22",
+      "mem-18",
+      "mem-29"
+    ],
+    "written": [
+      "mem-44"
+    ]
+  }
+}

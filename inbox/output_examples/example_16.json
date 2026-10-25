@@ -1,0 +1,159 @@
+{
+  "run_id": "example-16",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "owner": {
+      "employee_id": 6,
+      "name": "Tomas Keller",
+      "role": "Account Executive",
+      "team": "Sales",
+      "team_label": "Bargain Bazaar Brigade"
+    },
+    "reasons": [
+      "quote for 25 x Vanta Arc Trainer: tier squad (10% off), unit 170.10 GC, total 4252.50 GC, lead 12 days; parts Humming emitter coil (Mk 1) 25 of 2232, Smug status LED (Mk 2) 50 of 1070. Held for the quote owner with the draft attached; a human sends quotes"
+    ],
+    "cited_rows": [
+      "intake_runtime:F31 (local)",
+      "responsibility:rfq",
+      "holiday_2026:6@2026-10-25",
+      "employees:6",
+      "companyhierarchy:6",
+      "channels:email",
+      "trust_ledger:rfq",
+      "wiki_what_may_leave",
+      "products:FS-B01",
+      "bulk_pricing:squad",
+      "bom:FS-B01:PT-0001",
+      "bom:FS-B01:PT-0002",
+      "policy:rfq"
+    ],
+    "recommendation": "Quote ready: 25 x Vanta Arc Trainer, tier squad, 4252.50 GC. Sales checks it and sends it.",
+    "draft": {
+      "text": "Hello Fiora Fennick,\n\nThank you for your request. Here is your quote.\nProduct: Vanta Arc Trainer\nQuantity: 25\nTier: squad (10% off)\nUnit price: 170.10 GC\nTotal: 4252.50 GC\nLead time: 12 days\nParts needed:\n- Humming emitter coil (Mk 1) x 25\n- Smug status LED (Mk 2) x 50\nThis quote is valid 14 days.\n\nBest regards,\nFarstrand Sales team",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "template/quote"
+    },
+    "queued_for": {
+      "owner_id": 6,
+      "backup_id": 14,
+      "owner_name": "Tomas Keller",
+      "backup_name": null,
+      "role": "rfq owner",
+      "attachments": {
+        "quote": {
+          "sku": "FS-B01",
+          "quantity": 25,
+          "tier": "squad",
+          "unit_price": 170.1,
+          "discount_pct": 10,
+          "total": 4252.5,
+          "currency": "GC",
+          "parts": [
+            {
+              "part_id": "PT-0001",
+              "part_name": "Humming emitter coil (Mk 1)",
+              "needed": 25,
+              "stock": 2232,
+              "short": false
+            },
+            {
+              "part_id": "PT-0002",
+              "part_name": "Smug status LED (Mk 2)",
+              "needed": 50,
+              "stock": 1070,
+              "short": false
+            }
+          ]
+        },
+        "cited": [
+          "products:FS-B01",
+          "bulk_pricing:squad",
+          "bom:FS-B01:PT-0001",
+          "bom:FS-B01:PT-0002",
+          "policy:rfq"
+        ]
+      },
+      "team": "Sales",
+      "team_label": "Bargain Bazaar Brigade",
+      "backup_team": null,
+      "topic_label": "Bulk Bargains Bazaar",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Direct email",
+      "owner": {
+        "employee_id": 6,
+        "name": "Tomas Keller",
+        "role": "Account Executive",
+        "team": "Sales",
+        "team_label": "Bargain Bazaar Brigade"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Sales",
+    "team_label": "Bargain Bazaar Brigade",
+    "backup_team": null,
+    "topic_label": "Bulk Bargains Bazaar",
+    "cc": [],
+    "also": [],
+    "channel_label": "Direct email",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-16",
+  "log_file": "logs/trace-example-16.jsonl",
+  "execution_time_seconds": 0.008,
+  "scenario": "rfq",
+  "resolved_how": "declared",
+  "branch_id": "rfq-quote",
+  "input": {
+    "kind": "message",
+    "thread_id": "F31",
+    "text": "Hello, could you send us a quote for 25 Vanta Arc Trainers for our academy? Thank you.",
+    "from": "fiorafennick@email.com",
+    "name": "Fiora Fennick",
+    "channel": "email",
+    "received_at": "2026-10-25T15:05:42.916Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [],
+    "written": [
+      "mem-38"
+    ]
+  }
+}

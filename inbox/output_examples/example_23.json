@@ -1,0 +1,141 @@
+{
+  "run_id": "example-23",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "owner": {
+      "employee_id": 15,
+      "name": "Soren Adey",
+      "role": "Support Agent",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "severity 3 (3), the customer reads as vent (no earlier threads); a calm acknowledgement closes it. Both critics passed; the reply waits for the complaint owner with the draft attached"
+    ],
+    "cited_rows": [
+      "intake_runtime:F38 (local)",
+      "responsibility:complaint",
+      "holiday_2026:15@2026-10-25",
+      "employees:15",
+      "companyhierarchy:15",
+      "channels:email",
+      "trust_ledger:complaint",
+      "wiki_what_may_leave",
+      "world_threads"
+    ],
+    "recommendation": "vent: a calm reply closes it; no action",
+    "draft": {
+      "text": "Hello Marek Marshgate,\n\nThank you for letting us know. We are sorry the order did not arrive as you hoped, and we have noted it.\n\nBest regards,\nFarstrand Support team",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    },
+    "queued_for": {
+      "owner_id": 15,
+      "backup_id": 27,
+      "owner_name": "Soren Adey",
+      "backup_name": null,
+      "role": "complaint owner",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar",
+      "backup_team": null,
+      "topic_label": "Grievance Hall",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Direct email",
+      "owner": {
+        "employee_id": 15,
+        "name": "Soren Adey",
+        "role": "Support Agent",
+        "team": "Support",
+        "team_label": "Helpful Hands Hangar"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": null,
+    "topic_label": "Grievance Hall",
+    "cc": [],
+    "also": [],
+    "channel_label": "Direct email",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "RefundReader",
+      "role": "refund meaning read"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    },
+    {
+      "name": "WorldModel",
+      "role": "customer and product history"
+    },
+    {
+      "name": "Severity",
+      "role": "severity gate"
+    }
+  ],
+  "trace_id": "example-23",
+  "log_file": "logs/trace-example-23.jsonl",
+  "execution_time_seconds": 0.005,
+  "scenario": "complaint",
+  "resolved_how": "declared",
+  "branch_id": "complaint-vent",
+  "input": {
+    "kind": "message",
+    "thread_id": "F38",
+    "text": "Hi, my package arrived with a dented box.",
+    "from": "marekmarshgate@email.com",
+    "name": "Marek Marshgate",
+    "channel": "email",
+    "received_at": "2026-10-25T15:05:42.985Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-4",
+      "mem-41",
+      "mem-39",
+      "mem-17",
+      "mem-6"
+    ],
+    "written": [
+      "mem-46"
+    ]
+  }
+}

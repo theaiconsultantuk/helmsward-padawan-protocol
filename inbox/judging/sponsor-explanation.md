@@ -17,10 +17,11 @@ Kristof Kennes, who registered the layer: "Implementing the USL was so easy that
 
 ## Meterless Engines and Nightshift
 
-Two engines are implemented in `src/engines/`, both our own code following the Meterless specs.
+Three engines are implemented in `src/engines/`, all our own code following the Meterless specs.
 
 - Scout Intent classifies the message, checks for injection, redacts PII and issues an HMAC-signed execution contract that the loop verifies before any model call; a blocked message escalates without a model call. Test: the Scout eval harness (copied from Meterless, Apache-2.0) exits 0 on the 32-example v1 set, run on 23 Oct 2026. That set is a smoke test, not a benchmark. Report: [engine-scout-evals.md](engine-scout-evals.md). Unit tests: `scout_contract`, `scout_inbox`.
 - H-MEM stores one sourced memory per run and reads memories before planning. Test: the two-run proof, where run B's `planner.plan` names the chunk it skipped because run A wrote it: [engine-hmem-two-run.md](engine-hmem-two-run.md). Retrieval is lexical; no embedder is used.
+- World Model reads the customer's history before a complaint is answered and tells a vent from a genuine or legal complaint; its work shows as the `world_context` line in the trace. Test: the Meterless conformance runner scores 8/8 on the reference and on our bundle: [engine-world-model.md](engine-world-model.md), [engine-world-model-conformance.md](engine-world-model-conformance.md).
 
 Nightshift is the primary provider. The app calls `POST {METERLESS_BASE_URL}/chat/completions` (the OpenAI-style endpoint) with the `meterless-app` header and a runtime token, on a pinned route, `nvidia/nemotron-3.5-lightning-30b-a3b`. The model that answered is read from the response body and logged on every call, so the trace shows what handled the request, not what was asked for. `npm run doctor` sends one request to the primary route and warns when Nightshift answered from a local lane. Caveat: Nightshift chooses the lane, and on our first probe every route, including the Nemotron ones, was answered by its local Llama-3.2-1B lane ([nightshift-first-call.json](nightshift-first-call.json)), so we claim Nemotron only for the runs whose traces say so.
 

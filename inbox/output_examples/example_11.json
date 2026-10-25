@@ -1,0 +1,130 @@
+{
+  "run_id": "example-11",
+  "status": "success",
+  "output": {
+    "decision": "hold",
+    "owner": {
+      "employee_id": 27,
+      "name": "Galmel Kernfield",
+      "role": "Senior Support Agent",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "refund weight 0.55 is under the floor 0.8; owner 15 out, backup 27 in; memory consulted. Both critics passed; the reply waits for backup 27 with the draft attached"
+    ],
+    "cited_rows": [
+      "intake_runtime:F26 (local)",
+      "amount from the message",
+      "policy:refund",
+      "holiday_2026:15@2026-10-27",
+      "holiday_2026:27@2026-10-27",
+      "employees:15",
+      "employees:27",
+      "companyhierarchy:15",
+      "companyhierarchy:27",
+      "channels:contact-form",
+      "trust_ledger:refund",
+      "wiki_what_may_leave"
+    ],
+    "draft": {
+      "text": "Hello Brisk Brightmoor,\n\nYou wrote about \"I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son\". We are looking into your refund request.\n\nBest regards,\nFarstrand Support team",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "sample/rules"
+    },
+    "queued_for": {
+      "owner_id": 15,
+      "backup_id": 27,
+      "owner_name": "Soren Adey",
+      "backup_name": "Galmel Kernfield",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar",
+      "backup_team": "Support",
+      "topic_label": "Department of Giving It Back",
+      "cc": [],
+      "also": [],
+      "status": "open",
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Contact form",
+      "owner": {
+        "employee_id": 27,
+        "name": "Galmel Kernfield",
+        "role": "Senior Support Agent",
+        "team": "Support",
+        "team_label": "Helpful Hands Hangar"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": "Support",
+    "topic_label": "Department of Giving It Back",
+    "cc": [],
+    "also": [],
+    "channel_label": "Contact form",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft",
+      "model": "sample/rules"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-11",
+  "log_file": "logs/trace-example-11.jsonl",
+  "execution_time_seconds": 0.01,
+  "scenario": "refund",
+  "resolved_how": "declared",
+  "branch_id": "under-floor",
+  "input": {
+    "kind": "message",
+    "thread_id": "F26",
+    "text": "I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.",
+    "from": "briskbrightmoor@email.com",
+    "name": "Brisk Brightmoor",
+    "channel": "contact-form",
+    "received_at": "2026-10-25T15:05:42.874Z",
+    "as_of": "2026-10-27"
+  },
+  "memory": {
+    "read": [
+      "mem-27",
+      "mem-31",
+      "mem-28",
+      "mem-26",
+      "mem-14"
+    ],
+    "written": [
+      "mem-32"
+    ]
+  }
+}
