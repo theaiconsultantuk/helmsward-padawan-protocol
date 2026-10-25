@@ -14,3 +14,13 @@
 - 2026-10-23: The front end's contract is inbox/openapi.yaml plus inbox/docs/FRONTEND-SPEC.md; the service serves reference pages at GET / and GET /dashboard, driven only by the API, which the team's own front end may replace.
 - 2026-10-23: The live instance on Kristof's VM is reachable for the team through a Cloudflare tunnel until after the hackathon; POST routes need a bearer token handed over directly (never in the repo); live runs spend NVIDIA free-tier tokens, so develop against sample mode. Details: members/kristof.md.
 - 2026-10-23: The hosted team instance at https://jedi.blastworks.ai follows main on both sides (pages on netcup, API on the dev VM) and is switched off on 29 Oct 2026; writes are token-protected, reads are open. It replaces the Cloudflare tunnel.
+- 2026-10-24: Prize split, in writing: equal four-way cash; the DGX Spark goes to Kristof. Supersedes the 22 Oct proposal.
+- 2026-10-24: No fifth team member (prize split and late onboarding). Outside UX feedback, if any, is informal and only if the rules allow it.
+- 2026-10-24: One tone throughout: tongue-in-cheek Star Wars, backend labels too, but API fields and decision values stay unchanged. Currency is Galactic Credits (GC).
+- 2026-10-25: Hosted demo: keep the team token for now and explain it (option 3); Kristof removes it in a PR before judging. Teardown 5 Nov 2026 (results expected about 4 Nov).
+- 2026-10-25: Dean owns the deck (D2) and follows the story order of Jocke's video. Simulated parts are marked as simulated; no keys on any slide.
+- 2026-10-25: "Approval chain" is renamed "Sign-off" (it covers complaints, quotes and refunds). Draft sign-offs read "Farstrand <Team> team".
+- 2026-10-25: Each demo scenario run gets a fresh customer, so a repeat is not closed as a duplicate; s04 and s10 keep their fixed customers by design.
+- 2026-10-25: The contact page offers Live or Simulated. Simulated sends options.sample_mode:true and is never counted (no decision row, no publish).
+- 2026-10-25: The held-out set (inbox/judging/heldout/) is never used to tune rules. Its result is reported as is: 13/20 on main in sample mode.
+- 2026-10-25: Proposed to Kristof, not yet agreed: a thank-you that carries a request holds; an over-limit refund reaches the amount approver even when the order number is unknown.
