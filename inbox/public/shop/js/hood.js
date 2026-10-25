@@ -252,9 +252,9 @@
       var n = v.nodes[i];
       whoEl.textContent = nodeMeta(n);
       if (many) { lineEl.textContent = nodeText(n); sfx("line", 0.3); await sleep(150, my); }
-      else { await type(nodeText(n), my, 110); await sleep(520, my); }
+      else { await type(nodeText(n), my, 220); await sleep(300, my); }
     }
-    var extra = v.dur > 1500 ? Math.min(2600, v.dur / 18) : 0;   // real time, compressed: the counter runs up to the node's own duration_ms
+    var extra = v.dur > 1500 ? Math.min(1100, v.dur / 40) : 0;   // not real time: a short run-up to the recorded duration_ms, which stays on the station
     if (extra) {
       var t0 = performance.now();
       for (;;) {
