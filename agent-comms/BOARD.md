@@ -11,9 +11,8 @@ Updated: 2026-10-24. Status: BUILD phase, core service built on main, now the su
 > **RULE FOR THE WHOLE TEAM (Kristof, 25 Oct): DO NOT ADD ANY PRODUCTS OR CHANGE PRODUCT DESCRIPTIONS.**
 > The storefront catalogue (`inbox/public/shop/data/catalogue.json`) and the agent's product data (`kristof/data/products.csv` → `inbox/data/synthetic/products.csv`, Zetaris) are kept identical and are checked against each other by the storefront parity test; the demo scenarios answer from them. Any change there, even one word, breaks the parity test or changes what the agent tells a judge. Need something changed? Ask Kristof first.
 
-> **TESTING THE LIVE DEMO (Kristof, 25 Oct)**
-> - Link: `https://jedi.blastworks.ai/shop/contact.html?token=<team token>`. The token is the one Kristof shared with you; never paste it in the repo, the board, a screenshot or the video. Open the link with `?token=` once: the page removes it from the address bar and remembers it in that browser, so afterwards `https://jedi.blastworks.ai/shop/contact.html` works there.
-> - Yes, the bearer token still applies: without it the page loads, the FAQ and the scenario list show, but Submit is refused (401).
+> **TESTING THE LIVE DEMO (Kristof, updated at hand-in)**
+> - Link: `https://jedi.blastworks.ai/shop/contact.html`. No token any more: from hand-in the hosted instance runs open for the judges.
 > - **Do NOT use s04 ("Second refund from the same client") or s10 ("Delivery to a suspended planet").** They always send as the same seeded customer (Lira Venn, Cass Holm), so each gives one clean answer; a second run within 7 days closes as "duplicate". The live inbox was cleared on 25 Oct so judges get the real answer.
 > - Every other scenario is fine: each click gets a fresh random customer. Quick (seconds): s05, s06, s07, s11, s12. About 20 s: s09. Slow, live model (1-4 min, the page shows "Still working"): s01, s02, s03, s08, s13, s14.
 > - A scenario click only fills the form; press Submit dispatch to run it. Every run lands in the live inbox; SEND only records the reply (no email goes out).
@@ -29,7 +28,7 @@ Hero demo thread: owner on holiday, refund over the limit, reply held, backup pe
 | T2 | 24 seed threads with expected outcomes | Kristof wrote them; Dean reviews | | review | Outcomes are in `kristof/data/threads/threads.jsonl` and run as the grid test. Dean's review is task D4 |
 | T3 | Decision gates: classify, trust floor, risk check, send/hold/escalate, 2 rounds max, trace | Kristof (built), Paul verifies | | built, to verify | `inbox/src/gates.mjs`, `inbox/src/loop.mjs`, `inbox/tests/gates.test.mjs`. Paul: run `npm test` and read one trace |
 | T4 | Engines: H-MEM, Scout, World Model; Nightshift provider with fallback | Kristof | | built | `inbox/src/engines/`. Local-lane fallback proof still open (CP7) |
-| T5 | `POST /run`, sample mode, reference pages, hosted instance | Kristof (API and reference pages) | | built | https://jedi.blastworks.ai, follows main, stays live after the hackathon (Kristof, 25 Oct); runs need the team token, judges get the link with it via the submission form |
+| T5 | `POST /run`, sample mode, reference pages, hosted instance | Kristof (API and reference pages) | | built | https://jedi.blastworks.ai, follows main, stays live after the hackathon (Kristof, 25 Oct); open for the judges from hand-in (no token) |
 | T5b | Team front end: Totality concept as the real UI on the API | Jocke | | on hold (size) | PR #22 held 24 Oct: adds about 29.8 MB (12 `.glb` models about 25.6 MB) and turns the repo-size check red. Jocke to shrink or host the models, update his branch from main (BOARD.md T5 conflict likely), and list libraries, fonts, licences and AI tools |
 | T6 | README, video, deck, sponsor explanations, fresh-clone test | Dean + Paul | | open | README and judging pack exist (Kristof). Deck, final video, submission form still open: D1 to D6 |
 | D1 | Fresh-clone test on your own machine, from the README only, with `SAMPLE_MODE=true`. Log every snag in `members/dean.md` | Dean | | open | Due 24 Oct. Fresh eyes is the point, do not ask Kristof first |
