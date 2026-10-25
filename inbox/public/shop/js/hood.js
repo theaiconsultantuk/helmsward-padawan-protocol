@@ -282,9 +282,11 @@
     var a = el("div"); a.appendChild(el("div", "hood__label", "Decision")); a.appendChild(el("p", "hood__v", vd[0])); a.appendChild(el("p", "hood__q", vd[1]));
     var b = el("div"); b.appendChild(el("div", "hood__label", "Where it went"));
     var who = j.reached_human && j.reached_human.who ? "Waiting on " + str(j.reached_human.who.name) + (j.team_label ? " (" + str(j.team_label) + ")" : "") + "." : (j.team_label ? "Team: " + str(j.team_label) + "." : "");
-    var total = 0, all = Array.isArray(j.nodes) && j.nodes.length > 0;
-    (j.nodes || []).forEach(function (n) { if (typeof n.duration_ms === "number") total += n.duration_ms; else all = false; });
-    b.appendChild(el("p", "hood__why", [who, all ? "The run took " + fmt(total) + " in all." : ""].filter(Boolean).join(" ")));
+    // The server's wall time (start to decision) when it has one; older runs only have node times, so say "about" for their sum.
+    var total = 0, all = Array.isArray(j.nodes) && j.nodes.length > 0, wall = typeof j.wall_ms === "number" && isFinite(j.wall_ms);
+    if (!wall) (j.nodes || []).forEach(function (n) { if (typeof n.duration_ms === "number") total += n.duration_ms; else all = false; });
+    var took = wall ? "The run took " + fmt(j.wall_ms) + " in all." : (all ? "The steps add up to about " + fmt(total) + "." : "");
+    b.appendChild(el("p", "hood__why", [who, took].filter(Boolean).join(" ")));
     verdictEl.appendChild(a); verdictEl.appendChild(b);
     verdictEl.className = "hood__verdict is-on";
     try { verdictEl.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (e) { /* position only */ }

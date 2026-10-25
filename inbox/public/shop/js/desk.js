@@ -85,6 +85,18 @@
     });
     return b;
   }
+  // P57: "★ Full journey" on a run whose Sign-off follows the case to the end. chain.js decides (the same plan() the
+  // dialog uses), so the rule lives in one place. Takes a journey or a promise of one; stays hidden until it says yes.
+  var STAR_TITLE = { refund: "Sign-off follows it to an approved refund and a 5-star review", repeat: "Sign-off follows it to a declined repeat claim",
+    legal: "Sign-off follows it through Legal's risk check to a goodwill refund" };
+  function star(j) {
+    var s = el("span", null, "dchip desk__star"); s.hidden = true;
+    var icon = el("span", "★"); icon.setAttribute("aria-hidden", "true"); s.appendChild(icon); s.appendChild(el("span", " Full journey"));
+    Promise.resolve(j).then(function (x) { return x && window.JP_CHAIN && window.JP_CHAIN.fullJourney ? window.JP_CHAIN.fullJourney(x) : ""; })
+      .then(function (k) { if (k) { s.hidden = false; s.title = STAR_TITLE[k]; } }, function () { /* no journey: no star */ });
+    return s;
+  }
+
   function cardChainButton(rid, q) { return rid ? chainButton(rid) : (q && q.ticket_id ? queueChainButton(q) : null); }
 
   function renderCounters(c) {
@@ -105,6 +117,7 @@
     var top = el("div", null, "dcard__top");
     top.appendChild(el("strong", q.ticket_id || rid || q.run_id));
     top.appendChild(el("span", q.scenario || q.category || "", "dchip"));
+    if (j) top.appendChild(star(j));
     if (q.status === "handled") top.appendChild(el("span", "handled", "dchip dchip--ok"));
     else if (q.status === "follow_up") top.appendChild(el("span", "follow up", "dchip dchip--warn"));
     li.appendChild(top);
@@ -152,6 +165,7 @@
       top.appendChild(el("strong", r.run_id));
       top.appendChild(el("span", r.scenario || r.kind || "", "dchip"));
       top.appendChild(el("span", r.decision || "", "dchip dchip--" + (r.decision === "send" ? "ok" : "warn")));
+      top.appendChild(star(journey(r.run_id)));
       if (r.execution_time_seconds) top.appendChild(el("span", Math.round(r.execution_time_seconds) + " s", "muted"));
       top.appendChild(el("span", when(r.at), "muted"));
       li.appendChild(top);
@@ -185,7 +199,7 @@
       (v[2] || []).slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
       var rids = q.map(function (x) { return x.run_id || byThread[x.ticket_id] || ""; });
       return Promise.all(rids.map(function (id) { return id ? journey(id).catch(function () { return null; }) : Promise.resolve(null); }))
-        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton }); setStatus("Updated " + new Date().toLocaleTimeString()); });
+        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton, star: star }); setStatus("Updated " + new Date().toLocaleTimeString()); });
     }).catch(function (e) { setStatus(e.message, true); });
   }
   function start() {

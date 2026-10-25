@@ -11,6 +11,14 @@
 .desk__access input { flex: 1 1 180px; min-width: 0; min-height: 40px; padding: 8px 12px; background: #050506; color: #F2EEE6; border: 1px solid #8A8A8F; font: 400 15px/1.4 var(--font, Manrope, sans-serif); }
 .desk__access input:focus { outline: 2px solid #FF5A1F; outline-offset: 1px; border-color: #FF5A1F; }
 .desk__access-note { flex: 1 0 100%; margin: 0; color: #8A8A8F; font-size: 13px; line-height: 1.5; }
+/* P57: how to read the desk, and the "★ Full journey" chip on runs whose Sign-off follows the case to the end */
+.desk__guide { margin: 12px 0 20px; padding: 12px 16px; border: 1px solid rgba(138, 138, 143, .24); border-left: 2px solid #FF5A1F; background: #0a0a0c; max-width: 720px; }
+.desk__guide-h { margin: 0 0 4px; color: #FF5A1F; font: 500 12px/1.3 var(--font, Manrope, sans-serif); letter-spacing: .14em; text-transform: uppercase; }
+.desk__guide-p { margin: 0; color: #F2EEE6; font-size: 15px; line-height: 1.5; }
+.desk__guide-p b { color: #FF5A1F; font-weight: 500; }
+.desk__guide-star { color: #FF5A1F; }
+.desk__star { border-color: #FF5A1F; color: #FF5A1F; white-space: nowrap; }
+.desk__star[hidden] { display: none; }
 .desk__h { font: 800 clamp(30px, 4vw, 48px)/.9 var(--display, "Big Shoulders Display", Impact, sans-serif); text-transform: uppercase; margin: 40px 0 16px; color: #F2EEE6; }
 .desk section { margin: 0; }
 .muted { color: #8A8A8F; font-size: 13px; }
