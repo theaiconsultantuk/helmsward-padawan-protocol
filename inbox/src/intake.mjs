@@ -6,6 +6,7 @@ import { config } from "./config.mjs";
 import { RUNTIME_DIR, parseCsv, publishFile, q, serial } from "./decisions.mjs";
 
 export const INTAKE_HEADER = ["thread_id", "received_at", "channel", "sender_name", "sender_email", "subject", "body", "scenario", "category"];
+export const INTAKE_CAP = 5000;
 export const INTAKE_FILE = "intake.csv";
 export const INTAKE_TABLE = "intake_runtime";
 
@@ -51,6 +52,8 @@ const nextId = (rows) => `F${rows.reduce((m, r) => { const n = /^F(\d+)$/.exec(r
 export function appendIntake({ message, from, name, subject, channel, scenario, received_at } = {}, { runtimeDir = RUNTIME_DIR, now = () => new Date() } = {}) {
   return serial(async () => {
     const rows = readIntake({ runtimeDir });
+    // einh's pick (25 Oct 2026): the whole file is rewritten per run, so message runs stop at 5,000 rows (Dean X15).
+    if (rows.length >= INTAKE_CAP) throw Object.assign(new Error(`intake full: ${INTAKE_CAP} rows (cap); message runs refused`), { name: "IntakeFull" });
     const f = String(from ?? "").trim();
     const isEmail = EMAIL.test(f);
     const body = String(message ?? "");

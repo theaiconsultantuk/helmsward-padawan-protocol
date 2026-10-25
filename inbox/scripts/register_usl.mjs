@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync, mkdtempSync, copyFileSync, existsSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
+import { isMain as isMainModule } from "../src/main_guard.mjs";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -95,7 +96,7 @@ export function renderSql(ts = TABLES) {
 }
 
 const { values } = parseArgs({ options: { print: { type: "boolean" }, apply: { type: "boolean" } }, strict: false });
-const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+const isMain = isMainModule(import.meta.url);
 if (isMain) {
   writeFileSync(SQL_OUT, renderSql());
   console.log(`wrote ${SQL_OUT} (${TABLES.length} tables)`);

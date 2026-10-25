@@ -1,3 +1,4 @@
+// A random email suffix prevents free sample runs pre-poisoning scenario buttons (Dean S4/L9); s04/s10 retain fixed customers.
 // Fictional name parts for GET /demo/client: a fresh client per request so a judge's repeated demo never meets a prior refund.
 // 40 given names and 40 family names, invented for the Jedi Pack fiction; none is a famous person's name and none is in customers.csv.
 // tests/demo_api.test.mjs checks all 1600 combinations against customers.csv and every thread sender_email.
@@ -16,8 +17,9 @@ export const FAMILY_NAMES = [
   "Fogharrow", "Gablecroft", "Heatherby", "Ivybank", "Juniperly", "Knollwood", "Larchmont", "Mistral", "Netherby", "Orchardly",
 ];
 
-// {name, email, generated: true}; email is <given><family>@email.com in lower case
+// {name, email, generated: true}; a fresh six-character base-36 suffix per request.
 export function generateClient(pick = randomInt) {
   const given = GIVEN_NAMES[pick(GIVEN_NAMES.length)], family = FAMILY_NAMES[pick(FAMILY_NAMES.length)];
-  return { name: `${given} ${family}`, email: `${given}${family}@email.com`.toLowerCase(), generated: true };
+  const suffix = Array.from({ length: 6 }, () => "0123456789abcdefghijklmnopqrstuvwxyz"[pick(36)]).join("");
+  return { name: `${given} ${family}`, email: `${given}${family}.${suffix}@email.com`.toLowerCase(), generated: true };
 }

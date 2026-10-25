@@ -130,6 +130,11 @@ export function trustFloor(facts, gates, { ledgerAdjust = { affirmed: 0, rejecte
   return { weight, floor, under: weight < floor, category };
 }
 
+// Dean X16, einh's pick "Allow known amounts" (25 Oct 2026): refund text may name only ticket, customer or policy amounts.
+export const GC_AMOUNT = /\b(\d[\d.,]*)\s*(?:gc|galactic credits?)\b/gi;
+const gcAmounts = (s) => [...String(s ?? "").matchAll(GC_AMOUNT)]
+  .map((m) => Number(m[1].replace(/,/g, "").replace(/\.$/, ""))).filter(Number.isFinite);
+
 export function hardRisk(facts, draft = null) {
   const reasons = [];
   const limit = facts.policy_limit;
@@ -142,6 +147,12 @@ export function hardRisk(facts, draft = null) {
   if (draft?.promises?.refund_amount != null && limit != null && draft.promises.refund_amount > limit) reasons.push("draft promises refund above the limit");
   // a ticket whose scenario reads no policy row has no limit: a refund promised there has nothing behind it (Codex review 7, HIGH)
   if (draft?.promises?.refund_amount != null && limit == null) reasons.push("draft promises a refund with no policy limit behind it");
+  if (facts.category === "refund" || draft?.promises?.refund_amount != null) {
+    const known = new Set([facts.amount, facts.policy_limit].filter((x) => x != null).map(Number));
+    for (const text of [facts.body, facts.follow_up_body, facts.subject]) for (const x of gcAmounts(text)) known.add(x);
+    const foreign = gcAmounts(draft?.text).find((x) => !known.has(x));
+    if (foreign !== undefined) reasons.push(`draft names ${foreign} GC, not the ticket amount (${facts.amount ?? "none"})`);
+  }
   // refunds are mentioned only on refund requests (einh, 24 Oct 2026; questions may quote the policy): the reason, or null, from one place
   const rr = refundRuleReason(facts, draft);
   if (rr) reasons.push(rr);

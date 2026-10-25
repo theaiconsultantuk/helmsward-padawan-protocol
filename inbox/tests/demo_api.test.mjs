@@ -86,7 +86,7 @@ test("GET /demo/client: 20 draws are 20 generated clients, none a customer or a 
     assert.equal(c.generated, true);
     const [g, f] = c.name.split(" ");
     assert.ok(GIVEN_NAMES.includes(g) && FAMILY_NAMES.includes(f), c.name);
-    assert.equal(c.email, `${g}${f}@email.com`.toLowerCase());
+    assert.match(c.email, new RegExp(`^${g}${f}\\.[0-9a-z]{6}@email\\.com$`, "i"));
     assert.ok(!senders.has(c.email) && !customers.some((x) => x.email.toLowerCase() === c.email && x.name === c.name), c.email);
   }
   assert.equal((await get("/demo/client")).status, 200, "no scenario is a generated client too");
