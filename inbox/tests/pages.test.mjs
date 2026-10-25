@@ -17,7 +17,7 @@ let server, base;
 
 before(async () => {
   server = createServer({
-    cfg: config({ API_TOKEN: "",  SAMPLE_MODE: "true" }),
+    cfg: config({ API_TOKEN: "", CORS_ORIGIN: undefined, SAMPLE_MODE: "true" }),
     deps: { dir, runtimeDir: dir, logsDir, memoryDir, quiet: true, publish: async () => ({ published: true, uncached: true }) },
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
@@ -25,7 +25,8 @@ before(async () => {
 });
 after(() => server.close());
 
-const get = (p) => fetch(base + p);
+// fetch decompresses gzip automatically; size checks here request identity bytes.
+const get = (p) => fetch(base + p, { headers: { "Accept-Encoding": "identity" } });
 const post = (p, body) => fetch(base + p, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const notFound = async (p) => {
   const r = await get(p);
@@ -35,11 +36,11 @@ const notFound = async (p) => {
   assert.equal(b.error.type, "NotFound", p);
 };
 
-test("GET /dashboard is html with a correct Content-Length and no-store", async () => {
+test("GET /dashboard is html with a correct Content-Length and no-cache", async () => {
   const r = await get("/dashboard");
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-type"), "text/html; charset=utf-8");
-  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal(r.headers.get("cache-control"), "no-cache");
   const buf = Buffer.from(await r.arrayBuffer());
   assert.equal(Number(r.headers.get("content-length")), buf.length);
 });
@@ -48,7 +49,7 @@ test("static files carry their content type", async () => {
   const js = await get("/static/dashboard.js");
   assert.equal(js.status, 200);
   assert.equal(js.headers.get("content-type"), "application/javascript; charset=utf-8");
-  assert.equal(js.headers.get("cache-control"), "no-store");
+  assert.equal(js.headers.get("cache-control"), "public, max-age=300");
   const css = await get("/static/style.css");
   assert.equal(css.status, 200);
   assert.match(css.headers.get("content-type"), /^text\/css/);
@@ -165,11 +166,11 @@ test("GET /shop and /shop/ redirect to /shop/index.html", async () => {
   assert.equal((await post("/shop", {})).status, 405);
 });
 
-test("storefront files carry their content type, no-store and CORS", async () => {
+test("storefront files carry their content type, no-cache and CORS", async () => {
   const h = await get("/shop/index.html");
   assert.equal(h.status, 200);
   assert.equal(h.headers.get("content-type"), "text/html; charset=utf-8");
-  assert.equal(h.headers.get("cache-control"), "no-store");
+  assert.equal(h.headers.get("cache-control"), "no-cache");
   assert.equal(h.headers.get("access-control-allow-origin"), "*");
   const buf = Buffer.from(await h.arrayBuffer());
   assert.equal(Number(h.headers.get("content-length")), buf.length);
