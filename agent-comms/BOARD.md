@@ -1,12 +1,12 @@
 ---
 title: "Board (orchestrator edits this; everyone reads it)"
-description: "Updated: 2026-10-24. Status: BUILD phase."
+description: "Updated: 2026-10-25. Status: BUILD phase."
 date: "2026-10-24"
 tags: [team, board]
 ---
 
 # Board (orchestrator edits this; everyone reads it)
-Updated: 2026-10-24. Status: BUILD phase, core service built on main, now the submission package and the front end. Idea: Jedi Pack inbox (Kristof's FLOW and SCOUT). Freeze 26 Oct 23:59 UTC; submission closes 27 Oct 23:45 UTC.
+Updated: 2026-10-25. Status: BUILD phase, core service built on main, now the submission package and the front end. Idea: Jedi Pack inbox (Kristof's FLOW and SCOUT). Freeze 26 Oct 23:59 UTC; submission closes 27 Oct 23:45 UTC.
 
 > **RULE FOR THE WHOLE TEAM (Kristof, 25 Oct): DO NOT ADD ANY PRODUCTS OR CHANGE PRODUCT DESCRIPTIONS.**
 > The storefront catalogue (`inbox/public/shop/data/catalogue.json`) and the agent's product data (`kristof/data/products.csv` → `inbox/data/synthetic/products.csv`, Zetaris) are kept identical and are checked against each other by the storefront parity test; the demo scenarios answer from them. Any change there, even one word, breaks the parity test or changes what the agent tells a judge. Need something changed? Ask Kristof first.
@@ -74,6 +74,11 @@ Hero demo thread: owner on holiday, refund over the limit, reply held, backup pe
 | P33 | One brand across site, hub, docs, deck, infographic and videos. Ask Jocke for a one-page brand manual (colour hexes, fonts, logos, tone, video and deck rules), then reskin the hub to match | Jocke (manual), Paul + Claude (apply) | | asked Jocke (24 Oct), waiting | Starting point is `DESIGN.md` in PR #22 (void #050506, bone #F2EEE6, ember #FF5A1F, ash #8A8A8F; Big Shoulders Display and Manrope). Shop and agent names still to be picked from `brand.json` options. Paul sent Jocke the two logo options (medallion `10-four-avatar-circle.png`, desert scene `7-four-masked-codex-circle.png`) and the brand-manual request on 24 Oct; Jocke can suggest changes or take over the logo |
 | P34 | Schedule a team call Monday 26 Oct (final demo and video walk-through), plus a short check-in Tuesday 27 Oct. Freeze is Mon 26 Oct 23:59 UTC, submission closes Tue 27 Oct 23:45 UTC | Paul | | asked group 24 Oct | Collect windows with time zones; Paul can run a poll |
 | P35 | Confirm the `may_leave` fix on the hosted instance: run T30 (expect send) and T27 (expect escalate) on `jedi.blastworks.ai` | Kristof or Paul | | open | Needs the API token (write route). Hosted instance restarted about 16:34Z after #24 |
+| P36 | Desk: Teams view (kanban per team, traffic lights, proposed deadlines, simulated auto-escalation, demo clock) | Paul + Claude | | done 25 Oct | PR #44 merged. Page: `/shop/desk.html` |
+| P37 | Desk: Sign-off dialog (who signs, backup if out of office, simulated email; first two steps are the run's real record). Renamed from Approval chain | Paul + Claude | | done 25 Oct | PRs #43 and #45 merged |
+| P38 | Under the hood: removed the loud opening sound | Paul + Claude | | done 25 Oct | PR #46 merged. The panel clunk is still there; cut it too if it is still too loud |
+| P39 | Sign-off for a legal threat: Support then Legal signers, Head of Support and Head of Legal in Cc | Paul + Claude | | done 25 Oct | PR #47 merged. Checked on a local sample run, not yet on the hosted instance |
+| P40 | Hosted instance: pull main and restart so P36 to P39 show on `jedi.blastworks.ai/shop/desk.html`, then team feedback on the desk | Kristof (pull), team (feedback) | | open | Update sent to the group once Paul says send |
 
 ## Rules for today
 - Every task we work on goes on this board, with an owner and a status.
