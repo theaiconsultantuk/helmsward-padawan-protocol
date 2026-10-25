@@ -46,7 +46,10 @@
   var ac = null, master = null, soundOn = true, bufs = {};
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
-    master = ac.createGain(); master.gain.value = 0.6; master.connect(ac.destination);
+    master = ac.createGain(); master.gain.value = 0.6;
+    var lim = ac.createDynamicsCompressor();   // a limiter: overlapping sounds can no longer stack into a spike
+    lim.threshold.value = -14; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
+    master.connect(lim); lim.connect(ac.destination);
     var S = window.JP_HOOD_SOUNDS || {};
     Object.keys(S).forEach(function (k) {
       var bin = atob(S[k]), u = new Uint8Array(bin.length);
