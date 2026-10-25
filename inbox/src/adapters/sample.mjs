@@ -5,7 +5,7 @@ import { config, INBOX_ROOT } from "../config.mjs";
 import { readCsv } from "../csv.mjs";
 import { intakeRefundRows, readIntake } from "../intake.mjs";
 import { runLocal } from "../queries.mjs";
-import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS, refundRuleReason } from "../prompts.mjs";
+import { ACKNOWLEDGEMENT_TEMPLATE, SEVERITY_LEVELS, refundRuleReason, signOff } from "../prompts.mjs";
 
 const MODEL = "sample/rules";
 
@@ -202,7 +202,7 @@ export function gates(ticket) {
 // The ONE greeting and sign-off every sample reply wears. team defaults to Support; onBehalf adds the automatic-reply line, and is
 // only for replies composed from rows (never model drafts, which a human sends).
 export function frame(ticket, body, { team = "Support", onBehalf = false } = {}) {
-  const sign = `Best regards,\nFarstrand ${team} team`;
+  const sign = signOff(team);
   return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\n${sign}${onBehalf ? `\nSent automatically on behalf of the ${team} team.` : ""}`;
 }
 
