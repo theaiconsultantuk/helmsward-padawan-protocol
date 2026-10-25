@@ -1,0 +1,76 @@
+{
+  "status": "proposed",
+  "note": "Proposed deadlines in real hours, per topic. Not agreed with anyone yet. The desk demo clock only changes how fast age advances, never these numbers.",
+  "hours": {
+    "refund": 4,
+    "complaint": 2,
+    "legal": 1,
+    "rfq": 8,
+    "product": 8,
+    "customer_service": 4,
+    "question": 24,
+    "default": 8
+  },
+  "heads": {
+    "Engineering": {
+      "employee_id": 1,
+      "name": "Mara Solen",
+      "role": "Head of Engineering",
+      "team_label": "Wrench and Wizardry Workshop"
+    },
+    "Finance": {
+      "employee_id": 2,
+      "name": "Owen Briggs",
+      "role": "Head of Finance",
+      "team_label": "Vault of Counted Credits"
+    },
+    "People": {
+      "employee_id": 4,
+      "name": "Nia Calder",
+      "role": "Head of People",
+      "team_label": "Hall of Friendly Faces"
+    },
+    "Support": {
+      "employee_id": 7,
+      "name": "Mei-Ling Zhao",
+      "role": "Head of Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "Product": {
+      "employee_id": 21,
+      "name": "Merek Reedley",
+      "role": "Head of Product",
+      "team_label": "Gizmo Forge"
+    },
+    "Billing": {
+      "employee_id": 32,
+      "name": "Oldro Inkford",
+      "role": "Head of Billing",
+      "team_label": "Ledger and Order"
+    },
+    "Sales": {
+      "employee_id": 40,
+      "name": "Zanva Groveley",
+      "role": "Head of Sales",
+      "team_label": "Bargain Bazaar Brigade"
+    },
+    "Fulfilment": {
+      "employee_id": 56,
+      "name": "Fenek Thornwood",
+      "role": "Head of Fulfilment",
+      "team_label": "Crate and Courier Corps"
+    },
+    "Legal": {
+      "employee_id": 202,
+      "name": "Ilsa Wrenmoor",
+      "role": "Head of Legal",
+      "team_label": "Fine Print Chambers Annex"
+    }
+  },
+  "ceo": {
+    "employee_id": 201,
+    "name": "Paul Jedi",
+    "role": "CEO",
+    "team_label": "The High Council Balcony"
+  }
+}
