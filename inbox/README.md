@@ -338,7 +338,7 @@ All SQL comes from named templates in `src/queries.mjs` with whitelisted paramet
 
 The sample path decides all 24 authored threads to their authored outcome (`tests/loop_grid.test.mjs`) and the scenario grid (`tests/scenarios_grid.test.mjs`).
 
-The nine `input_examples/` carry no mode (examples 4 to 9 are the scenarios: FAQ hit, unanswered question, RFQ, vent, severe complaint, address change). Posted to a live service they run live (Zetaris, Nightshift, OpenJev); with `SAMPLE_MODE=true` the same files run on the cache. `output_examples/` were produced with `SAMPLE_MODE=true`, so they are exact for a sample run; a live run gives the same decision and cited rows with a model-written draft.
+The 23 `input_examples/` carry no mode (examples 4 to 9 are the scenarios: FAQ hit, unanswered question, RFQ, vent, severe complaint, address change; 10 to 23 add refunds over and under the limit, product questions, a quote, genuine, legal and vent complaints, an FAQ hit, a free-text message and a suspended delivery). Posted to a live service they run live (Zetaris, Nightshift, OpenJev); with `SAMPLE_MODE=true` the same files run on the cache. `output_examples/` were produced with `SAMPLE_MODE=true`, so they are exact for a sample run; a live run gives the same decision and cited rows with a model-written draft.
 
 ## Logs and traces
 
@@ -461,4 +461,4 @@ The evidence files are indexed in [judging/README.md](judging/README.md), regene
 - [judging/refund-chain.md](judging/refund-chain.md): one customer, two refund requests, run live (`node inbox/scripts/refund_chain.mjs`; `--sample` writes the deterministic twin): 40 GC held under the trust floor with the owner on holiday and the backup named, then 400 GC over the limit, escalated for approval after H-MEM read step 1's memory.
 - [judging/zetaris-register.md](judging/zetaris-register.md): every source registered, with row counts.
 - [judging/nightshift-models.json](judging/nightshift-models.json) and [judging/nightshift-first-call.json](judging/nightshift-first-call.json): Nightshift routes and the first probe.
-- [judging/traces/](judging/traces/trace-padme-live_1.jsonl): the five committed traces.
+- [judging/traces/](judging/traces/trace-padme-live_1.jsonl): the 38 committed traces.

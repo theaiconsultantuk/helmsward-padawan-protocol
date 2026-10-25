@@ -1,0 +1,196 @@
+{
+  "run_id": "example-18",
+  "status": "success",
+  "output": {
+    "decision": "escalate",
+    "owner": {
+      "employee_id": 15,
+      "name": "Soren Adey",
+      "role": "Support Agent",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar"
+    },
+    "reasons": [
+      "severity 10 (10 legal or safety), the customer reads as genuine (no earlier threads); a legal threat: a courtesy reply now, Support owns it and Legal reviews; escalated to Soren Adey (Support) and Mara Quillfeather (Legal), heads in copy"
+    ],
+    "cited_rows": [
+      "intake_runtime:F33 (local)",
+      "responsibility:complaint",
+      "holiday_2026:15@2026-10-25",
+      "employees:15",
+      "companyhierarchy:15",
+      "channels:email",
+      "trust_ledger:complaint",
+      "wiki_what_may_leave",
+      "world_threads",
+      "products:FS-B02",
+      "responsibility:legal",
+      "companyhierarchy:7",
+      "companyhierarchy:202",
+      "companyhierarchy:203"
+    ],
+    "recommendation": "courtesy reply now, Legal reviews; the send marks follow-up",
+    "draft": {
+      "text": "Hello Havi Hollowell,\n\nWe are sorry to read what happened with your Strand Emitter Hilt. We are looking into it now and will come back to you within two working days.\n\nBest regards,\nFarstrand Support team",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "template/courtesy"
+    },
+    "queued_for": {
+      "owner_id": 15,
+      "backup_id": 27,
+      "owner_name": "Soren Adey",
+      "backup_name": null,
+      "queue_file": "queue/F33.json",
+      "recommendation": "courtesy reply now, Legal reviews; the send marks follow-up",
+      "escalation": {
+        "severity": 10,
+        "kind": "genuine",
+        "legal": true,
+        "reasoning": "The message names a concrete failure, a repeat or a public audience.",
+        "handle": "A person should own this, repair the failure and answer the customer directly.",
+        "world": [
+          "product:jedi:FS-B02",
+          "fact_aa6e9086d79a5174"
+        ]
+      },
+      "role": "complaint owner",
+      "team": "Support",
+      "team_label": "Helpful Hands Hangar",
+      "backup_team": null,
+      "topic_label": "Grievance Hall",
+      "cc": [
+        {
+          "id": 7,
+          "name": "Mei-Ling Zhao",
+          "role": "Head of Support",
+          "email": "mei-ling.zhao@jedipack.com"
+        },
+        {
+          "id": 202,
+          "name": "Ilsa Wrenmoor",
+          "role": "Head of Legal",
+          "email": "ilsa.wrenmoor@jedipack.com"
+        }
+      ],
+      "also": [
+        {
+          "id": 203,
+          "name": "Mara Quillfeather",
+          "role": "Legal Counsel",
+          "email": "mara.quillfeather@jedipack.com"
+        }
+      ],
+      "status": "open",
+      "courtesy_reply": true,
+      "auto_reply": false,
+      "memory_note": null,
+      "channel_label": "Direct email",
+      "owner": {
+        "employee_id": 15,
+        "name": "Soren Adey",
+        "role": "Support Agent",
+        "team": "Support",
+        "team_label": "Helpful Hands Hangar"
+      }
+    },
+    "status": "open",
+    "auto_reply": false,
+    "memory_note": null,
+    "team": "Support",
+    "team_label": "Helpful Hands Hangar",
+    "backup_team": null,
+    "topic_label": "Grievance Hall",
+    "cc": [
+      {
+        "id": 7,
+        "name": "Mei-Ling Zhao",
+        "role": "Head of Support",
+        "email": "mei-ling.zhao@jedipack.com"
+      },
+      {
+        "id": 202,
+        "name": "Ilsa Wrenmoor",
+        "role": "Head of Legal",
+        "email": "ilsa.wrenmoor@jedipack.com"
+      }
+    ],
+    "also": [
+      {
+        "id": 203,
+        "name": "Mara Quillfeather",
+        "role": "Legal Counsel",
+        "email": "mara.quillfeather@jedipack.com"
+      }
+    ],
+    "courtesy_reply": true,
+    "channel_label": "Direct email",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    },
+    {
+      "name": "WorldModel",
+      "role": "customer and product history"
+    },
+    {
+      "name": "Severity",
+      "role": "severity gate"
+    }
+  ],
+  "trace_id": "example-18",
+  "log_file": "logs/trace-example-18.jsonl",
+  "execution_time_seconds": 0.008,
+  "scenario": "complaint",
+  "resolved_how": "declared",
+  "branch_id": "complaint-legal",
+  "input": {
+    "kind": "message",
+    "thread_id": "F33",
+    "text": "The Strand Emitter Hilt split open in my hands and I have spoken to my lawyer. If I do not hear from you I will sue.",
+    "from": "havihollowell@email.com",
+    "name": "Havi Hollowell",
+    "channel": "email",
+    "received_at": "2026-10-25T15:05:42.949Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-4",
+      "mem-39",
+      "mem-17",
+      "mem-6",
+      "mem-2"
+    ],
+    "written": [
+      "mem-40",
+      "mem-41"
+    ]
+  }
+}

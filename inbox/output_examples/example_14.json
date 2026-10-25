@@ -1,0 +1,98 @@
+{
+  "run_id": "example-14",
+  "status": "success",
+  "output": {
+    "decision": "send",
+    "owner": {
+      "employee_id": 5,
+      "name": "Priya Raman",
+      "role": "Product Specialist",
+      "team": "Product",
+      "team_label": "Gizmo Forge"
+    },
+    "reasons": [
+      "the catalogue row products:FS-B03 (Sovereign Arc Duellist, matched by name) answers it: material; composed from the row, no model call"
+    ],
+    "cited_rows": [
+      "intake_runtime:F29 (local)",
+      "responsibility:product",
+      "holiday_2026:5@2026-10-25",
+      "employees:5",
+      "companyhierarchy:5",
+      "channels:contact-form",
+      "trust_ledger:product",
+      "wiki_what_may_leave",
+      "products:FS-B03"
+    ],
+    "draft": {
+      "text": "Hello Dessa Dunmarrow,\n\nThe Sovereign Arc Duellist is made of brass and blackened steel.\n\nBest regards,\nFarstrand Product team\nSent automatically on behalf of the Product team.",
+      "promises": {
+        "refund_amount": null,
+        "replacement": false,
+        "other": null
+      },
+      "model": "catalogue/row"
+    },
+    "status": "handled",
+    "auto_reply": true,
+    "memory_note": null,
+    "team": "Product",
+    "team_label": "Gizmo Forge",
+    "backup_team": null,
+    "topic_label": "Gadget Wrangling Guild",
+    "cc": [],
+    "also": [],
+    "channel_label": "Contact form",
+    "trusted_to_send": false
+  },
+  "agents": [
+    {
+      "name": "Planner",
+      "role": "plan and delegate"
+    },
+    {
+      "name": "Executor",
+      "role": "facts from Zetaris"
+    },
+    {
+      "name": "Drafter",
+      "role": "draft the reply"
+    },
+    {
+      "name": "Evaluator",
+      "role": "critique the draft"
+    },
+    {
+      "name": "Risk",
+      "role": "policy sign-off (code)"
+    },
+    {
+      "name": "Memory",
+      "role": "H-MEM read and write"
+    }
+  ],
+  "trace_id": "example-14",
+  "log_file": "logs/trace-example-14.jsonl",
+  "execution_time_seconds": 0.006,
+  "scenario": "product",
+  "resolved_how": "scout",
+  "branch_id": "product-hit",
+  "input": {
+    "kind": "message",
+    "thread_id": "F29",
+    "text": "What is the primary material used in the Sovereign Arc Duellist?",
+    "from": "dessadunmarrow@email.com",
+    "name": "Dessa Dunmarrow",
+    "channel": "contact-form",
+    "received_at": "2026-10-25T15:05:42.901Z",
+    "as_of": "2026-10-25"
+  },
+  "memory": {
+    "read": [
+      "mem-15"
+    ],
+    "written": [
+      "mem-36"
+    ]
+  }
+}
