@@ -37,7 +37,7 @@ const WHO = {
   "memory.write": ["Memory", "memory_write"], synthesis: ["Planner", "synthesis"], recovery: ["Planner", "recover"],
 };
 
-// Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's fact-block (a fact that
+// Branch ids: thanks-request, under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's fact-block (a fact that
 // may not leave: escalate), data-block (a check unavailable or a restricted fact in the message: hold), follow-up and duplicate.
 // The duplicate lookup is queries.findDuplicate (the thread_fingerprints template through Zetaris).
 // FAULT_ZETARIS_REFUSE_ONCE in sample mode: the first Zetaris call of the run goes through the real adapter with
@@ -96,7 +96,22 @@ export function restrictedInMessage(facts) {
   return null;
 }
 
+// Paul's P43, agreed by einh 25 Oct 2026: classifier outputs plus "?" identify a carried request.
+export function carriedRequest(facts, gates, extra = {}) {
+  const asks = [];
+  const g = gates?.answers ?? {};
+  if (Number(g.asks_for_money ?? 0) >= 0.5) asks.push("the gate reads a request for money");
+  const choice = g.category?.choice;
+  if (["refund", "replacement", "complaint"].includes(choice)) asks.push(`the gate reads a ${choice}`);
+  const amount = facts?.amount ?? extra.stated_amount;
+  if (amount != null) asks.push(`an amount is stated (${amount} ${extra.stated_currency ?? "GC"})`);
+  const text = facts?.follow_up_kind ? (facts.follow_up_body || facts.body) : facts?.body;
+  if (String(text ?? "").includes("?")) asks.push("the message asks a question");
+  return asks.length ? asks : null;
+}
+
 function decideBranchCore(facts, gates, memory, extra = {}) {
+  const asks = facts.category === "appreciation" ? carriedRequest(facts, gates, extra) : null;
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
   const followUp = Number(g.is_follow_up ?? 0);
@@ -110,7 +125,7 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   } else if (facts.follow_up_kind === "misread" || (followUp >= 0.5 && ticket.agent_category && ticket.agent_category !== facts.category)) {
     return { branch_id: "misread", why: `the customer says the earlier reply misread the ask (we answered "${ticket.agent_category || "?"}", they asked for "${facts.category}")` };
   }
-  if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you") {
+  if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you" && !asks) {
     return { branch_id: "thank-you", why: "a pure thank-you with no new question: nothing to send" };
   }
   if (facts.follow_up_kind === "follow-up") {
@@ -134,13 +149,16 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   if (facts.owner_out && facts.backup_out) {
     return { branch_id: "owner-out", why: `${facts.backup_id == null ? `owner ${facts.owner_id} is out and no backup is named` : `owner ${facts.owner_id} and backup ${facts.backup_id} are both out`} on ${facts.as_of ?? "the day"}` };
   }
+  const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
+  // Precedence: misread, follow-up, fact-block, duplicate, the restricted-fact data-block, over-limit and owner-out come first.
+  // Then thanks-request, but only when every check is available; otherwise the trust floor and no-draft data-block stand.
+  if (asks && !unavailable.length) return { branch_id: "thanks-request", why: `a thank-you that also carries a request (${asks.join("; ")}): held for a person with a draft` };
   const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, ${facts.backup_id == null ? "no backup named" : `backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}`}` : `owner ${facts.owner_id} in`;
     const noAmount = facts.amount == null && /refund/.test(String(facts.category)) ? `; no amount stated${facts.channel_public ? ` on a public channel (channels:${facts.channel})` : ""}` : "";
     return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${noAmount}${memory?.length ? "; memory consulted" : ""}` };
   }
-  const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
   if (unavailable.length) {
     return { branch_id: "data-block", checks_unavailable: unavailable, why: `${unavailable.join(" and ")} unavailable: a reply cannot be cleared to send, held for a person` };
   }
@@ -185,6 +203,7 @@ export function overLimitRefusal(f) {
 }
 
 // P11 (einh's board, 24 Oct 2026): above the approver's limit the draft says "routed for approval" and never promises a refund, an amount or a date.
+export const THANKS_REQUEST_LINE = "The customer thanks us and also asks for something: thank them in one sentence, then say a colleague will look at their request and come back to them. Call it 'your request'; never use the words refund, money back, reimburse or replacement, and never promise an amount or a date.";
 export const OVER_LIMIT_LINE = "The amount is above the approver's limit: say the request has been routed for approval; never promise a refund, an amount or a date.";
 const MONEY_PROMISE = /\b(?:we|i)(?:'ll|\s+will|\s+are\s+going\s+to|\s+can|\s+shall)\s+(?:gladly\s+)?(?:refund|reimburse|credit|pay)\b|\b(?:refund|reimburse)(?:ed|ing)?\s+(?:you|of)\b|\b20\d\d-\d\d-\d\d\b|\b(?:by|on|before|within)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|\d)/i;
 // Does an over-limit draft promise money: a refund amount in its promises, or the amount, a date or "we will refund" in its words?
@@ -228,7 +247,7 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
 
   const makeDraft = async (seed, critiques, n) => {
     const sampled = () => {
-      const d = sampleDraft(seed, { overLimit: approvalPath });
+      const d = sampleDraft(seed, { overLimit: approvalPath, thanksRequest: B === "thanks-request" });
       L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
       S.models.drafter = d.model;
       return { text: d.text, promises: d.promises, model: d.model };
@@ -236,6 +255,7 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     if (sampleOn) return sampled();
     let messages = msgs({ critiques });
     if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}` } : m));
+    if (B === "thanks-request") messages = messages.map((m, i) => i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${THANKS_REQUEST_LINE}` } : m);
     let res;
     try {
       res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
@@ -709,7 +729,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable }) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable, stated_amount: preDecided?.parameters?.amount ?? null, stated_currency: preDecided?.parameters?.currency }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
@@ -797,7 +817,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable });
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable, stated_amount: (preDecided ?? decided)?.parameters?.amount ?? null, stated_currency: (preDecided ?? decided)?.parameters?.currency });
     const B0 = S.branch.branch_id;
     // A scenario with a handler takes over only where the legacy branch would have drafted (under-floor or send-ok); the pre-empting branches stand.
     const handler = HANDLERS[S.scenario.scenario];
@@ -910,7 +930,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       escalate(critiques, risk.hard ? `hard fact Risk cannot rewrite: ${risk.reasons.join("; ")}` : `two negative rounds: ${one(crit.reason)} | ${risk.reasons.join("; ")}`);
       return;
     }
-    if (B === "under-floor") {
+    if (B === "under-floor" || B === "thanks-request") {
       S.decision = "hold";
       // the hold names the person it waits for (the backup when the owner is out); there is no queue file for a plain hold
       if (!S.queued) S.queued = { owner_id: f.owner_id ?? null, backup_id: f.backup_id ?? null, owner_name: f.owner_name ?? null, backup_name: f.backup_name ?? null, ...queueMeta() };
