@@ -25,6 +25,12 @@
         signers: [{ id: t.over_owner, backup: t.over_backup }, { id: d.second_signer.id, backup: "201" }] };
     }
     var desk = d.desks[topic] || d.desks.other || {};
+    var legal = (j.nodes || []).some(function (n) { return n.step === "branch" && /legal threat/i.test(n.route || ""); });
+    if (legal && d.desks.legal) {
+      var owner = held && held.employee_id != null ? String(held.employee_id) : String(desk.owner || "");
+      return { amount: amount, limit: null, dual: true, cc: d.copy_on_legal || [], why: "Legal threat: Support owns the reply and Legal reviews, two signatures",
+        signers: [{ id: owner, backup: owner === String(desk.owner) ? String(desk.backup || "") : String(desk.owner || "") }, { id: d.desks.legal.owner, backup: d.desks.legal.backup }] };
+    }
     var first = held && held.employee_id != null ? String(held.employee_id) : String(desk.owner || "");
     var back = first === String(desk.owner) ? String(desk.backup || "") : String(desk.owner || "");
     return { amount: amount, limit: t ? t.limit : null, dual: false, why: t && amount != null ? amount + " GC is within the " + t.limit + " GC limit: one signature" : "One signature from the person who holds the ticket",
@@ -69,8 +75,8 @@
       var li = step((signed ? "Signed by " : "Sign-off request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
       if (out) li.appendChild(el("p", orig.name + " is out of office, so the request goes to the backup, " + cur.name + ".", "chain__out"));
       var more = el("details", null, "chain__mail"); more.appendChild(el("summary", "The email (simulated)"));
-      var body = ["To: " + cur.name + " <" + cur.email + ">", "Subject: Approval needed: " + (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request") + " (" + id + ")", "",
-        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", "Customer message: \"" + clip((j.human && j.human.input) || "", 200) + "\"", "Draft reply: \"" + clip(j.human && j.human.reply && j.human.reply.text, 260) + "\"", "", "[Sign]  [Reject]   (simulated)"].join("\n");
+      var body = ["To: " + cur.name + " <" + cur.email + ">"].concat((p.cc || []).map(function (c) { return "Cc: " + person(d, c).name + " <" + person(d, c).email + ">"; }), ["Subject: Sign-off needed: " + (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request") + " (" + id + ")", "",
+        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", "Customer message: \"" + clip((j.human && j.human.input) || "", 200) + "\"", "Draft reply: \"" + clip(j.human && j.human.reply && j.human.reply.text, 260) + "\"", "", "[Sign]  [Reject]   (simulated)"]).join("\n");
       more.appendChild(el("pre", body, "chain__pre")); li.appendChild(more);
       if (!signed) {
         active = i;
