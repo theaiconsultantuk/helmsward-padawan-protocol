@@ -67,7 +67,10 @@ test('CORS default on health/static/OPTIONS/errors and configured origin fails c
  for(const value of [undefined,'','*','https://jedi.blastworks.ai','https://a.example, https://b.example']){
   const s=await setup(t,{CORS_ORIGIN:value});const expected=value?.startsWith('https://jedi.')?value:value?.includes(',')?undefined:'*';
   for(const [path,method] of [['/health','GET'],['/','GET'],['/run','OPTIONS'],['/missing','GET']]){
-   const r=await s.post(path,null,{},method);assert.equal(r.headers['access-control-allow-origin'],expected);assert.equal(r.headers.vary,expected===value&&value?.startsWith('https:')?'Origin':undefined);
+   const r=await s.post(path,null,{Origin:'http://127.0.0.1'},method);
+   assert.equal(r.headers['access-control-allow-origin'],expected); // configured origin, never the request's Origin
+   const vary=[...(expected===value&&value?.startsWith('https:')?['Origin']:[]),...(path==='/'?['Accept-Encoding']:[])];
+   assert.equal(r.headers.vary,vary.length?vary.join(', '):undefined);
   }
   if(value==='https://jedi.blastworks.ai')assert.equal((await s.post('/run',{input},{'Content-Type':'application/json',Origin:'http://127.0.0.1'})).status,200);
  }

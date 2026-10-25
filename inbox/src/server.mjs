@@ -2,6 +2,7 @@
 // JSON everywhere (except the YAML file), CORS from CORS_ORIGIN, default *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { readFileSync, readdirSync, statSync, writeFileSync, renameSync, mkdirSync, unlinkSync } from "node:fs";
 import { basename, join, relative, resolve, sep, extname } from "node:path";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
@@ -159,6 +160,20 @@ function staticFile(path) {
   const ext = entry.slice(entry.lastIndexOf("."));
   return { file: join(INBOX_ROOT, "public", entry), type: STATIC_TYPES[ext] };
 }
+
+// CodexBWAI: match the hosted cache policy without changing either route guard.
+const STATIC_CACHE = Object.fromEntries([
+  ...[".glb", ".png", ".jpg", ".jpeg", ".webp", ".woff2", ".mp4"].map((ext) => [ext, "public, max-age=86400"]),
+  ...[".js", ".css", ".json", ".svg"].map((ext) => [ext, "public, max-age=300"]),
+]);
+const VENDOR_ROOT = resolve(INBOX_ROOT, "public", "shop", "shared", "vendor") + sep;
+const compressible = (type) => /^(?:text\/|application\/(?:javascript|json)(?:;|$)|image\/svg\+xml(?:;|$)|model\/gltf-binary(?:;|$))/.test(type);
+const acceptsGzip = (header) => String(header ?? "").split(",").some((entry) => {
+  const [coding, ...params] = entry.trim().toLowerCase().split(";");
+  if (coding.trim() !== "gzip") return false;
+  const q = params.find((p) => p.trim().startsWith("q="));
+  return q === undefined || Number(q.trim().slice(2)) > 0;
+});
 
 export const LIVE_RUN_CAP = 2;
 function corsHeaders(cfg) {
@@ -347,17 +362,50 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
     send(200, { run_id: id, ticket_id, status, sent: q.sent, queue_file: relative(INBOX_ROOT, file) });
   }
   const inflight = new Set(); // run ids being run now: a concurrent reuse is a 409 too
+  const compressed = new Map(); // one version per file, FIFO capped at 64 buffers
   const server = httpServer(async (req, res) => {
     const send = (status, body) => {
       if (res.headersSent) return;
       const text = JSON.stringify(mask(body, sec));
-      res.writeHead(status, { ...CORS, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(text) });
+      res.writeHead(status, { ...CORS, "Content-Type": "application/json", "Content-Length": Buffer.byteLength(text), "Cache-Control": "no-store" });
       res.end(text);
     };
     const sendText = (status, type, text) => {
       if (res.headersSent) return;
       res.writeHead(status, { ...CORS, "Content-Type": type, "Content-Length": Buffer.byteLength(text) });
       res.end(text);
+    };
+    const sendStatic = (f) => {
+      if (!f) return false;
+      let st;
+      try { st = statSync(f.file); } catch { return false; }
+      if (!st.isFile()) return false;
+      const etag = `W/"${st.size.toString(16)}-${st.mtimeMs.toString(16)}"`;
+      const zip = compressible(f.type);
+      const headers = { ...CORS, "Content-Type": f.type, ETag: etag,
+        "Cache-Control": f.file.startsWith(VENDOR_ROOT) ? "public, max-age=86400" : (STATIC_CACHE[extname(f.file).toLowerCase()] ?? "no-cache"),
+        ...(zip ? { Vary: [CORS.Vary, "Accept-Encoding"].filter(Boolean).join(", ") } : {}),
+      };
+      const matches = String(req.headers["if-none-match"] ?? "").split(",")
+        .some((tag) => tag.trim() === "*" || tag.trim().replace(/^W\//, "") === etag.slice(2));
+      if (matches) { res.writeHead(304, headers); res.end(); return true; }
+      let buf;
+      if (zip && acceptsGzip(req.headers["accept-encoding"])) {
+        const cached = compressed.get(f.file);
+        if (cached?.etag === etag) buf = cached.body;
+        else {
+          try { buf = gzipSync(readFileSync(f.file)); } catch { return false; }
+          compressed.delete(f.file);
+          if (compressed.size >= 64) compressed.delete(compressed.keys().next().value);
+          compressed.set(f.file, { etag, body: buf });
+        }
+        headers["Content-Encoding"] = "gzip";
+      } else {
+        try { buf = readFileSync(f.file); } catch { return false; }
+      }
+      res.writeHead(200, { ...headers, "Content-Length": buf.length });
+      res.end(buf);
+      return true;
     };
     const t0 = Date.now();
     let run_id = null;
@@ -377,22 +425,12 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       }
       if (path.startsWith("/shop/")) {
         if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
-        const f = shopFile(path);
-        let buf = null;
-        if (f) { try { buf = readFileSync(f.file); } catch { buf = null; } }
-        if (!f || !buf) { send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0)); return; }
-        res.writeHead(200, { ...CORS, "Content-Type": f.type, "Content-Length": buf.length, "Cache-Control": "no-store" });
-        res.end(buf);
+        if (!sendStatic(shopFile(path))) send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0));
         return;
       }
       if (path === "/" || path === "/inbox" || path === "/dashboard" || path.startsWith("/static/")) {
         if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
-        const f = staticFile(path);
-        let buf = null;
-        if (f) { try { buf = readFileSync(f.file); } catch { buf = null; } }
-        if (!f || !buf) { send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0)); return; }
-        res.writeHead(200, { ...CORS, "Content-Type": f.type, "Content-Length": buf.length, "Cache-Control": "no-store" });
-        res.end(buf);
+        if (!sendStatic(staticFile(path))) send(404, errBody(null, "NotFound", `no route GET ${path}`, false, t0));
         return;
       }
       if (path === "/faq" || path === "/demo/scenarios" || path === "/demo/client") {

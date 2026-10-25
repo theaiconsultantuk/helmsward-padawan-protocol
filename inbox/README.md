@@ -124,6 +124,7 @@ curl -s $B/openapi.yaml
 The contact page, `/shop/contact.html`, is the front end: CONTACT US, the 14 scenarios, the demo flow "How a person sees it" and the "Under the hood" drawer, and its SEND button writes the ticket's queue file and marks it handled or follow up.
 `GET /inbox` is the reference form, and `GET /dashboard` is the internal dashboard (counters, the queue of escalated tickets with their drafts, recent runs, affirm and reject).
 Their scripts, stylesheets and `demo-scenarios.json` come from `GET /static/{name}`, a closed list of names.
+Static responses use `no-cache` for pages, `public, max-age=300` for JS/CSS/JSON/SVG and `public, max-age=86400` for models/images/fonts/video and `/shop/shared/vendor/`, with weak size/mtime ETags and negotiated gzip for text and GLB (up to 64 compressed buffers cached); API JSON and the `/shop` redirect use `no-store`.
 Screenshots are in [judging/screenshots/README.md](judging/screenshots/README.md).
 
 `GET /faq` returns the FAQ rows (public columns only) for the storefront FAQ page.
