@@ -82,7 +82,10 @@
   }
   function setNote(msg) { var n = $("send-note"); if (n) n.textContent = msg || ""; }
 
+  // P51: a 401 (API_TOKEN set on the shared instance, no or wrong bearer) gets plain words instead of the server's text.
+  var NEED_TOKEN = "This demo needs the judges' access link (the one with ?token=). Ask Team Jedi Pack.";
   function errMsg(body, code) {
+    if (code === 401) return NEED_TOKEN;
     var e = body && body.error;
     if (e && e.message) return String(e.message);
     return "HTTP " + code;

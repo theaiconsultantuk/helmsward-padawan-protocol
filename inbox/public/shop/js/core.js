@@ -12,6 +12,19 @@
   const usd = n => `${n} GC`;
   const ROOT = (!location.pathname.includes("/shop/") && !location.pathname.includes("/store/") && location.pathname.includes("/concepts/")) ? "../.." : ".";
 
+  // Judges' link: ?token=... may land on any shop page, so remember it under the key contact.js and desk.js read
+  // (jp_token) and take it out of the address bar. contact.js does the same for its own page.
+  try {
+    const t = new URLSearchParams(location.search).get("token");
+    if (t) {
+      try { localStorage.setItem("jp_token", t); } catch (e) { /* storage blocked: contact.js still reads ?token= */ }
+      if (!/contact\.html$/.test(location.pathname)) {
+        const u = new URL(location.href); u.searchParams.delete("token");
+        history.replaceState(null, "", u.pathname + u.search + u.hash);
+      }
+    }
+  } catch (e) { /* address bar left as is */ }
+
   /* ---------- intergalactic languages: reversible text, stable word ciphers ---------- */
   const languages = [
     { id: "en", code: "EARTH", name: "Planet Earth", subtitle: "Basic", flag: "earth-basic" },
