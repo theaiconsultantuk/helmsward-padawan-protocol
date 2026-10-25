@@ -122,14 +122,14 @@ test("T03: over the limit, Risk refuses on round 1 (approval), no retry, escalat
   assert.equal(t.result.branch_id, "over-limit");
   const seq = pairs(t.lines);
   const order = ["memory.read:success", "planner.plan:success", "delegate:success", "zetaris.query:success", "executor.act:success",
-    "meterless.engine:success", "branch:success", "nvidia.model:skipped", "critique:success", "risk.signoff:refused", "retry:skipped", "escalate_or_fallback:success"];
+    "meterless.engine:success", "branch:success", "nvidia.model:success", "critique:skipped", "risk.signoff:refused", "retry:skipped", "escalate_or_fallback:success"];
   let pos = -1;
   for (const o of order) { const i = seq.indexOf(o, pos + 1); assert.ok(i > pos, `${o} after position ${pos}: ${seq.join(" ")}`); pos = i; }
   assert.equal(seq.filter((s) => s.startsWith("planner.plan")).length, 1, "no second plan: no retry");
   assert.equal(t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action)).length, 1, "one draft only");
   const risk = t.lines.find((l) => l.step === "risk.signoff");
   assert.match(risk.output_summary, /needs approval by .* \(policy over-limit owner\)/);
-  assert.match(t.lines.find((l) => l.step === "retry").input_summary, /hard refusal: amount needs approval/);
+  assert.match(t.lines.find((l) => l.step === "retry").input_summary, /fixed template: no revision call/);
   assert.equal(t.result.rounds.length, 1);
   assert.match(t.result.output.queued_for.draft?.text ?? JSON.parse(readFileSync(t.result.output.queued_for.queue_file, "utf8")).ticket.draft.text, /routed for approval/, "P11: the over-limit draft says routed for approval");
   assert.equal(t.result.rounds[0].risk.pass, false);

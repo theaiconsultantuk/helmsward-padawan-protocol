@@ -248,6 +248,27 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   const named = f.order_check?.known === false && (f.order_check.order_id != null || S.rerouted === true);
   const orderLine = named ? sample.orderSentence(f.order_check) : "";
 
+  // P3 (einh, 25 Oct 2026): the early-decision table is the one definition of a fixed reply.
+  // Legal already uses its courtesy template; data-block keeps its no-draft early exit.
+  if (earlyDecision(B, f)?.draft_pending) {
+    const built = B === "over-limit"
+      ? sample.draft(f.ticket ?? ticket, ctxFacts, { overLimit: true, orderCheck: named ? f.order_check : null })
+      : { text: sample.frame(f.ticket ?? ticket, sample.genuineComplaintBody(f.ticket ?? ticket)), promises: { refund_amount: null, replacement: false, other: null } };
+    const draft = { text: built.text, promises: built.promises, model: B === "over-limit" ? "template/approval-ack" : "template/complaint" };
+    const crit = { pass: true, reason: "fixed reply template; no model critique", model: "template" };
+    const risk = { pass: false, reasons: [refusalOf(f, draft, 1) ?? "a person handles this fixed decision"], hard: true, level: S.scoutRisk };
+    L({ step: "nvidia.model", agent_name: "Drafter", action: "draft_template", source: "template", model: draft.model, branch_id: B, retry_count: 0,
+      input_summary: "fixed decision", output_summary: "fixed reply template, no drafter or revision model call", status: "success" });
+    skipped("critique", "fixed template: no critic call");
+    L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: 0,
+      input_summary: "fixed decision", output_summary: `Refused: ${risk.reasons.join("; ")}`, status: "refused" });
+    skipped("retry", "fixed template: no revision call");
+    S.models.drafter = draft.model;
+    S.draft = draft;
+    S.rounds.push({ n: 1, critique: crit, risk });
+    return { draft, crit, risk, rounds: 1, retried: false, ok: false };
+  }
+
   const makeDraft = async (seed, critiques, n) => {
     const sampled = () => {
       const d = sampleDraft(seed, { overLimit: approvalPath, thanksRequest: B === "thanks-request", orderCheck: named ? f.order_check : null });

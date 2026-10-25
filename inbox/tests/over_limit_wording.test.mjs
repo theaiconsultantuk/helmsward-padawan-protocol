@@ -81,40 +81,22 @@ function toolbox({ drafts, f }) {
 }
 const seq = (lines) => lines.map((l) => `${l.step}:${l.status}`);
 
-test("a model draft that promises the refund is refused by Risk, rewritten ONCE with the refusal, then the approval escalate", async () => {
-  const { tb, lines, sent } = toolbox({ drafts: [
-    { reply_text: "Hello Ann, we will refund 400 GC by Friday.", promises: { refund_amount: 400, replacement: false, other: null } },
-    { reply_text: "Hello Ann, your refund request has been routed for approval; a colleague will follow up.", promises: { refund_amount: null, replacement: false, other: null } },
-  ] });
-  const r = await replyLoop(tb, {});
-  assert.equal(r.rounds, 2);
-  assert.equal(r.retried, true);
-  assert.equal(r.risk.hard, true, "the approval refusal still stands on round 2");
-  assert.equal(r.ok, false, "so the ticket goes to the approver");
-  assert.match(r.draft.text, /routed for approval/);
-  assert.equal(promisesMoney(r.draft, tb.f), false);
-  assert.deepEqual(seq(lines), ["nvidia.model:success", "critique:success", "risk.signoff:refused", "retry:retrying", "planner.plan:success", "nvidia.model:success", "critique:success", "risk.signoff:refused"]);
-  assert.match(lines.find((l) => l.step === "retry").output_summary, /needs approval by Sales Head/);
-  // both drafter calls carried the extra system line; the second one also carried the refusal
-  for (const m of sent) assert.ok(m[0].content.includes(OVER_LIMIT_LINE));
-  assert.match(sent[1][1].content, /Risk: amount 400 GC is over the 150 GC limit/);
-});
-
-test("a second money promise is not rewritten again: one rewrite round, then the escalate", async () => {
-  const bad = { reply_text: "We will refund 400 GC.", promises: { refund_amount: 400, replacement: false, other: null } };
-  const { tb, lines } = toolbox({ drafts: [bad, bad, bad] });
-  const r = await replyLoop(tb, {});
-  assert.equal(r.rounds, 2);
-  assert.equal(lines.filter((l) => l.step === "retry").length, 1);
-  assert.equal(r.risk.hard, true);
-});
-
-test("a clean first draft on an over-limit ticket is not rewritten (retry skipped: amount needs approval)", async () => {
-  const { tb, lines } = toolbox({ drafts: [{ reply_text: "Your request has been routed for approval.", promises: { refund_amount: null, replacement: false, other: null } }] });
-  const r = await replyLoop(tb, {});
+for (const [label, drafts] of [
+  ["a money-promising model", [{ reply_text: "We will refund 400 GC.", promises: { refund_amount: 400 } }]],
+  ["repeated money promises", [{ reply_text: "We will refund 400 GC.", promises: { refund_amount: 400 } }, { reply_text: "We will refund 400 GC.", promises: { refund_amount: 400 } }]],
+  ["a safe model", [{ reply_text: "Your request has been routed for approval.", promises: {} }]],
+]) test(`fixed over-limit uses a template without calling ${label}`, async () => {
+  const { tb, lines, sent } = toolbox({ drafts });
+  const r = await replyLoop(tb);
+  assert.equal(sent.length, 0, "P3: no draft or revision call");
   assert.equal(r.rounds, 1);
   assert.equal(r.retried, false);
-  assert.match(lines.at(-1).input_summary, /amount needs approval/);
+  assert.equal(r.risk.hard, true);
+  assert.equal(r.ok, false);
+  assert.match(r.draft.text, /routed for approval/);
+  assert.equal(promisesMoney(r.draft, tb.f), false);
+  assert.ok(lines.some(l => l.source === "template"));
+  assert.ok(lines.some(l => l.step === "critique" && l.status === "skipped"));
 });
 
 test("promisesMoney: the amount, a date, 'we will refund' and a promised refund_amount count; 'routed for approval' does not", () => {
