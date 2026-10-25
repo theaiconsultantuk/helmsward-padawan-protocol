@@ -202,7 +202,7 @@ export function gates(ticket) {
 // The ONE greeting and sign-off every sample reply wears. team defaults to Support; onBehalf adds the automatic-reply line, and is
 // only for replies composed from rows (never model drafts, which a human sends).
 export function frame(ticket, body, { team = "Support", onBehalf = false } = {}) {
-  const sign = `Best regards,\nJedi Pack ${team} team`;
+  const sign = `Best regards,\nFarstrand ${team} team`;
   return `Hello${ticket?.sender_name ? ` ${ticket.sender_name}` : ""},\n\n${body}\n\n${sign}${onBehalf ? `\nSent automatically on behalf of the ${team} team.` : ""}`;
 }
 

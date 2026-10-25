@@ -629,7 +629,7 @@
           "Unit price: 170.10 GC",
           "Total: 4252.50 GC",
           "Lead time: 12 days",
-          "Jedi Pack Sales team"
+          "Farstrand Sales team"
         ],
         "auto_reply": false,
         "status": "open",
@@ -739,7 +739,7 @@
         "owner_id": 15,
         "draft_present": true,
         "draft_includes": [
-          "Jedi Pack Support team"
+          "Farstrand Support team"
         ],
         "auto_reply": false,
         "status": "open",

@@ -640,7 +640,34 @@
     if (active && cur.entry === active && cur.runId === j.run_id) {
       var cmp = callFlow("compareExpected", [active.expected, j]);
       showExpected(cmp && typeof cmp.text === "string" ? cmp.text : "");
+      freshClientFor(active);
     }
+    var dup = duplicateOf(j);
+    if (dup) setStatus("Already handled as " + dup + ": the same customer sent the same message before, so the agent closed this one without a new draft. " + (active ? "A new customer has been filled in: submit again for a fresh run." : "Change the email or the message to send it as a new customer."));
+  }
+
+  // The agent closes a repeat of an earlier thread (same sender, subject and body) as a duplicate. Say so, with the thread it matched.
+  function duplicateOf(j) {
+    var nodes = Array.isArray(j && j.nodes) ? j.nodes : [];
+    for (var i = 0; i < nodes.length; i++) {
+      var m = nodes[i] && nodes[i].step === "branch" ? /earlier thread\s+(F\d+)/i.exec(str(nodes[i].route)) : null;
+      if (m && /duplicate/i.test(str(nodes[i].route))) return m[1];
+    }
+    return "";
+  }
+
+  // After a scenario's run finishes, put a new customer in the form so a second submit is a new customer, not a duplicate.
+  // s04 and s10 keep their fixed customers: their point is the second click.
+  function freshClientFor(e) {
+    var sid = str(e && e.id);
+    if (!sid || sid === "s04" || sid === "s10") return;
+    var seq = pickSeq;
+    getJson("/demo/client?scenario=" + enc(sid), { timeoutMs: 10000 }).then(function (r) {
+      if (seq !== pickSeq || !r.ok || !r.body || !(r.body.name || r.body.email)) return;
+      if ($("name")) $("name").value = str(r.body.name);
+      if ($("email")) $("email").value = str(r.body.email);
+      if (e.channel === "trustpilot" || e.channel === "email") showSourceCard(e, r.body);
+    }).catch(function () { /* the next scenario click fetches a client anyway */ });
   }
 
   function loadJourney(id) {

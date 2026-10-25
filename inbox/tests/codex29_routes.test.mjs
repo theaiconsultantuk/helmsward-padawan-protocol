@@ -36,7 +36,7 @@ test("3: a plain delivery question naming an order stays delivery", () => {
 test("9: the reply team is the owner's team from the rows, and the product reply says so", async () => {
   const { result } = await ask("How much does the Wayfarer Long Cloak cost and what is its lead time?");
   assert.equal(result.output.decision, "send");
-  assert.match(result.output.draft.text, new RegExp(`Jedi Pack ${result.output.team} team`));
+  assert.match(result.output.draft.text, new RegExp(`Farstrand ${result.output.team} team`));
   assert.ok(result.output.team);
 });
 

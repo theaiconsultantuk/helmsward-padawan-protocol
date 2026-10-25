@@ -61,9 +61,9 @@ test("sample.severity splits injury from legal; a plain Trustpilot complaint sta
 
 test("frame: one sign-off, team default Support, onBehalf footer", () => {
   const t = { sender_name: "Tilda" };
-  assert.equal(sample.frame(t, "x"), "Hello Tilda,\n\nx\n\nBest regards,\nJedi Pack Support team");
-  assert.equal(sample.frame(t, "x", { team: "Sales" }), "Hello Tilda,\n\nx\n\nBest regards,\nJedi Pack Sales team");
-  assert.equal(sample.frame(t, "x", { team: "Sales", onBehalf: true }), "Hello Tilda,\n\nx\n\nBest regards,\nJedi Pack Sales team\nSent automatically on behalf of the Sales team.");
+  assert.equal(sample.frame(t, "x"), "Hello Tilda,\n\nx\n\nBest regards,\nFarstrand Support team");
+  assert.equal(sample.frame(t, "x", { team: "Sales" }), "Hello Tilda,\n\nx\n\nBest regards,\nFarstrand Sales team");
+  assert.equal(sample.frame(t, "x", { team: "Sales", onBehalf: true }), "Hello Tilda,\n\nx\n\nBest regards,\nFarstrand Sales team\nSent automatically on behalf of the Sales team.");
   assert.ok(sample.frame(t, "x", { onBehalf: true }).endsWith("Sent automatically on behalf of the Support team."));
   const d = sample.draft({ sender_name: "Tilda", subject: "s", category: "question" }, { category: "question" }).text;
   assert.equal(d.match(/Best regards/g).length, 1); assert.doesNotMatch(d, /Sent automatically/);
@@ -81,7 +81,7 @@ test("QUOTE_TEMPLATE and COURTESY_TEMPLATE fill with every field", () => {
   for (const s of ["Folding Sun-Blade", "120", "20 percent", "31.2 GC", "3744 GC", "9 days", "Hilt x 120", "Crystal x 240 (short on stock)", "valid 14 days"]) assert.ok(q.includes(s), s);
   assert.doesNotMatch(q, /\{\w+\}/);
   const framed = sample.frame({ sender_name: "Ada" }, q, { team: "Sales" });
-  assert.ok(framed.startsWith("Hello Ada,")); assert.ok(framed.endsWith("Jedi Pack Sales team"));
+  assert.ok(framed.startsWith("Hello Ada,")); assert.ok(framed.endsWith("Farstrand Sales team"));
   const c = fillCourtesy({ situation: "your cracked hilt" });
   assert.equal(c, "We are sorry to read what happened with your cracked hilt. We are looking into it now and will come back to you within two working days.");
   assert.ok(COURTESY_TEMPLATE.includes("{situation}") && QUOTE_TEMPLATE.includes("{total}"));

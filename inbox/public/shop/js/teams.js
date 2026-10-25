@@ -33,6 +33,7 @@
   }
   function fmt(ms) {
     var m = Math.floor(ms / 60000), h = Math.floor(m / 60), d = Math.floor(h / 24);
+    if (d > 30) return "over 30 d";   // an old ticket against the fast demo clock: a number like 507 d means nothing
     if (d >= 1) return d + " d " + (h % 24) + " h";
     if (h >= 1) return h + " h " + (m % 60) + " m";
     return m + " m " + (Math.floor(ms / 1000) % 60) + " s";
@@ -70,6 +71,7 @@
     var line = el("p", null, "tcard__who"), esc = el("p", null, "tcard__esc"), age = el("p", null, "tcard__age muted");
     li.appendChild(line); li.appendChild(esc); li.appendChild(age);
     if (m.rid && deps.hoodButton) li.appendChild(deps.hoodButton(m.rid));
+    var sg = deps.chainButton && deps.chainButton(m.rid, m.q); if (sg) li.appendChild(sg);
     m.ui = { li: li, lamp: lamp, line: line, esc: esc, age: age };
     refreshCard(m);
     return li;

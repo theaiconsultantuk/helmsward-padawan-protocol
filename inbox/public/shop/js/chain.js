@@ -74,9 +74,10 @@
       if (st.rejected || !prevOk) { if (!st.rejected) { step("Then: " + cur.name + " (" + cur.role + ")", "waiting", "is-wait"); } return; }
       var li = step((signed ? "Signed by " : "Sign-off request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
       if (out) li.appendChild(el("p", orig.name + " is out of office, so the request goes to the backup, " + cur.name + ".", "chain__out"));
+      var replyText = j.human && j.human.reply && j.human.reply.text ? String(j.human.reply.text) : "";
       var more = el("details", null, "chain__mail"); more.appendChild(el("summary", "The email (simulated)"));
       var body = ["To: " + cur.name + " <" + cur.email + ">"].concat((p.cc || []).map(function (c) { return "Cc: " + person(d, c).name + " <" + person(d, c).email + ">"; }), ["Subject: Sign-off needed: " + (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request") + " (" + id + ")", "",
-        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", "Customer message: \"" + clip((j.human && j.human.input) || "", 200) + "\"", "Draft reply: \"" + clip(j.human && j.human.reply && j.human.reply.text, 260) + "\"", "", "[Sign]  [Reject]   (simulated)"]).join("\n");
+        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", (replyText ? "Customer message: \"" + clip((j.human && j.human.input) || "", 200) + "\"" : "Note on file (the original message is not kept): \"" + clip((j.human && j.human.input) || "", 200) + "\""), (replyText ? "Draft reply: \"" + clip(replyText, 260) + "\"" : "Draft reply: in the queue file"), "", "[Sign]  [Reject]   (simulated)"]).join("\n");
       more.appendChild(el("pre", body, "chain__pre")); li.appendChild(more);
       if (!signed) {
         active = i;
