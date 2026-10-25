@@ -328,7 +328,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Progress" }
-              example: {"run_id": "demo-s03", "state": "running", "mode": "live", "elapsed_s": 23.4, "working": [{"agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1}], "steps": [{"step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01}, {"step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0}], "decision_early": {"decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1}, "decision": null, "status": null, "provider": {"primary_used": null, "fallback_reason": null}}
+              example: {"run_id": "demo-s03", "state": "running", "mode": "live", "elapsed_s": 23.4, "working": [{"agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1}], "steps": [{"step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01, "ran_s": 2.0, "seen_s": 2.0}, {"step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0, "ran_s": 2.1, "seen_s": 2.1}], "decision_early": {"decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1, "seen_s": 2.1}, "decision": null, "status": null, "provider": {"primary_used": null, "fallback_reason": null}}
         "404": { $ref: "#/components/responses/NotFound" }
   /runs/{id}/trace:
     get:
@@ -586,16 +586,17 @@ components:
     EarlyDecision:
       type: object
       nullable: true
-      required: [decision, branch_id, why, draft_pending, at_s]
+      required: [decision, branch_id, why, draft_pending, at_s, seen_s]
       properties:
         decision: { type: string, enum: [escalate, hold, close] }
         branch_id: { type: string }
         why: { type: string, maxLength: 200 }
         draft_pending: { type: boolean }
-        at_s: { type: number }
+        at_s: { type: number, description: "Decision time in seconds since trace start, rounded to 0.1 s." }
+        seen_s: { type: number, nullable: true, description: "Arrival at the progress board since board start, rounded to 0.1 s; null on runs stored before this field existed." }
     ProgressStep:
       type: object
-      required: [step, agent, label, tech, status, seconds]
+      required: [step, agent, label, tech, status, seconds, ran_s, seen_s]
       properties:
         step: { type: string }
         agent: { type: string }
@@ -603,6 +604,8 @@ components:
         tech: { type: string }
         status: { type: string }
         seconds: { type: number }
+        ran_s: { type: number, description: "Step completion since trace start, rounded to 0.1 s." }
+        seen_s: { type: number, description: "Arrival at the progress board since board start, rounded to 0.1 s; retained in stored traces." }
     ProgressWork:
       type: object
       required: [agent, label, engine, since_s]
@@ -671,6 +674,7 @@ components:
     RunResult:
       type: object
       properties:
+        wall_ms: { type: integer, minimum: 0, description: "Run start to final decision synthesis, from the stable trace start." }
         provider: { $ref: "#/components/schemas/Provider" }
         decision_early: { $ref: "#/components/schemas/EarlyDecision" }
         run_id: { type: string }
@@ -858,7 +862,7 @@ components:
         status: { type: string, nullable: true }
         model: { type: string, nullable: true }
         timestamp: { type: string, nullable: true, description: "ISO with milliseconds (.mmmZ)." }
-        duration_ms: { type: integer, description: "Milliseconds since the previous line of the same run, 0 for the first." }
+        duration_ms: { type: integer, description: "Own measured work in milliseconds, with overlapping work attributed once to the first written measured node. Paired Scout SQL and bookkeeping nodes carry 0. Older traces may retain gap-based durations." }
         tech: { type: string, description: "What did the step: Zetaris, Meterless (Scout contract), Meterless (World Model), Nightshift (<model>), OpenJev (<model>), H-MEM, rules or not run; read from the line's own fields, never guessed (unknown only when the line records none)." }
         returned: { description: "What the step handed back. Zetaris: the HIT rows only ([{id, table, key, detail}]), [] when nothing matched; a model: its reply text as traced; other techs: null." }
     Participant:
@@ -917,9 +921,10 @@ components:
         order_id: { type: string, description: "Only on the s10 client, for example JP-1001." }
     Journey:
       type: object
-      required: [run_id, nodes, human, reached_human]
+      required: [run_id, nodes, human, reached_human, wall_ms]
       properties:
         run_id: { type: string, nullable: true }
+        wall_ms: { type: integer, nullable: true, minimum: 0, description: "Run start to final decision synthesis. Null for older stored runs; use this for total run time." }
         scenario: { type: string, nullable: true }
         resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, null] }
         decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
@@ -1003,7 +1008,7 @@ components:
         queue_file: { type: string }
     TraceLine:
       type: object
-      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: since the previous line of the run }, elapsed_ms: { type: integer, description: since the run's first line }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
+      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: Own measured work; overlapping work attributed once; paired and bookkeeping lines carry zero }, elapsed_ms: { type: integer, description: since the stable trace start }, ran_s: { type: number, description: Completion seconds since trace start }, seen_s: { type: number, description: Arrival seconds since board start }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
       additionalProperties: true
     Error:
       type: object

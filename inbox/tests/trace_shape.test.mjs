@@ -129,18 +129,19 @@ test("F2: console line masks a run_id that carries a secret or Bearer token", ()
   assert.ok(out2.includes("[masked]"), out2);
 });
 
-test("duration_ms and elapsed_ms: first line since the run start, durations >= 0, elapsed monotonic", async () => {
+test("duration_ms measures explicit work only; elapsed_ms stays monotonic", async () => {
   const { t } = open();
   const a = t.line(base);
+  const started_at = Date.now();
   await new Promise((r) => setTimeout(r, 15));
-  const b = t.line({ ...base, step: "synthesis" });
+  const b = t.line({ ...base, step: "synthesis", started_at });
   const c = t.line({ ...base, step: "recovery" });
   assert.ok(a.elapsed_ms >= 0 && a.elapsed_ms < 1000);
-  assert.equal(a.duration_ms, a.elapsed_ms); // the first line's duration runs from the run start
+  assert.equal(a.duration_ms, 0); // no operation span, so no inherited run time
   for (const l of [a, b, c]) assert.ok(Number.isInteger(l.duration_ms) && l.duration_ms >= 0);
   assert.ok(b.duration_ms >= 10, `slept 15ms, got ${b.duration_ms}`);
   assert.ok(a.elapsed_ms <= b.elapsed_ms && b.elapsed_ms <= c.elapsed_ms);
-  assert.ok(c.elapsed_ms >= b.duration_ms && c.elapsed_ms >= c.duration_ms); // durations are gaps to the latest strictly earlier line, so a same-millisecond pair repeats a gap
+  assert.equal(c.duration_ms, 0); // a same-millisecond bookkeeping line cannot repeat work
   assert.deepEqual(JSON.parse(fileLines(t)[2]).elapsed_ms, c.elapsed_ms);
   // a second run starts its own clock
   const other = Trace.open("demo-002", { logsDir: t.logsDir, secrets: [], stdout: false });
@@ -154,25 +155,34 @@ test("a buffered line keeps the moment it was recorded: its timestamp is `at`, a
   const b = t.line({ ...base, at: t0 + 1200 });
   assert.equal(a.timestamp, new Date(t0).toISOString());
   assert.equal(a.duration_ms, 0, "recorded before the run started: clamped, never negative");
-  assert.equal(b.duration_ms, 1200);
+  assert.equal(b.duration_ms, 0); // at is completion, not an operation start
   assert.equal("at" in a, false);
   assert.equal("at" in JSON.parse(fileLines(t)[1]), false);
   const c = t.line({ ...base, at: t0 + 200 }); // flushed after a later line: its own time, never a negative duration
   assert.equal(c.timestamp, new Date(t0 + 200).toISOString());
-  assert.equal(c.duration_ms, 200); // the latest written moment strictly before it is t0
+  assert.equal(c.duration_ms, 0); // buffer order cannot manufacture work
 });
 
-test("lines recorded at t0, t0+100, t0+300 but written in order 0, 300, 100: durations follow recording order", () => {
+test("lines recorded at t0, t0+100, t0+300 but written in order 0, 300, 100: explicit own spans survive flush order", () => {
   const { t } = open();
   const t0 = t._start + 1000;
-  const a = t.line({ ...base, at: t0 });
-  const c = t.line({ ...base, at: t0 + 300 });
-  const b = t.line({ ...base, at: t0 + 100 });
+  const a = t.line({ ...base, at: t0, started_at: t._start });
+  const c = t.line({ ...base, at: t0 + 300, started_at: t0 + 100 });
+  const b = t.line({ ...base, at: t0 + 100, started_at: t0 });
   assert.equal(a.duration_ms, 1000); // since the run start
   assert.equal(a.elapsed_ms, 1000);
-  assert.equal(c.duration_ms, 300); // after t0, the only earlier line written
+  assert.equal(c.duration_ms, 200); // only its explicit work span
   assert.equal(c.elapsed_ms, 1300);
-  assert.equal(b.duration_ms, 100); // after t0, not collapsed to 0 by the later line already written
+  assert.equal(b.duration_ms, 100); // its span is independent of flush order
   assert.equal(b.elapsed_ms, 1100);
   assert.deepEqual([a, b, c].map((l) => l.timestamp), [t0, t0 + 100, t0 + 300].map((x) => new Date(x).toISOString()));
+});
+
+// Build F: own spans cannot inherit preceding work or double-count a paired/parallel span.
+test("own durations exclude overlap and unmeasured bookkeeping is zero", () => {
+  const { t } = open(); const start = t._start;
+  const a = t.line({ ...base, at: start + 100, started_at: start });
+  const paired = t.line({ ...base, at: start + 100 });
+  const parallel = t.line({ ...base, at: start + 150, started_at: start + 50 });
+  assert.deepEqual([a.duration_ms, paired.duration_ms, parallel.duration_ms], [100, 0, 50]);
 });

@@ -534,11 +534,12 @@ async function probeComplaint(tb) {
     for (const k of ["world_threads", "products", "reviews"]) rows[k] = (await tb.queries.run(k, {}, o)).objects;
     products = toObjects(rows.products);
     const dir = process.env.WORLD_MODEL_DIR;
+    const worldStart = Date.now();
     const world = await getWorld({ rows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
     const mentioned = mentionedProducts(`${ticket.subject} ${ticket.body}`, products).map((p) => (typeof p === "object" ? p.sku : p));
     ctx = complaintContext(world, { sender_email: f.sender_email, skus: mentioned, thread_id: f.thread_id, channel: f.channel });
     wline = worldLine(world, ctx);
-    lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless",
+    lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", started_at: worldStart, sponsor: "meterless",
       input_summary: `history of ${f.sender_email ?? "the sender"} and ${ctx.skus.length ? ctx.skus.join(", ") : "no product"}`,
       output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
   } catch (e) {
@@ -742,11 +743,12 @@ async function probeCustomerService(tb) {
       const wrows = {};
       for (const k of ["world_threads", "products", "reviews"]) wrows[k] = (await tb.queries.run(k, {}, o)).objects;
       const dir = process.env.WORLD_MODEL_DIR;
+      const worldStart = Date.now();
       const world = await getWorld({ rows: wrows, ...(dir ? { storage: "local", persistDir: dir } : {}) });
       const mentioned = mentionedProducts(text, toObjects(wrows.products)).map((p) => (typeof p === "object" ? p.sku : p));
       const ctx = complaintContext(world, { sender_email: email, skus: mentioned, thread_id: f.thread_id, channel: f.channel });
       worldText = ctx.text; wline = worldLine(world, ctx);
-      lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", sponsor: "meterless", branch_id: "customer-service",
+      lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", started_at: worldStart, sponsor: "meterless", branch_id: "customer-service",
         input_summary: `history of ${email}`, output_summary: wline, memory_ids: ctx.provenance.map((p) => p.id), status: "success" });
     } catch (e) {
       lines.push({ step: "meterless.engine", agent_name: "WorldModel", action: "world_context", input_summary: "meterless.engine failed", output_summary: `${e?.name ?? "Error"}: ${one(e?.message, 200)}`, status: "error", branch_id: "customer-service" },

@@ -486,7 +486,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
           send(200, progressFromStored(stored, lines)); return;
         }
         if (!stored) { send(404, errBody(id, "NotFound", `no stored run ${id}`, false, t0)); return; }
-        if (!runsM[2]) { send(200, stored); return; }
+        if (!runsM[2]) { send(200, stored.decision_early ? { ...stored, decision_early: { seen_s: null, ...stored.decision_early } } : stored); return; }
         const tracePath = join(logsDir, basename(String(stored.log_file ?? `trace-${id}.jsonl`)));
         let text;
         try { text = readFileSync(tracePath, "utf8"); } catch { send(404, errBody(id, "NotFound", `trace file for ${id} is gone`, false, t0)); return; }
@@ -595,6 +595,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         ? { ...result.output, queued_for: { ...result.output.queued_for, queue_file: publicQueueFile(result.output.queued_for.queue_file) } }
         : result.output;
       const out = {
+        ...(Number.isFinite(result.wall_ms) ? { wall_ms: result.wall_ms } : {}),
         provider: result.provider,
         ...(result.decision_early ? { decision_early: result.decision_early } : {}),
         run_id: result.run_id, status: result.status, output: publicOutput, agents: result.agents,

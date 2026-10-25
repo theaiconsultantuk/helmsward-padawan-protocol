@@ -15,7 +15,7 @@ test("board lifecycle keeps concurrent work and retry provenance, freezes at fir
   endD({ primary: false, reason: "draft: fallback" }); endC({ primary: true }); assert.equal(b.get("r").provider.fallback_reason, "draft: fallback");
   const early = { decision: "escalate", branch_id: "over-limit", draft_pending: true, why: "over limit", at_s: 1 };
   b.decided("r", early); b.decided("r", { decision: "close" }); b.line("r", line);
-  assert.deepEqual(Object.keys(stepOf(line)), ["step", "agent", "label", "tech", "status", "seconds"]);
+  assert.deepEqual(Object.keys(stepOf(line)), ["step", "agent", "label", "tech", "status", "seconds", "ran_s", "seen_s"]);
   const result = { run_id: "r", status: "success", output: { decision: "escalate" }, execution_time_seconds: 1.234, decision_early: early, provider: providerSummary([{ primary: false, reason: "draft: fallback" }], "live") };
   b.finish("r", result); const done = b.get("r"); t = 10000;
   b.line("r", line); b.decided("r", {}); endD({ primary: true }); b.work("r", { purpose: "draft" })(); b.finish("r", { status: "error" }); assert.deepEqual(b.get("r"), done);
