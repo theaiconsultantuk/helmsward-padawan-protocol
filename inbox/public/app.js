@@ -58,7 +58,7 @@
           $("as_of").value = demoAsOf;
         });
         wrap.appendChild(b);
-        if (d.expected) wrap.appendChild(el("small", d.expected, "muted hint"));
+        if (d.expected) wrap.appendChild(el("small", typeof d.expected === "string" ? d.expected : "Expected: " + [d.expected.decision, d.expected.branch].filter(Boolean).join(" / "), "muted hint"));
         box.appendChild(wrap);
       });
     }).catch(function () { $("demos").appendChild(el("span", "Demo scenarios unavailable.", "muted")); });
