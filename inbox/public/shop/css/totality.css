@@ -297,19 +297,42 @@ body.on-ember{--moth-wing:#050506;--moth-wing2:#3a1406;--moth-body:#F2EEE6}
 .endcard__fine{color:var(--ash);font-size:13px}
 .moth-slot{display:inline-block;min-height:50px}
 
-/* ---------- moth ---------- */
-.moth{display:block;width:56px;height:auto;overflow:visible}
-.moth .mw{fill:var(--moth-wing)}
-.moth .mw2{fill:var(--moth-wing2)}
-.moth .mb{fill:var(--moth-body)}
-.moth .moth__ant{stroke:var(--moth-body)}
-.moth .moth__wing{transform-box:view-box;transform-origin:40px 26px}
-.moth.is-free{position:fixed;left:0;top:0;z-index:60;pointer-events:none;margin:-25px 0 0 -28px;transition:opacity .4s}
-.moth.is-free .moth__wing,.moth.is-perched .moth__wing{animation:flap .17s ease-in-out infinite alternate}
-.moth.is-landed .moth__wing,.moth.is-perched .moth__wing{animation-duration:1.4s}
-.moth.is-shadow{opacity:.28}
-.moth.is-flutter .moth__wing{animation-duration:.09s}
-@keyframes flap{to{transform:scaleX(.32)}}
+/* ---------- dreadnought battleship 3d cursor ---------- */
+@media (hover:hover) and (pointer:fine){
+  html.has-dreadnought,
+  html.has-dreadnought body,
+  html.has-dreadnought a,
+  html.has-dreadnought button,
+  html.has-dreadnought [role="button"],
+  html.has-dreadnought [role="tab"],
+  html.has-dreadnought input[type="submit"],
+  html.has-dreadnought input[type="button"],
+  html.has-dreadnought input[type="radio"],
+  html.has-dreadnought select,
+  html.has-dreadnought summary,
+  html.has-dreadnought label,
+  html.has-dreadnought [data-add],
+  html.has-dreadnought .card__link,
+  html.has-dreadnought .frame__link,
+  html.has-dreadnought .shop-card,
+  html.has-dreadnought model-viewer{
+    cursor:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27%3E%3Ccircle cx=%2712%27 cy=%2712%27 r=%271.5%27 fill=%27%23FFFDF9%27/%3E%3Cpath d=%27M12 4V8M12 16V20M4 12H8M16 12H20%27 stroke=%27%23F2EEE6%27 stroke-width=%271.1%27 stroke-opacity=%27.72%27 stroke-linecap=%27round%27/%3E%3C/svg%3E") 12 12, crosshair;
+  }
+}
+.dreadnought-canvas{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  pointer-events:none;
+  z-index:99999;
+  display:block;
+}
+.moth{display:block;width:84px;height:auto;overflow:visible;pointer-events:none;opacity:.88}
+.moth.is-shadow{opacity:.42}
+@media (pointer:coarse),(prefers-reduced-motion:reduce){
+  .dreadnought-canvas{display:none!important}
+}
 .perch{display:none;width:44px;flex:none}
 .perch .moth{width:44px}
 
