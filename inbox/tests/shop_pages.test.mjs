@@ -263,10 +263,10 @@ test("(judges) a scenario click fills the form, never starts a run, and hands fo
   const pick = fnBody(js, "pickScenario");
   assert.ok(!/\brun\(|requestSubmit|\.submit\(|\.click\(\)|dispatchEvent/.test(pick), "pickScenario must not start a run");
   assert.match(pick, /Ready: check the message, then press Submit dispatch\./);
-  assert.match(pick, /focusSubmit\(\$\("submit"\), from\)/);
-  const focus = fnBody(js, "focusSubmit");
-  assert.match(focus, /scrollIntoView/);
-  assert.match(focus, /\.focus\(/);
+  assert.match(pick, /focusSubmit\(\$\("submit"\)\)/);
+  assert.match(fnBody(js, "scrollToForm"), /scrollIntoView/);
+  assert.match(fnBody(js, "focusTarget"), /\.focus\(/);
+  assert.match(fnBody(js, "focusSubmit"), /scrollToForm\(\)/);
   assert.match(pick, /seq !== pickSeq/, "the pickSeq guard stays");
 });
 
@@ -305,15 +305,67 @@ test("(judges) the form and the flow clear the fixed masthead when scrolled to",
   assert.match(readShop("css/totality.css"), /#contact-form,#flow\{scroll-margin-top:calc\(var\(--mast,72px\) \+ 16px\)\}/);
 });
 
-test("(judges) a held Enter on a scenario button cannot press Submit, and focus is not stolen", () => {
+test("(judges) focus handoff after a scenario fill: pointer, held key, moved-away, blur; Submit is never vetoed", async () => {
+  await import("../public/shop/js/contact.js");
+  const { createHandoff } = globalThis.JP_CONTACT_TEST;
+  assert.equal(typeof createHandoff, "function");
+
+  // pointer pick: focus goes to Submit as soon as the fill lands, if focus is still on the button
+  let h = createHandoff();
+  h.begin(false, false);
+  assert.equal(h.filled(true), true);
+  // pointer pick, but the judge clicked elsewhere before the fill landed: nothing is stolen
+  h = createHandoff();
+  h.begin(false, false);
+  assert.equal(h.filled(false), false);
+
+  // Enter pressed (auto-repeating) on the scenario button: no move while the key is down, the move happens on its release
+  h = createHandoff();
+  h.begin(true, true);
+  assert.equal(h.filled(true), false, "fill landed while Enter is still held: wait");
+  assert.equal(h.pending(), true);
+  assert.equal(h.filled(true), false, "a repeat keeps waiting");
+  assert.equal(h.keyup(true), true, "release: focus moves to Submit");
+  assert.equal(h.keyup(true), false, "and only once");
+
+  // the key was released before the fill landed (a quick tap): the fill itself moves focus
+  h = createHandoff();
+  h.begin(true, false);
+  assert.equal(h.filled(true), true);
+
+  // release after focus moved elsewhere: no steal, and the handoff is over
+  h = createHandoff();
+  h.begin(true, true);
+  h.filled(true);
+  assert.equal(h.keyup(false), false);
+  assert.equal(h.pending(), false);
+  assert.equal(h.keyup(true), false, "a later release does not revive it");
+
+  // blur before the release: the keyup may never come, so focus never moves
+  h = createHandoff();
+  h.begin(true, true);
+  h.filled(true);
+  h.blur();
+  assert.equal(h.keyup(true), false);
+  assert.equal(h.pending(), false);
+
+  // blur after the move changes nothing; a cancelled handoff (message edited) never moves
+  h = createHandoff();
+  h.begin(false, false);
+  h.cancel();
+  assert.equal(h.filled(true), false);
+
+  // a new pick replaces the old handoff
+  h = createHandoff();
+  h.begin(true, true);
+  h.begin(false, false);
+  assert.equal(h.filled(true), true);
+});
+
+test("(judges) the Submit handler has no veto: no timer, no held-key latch", () => {
   const js = readShop("js/contact.js");
-  const focus = fnBody(js, "focusSubmit");
-  assert.match(focus, /document\.activeElement/);
-  assert.match(focus, /stillThere && btn/, "focus moves only if the judge is still on the scenario button or nowhere");
-  assert.match(focus, /focusMovedAt = Date\.now\(\)/);
-  assert.match(fnBody(js, "pickScenario"), /var from = document\.activeElement/);
-  assert.match(js, /focusSubmit\(\$\("submit"\), from\)/);
-  assert.match(js, /if \(scKeyHeld \|\| Date\.now\(\) - focusMovedAt < 600\) return;/, "the submit handler ignores a held key and the first 600 ms");
-  assert.match(js, /ev\.target\.closest\("\.sc__btn"\)\) scKeyHeld = true/);
-  assert.match(js, /keyup[\s\S]{0,120}scKeyHeld = false/);
+  const submit = js.slice(js.indexOf('form.addEventListener("submit"'), js.indexOf('var msg = $("message")'));
+  assert.ok(submit.length > 50);
+  assert.ok(!/Date\.now|scKeyHeld|focusMovedAt|keyDown/.test(submit), "a deliberate Submit is always honoured");
+  assert.match(submit, /run\(input\)/);
 });

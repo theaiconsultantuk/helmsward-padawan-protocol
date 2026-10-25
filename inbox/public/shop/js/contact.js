@@ -5,8 +5,35 @@
 (function () {
   "use strict";
 
+  // Where focus goes after a scenario fill, as a small state machine with no DOM in it (the test drives it with plain booleans).
+  // A pointer pick may hand focus to Submit as soon as the fill lands. A key pick (Enter/Space on the scenario button) waits for that key's
+  // release first, because a held key auto-repeats on whatever has focus and must never repeat onto Submit. Either way focus only moves while it
+  // is still on the scenario button (or nowhere); if the judge moved on, nothing is stolen, and if the key's release never arrives (the window lost
+  // focus) nothing moves. Submit itself is never vetoed: this only decides when focus may be moved.
+  function createHandoff() {
+    var st = null;
+    function tryMove(onButton) {
+      if (!st || st.dead || st.moved || !st.filled || !st.released) return false;
+      if (!onButton) { st.dead = true; return false; }
+      st.moved = true;
+      return true;
+    }
+    return {
+      // viaKey: the pick came from the keyboard; keyDown: that key is still held right now
+      begin: function (viaKey, keyDown) { st = { filled: false, released: !(viaKey && keyDown), dead: false, moved: false }; },
+      cancel: function () { st = null; },
+      // the fill landed; true means "move focus to Submit now"
+      filled: function (onButton) { if (st) st.filled = true; return tryMove(onButton); },
+      // the held key was released; true means "move focus to Submit now"
+      keyup: function (onButton) { if (st && !st.released) st.released = true; return tryMove(onButton); },
+      // the window lost focus before the release: the keyup may never come, so do not move focus at all
+      blur: function () { if (st && !st.released) st.dead = true; },
+      pending: function () { return Boolean(st && !st.dead && !st.moved); }
+    };
+  }
+
   // Outside a browser (no document) only the token function is exposed, for the test that drives it with throwing stubs.
-  if (typeof document === "undefined") { globalThis.JP_CONTACT_TEST = { resolveToken: resolveToken }; return; }
+  if (typeof document === "undefined") { globalThis.JP_CONTACT_TEST = { resolveToken: resolveToken, createHandoff: createHandoff }; return; }
 
   var meta = document.querySelector('meta[name="api-base"]');
   var base = ((meta && meta.getAttribute("content")) || "").replace(/\/+$/, "");
@@ -325,6 +352,7 @@
   function writeOwn() {
     active = null;
     pickSeq++;
+    handoff.cancel();
     markActive(null);
     showExpected();
     hideSourceCard();
@@ -333,25 +361,32 @@
     setStatus("");
   }
 
-  // A click only fills. The form sits above the scenario list, so bring it into view and park focus on the button that starts the run.
-  // Guard against a held Enter/Space: the click on a scenario button repeats while the key is down, and once the fill moves focus to Submit the
-  // repeats would press it. Focus only moves if the judge is still on that scenario button (or nowhere), and a Submit that arrives while the
-  // key is still down, or within 600 ms of the focus move, is ignored.
-  var scKeyHeld = false, focusMovedAt = 0;
-  function focusSubmit(btn, from) {
+  // A click only fills. The form sits above the scenario list, so bring it into view and park focus on the button that starts the run
+  // (when createHandoff says it is safe: see above).
+  var handoff = createHandoff();
+  var handoffTarget = null, handoffFrom = null, keyDown = null;
+  function onFrom() {
     var ae = document.activeElement;
-    var stillThere = !ae || ae === document.body || ae === document.documentElement || (from && ae === from);
+    return !ae || ae === document.body || ae === document.documentElement || ae === handoffFrom;
+  }
+  function focusTarget() {
+    var btn = handoffTarget;
+    if (btn && btn.focus) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
+  }
+  function scrollToForm() {
     var form = $("contact-form");
     var reduced = window.T && window.T.reduced;
     if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" }); } catch (e) { /* position only */ } }
-    if (stillThere && btn && btn.focus) {
-      focusMovedAt = Date.now();
-      try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); }
-    }
+  }
+  function focusSubmit(btn) {
+    handoffTarget = btn;
+    scrollToForm();
+    if (handoff.filled(onFrom())) focusTarget();
   }
 
-  function pickScenario(id) {
-    var from = document.activeElement;
+  function pickScenario(id, fromBtn, viaKey) {
+    handoffFrom = fromBtn || null;
+    handoff.begin(Boolean(viaKey), Boolean(viaKey && keyDown));
     var e = entryById(id);
     if (!e || busy) return;
     var seq = ++pickSeq;
@@ -381,11 +416,11 @@
         if (e.channel === "trustpilot" || e.channel === "email") {
           showSourceCard(e, res.client);
           setStatus(res.note + "Message filled. Press Simulate arrival to send it.");
-          focusSubmit(document.querySelector("#source-card .src__submit"), from);
+          focusSubmit(document.querySelector("#source-card .src__submit"));
         } else {
           hideSourceCard();
           setStatus(res.note + "Ready: check the message, then press Submit dispatch.");
-          focusSubmit($("submit"), from);
+          focusSubmit($("submit"));
         }
       });
   }
@@ -763,8 +798,6 @@
       form.addEventListener("submit", function (ev) {
         ev.preventDefault();
         if (busy) return;
-        // a Submit pressed by a key still held from a scenario button, or right after focus moved to it, is not a deliberate press
-        if (scKeyHeld || Date.now() - focusMovedAt < 600) return;
         var input = readInput();
         if (!input.message) { setStatus("Write a message first.", true); $("message").focus(); return; }
         var em = $("email").value.trim();
@@ -774,17 +807,22 @@
     }
     var msg = $("message");
     if (msg) msg.addEventListener("input", function () {
-      if (active && msg.value.trim() !== str(active.message).trim()) { active = null; pickSeq++; markActive(null); showExpected(); }
+      if (active && msg.value.trim() !== str(active.message).trim()) { active = null; pickSeq++; handoff.cancel(); markActive(null); showExpected(); }
     });
     document.addEventListener("keydown", function (ev) {
-      if ((ev.key === "Enter" || ev.key === " ") && ev.target && ev.target.closest && ev.target.closest(".sc__btn")) scKeyHeld = true;
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target && ev.target.closest && ev.target.closest(".sc__btn")) keyDown = ev.target.closest(".sc__btn");
     }, true);
-    document.addEventListener("keyup", function (ev) { if (ev.key === "Enter" || ev.key === " ") scKeyHeld = false; }, true);
-    window.addEventListener("blur", function () { scKeyHeld = false; });
+    document.addEventListener("keyup", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      var was = keyDown;
+      keyDown = null;
+      if (was && handoff.keyup(onFrom())) focusTarget();
+    }, true);
+    window.addEventListener("blur", function () { keyDown = null; handoff.blur(); });
     var box = $("scenarios");
     if (box) box.addEventListener("click", function (ev) {
       var b = ev.target.closest ? ev.target.closest(".sc__btn") : null;
-      if (b) pickScenario(b.getAttribute("data-id"));
+      if (b) pickScenario(b.getAttribute("data-id"), b, ev.detail === 0 || keyDown === b);
     });
     var card = $("source-card");
     if (card) card.addEventListener("click", function (ev) {
