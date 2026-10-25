@@ -366,7 +366,6 @@
     if (on) {
       opener = trigger || null; visits = buildVisits(journey);
       scrim.hidden = false; panel.hidden = false; resetVisual(); stepLabel();
-      sfx("tog_on", 0.9); later(function () { sfx("hood_open", 0.85); }, 70);
       requestAnimationFrame(function () { scrim.classList.add("is-on"); });
       if (lenis && lenis.stop) lenis.stop();
       var anim = panel.animate(
