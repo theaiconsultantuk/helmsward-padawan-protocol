@@ -50,7 +50,7 @@
       var topic = (j && j.scenario) || q.scenario || q.category || "default";
       var at = new Date(q.at || q.mtime || Date.now()).getTime();
       return {
-        q: q, rid: rids[i], topic: topic, at: isNaN(at) ? Date.now() : at,
+        q: q, j: j, rid: rids[i], topic: topic, at: isNaN(at) ? Date.now() : at,
         team: (j && j.team) || "Unassigned", teamLabel: (j && (j.team_label || j.team)) || "Unassigned",
         topicLabel: (j && j.topic_label) || topic,
         holder: (held && held.name) || (q.owner && q.owner.name) || "unassigned",
@@ -67,6 +67,7 @@
     top.appendChild(lamp);
     top.appendChild(el("strong", m.q.ticket_id || m.rid || m.q.run_id));
     top.appendChild(el("span", m.topicLabel, "dchip"));
+    if (m.j && deps.star) top.appendChild(deps.star(m.j));   // P57: the desk's "★ Full journey" chip
     li.appendChild(top);
     var line = el("p", null, "tcard__who"), esc = el("p", null, "tcard__esc"), age = el("p", null, "tcard__age muted");
     li.appendChild(line); li.appendChild(esc); li.appendChild(age);

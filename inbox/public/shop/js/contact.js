@@ -43,6 +43,9 @@
   var REASON_VALUES = ["refund", "question", "rfq", "complaint", "free_text"];
   var DEFAULT_AS_OF = "2026-10-20";
 
+  // P57: the three cases whose Sign-off on the desk follows the ticket to the end (chain.js: refund, repeat, legal).
+  var FULL_JOURNEY = ["s01", "s04", "s09"];
+
   var scenarios = [];   // the entries from GET /demo/scenarios
   var active = null;    // the chosen entry, while the form still holds its message
   var cur = { runId: null, journey: null, started: 0, entry: null };
@@ -283,6 +286,13 @@
         b.type = "button";
         b.setAttribute("data-id", str(e.id));
         b.setAttribute("aria-pressed", "false");
+        if (FULL_JOURNEY.indexOf(str(e.id)) >= 0) {
+          // The star is decoration; screen readers hear "Full journey" as part of the button's name.
+          var star = el("span", null, "sc__star");
+          star.appendChild(el("span", "★", null)).setAttribute("aria-hidden", "true");
+          star.appendChild(el("span", " Full journey", null));
+          b.appendChild(star);
+        }
         wrap.appendChild(b);
       });
       box.appendChild(wrap);

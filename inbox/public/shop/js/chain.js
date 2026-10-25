@@ -228,5 +228,10 @@
       return load().then(function (d) { render(run, j, d, onChange); var b = ensure(); if (!b.open) b.showModal(); });
     },
     summary: function (run, j) { return load().then(function (d) { return summary(j, d, run); }); },
+    // P57: the kind ("refund", "repeat", "legal") when this run's Sign-off follows the case through to the end, else "".
+    // Same rule as the dialog (plan), so the desk's ★ and the full case flow can never disagree.
+    fullJourney: function (j) {
+      return load().then(function (d) { var k = j ? plan(j, d).kind : ""; return k === "refund" || k === "repeat" || k === "legal" ? k : ""; }).catch(function () { return ""; });
+    },
   };
 })();
