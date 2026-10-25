@@ -1,5 +1,6 @@
 // P55 boundaries: persisted duplicate eligibility, FAQ specificity ties, and safe held refund drafts.
 import {test} from 'node:test';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {runMessage,msg,dirs} from './helpers/route_run.mjs';
 import {readIntake} from '../src/intake.mjs';
@@ -9,8 +10,11 @@ const input=()=>msg('I want a refund of 65 GC for order JP-9931.');
 test('an intake write followed by failure stays pending on disk and is not a duplicate; a completed retry is',async()=>{
  const d=dirs();
  const first=await runMessage(input(),{d,extra:{facts:async()=>{throw Error('crash after intake');}}});assert.match(first.result.output.reasons[0],/run stopped/);
- const rows=readIntake({runtimeDir:d.runtimeDir});assert.equal(rows[0].decision_state,'pending');
- const second=await runMessage(input(),{d,run_id:'retry'});assert.notEqual(second.result.branch_id,'duplicate');
+ const rows=readIntake({runtimeDir:d.runtimeDir});
+ // A fresh process has no in-memory run state: retry eligibility must come from the persisted intake row.
+ const moduleUrl=new URL('./helpers/route_run.mjs',import.meta.url).href;
+ const child=`import {runMessage} from ${JSON.stringify(moduleUrl)}; const r=await runMessage(${JSON.stringify(input())},{d:${JSON.stringify(d)},run_id:'retry'});console.log(JSON.stringify(r.result));`;
+ const second=JSON.parse(execFileSync(process.execPath,['--input-type=module','-e',child],{encoding:'utf8',env:{...process.env,SKIP_RUNTIME:'1',SAMPLE_MODE:'true',NO_NETWORK:'1'}}));assert.notEqual(second.branch_id,'duplicate');assert.equal(rows[0].decision_state,'pending');
  assert.equal(readIntake({runtimeDir:d.runtimeDir})[1].decision_state,'decided');
  const third=await runMessage(input(),{d,run_id:'repeat'});assert.equal(third.result.branch_id,'duplicate');assert.equal(third.result.output.decision,'close');
 });

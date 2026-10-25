@@ -199,11 +199,11 @@ test("live path with stubbed model: fenced JSON, JSON nudge, model ids, sponsor 
   };
   const gates = async (ticket, facts, { trace }) => {
     trace.line({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", input_summary: "g", output_summary: "stub gates", status: "success", model: "openjev-test", gate_source: "openjev" });
-    return { answers: { is_follow_up: 0.1, category: { choice: "refund", confidence: 0.9 } }, model: "openjev-test", gate_source: "openjev", confidence: 0.9 };
+    return { answers: { is_follow_up: 0.1, category: { choice: "question", confidence: 0.9 } }, model: "openjev-test", gate_source: "openjev", confidence: 0.9 };
   };
   const critic = async ({ draft }) => (draft.promises.refund_amount > 150 ? { pass: false, reason: "refund above the limit", model: "nvidia/nemotron-test" } : { pass: true, reason: "ok", model: "nvidia/nemotron-test" });
-  // 140 GC is under the 150 limit, so the bad first draft is a retryable round, not the over-limit approval refusal
-  const t = await run("T03", { cfg: live, patch: { T03: { amount: 140 } }, extra: { drafter, gates, critic, reader: readerStub } });
+  // A non-refund question keeps the JSON nudge/revision path; held refunds now use the P55 commitment backstop.
+  const t = await run("T03", { cfg: live, patch: { T03: { amount: 140, category: "question" } }, extra: { drafter, gates, critic, reader: readerStub } });
   assertWholeTrace(t);
   const drafts = t.lines.filter((l) => l.step === "nvidia.model" && /^draft/.test(l.action));
   assert.equal(drafts.length, 2);

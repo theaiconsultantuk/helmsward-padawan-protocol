@@ -21,10 +21,10 @@ for(const [name,input,decision,branch] of [
  if(name==='severe') {assert.ok(r.output.queued_for);assert.match(r.output.reasons[0],/severity/);}
  if(name==='legal') {assert.ok(r.output.cc.length);assert.ok(r.output.also.length);assert.equal(r.output.courtesy_reply,true);}
  if(name==='data-block') assert.equal(r.output.draft,undefined);
- else {assert.match(r.output.draft.model,/template/);assert.ok(lines.some(x=>x.step==='nvidia.model' && /template/.test(JSON.stringify(x))));}
+ else {assert.match(r.output.draft.model,/template/);assert.ok(lines.some(x=>x.step==='nvidia.model' && /template/.test(JSON.stringify(x))));if(name!=='legal')assert.ok(lines.some(x=>x.source==='template'));}
 });
-test('live replyLoop on fixed over-limit skips every draft, critic and revision',async()=>{
- let calls=0; const lines=[];const f={category:'refund',amount:240,policy_limit:150,owner_id:40,owner_name:'Approver',backup_id:201,may_leave:true};
+for(const category of ['refund','replacement']) test(`live fixed over-limit ${category} skips every draft, critic and revision`,async()=>{
+ let calls=0; const lines=[];const f={category,amount:240,policy_limit:150,owner_id:40,owner_name:'Approver',backup_id:201,may_leave:true};
  const tb={f,ticket:{},sampleOn:false,hardRisk,L:x=>{lines.push(x);return x;},skipped:(step,why)=>lines.push({step,why}),S:{models:{},rounds:[],branch:{branch_id:'over-limit'}},io:{drafter:async()=>{calls++;throw Error('draft');},critic:async()=>{calls++;throw Error('critic');}}};
- const r=await replyLoop(tb);assert.equal(calls,0);assert.equal(r.retried,false);assert.match(r.draft.text,/routed for approval/);assert.ok(lines.some(x=>x.source==='template'));
+ const r=await replyLoop(tb);assert.equal(calls,0);assert.equal(r.retried,false);assert.match(r.draft.text,/routed for approval/);assert.equal(r.draft.promises.replacement,false);assert.ok(lines.some(x=>x.source==='template'));
 });

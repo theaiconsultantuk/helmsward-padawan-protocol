@@ -118,6 +118,7 @@ const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
 // opts.overLimit (true when the refund is over the policy limit; 2.1d wires it from the loop): the draft says the request is
 // routed for approval and promises no refund, amount or date.
+// P43 (einh, 25 Oct 2026): the single producer of unknown/missing-order wording.
 export function orderSentence(check) {
   if (!check || check.known !== false) return "";
   return check.order_id
@@ -136,7 +137,7 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false, than
   let mid;
   if (thanksRequest) {
     mid = "You also asked us for something, and we have passed it on: a colleague will look at it and come back to you.";
-  } else if (overLimit && (cat === "refund" || seed === "revised")) {
+  } else if (overLimit) {
     mid = "Your refund request is routed for approval. We are not promising an amount or a date yet, and a colleague will follow up with you.";
   } else if (seed === "revised") {
     const lim = facts.policy_limit == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit} GC, so we are not promising it today`;

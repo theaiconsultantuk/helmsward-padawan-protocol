@@ -220,7 +220,8 @@ export function promisesMoney(d, f) {
 // P55 C (einh, 25 Oct 2026): the closed set is intentional; additional phrases need the orchestrator's ruling.
 const HOLD_APPROVAL = /\b(?:processing|being processed|approved|issued|refunded|on its way)\b/i;
 export function guardHeldRefund(draft, facts, gates, L, branch) {
-  if (!draft || (facts?.category !== "refund" && gates?.answers?.category?.choice !== "refund")) return draft;
+  // A policy question or an RFQ is not a refund request, even when its gate mentions refunds.
+  if (!draft || (facts?.category !== "refund" && (gates?.answers?.category?.choice !== "refund" || ["question", "rfq"].includes(facts?.category)))) return draft;
   const text = [draft.text, typeof draft.promises?.other === "string" ? draft.promises.other : ""].join(" ");
   const approval = HOLD_APPROVAL.exec(text)?.[0];
   if (!approval && !promisesMoney(draft, facts)) return draft;

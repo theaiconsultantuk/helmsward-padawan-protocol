@@ -24,6 +24,8 @@ for(const [label,text,amount,oid,how] of [
  ['refund','I want a refund of 240 GC for order JP-9944, it never arrived.',240,'JP-9944','scout'],
  ['missing order on question',missing,300,null,'amount'],
  ['thanks precedence',thanks,300,null,'amount'],
+ ['customer service','Thank you so much! Could I get 300 GC refunded for my order?',300,null,'amount'],
+ ['other','Thank you so much for your help! Could I also get the postage refunded? It was 300 GC.',300,null,'amount'],
 ]) test(`over-limit ${label} reaches approver and names the order`,async()=>{
  const d=dirs(); const {result:r,lines}=await runMessage(msg(text),{d});
  assert.equal(r.output.decision,'escalate'); assert.equal(r.branch_id,'over-limit'); assert.equal(r.resolved_how,how);
@@ -76,4 +78,14 @@ test('lookup failure never claims that an order is missing',async()=>{
 test('known non-suspended owner still gets delivery status (Amendment 3: JP-1071)',async()=>{
  const {result:r}=await runMessage(msg(delivery('JP-1071'),'chat','cass.holm@example.com'));
  assert.equal(r.branch_id,'delivery-status'); assert.equal(r.output.decision,'send');
+});
+
+test('order sentence contract is shared by the live prompt and deterministic sign-off backstop',async()=>{
+ const {replyLoop}=await import('../src/loop.mjs'); const {hardRisk}=await import('../src/gates.mjs');
+ const check={known:false,order_id:'JP-9931'}; const sent=[];
+ const f={category:'refund',amount:240,policy_limit:150,owner_id:40,owner_name:'Approver',may_leave:true,order_check:check};
+ // Exercise the retained replyLoop backstop directly; P3 bypasses this model path for the production over-limit branch.
+ const tb={f,ticket:{},sampleOn:false,readerOn:false,memCtx:'',hardRisk,L:x=>x,skipped:()=>{},fatal:(_,e)=>{throw e;},S:{models:{},rounds:[],memRead:[],branch:{branch_id:'send-ok'}},io:{drafter:async m=>{sent.push(m);return {text:JSON.stringify({reply_text:'Your request has been routed for approval.\n\nBest regards,\nSupport',promises:{refund_amount:null,replacement:false,other:null}}),model:'stub'};},critic:async()=>({pass:true,reason:'ok',model:'stub'})}};
+ const r=await replyLoop(tb);const sentence=sample.orderSentence(check);
+ assert.ok(sent[0][0].content.includes(sentence)); assert.ok(r.draft.text.includes(sentence)); assert.ok(r.draft.text.indexOf(sentence)<r.draft.text.lastIndexOf('Best regards')); assert.equal(promisesMoney(r.draft,f),false);
 });

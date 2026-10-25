@@ -1008,7 +1008,7 @@ components:
         queue_file: { type: string }
     TraceLine:
       type: object
-      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: Own measured work; overlapping work attributed once; paired and bookkeeping lines carry zero }, elapsed_ms: { type: integer, description: since the stable trace start }, ran_s: { type: number, description: Completion seconds since trace start }, seen_s: { type: number, description: Arrival seconds since board start }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
+      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: Own measured work; overlapping work attributed once; paired and bookkeeping lines carry zero }, elapsed_ms: { type: integer, description: since the stable trace start }, ran_s: { type: number, description: Completion seconds since trace start }, seen_s: { type: number, description: Arrival seconds since board start }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, source: { type: string, description: "Reply text source; template identifies a deterministic reply with no drafting model call." }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
       additionalProperties: true
     Error:
       type: object

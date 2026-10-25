@@ -59,6 +59,8 @@ test("early = final on 24 threads, 30 shape cells and 14 demos plus existing H16
 test("live stubs record primary, local fallback, mismatch, failed critique and exactly one default-critic fallback", guard(async () => {
   for (const kind of ["primary", "local", "mismatch", "failed", "default"]) {
     const deps = await liveDeps();
+    const facts = await factsForTicket("T02", { cfg: sampleCfg });
+    deps.facts = async () => facts; // P3: provider-call coverage belongs on a path that still drafts.
     if (kind === "local") deps.drafter = async () => ({ ...draft, model: "llama-local", lane: "local-lane", fallback: { reason: "UpstreamRefused", route: "local-lane" } });
     if (kind === "mismatch") deps.drafter = async () => ({ ...draft, model: "meterless/auto-pick" });
     if (kind === "failed") deps.critic = async () => { throw Object.assign(Error("/opt/private"), { name: "UpstreamTimeout" }); };
@@ -66,9 +68,9 @@ test("live stubs record primary, local fallback, mismatch, failed critique and e
       delete deps.critic; let n = 0;
       globalThis.fetch = async (url) => { assert.ok(String(url).startsWith("http://nightshift.test/")); n++; return n < 3 ? new Response("bad", { status: 503 }) : new Response(JSON.stringify({ model: "llama-x", choices: [{ message: { content: JSON.stringify({ pass: true, reason: "ok" }) } }] })); };
     }
-    const r = await loop.runTicket("T03", { run_id: `pc-${kind}`, cfg: liveCfg, deps });
+    const r = await loop.runTicket("T02", { run_id: `pc-${kind}`, cfg: liveCfg, deps });
     assert.equal(r.provider?.primary_used, kind === "primary", kind);
-    assert.equal(r.output.decision, "escalate");
+    assert.equal(r.output.decision, kind === "failed" ? "escalate" : "hold");
     if (kind === "primary") assert.ok(r.provider.calls >= 2);
     if (kind === "local") assert.match(r.provider.fallback_reason, /^draft: Nightshift unreachable \(UpstreamRefused\)/);
     if (kind === "mismatch") assert.equal(r.provider.fallback_reason, "draft: primary route answered with meterless/auto-pick, not Nemotron");
