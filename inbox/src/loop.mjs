@@ -1031,6 +1031,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.intakeDecided = true;
     } catch (e) {
       if (e?.name === "IntakeFull") throw e;
+      // P55, review 53: an intentional Stop after a decision still completes the intake row.
+      if (e instanceof Stop && S.decision) S.intakeDecided = true;
       if (!(e instanceof Stop)) {
         S.recovered.push({ step: S.current, type: errName(e), message: safeMsg(e) });
         L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "unexpected_error", input_summary: `${S.current} threw`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });

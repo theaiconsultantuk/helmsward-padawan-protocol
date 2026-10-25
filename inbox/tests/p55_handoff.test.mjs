@@ -34,3 +34,16 @@ for(const [label,text,replaced] of [['commitment','We are processing your refund
  if(replaced){assert.match(r.output.draft.text,/a colleague will review your request/i);assert.ok(lines.some(x=>x.action==='hold_draft_replaced' && /processing/.test(x.output_summary)));}
  else assert.equal(r.output.draft.text,text);
 });
+
+test('a Scout refusal that already escalated before Stop counts as decided for its repeat',async()=>{
+ const d=dirs();
+ // A refused contract on the first read exercises Scout's escalate-then-Stop path.
+ // The retry uses the normal Scout, so it can reach the duplicate branch.
+ const first=await runMessage(input(),{d,extra:{scout:{decide:async()=>({executionContract:null,risk:{level:'low'}})}}});
+ assert.equal(first.result.output.decision,'escalate');
+ assert.ok(first.lines.some(l=>l.step==='meterless.engine' && l.status==='refused'));
+ const second=await runMessage(input(),{d,run_id:'refused-repeat'});
+ assert.equal(second.result.branch_id,'duplicate');
+ assert.equal(second.result.output.decision,'close');
+ assert.equal(readIntake({runtimeDir:d.runtimeDir})[0].decision_state,'decided');
+});

@@ -1,5 +1,5 @@
-// P11 (einh's board, 24 Oct 2026): above the approver's limit the draft says the request is routed for approval and never promises a
-// refund, an amount or a date; a model draft that does promise money gets ONE rewrite round with Risk's refusal, then the approval escalate.
+// P3 (einh's board, 25 Oct 2026): a fixed over-limit reply uses the approval template, with no drafter, critic or revision call.
+// The attached draft says routed for approval, promises no refund, amount or date, and passes promisesMoney with false.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
