@@ -87,13 +87,15 @@
   }
   function mail(lines) { var m = el("details", null, "chain__mail"); m.open = true; m.appendChild(el("summary", "The email (simulated)")); m.appendChild(el("pre", lines.join("\n"), "chain__pre")); return m; }
   // What happens after the last signature (or a rejection), for the three kinds of case.
+  function happyEnd(j, step, said, stars, review) {
+    var c = customer(j);
+    step("Customer replied", "simulated", "is-done").appendChild(el("p", "\"" + said + "\"", "chain__reply"));
+    if (review) step("Review left", "simulated", "is-done").appendChild(el("p", stars + "  \"" + review + "\" · " + c.name + ", Trustpilot", "chain__reply"));
+    step("Ticket solved", "simulated · closed", "is-done").appendChild(el("p", "Status: solved. Affirm on the desk (real) writes this verdict to the trust ledger, so the next case like this is judged with it.", "chain__p"));
+  }
   function resolution(p, j, d, step, rejected) {
     var c = customer(j), to = "To: " + c.name + (c.email ? " <" + c.email + ">" : ""), amt = p.amount != null ? p.amount + " GC" : "the full order price";
-    var happy = function (said, stars, review) {
-      step("Customer replied", "simulated", "is-done").appendChild(el("p", "\"" + said + "\"", "chain__reply"));
-      if (review) step("Review left", "simulated", "is-done").appendChild(el("p", stars + "  \"" + review + "\" · " + c.name + ", Trustpilot", "chain__reply"));
-      step("Ticket solved", "simulated · closed", "is-done").appendChild(el("p", "Status: solved. Affirm on the desk (real) writes this verdict to the trust ledger, so the next case like this is judged with it.", "chain__p"));
-    };
+    var happy = function (said, stars, review) { happyEnd(j, step, said, stars, review); };
     if (p.kind === "repeat" && rejected) {
       step("Declined, per the repeat-claim SOP", "simulated", "is-bad").appendChild(mail([to, "Subject: Your refund request", "", "Hello " + c.first + ",",
         "Thank you for writing. We have looked at this request together with your earlier refunds on the same item, and we cannot approve another refund.",
@@ -155,6 +157,19 @@
     var dec = step("Agent decision: " + (j.decision || "?"), "real", "is-real");
     dec.appendChild(el("p", [run.branch_id ? "branch " + run.branch_id : "", run.execution_time_seconds ? Math.round(run.execution_time_seconds) + " s" : "", j.decision === "hold" || j.decision === "escalate" ? "needs a person" : ""].filter(Boolean).join(" · "), "chain__p"));
 
+    // Already sent for real (a person sent it from the desk, or the agent sent it on its own): show that, not a simulation.
+    var real = j.sent && typeof j.sent === "object" && j.sent.body ? j.sent : null;
+    if (real || j.decision === "send") {
+      var sentStep = step(real ? "Reply sent by " + (real.by || "a person") : "Sent by the agent on its own (the trust floor allowed it)", "real", "is-real");
+      sentStep.appendChild(el("p", clip(real ? real.body : (j.human && j.human.reply && j.human.reply.text) || "", 400), "chain__reply"));
+      if (real && real.at) sentStep.appendChild(el("p", new Date(real.at).toLocaleString() + " · from the desk, so no sign-off is needed", "chain__p"));
+      if (p.kind === "refund" || p.kind === "repeat") happyEnd(j, step, "Brilliant, thank you. That was quick and painless.", "★★★★★", "Refund sorted in a day, clear email, no hoops to jump through. Will shop again.");
+      else if (p.kind === "legal") happyEnd(j, step, "Thank you for getting back to me so quickly.", "", "");
+      var rs0 = el("button", "Reset this demo", "desk__btn chain__reset"); rs0.type = "button";
+      rs0.addEventListener("click", function () { putState(id, {}); render(run, j, d, onChange); onChange && onChange(id, summary(j, d, run)); });
+      box.appendChild(rs0);
+      return;
+    }
     var allSigned = !st.rejected, active = -1;
     p.signers.forEach(function (sg, i) {
       var out = !!(st.out && st.out[i]);
@@ -201,6 +216,7 @@
 
   // A short label for a card: "0 of 2 signed", "signed", "rejected".
   function summary(j, d, run) {
+    if ((j.sent && typeof j.sent === "object" && j.sent.body) || j.decision === "send") return "sent";
     var st = getState(run.run_id), p = plan(j, d), n = 0;
     p.signers.forEach(function (s, i) { if (st.signed && st.signed[i]) n++; });
     if (st.rejected) return "rejected";
