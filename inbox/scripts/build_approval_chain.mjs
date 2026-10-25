@@ -13,7 +13,7 @@ const resp = rows("responsibility.csv");
 const headOf = (team) => hier.find((h) => h.role === `Head of ${team}`)?.employee_id;
 
 const FINANCE = headOf("Finance");   // the second signature on money over the limit
-const need = new Set([FINANCE]);
+const need = new Set([FINANCE, headOf("Support"), headOf("Legal")]);   // the two heads are copied on a legal threat
 const topics = {};
 for (const p of policy) {
   topics[p.topic] = { limit: Number(p.limit_amount), currency: p.currency, owner: p.under_limit_owner_id, backup: p.under_limit_backup_id, over_owner: p.over_limit_owner_id, over_backup: p.over_limit_backup_id };
@@ -26,6 +26,7 @@ for (const id of need) { const e = emp[id]; const h = hier.find((x) => x.employe
 const out = {
   note: "Built by scripts/build_approval_chain.mjs from employees.csv, policy.csv, responsibility.csv and companyhierarchy.csv. The signing flow that uses it is a simulation.",
   second_signer: { id: FINANCE, why: "Money over the policy limit needs the over-limit owner and the Head of Finance (a proposed rule; not enforced by the agent)" },
+  copy_on_legal: [headOf("Support"), headOf("Legal")],
   topics, desks, people,
 };
 writeFileSync(join(root, "public/shop/data/approval-chain.json"), JSON.stringify(out, null, 1) + "\n");

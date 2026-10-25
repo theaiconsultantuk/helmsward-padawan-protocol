@@ -4,6 +4,10 @@
   "id": "2",
   "why": "Money over the policy limit needs the over-limit owner and the Head of Finance (a proposed rule; not enforced by the agent)"
  },
+ "copy_on_legal": [
+  "7",
+  "202"
+ ],
  "topics": {
   "refund": {
    "limit": 150,
@@ -115,6 +119,12 @@
    "team": "Sales",
    "role": "Account Executive"
   },
+  "7": {
+   "name": "Mei-Ling Zhao",
+   "email": "mei-ling.zhao@jedipack.com",
+   "team": "Support",
+   "role": "Head of Support"
+  },
   "8": {
    "name": "Elena Voss",
    "email": "elena.voss@jedipack.com",
@@ -162,6 +172,12 @@
    "email": "paul.jedi@jedipack.com",
    "team": "Executive",
    "role": "CEO"
+  },
+  "202": {
+   "name": "Ilsa Wrenmoor",
+   "email": "ilsa.wrenmoor@jedipack.com",
+   "team": "Legal",
+   "role": "Head of Legal"
   },
   "203": {
    "name": "Mara Quillfeather",
