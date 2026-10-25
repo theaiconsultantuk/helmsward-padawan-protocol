@@ -86,6 +86,7 @@ Hero demo thread: owner on holiday, refund over the limit, reply held, backup pe
 | P45 | Dean and Jocke: mark your own rows on this board (D2, D3, D5, D7, P33, T6) | Dean, Jocke | | asked 25 Oct | D1, D4, D6 and T5b marked from your logs; correct them if wrong |
 | P46 | Kristof's list (sent 25 Oct): safe to fix now (judging pack refresh L5/G5, remove scraped Amazon data M4, bearer-removal PR, P35 on hosted) vs team call first (H11, unknown order vs over-limit, dropping the 3D, repo public M3) | Kristof | | sent 25 Oct | Kristof asked whether his Claude can "fix bugs quick": yes for the first group |
 | P47 | Backend hops: one live legal-threat run is 44 steps, about 15 s, Nemotron about 10 s; 10+ Zetaris lookups at 0.1 to 0.2 s each look sequential. Check batching or parallel lookups and the 100-row duplicate read | Kristof (asked), Paul + Claude (offered audit) | | open | Raised by Kristof 25 Oct |
+| P48 | Three of Kristof's scenarios followed from submission to solved in the Sign-off dialog (s01 refund → 5-star review; s04 repeat claim → declined + watch list; s09 legal threat → Legal's SOP risk read → goodwill refund → review). Front end only, labelled simulated. For the video (3 complete cases) and the deck | Paul + Claude | 26 Oct | in review (PR #58) | Not merged without Paul; Kristof to see it first |
 
 ## Rules for today
 - Every task we work on goes on this board, with an owner and a status.
