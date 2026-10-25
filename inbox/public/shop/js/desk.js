@@ -21,9 +21,12 @@
   // A shared instance may need a token on POST: take ?token=... once, remember it, send it as a bearer header.
   var token = (function () { try { var q = new URLSearchParams(location.search).get("token"); if (q) { localStorage.setItem("jp_token", q); try { var u = new URL(location.href); u.searchParams.delete("token"); history.replaceState(null, "", u.pathname + u.search + u.hash); } catch (e) {} } return localStorage.getItem("jp_token") || ""; } catch (e) { return ""; } })();
   function withAuth(opts) { opts = opts || {}; if (token) opts.headers = Object.assign({}, opts.headers || {}, { Authorization: "Bearer " + token }); return opts; }
+  // Same words as the contact page (P51): a 401 means the bearer is missing or wrong, not that the server broke.
+  var NEED_TOKEN = "This demo needs the judges' access link (the one with ?token=). Ask Team Jedi Pack.";
   function api(path, opts) {
     return fetch(base + path, withAuth(opts)).then(function (r) {
       return r.json().catch(function () { return null; }).then(function (body) {
+        if (r.status === 401) throw new Error(NEED_TOKEN);
         if (!r.ok) throw new Error(body && body.error && body.error.message ? body.error.message : "HTTP " + r.status);
         return body;
       });
@@ -185,6 +188,20 @@
         .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton }); setStatus("Updated " + new Date().toLocaleTimeString()); });
     }).catch(function (e) { setStatus(e.message, true); });
   }
-  load();
-  setInterval(function () { if (!document.hidden) load(); }, 20000);
+  function start() {
+    load();
+    setInterval(function () { if (!document.hidden) load(); }, 20000);
+  }
+
+  // No access code: the hosted demo runs open since 25 Oct 21:39 CET (no token), so the desk loads straight away.
+  start();
+
+  // The desk loads no core.js, so the Menu button in the masthead would do nothing: open and close that one dialog here.
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var m = $("menu");
+    if (m && t.closest('[data-open="menu"]') && m.showModal) { try { m.showModal(); } catch (err) { /* already open */ } return; }
+    if (m && t.closest("#menu [data-close]")) m.close();
+  });
 })();

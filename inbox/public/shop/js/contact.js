@@ -82,7 +82,10 @@
   }
   function setNote(msg) { var n = $("send-note"); if (n) n.textContent = msg || ""; }
 
+  // P51: a 401 (API_TOKEN set on the shared instance, no or wrong bearer) gets plain words instead of the server's text.
+  var NEED_TOKEN = "This demo needs the judges' access link (the one with ?token=). Ask Team Jedi Pack.";
   function errMsg(body, code) {
+    if (code === 401) return NEED_TOKEN;
     var e = body && body.error;
     if (e && e.message) return String(e.message);
     return "HTTP " + code;
@@ -864,6 +867,8 @@
         if (busy) return;
         var input = readInput();
         if (!input.message) { setStatus("Write a message first.", true); $("message").focus(); return; }
+        // The server's name rule (src/server.mjs): letters, combining marks, space, ' ’ and -; at least one letter.
+        if (input.name && !(/^[\p{L}\p{M}' ’-]+$/u.test(input.name) && /\p{L}/u.test(input.name))) { setStatus("Names can only use letters, spaces, hyphens and apostrophes, e.g. Jo Smith.", true); $("name").focus(); return; }
         var em = $("email").value.trim();
         if (em && em.indexOf("@") < 1) { setStatus("That email address does not look right.", true); $("email").focus(); return; }
         run(input);

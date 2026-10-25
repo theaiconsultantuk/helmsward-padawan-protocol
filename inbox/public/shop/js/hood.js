@@ -76,7 +76,8 @@
     if (s === "meterless.engine") return "scout";
     if (s === "nvidia.model") {
       if (a === "Gates" || a === "Severity") return "gates";
-      if (a === "Reader" || a === "RefundReader") return "evaluator";
+      if (a === "Reader") return "gates";            // reads the customer's message (vent or genuine): a judgement before any draft
+      if (a === "RefundReader") return "evaluator";  // reads the draft for refund promises: part of the evaluation
       return "drafter";
     }
     if (s === "critique") return "evaluator";
@@ -88,7 +89,7 @@
   function notRun(n) { return n.status === "skipped" || /not run/i.test(str(n.tech)); }
   function buildVisits(j) {
     var text = str((j.input && j.input.text) || (j.human && typeof j.human.input === "string" ? j.human.input : ""));
-    var visits = [{ st: "intake", nodes: [{ step: "intake", agent: "Intake", label: "Ticket in", route: text, detail: "", tech: "", status: "success", duration_ms: 0, consulted: [], retained: [] }] }];
+    var visits = [{ st: "intake", nodes: [{ step: "intake", agent: "Intake", label: "Ticket in", route: text, detail: str(j.channel_label), tech: "", status: "success", duration_ms: 0, consulted: [], retained: [] }] }];
     (Array.isArray(j.nodes) ? j.nodes : []).forEach(function (n) {
       var st = stationOf(n);
       if (!st) return;
@@ -169,7 +170,7 @@
       g.appendChild(sv("path", { "class": "tick", d: "M" + (l - 4) + "," + (t + k) + " V" + (t - 4) + " H" + (l + k) + " M" + (r - k) + "," + (t - 4) + " H" + (r + 4) + " V" + (t + k) + " M" + (l - 4) + "," + (b - k) + " V" + (b + 4) + " H" + (l + k) + " M" + (r - k) + "," + (b + 4) + " H" + (r + 4) + " V" + (b - k) }));
       g.appendChild(sv("text", { "class": "no", x: l + 14, y: t + 26 }, s.no));
       g.appendChild(sv("text", { "class": "nm", x: l + 14, y: p.y + 6 }, s.name));
-      g.appendChild(sv("text", { "class": "tg", x: l + 14, y: p.y + 32 }, s.tag));
+      var tg = sv("text", { "class": "tg", x: l + 14, y: p.y + 32 }, s.tag); g.appendChild(tg);
       var st = sv("text", { "class": "st", x: l + 14, y: p.y + 54 }, ""); g.appendChild(st);
       g.addEventListener("pointerenter", function () { sfx("hover", 0.25); });
       g.addEventListener("click", function () {
@@ -177,7 +178,7 @@
         goTo(first < 0 ? step : first, s.id);
       });
       g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); g.dispatchEvent(new Event("click")); } });
-      svg.appendChild(g); nodes[s.id] = { g: g, st: st };
+      svg.appendChild(g); nodes[s.id] = { g: g, st: st, tg: tg };
     });
     packet = sv("circle", { "class": "packet", r: 7, cx: 0, cy: 0 }); svg.appendChild(packet);
     body.appendChild(svg);
@@ -365,6 +366,7 @@
     var lenis = window.T && window.T.lenis;
     if (on) {
       opener = trigger || null; visits = buildVisits(journey);
+      if (nodes.intake && nodes.intake.tg) nodes.intake.tg.textContent = str(journey && journey.channel_label) || "Message";   // the channel this run came in on, not always the contact form
       scrim.hidden = false; panel.hidden = false; resetVisual(); stepLabel();
       requestAnimationFrame(function () { scrim.classList.add("is-on"); });
       if (lenis && lenis.stop) lenis.stop();
