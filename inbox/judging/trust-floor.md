@@ -59,6 +59,8 @@ The seeded ledger, as shipped:
 | legal | 0.20 | 0.80 | 12 | held |
 | product | 0.71 | 0.80 | 2 | held |
 
+How a category earns the right to send, run end to end: [ledger-learning.md](ledger-learning.md).
+
 Every affirm moves a category 0.05 closer to the floor; every reject moves it 0.05 back. Five affirmed refund holds take refund from 0.55 to 0.80, and from then on a within-limit refund draft is sent without a person. One rejection pulls it back under. A category that was never affirmed never auto-sends.
 
 FAQ hits are the one deliberate exception: a question that matches an FAQ row is answered from that row and sent (branch `faq-hit`), because the answer is the company's own published text, not a drafted promise.

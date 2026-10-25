@@ -38,7 +38,12 @@ Nightshift routes the model calls (Nemotron 3.5 Lightning drafts and critiques):
 
 ## Held-out result
 
-On 20 messages the rules were never tuned on (8 adversarial), main in sample mode matches the expected decision on **13**. It promised no refund amount, and it blocked the prompt injection before any model call. The one real miss: a thank-you with a refund request tacked on got a thank-you back and the request was dropped. Details and how to rerun: [inbox/judging/heldout/README.md](inbox/judging/heldout/README.md).
+<!-- impact:root:start -->
+Sample mode, decision code and inputs at commit `f7852e8` (2026-10-26).
+On 20 messages the rules were never tuned on (8 adversarial), sample mode matches the expected decision on **14**.
+Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit refunds routed to the approver; 2 restricted facts: no draft written; 1 earlier promise: no autonomous reply) and 71 waited for a person until their category is trusted.
+[Held-out evidence](inbox/judging/heldout/README.md) · [Results and regeneration](inbox/README.md#results).
+<!-- impact:root:end -->
 
 ## Run it
 

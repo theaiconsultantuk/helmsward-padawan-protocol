@@ -15,7 +15,7 @@ for f in "$INBOX/public/app.js" "$INBOX/public/dashboard.js" "$INBOX/public/shop
   else echo "FAIL  ${f#"$INBOX"/}: $(printf '%s' "$out" | head -n 3 | tr '\n' ' ')"; fail=1; fi
 done
 # relative links in the markdown the scenario slice added (the README and the older judging files are checked by their own runs)
-if out=$(node "$INBOX/scripts/check_links.mjs" "$INBOX/docs/FRONTEND-SPEC.md" "$INBOX/judging/scenarios.md" "$INBOX/judging/engine-world-model.md" "$INBOX/judging/screenshots/README.md" 2>&1); then echo "ok    check_links (FRONTEND-SPEC, scenarios, engine-world-model, screenshots/README)"
+if out=$(node "$INBOX/scripts/check_links.mjs" "$INBOX/docs/FRONTEND-SPEC.md" "$INBOX/judging/scenarios.md" "$INBOX/judging/engine-world-model.md" "$INBOX/judging/screenshots/README.md" "$INBOX/judging/impact-numbers.md" "$INBOX/judging/ledger-learning.md" "$INBOX/judging/heldout/README.md" 2>&1); then echo "ok    check_links (FRONTEND-SPEC, scenarios, engine-world-model, screenshots/README, impact-numbers, ledger-learning, heldout/README)"
 else echo "FAIL  check_links: $(printf '%s' "$out" | head -n 5 | tr '\n' ' ')"; fail=1; fi
 py="$INBOX/scripts/gen_company.py"
 pyc="$(mktemp -d)/gen_company.pyc"

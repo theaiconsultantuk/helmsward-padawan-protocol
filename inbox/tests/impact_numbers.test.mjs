@@ -109,3 +109,15 @@ test('optional marker removal, mandatory missing markers, malformed markers and 
     assert.ok((await staleFiles({ result: r, root })).includes('judging/impact-numbers.json'));
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
+
+test('live timing uses committed timestamps and the specified success predicate; an even median averages both middle spans', () => {
+  const rows = measured.live.traces.map(row => {
+    const lines = readFileSync(join(INBOX_ROOT, row.file), 'utf8').trim().split('\n').map(JSON.parse);
+    return { file: row.file, seconds: (new Date(lines.at(-1).timestamp) - new Date(lines[0].timestamp)) / 1000, calls_model: lines.some(l => l.step === 'nvidia.model' && l.status === 'success') };
+  });
+  assert.deepEqual(measured.live.traces, rows);
+  const model = rows.filter(x => x.calls_model).map(x => x.seconds).sort((a,b) => a-b);
+  const middle = Math.floor(model.length / 2);
+  const expected = model.length % 2 ? model[middle] : model.slice(middle - 1, middle + 1).reduce((a,b) => a+b, 0) / 2;
+  assert.equal(measured.live.model.median, Math.round(expected));
+});

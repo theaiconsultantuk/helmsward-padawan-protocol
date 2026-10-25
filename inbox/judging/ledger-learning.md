@@ -6,7 +6,7 @@ tags: [judging, trust, feedback]
 
 # Trust ledger learning
 
-Sample mode, decision code and inputs at commit `d1bdb13` (2026-10-26).
+Sample mode, decision code and inputs at commit `f7852e8` (2026-10-26).
 Regenerate from `inbox/`: `node scripts/impact_numbers.mjs --write` (or this file alone: `node scripts/ledger_learning.mjs --write`).
 
 The ticket is s01, “I would like a refund of 80 GC for my Drift Boot Wraps, they are too small for my son.”
