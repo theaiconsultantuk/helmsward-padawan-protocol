@@ -1,0 +1,179 @@
+{
+ "note": "Built by scripts/build_approval_chain.mjs from employees.csv, policy.csv, responsibility.csv and companyhierarchy.csv. The signing flow that uses it is a simulation.",
+ "second_signer": {
+  "id": "2",
+  "why": "Money over the policy limit needs the over-limit owner and the Head of Finance (a proposed rule; not enforced by the agent)"
+ },
+ "topics": {
+  "refund": {
+   "limit": 150,
+   "currency": "GC",
+   "owner": "15",
+   "backup": "27",
+   "over_owner": "40",
+   "over_backup": "201"
+  },
+  "rfq": {
+   "limit": 5000,
+   "currency": "GC",
+   "owner": "6",
+   "backup": "14",
+   "over_owner": "40",
+   "over_backup": "201"
+  }
+ },
+ "desks": {
+  "refund": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Department of Giving It Back"
+  },
+  "replacement": {
+   "owner": "8",
+   "backup": "9",
+   "label": "Second Chances Bureau"
+  },
+  "complaint": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Grievance Hall"
+  },
+  "question": {
+   "owner": "5",
+   "backup": "13",
+   "label": "Ministry of Curious Inquiries"
+  },
+  "billing": {
+   "owner": "3",
+   "backup": "4",
+   "label": "Counting House of Galactic Credits"
+  },
+  "rfq": {
+   "owner": "6",
+   "backup": "14",
+   "label": "Bulk Bargains Bazaar"
+  },
+  "customer_service": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Hearts and Hyperdrives Desk"
+  },
+  "appreciation": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Wall of Warm Fuzzies"
+  },
+  "other": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Office of Miscellaneous Matters"
+  },
+  "delivery": {
+   "owner": "15",
+   "backup": "27",
+   "label": "Parcels and Perils Dispatch"
+  },
+  "legal": {
+   "owner": "203",
+   "backup": "204",
+   "label": "Fine Print Chambers"
+  },
+  "product": {
+   "owner": "5",
+   "backup": "13",
+   "label": "Gadget Wrangling Guild"
+  }
+ },
+ "people": {
+  "2": {
+   "name": "Owen Briggs",
+   "email": "owen.briggs@jedipack.com",
+   "team": "Finance",
+   "role": "Head of Finance"
+  },
+  "3": {
+   "name": "Caleb Orth",
+   "email": "caleb.orth@jedipack.com",
+   "team": "Fulfilment",
+   "role": "Picker"
+  },
+  "4": {
+   "name": "Nia Calder",
+   "email": "nia.calder@jedipack.com",
+   "team": "People",
+   "role": "Head of People"
+  },
+  "5": {
+   "name": "Priya Raman",
+   "email": "priya.raman@jedipack.com",
+   "team": "Product",
+   "role": "Product Specialist"
+  },
+  "6": {
+   "name": "Tomas Keller",
+   "email": "tomas.keller@jedipack.com",
+   "team": "Sales",
+   "role": "Account Executive"
+  },
+  "8": {
+   "name": "Elena Voss",
+   "email": "elena.voss@jedipack.com",
+   "team": "Billing",
+   "role": "Billing Clerk"
+  },
+  "9": {
+   "name": "Jonah Hale",
+   "email": "jonah.hale@jedipack.com",
+   "team": "Engineering",
+   "role": "Site Reliability Engineer"
+  },
+  "13": {
+   "name": "Nora Quinn",
+   "email": "nora.quinn@jedipack.com",
+   "team": "Product",
+   "role": "Product Specialist"
+  },
+  "14": {
+   "name": "An-Na Nguyen",
+   "email": "an-na.nguyen@jedipack.com",
+   "team": "Sales",
+   "role": "Sales Associate"
+  },
+  "15": {
+   "name": "Soren Adey",
+   "email": "soren.adey@jedipack.com",
+   "team": "Support",
+   "role": "Support Agent"
+  },
+  "27": {
+   "name": "Galmel Kernfield",
+   "email": "galmel.kernfield@jedipack.example",
+   "team": "Support",
+   "role": "Senior Support Agent"
+  },
+  "40": {
+   "name": "Zanva Groveley",
+   "email": "zanva.groveley@jedipack.example",
+   "team": "Sales",
+   "role": "Head of Sales"
+  },
+  "201": {
+   "name": "Paul Jedi",
+   "email": "paul.jedi@jedipack.com",
+   "team": "Executive",
+   "role": "CEO"
+  },
+  "203": {
+   "name": "Mara Quillfeather",
+   "email": "mara.quillfeather@jedipack.com",
+   "team": "Legal",
+   "role": "Legal Counsel"
+  },
+  "204": {
+   "name": "Teo Brandlewick",
+   "email": "teo.brandlewick@jedipack.com",
+   "team": "Legal",
+   "role": "Legal Counsel"
+  }
+ }
+}

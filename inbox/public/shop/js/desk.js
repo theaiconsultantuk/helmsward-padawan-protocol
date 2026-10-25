@@ -31,6 +31,7 @@
   }
   function setStatus(msg, bad) { var s = $("status"); s.textContent = msg || ""; s.className = "desk__status" + (bad ? " is-bad" : ""); }
 
+  var runRows = {};                                   // run id -> its row from /runs
   var journeys = {};                                  // run id -> journey, fetched once
   function journey(id) {
     if (journeys[id]) return Promise.resolve(journeys[id]);
@@ -47,6 +48,19 @@
     var b = el("button", "Under the hood", "desk__btn desk__btn--hot");
     b.type = "button";
     b.addEventListener("click", function () { hood(id, b); });
+    return b;
+  }
+
+  function chainChanged(id, label) { document.querySelectorAll('[data-chain="' + id + '"]').forEach(function (e) { e.textContent = label; }); }
+  function chainButton(id) {
+    var b = el("button", "Approval chain", "desk__btn");
+    b.type = "button";
+    b.addEventListener("click", function () {
+      b.disabled = true;
+      journey(id).then(function (j) { return window.JP_CHAIN.open(runRows[id] || { run_id: id }, j, b, chainChanged); })
+        .catch(function (e) { setStatus("Could not open the approval chain: " + e.message, true); })
+        .then(function () { b.disabled = false; });
+    });
     return b;
   }
 
@@ -78,7 +92,11 @@
     foot.appendChild(el("span", q.has_draft ? "draft ready" : "no draft", "muted"));
     foot.appendChild(el("span", when(q.at || q.mtime), "muted"));
     li.appendChild(foot);
-    if (rid) li.appendChild(hoodButton(rid));
+    if (rid) {
+      var chip = el("span", "", "dchip dchip--warn"); chip.setAttribute("data-chain", rid); foot.appendChild(chip);
+      if (j && window.JP_CHAIN) window.JP_CHAIN.summary(runRows[rid] || { run_id: rid }, j).then(function (t) { chip.textContent = t; });
+      var acts = el("div", null, "dcard__acts"); acts.appendChild(hoodButton(rid)); acts.appendChild(chainButton(rid)); li.appendChild(acts);
+    }
     return { holder: holder, li: li };
   }
   function renderBoard(items, js, rids) {
@@ -112,6 +130,7 @@
       li.appendChild(top);
       var acts = el("div", null, "run__acts");
       acts.appendChild(hoodButton(r.run_id));
+      acts.appendChild(chainButton(r.run_id));
       var msg = el("span", "", "muted"), buttons = [];
       ["affirm", "reject"].forEach(function (verdict) {
         var b = el("button", verdict === "affirm" ? "Affirm" : "Reject", "desk__btn");
@@ -133,7 +152,7 @@
   function load() {
     setStatus("Loading...");
     return Promise.all([api("/counters"), api("/queue"), api("/runs?limit=50")]).then(function (v) {
-      renderCounters(v[0]); renderRuns(v[2]);
+      renderCounters(v[0]); (v[2] || []).forEach(function (r) { runRows[r.run_id] = r; }); renderRuns(v[2]);
       var q = v[1] || [];
       var byThread = {};
       (v[2] || []).slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
