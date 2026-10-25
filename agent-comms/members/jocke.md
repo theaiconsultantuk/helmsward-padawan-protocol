@@ -6,11 +6,25 @@
 
 ## Status
 
-- **Done** — 4-page **Farstrand Supply Co.** storefront (`index.html`, `shop.html`, `product.html`, `contact.html`) and **Helmsward Live Dispatch Desk** judge studio complete, deployed to Cloudflare Pages (`https://farstrand-concepts.pages.dev/concepts/2-totality/`), and staged under `inbox/public/shop/` on branch `jocke/farstrand-storefront` (with all 6 of Paul's review items completed).
+- **Done (T5 + T5b)** — **Farstrand Supply Co.** storefront (`inbox/public/shop/`) merged on `main` (`#22`) and **T5b** completed on branch `jocke/t5b-size-and-licences`: all 12 `.glb` models compressed (`25.57 MB -> 5.46 MB`, bringing `inbox/` `SIZE_KB` to `14,764 KB < 20,000 KB` with 100% native `<model-viewer>` decoding), 3D Capital Dreadnought Battleship cursor added, third-party vendor & font licences documented in `inbox/public/shop/THIRD-PARTY.md` and `lenis.min.js`, and AI tools & `0%` pre-existing work declared in `inbox/judging/ai-usage.md`.
 
 ## Log
 
 <!-- Append newest entries at the top. Format: ### YYYY-MM-DD HH:MM — Short title -->
+
+### 2026-10-25 02:10 — T5b: Compressed all 12 `.glb` models (`inbox/` < 20 MB), added 3D Dreadnought Battleship cursor, and completed `THIRD-PARTY.md` & `ai-usage.md` declarations
+
+- **Pre-existing work before 22 Oct 00:00 UTC: none (0%).** Every storefront HTML/CSS/JS file, product/hero image, planetary flag SVG, and 3D `.glb` model in `inbox/public/shop/` was created inside the hackathon build window after 22 Oct 2026 00:00 UTC.
+- **Ask 1 — Size (`inbox/` `14,764 KB < 20,000 KB`) & 3D Capital Dreadnought Battleship Cursor**:
+  - Compressed all 12 `.glb` models in `inbox/public/shop/models/` from **25.57 MB down to 5.46 MB (-78.6%)** using `@gltf-transform/core`, `@gltf-transform/functions` (`dedup`, `weld`, `simplify` with `MeshoptSimplifier` and `lockBorder: true`, `quantize`, `prune`) + embedded WebP textures (`EXT_texture_webp`) and `KHR_mesh_quantization`.
+  - Avoided Draco (`KHR_draco_mesh_compression`) because `model-viewer.min.js` fetches an external decoder from `gstatic.com`; `KHR_mesh_quantization` + `EXT_texture_webp` decodes 100% natively in Three.js/`<model-viewer>` offline with zero external network calls.
+  - Brought `du -sk inbox --exclude=inbox/node_modules --exclude=inbox/logs --exclude=inbox/runtime` down from `~33,560 KB` to **`14,764 KB`**, passing `inbox/scripts/judging_pack.sh` line 512 (`< 20000` KB).
+  - Upgraded the storefront pointer in `inbox/public/shop/js/core.js` and `inbox/public/shop/css/totality.css` to a Z-buffered, per-pixel 3D ray-shaded & Aztec-plated **Capital Dreadnought Battleship** cursor with 3D banking/pitch/yaw physics, sub-light ion contrails, target lock-on brackets, and broadside turbo-laser salvo + ballistic recoil on click.
+- **Ask 2 — Licences & AI Tool Declarations**:
+  - Created `inbox/public/shop/THIRD-PARTY.md` documenting exact versions, licences, and source URLs for `model-viewer.min.js` (`@google/model-viewer` v3.5.0, BSD-3-Clause + bundled `three.js` MIT), `gsap.min.js` (GreenSock GSAP v3.13.0, Standard "No Charge" GreenSock License), `lenis.min.js` (`@studio-freight/lenis` v1.1.18 / 1.3.27 build, MIT License), and fonts `Big Shoulders Display` and `Manrope` (both SIL Open Font License 1.1, `OFL-1.1`).
+  - Added the missing `/*! @studio-freight/lenis v1.1.18 (lenis 1.3.27) | MIT License | https://github.com/darkroomengineering/lenis */` header comment to `inbox/public/shop/shared/vendor/lenis.min.js`.
+  - Updated `inbox/judging/ai-usage.md` documenting the AI tools used for storefront product/hero photography (`inbox/public/shop/images/`) and the 12 3D `.glb` models (`inbox/public/shop/models/`), plus the 0% pre-existing work declaration.
+- **T5b files changed**: `inbox/public/shop/models/*.glb`, `inbox/public/shop/THIRD-PARTY.md`, `inbox/public/shop/shared/vendor/lenis.min.js`, `inbox/public/shop/js/core.js`, `inbox/public/shop/css/totality.css`, `inbox/judging/ai-usage.md`, `agent-comms/members/jocke.md` (`inbox/src/`, `inbox/data/`, `catalogue.json`, and `faq.html` untouched).
 
 ### 2026-10-24 15:15 — Completed all 6 of Paul's storefront review items & moved route to `inbox/public/shop/`
 
@@ -53,3 +67,10 @@
 - **Deployments**:
   - Published standalone preview to Cloudflare Pages: `https://farstrand-concepts.pages.dev/concepts/2-totality/` (`https://farstrand-concepts.pages.dev/concepts/2-totality/contact.html`).
   - Staged self-contained static storefront under `inbox/public/store/` for same-origin hosting at `https://jedi.blastworks.ai/store/` and added navigation links in `inbox/public/index.html` and `inbox/public/dashboard.html`.
+
+---
+
+### 2026-10-25 02:10 — T5b Summary (Storefront Size, Cursor & Licences)
+
+- **Pre-existing work before 22 Oct 00:00 UTC:** none (0%).
+- **T5b files changed:** `inbox/public/shop/models/*.glb`, `inbox/public/shop/THIRD-PARTY.md`, `inbox/public/shop/shared/vendor/lenis.min.js`, `inbox/public/shop/js/core.js`, `inbox/public/shop/css/totality.css`, `inbox/judging/ai-usage.md`, `agent-comms/members/jocke.md`.

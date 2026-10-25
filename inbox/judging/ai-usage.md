@@ -1,7 +1,7 @@
 ---
 title: AI and model usage
 description: The AI and Model Usage section of the Jedi Pack inbox, in the hackathon's policy template.
-date: 2026-10-23
+date: 2026-10-25
 tags: [judging, ai-usage, policy]
 ---
 
@@ -26,8 +26,14 @@ Sponsor technology:
 
 Development tools:
 
-- AI coding tool: Claude Code through Glitch (Anthropic), orchestrated in Orca; no coding tool was pointed at Nightshift
+- AI coding tool: Claude Code through Glitch (Anthropic), orchestrated in Orca; Cursor (with Claude Opus 4.6 / GPT-5.4) for the Farstrand Supply Co. storefront (`inbox/public/shop/`); no coding tool was pointed at Nightshift.
 - All generated code was reviewed and tested by the team.
+
+Storefront (`inbox/public/shop/`) assets and pre-existing work declaration:
+
+- Product & hero photography (`inbox/public/shop/images/hero-blade-1920.webp`, `images/craft-macro-1920.webp`, and the 12 product plates in `inbox/public/shop/images/products/*.webp`): generated during the hackathon window using AI image generation (Nano Banana Pro / Gemini Image & FLUX via Higgsfield) from bespoke non-IP dark-space industrial prompts, then post-processed and converted to WebP with `sharp` / `ffmpeg`. Planetary flag icons (`inbox/public/shop/images/flags/*.svg`) and brand mark (`images/logo-shop.svg`) are bespoke hand-authored SVGs.
+- 3D product models (`inbox/public/shop/models/*.glb` — all 12 products: `emitter-hilt.glb`, `arc-blade-trainer.glb`, `sovereign-arc-duellist.glb`, `core-crystal-case.glb`, `drift-vault-case.glb`, `orbit-stand.glb`, `wayfarer-cloak.glb`, `initiate-robe.glb`, `pilgrim-pack.glb`, `quartermaster-belt.glb`, `drift-boots.glb`, `sidearm-holster.glb`): generated from the storefront product reference plates using image-to-3D generation (Tripo3D / Trellis 3D mesh generation), then simplified, welded, quantized (`KHR_mesh_quantization`), and compressed with WebP textures (`EXT_texture_webp`) using `@gltf-transform/core`, `@gltf-transform/functions`, and `meshoptimizer` so all 12 `.glb` models total 5.46 MB and decode natively in `<model-viewer>` offline with zero external Draco or Meshopt network decoder calls.
+- Pre-existing work declaration for `inbox/public/shop/`: **none (0%)** existed before 22 October 2026 00:00 UTC. Every HTML/CSS/JS file, image, SVG, and 3D `.glb` model in `inbox/public/shop/` was created inside the hackathon build window. Third-party vendor library and font licences are listed in [../public/shop/THIRD-PARTY.md](../public/shop/THIRD-PARTY.md).
 
 Sample mode:
 
