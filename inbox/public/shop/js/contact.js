@@ -232,6 +232,8 @@
     var sub = $("submit");
     if (sub) sub.textContent = on ? "Running\u2026" : "Submit dispatch";
     Array.prototype.forEach.call(document.querySelectorAll(".sc__btn"), function (b) { b.disabled = on; });
+    var mode = $("run-mode");
+    if (mode) mode.disabled = on;
   }
 
   /* ---------- scenarios ---------- */
@@ -454,12 +456,20 @@
 
   function stopTicker() { if (ticker) { clearInterval(ticker); ticker = null; } }
 
+  // Waiting lines, one every 4 s. Flavour only: they do not track the run's real steps.
+  var WAIT_LINES = [
+    "Reading the dispatch", "Consulting the Archives", "Checking the order ledger", "Asking the droids",
+    "Plotting a hyperspace route", "Weighing it on the Council's scales", "Drafting a reply", "Polishing the holo-message"
+  ];
+
   function startTicker(runId) {
     var slot = $("flow-run");
     var t0 = Date.now();
     cur.started = t0;
     var tick = function () {
-      if (slot) slot.textContent = "Running · " + runId + " · " + Math.floor((Date.now() - t0) / 1000) + " s";
+      var s = Math.floor((Date.now() - t0) / 1000);
+      setFlowState("running", "", WAIT_LINES[Math.floor(s / 4) % WAIT_LINES.length] + "…");
+      if (slot) slot.textContent = (cur.sim ? "Simulated · " : "Running · ") + runId + " · " + s + " s";
     };
     stopTicker();
     tick();
@@ -633,7 +643,8 @@
       var nodes = Array.isArray(j.nodes) ? j.nodes : [], sum = 0, all = nodes.length > 0;
       nodes.forEach(function (n) { if (n && typeof n.duration_ms === "number") sum += n.duration_ms; else all = false; });
       var ms = all ? sum : (cur.runId === j.run_id && typeof cur.postMs === "number" ? cur.postMs : null);
-      slot.textContent = str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
+      var sim = cur.runId === j.run_id && cur.sim;
+      slot.textContent = (sim ? "Simulated, not counted · " : "") + str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
     }
     paint(j);
     nudgeDrawer();
@@ -677,10 +688,36 @@
     });
   }
 
+  /* ---------- live or simulated ---------- */
+  // Simulated sends options.sample_mode:true: rules and sample data, no model calls, and the server counts nothing.
+  var MODE_NOTES = {
+    live: "Live: real models and real data. Some runs take a few minutes.",
+    sim: "Simulated: rules and sample data, no model calls. Fast, and not counted in the results."
+  };
+  function simMode() {
+    var c = document.querySelector('#run-mode input[name="mode"]:checked');
+    return !!c && c.value === "sim";
+  }
+  function initMode() {
+    var box = $("run-mode");
+    if (!box) return;
+    var saved = "";
+    try { saved = localStorage.getItem("jp_mode") || ""; } catch (e) { saved = ""; }
+    var pick = box.querySelector('input[value="' + (saved === "sim" ? "sim" : "live") + '"]');
+    if (pick) pick.checked = true;
+    var note = function () { var n = $("mode-note"); if (n) n.textContent = MODE_NOTES[simMode() ? "sim" : "live"]; };
+    note();
+    box.addEventListener("change", function () {
+      note();
+      try { localStorage.setItem("jp_mode", simMode() ? "sim" : "live"); } catch (e) { /* this visit only */ }
+    });
+  }
+
   /* ---------- run ---------- */
   function run(input) {
     var runId = "run-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
-    cur = { runId: runId, journey: null, started: Date.now(), entry: active };
+    var sim = simMode();
+    cur = { runId: runId, journey: null, started: Date.now(), entry: active, sim: sim };
     setBusy(true);
     clearNudge();
     setStatus("");
@@ -695,7 +732,7 @@
     getJson("/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ run_id: runId, input: input })
+      body: JSON.stringify(sim ? { run_id: runId, input: input, options: { sample_mode: true } } : { run_id: runId, input: input })
     })
       .then(function (r) {
         if (typeof cur.postMs !== "number") cur.postMs = Date.now() - cur.started;
@@ -867,6 +904,7 @@
       });
     }
 
+    initMode();
     var runParam = applyUrlPrefill();
     loadScenarios();
     loadFaqIndex();
