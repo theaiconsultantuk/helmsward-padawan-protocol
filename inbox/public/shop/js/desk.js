@@ -139,7 +139,7 @@
       (v[2] || []).slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
       var rids = q.map(function (x) { return x.run_id || byThread[x.ticket_id] || ""; });
       return Promise.all(rids.map(function (id) { return id ? journey(id).catch(function () { return null; }) : Promise.resolve(null); }))
-        .then(function (js) { renderBoard(q, js, rids); setStatus("Updated " + new Date().toLocaleTimeString()); });
+        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton }); setStatus("Updated " + new Date().toLocaleTimeString()); });
     }).catch(function (e) { setStatus(e.message, true); });
   }
   load();

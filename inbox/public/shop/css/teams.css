@@ -1,0 +1,21 @@
+/* Staff desk Teams view (desk.html): clock controls, a group per team, traffic-light cards. Tokens match desk.css. */
+.tclock__txt { margin: 0 0 10px; color: #F2EEE6; font: 500 13px/1.5 var(--font, Manrope, sans-serif); letter-spacing: .12em; text-transform: uppercase; }
+.tclock__bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.tclock__note { max-width: 74ch; margin: 0 0 18px; }
+.tgroups { display: grid; gap: 24px; }
+.tgroup__h { margin: 0 0 10px; font: 800 24px/1 var(--display, "Big Shoulders Display", Impact, sans-serif); letter-spacing: .06em; text-transform: uppercase; color: #8A8A8F; }
+.tgroup__cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+.col__head h4 { margin: 0; font: 800 28px/1 var(--display, "Big Shoulders Display", Impact, sans-serif); text-transform: uppercase; color: #F2EEE6; }
+.tcard { border: 1px solid rgba(138, 138, 143, .3); border-left-width: 4px; padding: 12px 14px; background: #050506; display: grid; gap: 6px; }
+.tcard--green { border-left-color: #2fbf71; }
+.tcard--amber { border-left-color: #f0b429; }
+.tcard--red { border-left-color: #ff3b30; }
+.tcard--done { border-left-color: #8A8A8F; opacity: .6; }
+.tcard__top { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.tcard__who, .tcard__esc, .tcard__age { margin: 0; }
+.tcard__who { color: #F2EEE6; font-size: 14px; }
+.tcard__esc { color: #ff3b30; font: 500 11px/1.4 var(--font, Manrope, sans-serif); letter-spacing: .12em; text-transform: uppercase; }
+.lamp { width: 12px; height: 12px; border-radius: 50%; background: #8A8A8F; flex: none; }
+.lamp--green { background: #2fbf71; box-shadow: 0 0 8px #2fbf71; }
+.lamp--amber { background: #f0b429; box-shadow: 0 0 8px #f0b429; }
+.lamp--red { background: #ff3b30; box-shadow: 0 0 10px #ff3b30; }
