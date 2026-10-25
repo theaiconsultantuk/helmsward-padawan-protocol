@@ -40,7 +40,7 @@ test("legal threat: complaint-legal escalates to Support (15) with Legal's defau
   for (const c of ["responsibility:legal", "companyhierarchy:7", "companyhierarchy:202", "companyhierarchy:203"]) assert.ok(o.cited_rows.includes(c), `cites ${c}`);
   assertAutoReplyInvariant(assert, result, "legal");
   // the courtesy draft: Support's template, the situation named, signed by Support, no refund, amount, date promise
-  assert.match(o.draft.text, /^Hello Rex Dow,\n\nWe are sorry to read what happened with your Strand Emitter Hilt\. We are looking into it now and will come back to you within two working days\.\n\nBest regards,\nJedi Pack Support team$/);
+  assert.match(o.draft.text, /^Hello Rex Dow,\n\nWe are sorry to read what happened with your Strand Emitter Hilt\. We are looking into it now and will come back to you within two working days\.\n\nBest regards,\nFarstrand Support team$/);
   assert.deepEqual(o.draft.promises, { refund_amount: null, replacement: false, other: null });
   assert.ok(!/refund|replace|lawyer|legal/i.test(o.draft.text), "the courtesy reply does not answer the threat");
   // no model call: the template is the draft

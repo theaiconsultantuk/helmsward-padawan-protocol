@@ -18,7 +18,7 @@ test("s05: the material sentence comes from the row, sent on behalf of the Produ
   assert.equal(o.team, "Product");
   assert.ok(o.cited_rows.includes("products:FS-B03"));
   assert.ok(o.draft.text.includes("The Sovereign Arc Duellist is made of brass and blackened steel."), o.draft.text);
-  assert.ok(o.draft.text.endsWith("Best regards,\nJedi Pack Product team\nSent automatically on behalf of the Product team."), o.draft.text);
+  assert.ok(o.draft.text.endsWith("Best regards,\nFarstrand Product team\nSent automatically on behalf of the Product team."), o.draft.text);
   assert.equal(o.draft.model, "catalogue/row");
   // no model was asked: every nvidia.model line of the branch is skipped, the Risk sign-off ran on the draft
   assert.ok(lines.filter((l) => l.step === "nvidia.model" && l.branch_id === "product-hit").every((l) => l.status === "skipped"));

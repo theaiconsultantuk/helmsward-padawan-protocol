@@ -45,7 +45,7 @@ for (const q of [10, 11, 100, 101]) {
     assert.equal(cents(quote.total), e.total);
     assert.equal(quote.currency, "GC");
     for (const x of [`Tier: ${e.tier} (${e.discount}% off)`, `Unit price: ${gc(e.unit)} GC`, `Total: ${gc(e.total)} GC`, `Quantity: ${q}`, `Lead time: ${product("FS-B02").lead_days} days`, "valid 14 days"]) assert.ok(o.draft.text.includes(x), `draft has "${x}"`);
-    assert.match(o.draft.text, /Jedi Pack Sales team$/, "signed by Sales");
+    assert.match(o.draft.text, /Farstrand Sales team$/, "signed by Sales");
     assert.ok(!o.draft.text.includes("on behalf of"), "a human sends a quote: not an automatic reply");
     for (const c of ["products:FS-B02", `bulk_pricing:${e.tier}`, "policy:rfq", "bom:FS-B02:PT-0003"]) assert.ok(o.cited_rows.includes(c), `cites ${c}`);
     assert.equal(lines.find((l) => l.step === "risk.signoff").status, "success");

@@ -29,7 +29,7 @@ test("a held order to Alderaan: the shipping rule is suspended, so the note is s
   assert.ok(o.draft.text.includes("Deliveries to Alderaan are currently suspended."), o.draft.text);
   assert.ok(o.draft.text.includes(`Your order ${HELD_ALDERAAN} is held`), o.draft.text);
   assert.ok(o.draft.text.includes("our team will contact you as soon as deliveries to Alderaan resume"), o.draft.text);
-  assert.ok(o.draft.text.endsWith("Jedi Pack Support team\nSent automatically on behalf of the Support team."), o.draft.text);
+  assert.ok(o.draft.text.endsWith("Farstrand Support team\nSent automatically on behalf of the Support team."), o.draft.text);
   assert.ok(lines.filter((l) => l.step === "nvidia.model" && l.branch_id === "delivery-suspended").every((l) => l.status === "skipped"));
   assertAutoReplyInvariant(assert, result, "s10");
 });

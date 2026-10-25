@@ -64,6 +64,26 @@
     return b;
   }
 
+  // A queue card whose run the server no longer holds (a restart forgets runs) still has its ticket on disk, so Sign-off
+  // opens from that: the reason on file stands in for the message, and the hand-off text drives the legal-threat route.
+  function standIn(q) {
+    var reason = q.decision_reason || "", id = "queue-" + (q.ticket_id || q.file || "x");
+    return {
+      run: { run_id: id, at: q.mtime, branch_id: q.ticket_id || null },
+      j: { run_id: id, scenario: q.category || "other", decision: /escalat/i.test(reason) ? "escalate" : "hold", human: { input: reason, reply: null },
+        nodes: [{ step: "branch", route: reason }], reached_human: q.owner ? { who: q.owner } : null },
+    };
+  }
+  function queueChainButton(q) {
+    var b = el("button", "Sign-off", "desk__btn"); b.type = "button";
+    b.addEventListener("click", function () {
+      var s = standIn(q); b.disabled = true;
+      Promise.resolve(window.JP_CHAIN.open(s.run, s.j, b, null)).catch(function (e) { setStatus("Could not open the sign-off: " + e.message, true); }).then(function () { b.disabled = false; });
+    });
+    return b;
+  }
+  function cardChainButton(rid, q) { return rid ? chainButton(rid) : (q && q.ticket_id ? queueChainButton(q) : null); }
+
   function renderCounters(c) {
     var box = $("counters"); box.textContent = "";
     Object.keys(c || {}).forEach(function (k) {
@@ -96,6 +116,10 @@
       var chip = el("span", "", "dchip dchip--warn"); chip.setAttribute("data-chain", rid); foot.appendChild(chip);
       if (j && window.JP_CHAIN) window.JP_CHAIN.summary(runRows[rid] || { run_id: rid }, j).then(function (t) { chip.textContent = t; });
       var acts = el("div", null, "dcard__acts"); acts.appendChild(hoodButton(rid)); acts.appendChild(chainButton(rid)); li.appendChild(acts);
+    } else if (q.ticket_id && window.JP_CHAIN) {
+      var gone = el("button", "Trace not kept", "desk__btn"); gone.type = "button"; gone.disabled = true;
+      gone.title = "The server forgot this run when it restarted, so the animation has nothing to replay. The ticket and Sign-off are still here.";
+      var acts2 = el("div", null, "dcard__acts"); acts2.appendChild(gone); acts2.appendChild(queueChainButton(q)); li.appendChild(acts2);
     }
     return { holder: holder, li: li };
   }
@@ -158,7 +182,7 @@
       (v[2] || []).slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
       var rids = q.map(function (x) { return x.run_id || byThread[x.ticket_id] || ""; });
       return Promise.all(rids.map(function (id) { return id ? journey(id).catch(function () { return null; }) : Promise.resolve(null); }))
-        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton }); setStatus("Updated " + new Date().toLocaleTimeString()); });
+        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton }); setStatus("Updated " + new Date().toLocaleTimeString()); });
     }).catch(function (e) { setStatus(e.message, true); });
   }
   load();

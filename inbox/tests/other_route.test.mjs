@@ -21,7 +21,7 @@ test("an FAQ hit under the other scenario is sent by itself on behalf of Support
   assert.equal(o.team, "Support");
   assert.ok(o.cited_rows.includes("faq:Q11"));
   assert.ok(o.draft.text.includes("Not at the moment, but we can add a gift note to your order."), o.draft.text);
-  assert.ok(o.draft.text.endsWith("Jedi Pack Support team\nSent automatically on behalf of the Support team."), o.draft.text);
+  assert.ok(o.draft.text.endsWith("Farstrand Support team\nSent automatically on behalf of the Support team."), o.draft.text);
   assert.ok(lines.filter((l) => l.step === "nvidia.model" && l.branch_id === "faq-hit").every((l) => l.status === "skipped"));
   assertAutoReplyInvariant(assert, result, "s11");
 });
