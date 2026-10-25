@@ -61,3 +61,44 @@ Owns: (to confirm)
 - **Calls:** Kristof answers with his windows himself (Europe/Paris).
 
 - 2026-10-25T00:14Z [agent: claude] | T5b | #22 merged into main (822bb10) on Kristof's call, ahead of the size fix. Handoff to Jocke for the two open items, size (inbox/ under 20,000 KB) and licences (pre-existing declaration, THIRD-PARTY.md, ai-usage.md), in agent-comms/handoffs/T5b-kristof-to-jocke.md | files: agent-comms/handoffs/T5b-kristof-to-jocke.md, agent-comms/members/kristof.md | next: Jocke, before the Mon 26 Oct 23:59 UTC freeze
+
+## 2026-10-25 19:28Z · Kristof's answers to the board and Dean's 25 Oct audit, and what Kristof builds before the freeze [agent: claude]
+Every item below was checked against main 5773f9c or the live service, not taken from the board.
+
+**Board rows that are already done on main (Paul: please close them)**
+- P7: the API returns `trusted_to_send` (openapi.yaml). P11: an over-limit draft says "routed for approval" and promises no money (loop.mjs, sample.mjs). P15: company-wide holidays with a blank employee id match everyone (queries.mjs). P19: answered 24 Oct, no API key in the repo. P26: GC throughout. P29: `bom.csv` with tier quotes; no council tier. P9: done in #24.
+- **P35 / X31 done:** live on the hosted service, 25 Oct ~19:25Z: T27 escalates (180 GC over the 150 GC limit, Zanva Groveley approves, 51 s); T30 sends (weight 0.84 clears the 0.80 floor, 27 s).
+- **X20:** the API listens only on the VM's private tailnet address, not 0.0.0.0, so it cannot bypass Cloudflare from the internet.
+- **U1:** the Zetaris API key the agent uses expires 21 Nov 2026 22:48 UTC (read from the Zetaris metastore). The install holds no other licence date.
+- **U3:** Nightshift exposes no usage or quota route, and NVIDIA shows free-tier credits only on its own dashboard. Live calls succeed as of today. The guard is the 2-run cap below.
+- Dean's D4 question 1 (a fact that may not leave: hold or escalate) was answered 24 Oct: escalate, per the challenge brief.
+
+**Declarations for the form (Dean M7, D5)**
+- Kristof's FLOW and SCOUT docs (`kristof/flow.*`, `kristof/scout-architecture.*`) were written inside the build window, not before it (committed 22 Oct 03:51 UTC). They are **not** pre-existing. Paul: the board's D5 line saying so needs correcting.
+- Missing from `inbox/judging/pre-existing.md`: the **Meterless World Model**, vendored verbatim into `inbox/engines/world-model/` from github.com/meterless/meterless at commit `1742dec` on 23 Oct, Apache-2.0 (its `NOTICE-SOURCE.md`). Also, `esbuild` is pinned directly in `inbox/package.json` (0.28.2), not transitive (X9).
+- AI tools on Kristof's side, for `ai-usage.md`: Claude Code through Glitch (builds and docs), and OpenAI Codex CLI as the cross-family code reviewer on Kristof's PRs (one review per PR, verdict posted on each PR).
+- Who is who (U8): **Einh** and **Einherjare** in the git log are both Kristof Kennes.
+
+**Decisions Kristof made today**
+- **#39 merges as written at hand-in:** the hosted demo opens every route, as decided 25 Oct. Kristof accepts the ledger and send risks (S2, S3, S5), which stay unguarded. The hardening in build A below goes in first.
+- **Teardown moves to 7 Nov 2026 00:00 UTC**, after the 6 Nov 16:00 UTC results call. This supersedes 5 Nov. Paul: please update `decisions.md` and P18/P20. Kristof's docs follow in build A.
+- **U5:** at hand-in Kristof tags the submitted commit and points the hosted instance at the tag, not main. Merges after the deadline then cannot change what judges see.
+- **P43:** Kristof agrees to Paul's proposal and builds it before the freeze. A thanks that carries a request holds; an over-limit refund reaches the approver even when the order is unknown. It is tested on new authored inputs only, never on the held-out set; the held-out number is reported as is afterwards. H17 (summed totals) is not included.
+- P1 is not taken: the Nightshift timeout stays at 120 s per call. One call can take 40-80 s, and a scenario makes several calls.
+
+**Kristof's pre-freeze builds, one at a time, each a PR with a Codex review**
+- A `kk/hardening`: live runs capped at 2 (a third gets "busy, try again"), JSON-only bodies (415), CORS as an env setting (open by default, so a clean clone is unchanged; the hosted instance allows only jedi.blastworks.ai), an intake row cap, a random suffix on generated demo emails, the name field restricted to letters and kept out of memory, drafts signed Farstrand (L11), a refund draft naming a different amount is refused (X16), X2, X4, and the stale docs (counts, USD, methodology header, dates).
+- C `kk/progress`: a server route with real step progress and an early decision while a live run is still going (P2), plus `/health` and the run result saying when Nemotron is down and a fallback answered (U2).
+- B `kk/h11-overlimit`: P43, above.
+- D `kk/ledger-impact`: a committed sample-mode proof that affirms move a refund from hold to send and a reject moves it back (G4), and a Results block in the README with numbers that can be regenerated (G3).
+- PR #56: the Amazon scrape and the three CHECKPOINTS folders removed (M4, S9); the gift finder still runs on the sample data. These are Paul's files, so it is Paul's PR to merge.
+
+**For Paul to assign, front end (not Kristof's)**
+- Dean's P4/P5: cache headers and gzip for models, images and fonts.
+- S7: the line under the contact form, "Demo only: do not enter real personal data".
+- When build C lands: show the progress route's steps and the Nemotron-down banner on the contact page. The contract goes in `inbox/docs/FRONTEND-SPEC.md`.
+- L12: `NOTES.md` and `DESIGN.md` are served publicly from `inbox/public/shop/` (Jocke's). L10: the desk page is linked from no page.
+
+**P47 (backend hops):** from Dean's measurements, Nemotron is 96-100% of live time (13-62 s per call). Zetaris, Scout, the World Model and the gates add under 3 s together. Running the Zetaris reads in parallel would save 0.4-1.5 s, and 17 test files pin the trace order, so there is no change before the freeze. Build C is Kristof's answer to the wait.
+
+**Kristof's hand-in steps (Tue 27 Oct):** judging pack regenerated on the final head (G5, D8), #39 merged and the token removed, the live inbox cleared of team test runs (X28), the hand-in tag pinned (U5). A one-page runbook so another member can do these steps (U7) follows by Monday.
