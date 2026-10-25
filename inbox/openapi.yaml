@@ -23,7 +23,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Health" }
-              example: { ok: true, sample_mode: true, version: "0.1.0", uptime_s: 12 }
+              example: { ok: true, sample_mode: true, version: "0.1.0", uptime_s: 12, primary: { mode: sample, reachable: null, probe: null, nemotron_listed: null, checked_at: null, last_primary_answer_at: null, last_fallback_at: null, last_fallback_reason: null, fallback_in_use: false } }
   /sources:
     get:
       summary: The registered data sources with live row counts
@@ -140,6 +140,7 @@ paths:
                   value:
                     run_id: demo-msg
                     status: success
+                    provider: { mode: sample, primary_used: null, fallback_reason: null, calls: 0 }
                     output:
                       decision: send
                       reasons: ["FAQ Q01 answers it; FAQ Q01 matches (score 1.00, shared: long, shipping, take); FAQ text is canonical, the floor gates model drafts"]
@@ -159,6 +160,7 @@ paths:
                   value:
                     run_id: demo-1
                     status: success
+                    provider: { mode: sample, primary_used: null, fallback_reason: null, calls: 0 }
                     output:
                       decision: hold
                       reasons: ["refund weight 0.55 is under the floor 0.8; owner 15 out, backup 27 in. Both critics passed; the reply waits for backup 27 with the draft attached"]
@@ -308,8 +310,25 @@ paths:
           description: The result exactly as `POST /run` (or `/ask`) returned it.
           content:
             application/json:
-              schema: { type: object }
-              example: { run_id: demo-1, status: success, output: { decision: hold, cited_rows: ["threads_parquet:T02"] }, trace_id: demo-1, log_file: logs/trace-demo-1.jsonl }
+              schema:
+                anyOf:
+                  - { $ref: "#/components/schemas/RunResult" }
+                  - { $ref: "#/components/schemas/AskResult" }
+              example: { run_id: demo-1, status: success, provider: { mode: sample, primary_used: null, fallback_reason: null, calls: 0 }, output: { decision: hold, cited_rows: ["threads_parquet:T02"] }, trace_id: demo-1, log_file: logs/trace-demo-1.jsonl }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /runs/{id}/progress:
+    get:
+      summary: Live steps, current work and the fixed early decision
+      description: "Open, fast polling route. Poll every 1.5 s after posting, including after 502/504/524; a 404 during the first 5 s means not started. Later 404 means lost or unknown. On done, load journey. Ask ids have no progress. Finished runs can be derived from storage; a missing trace yields empty steps."
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, example: demo-s03 }
+      responses:
+        "200":
+          description: Current progress (elapsed time is frozen once done).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Progress" }
+              example: {"run_id": "demo-s03", "state": "running", "mode": "live", "elapsed_s": 23.4, "working": [{"agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1}], "steps": [{"step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01}, {"step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0}], "decision_early": {"decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1}, "decision": null, "status": null, "provider": {"primary_used": null, "fallback_reason": null}}
         "404": { $ref: "#/components/responses/NotFound" }
   /runs/{id}/trace:
     get:
@@ -542,7 +561,73 @@ components:
   schemas:
     Health:
       type: object
-      properties: { ok: { type: boolean }, sample_mode: { type: boolean }, version: { type: string }, uptime_s: { type: integer } }
+      properties: { ok: { type: boolean }, sample_mode: { type: boolean }, version: { type: string }, uptime_s: { type: integer }, primary: { $ref: "#/components/schemas/PrimaryHealth" } }
+    PrimaryHealth:
+      type: object
+      required: [mode, reachable, probe, nemotron_listed, checked_at, last_primary_answer_at, last_fallback_at, last_fallback_reason, fallback_in_use]
+      properties:
+        mode: { type: string, enum: [live, sample] }
+        reachable: { type: boolean, nullable: true }
+        probe: { type: string, nullable: true, enum: [online, offline, unauthorized, null] }
+        nemotron_listed: { type: boolean, nullable: true }
+        checked_at: { type: string, format: date-time, nullable: true }
+        last_primary_answer_at: { type: string, format: date-time, nullable: true }
+        last_fallback_at: { type: string, format: date-time, nullable: true }
+        last_fallback_reason: { type: string, nullable: true }
+        fallback_in_use: { type: boolean }
+    Provider:
+      type: object
+      required: [mode, primary_used, fallback_reason, calls]
+      properties:
+        mode: { type: string, enum: [live, sample] }
+        primary_used: { type: boolean, nullable: true, description: "Null without calls; true only when every call was answered on primary by Nemotron; false for any fallback, non-Nemotron or failed call." }
+        fallback_reason: { type: string, nullable: true, description: "First non-null reason, prefixed with the step (draft, critique, refund_read, complaint_read or recommendation)." }
+        calls: { type: integer, minimum: 0 }
+    EarlyDecision:
+      type: object
+      nullable: true
+      required: [decision, branch_id, why, draft_pending, at_s]
+      properties:
+        decision: { type: string, enum: [escalate, hold, close] }
+        branch_id: { type: string }
+        why: { type: string, maxLength: 200 }
+        draft_pending: { type: boolean }
+        at_s: { type: number }
+    ProgressStep:
+      type: object
+      required: [step, agent, label, tech, status, seconds]
+      properties:
+        step: { type: string }
+        agent: { type: string }
+        label: { type: string }
+        tech: { type: string }
+        status: { type: string }
+        seconds: { type: number }
+    ProgressWork:
+      type: object
+      required: [agent, label, engine, since_s]
+      properties:
+        agent: { type: string }
+        label: { type: string }
+        engine: { type: string }
+        since_s: { type: number }
+    Progress:
+      type: object
+      required: [run_id, state, mode, elapsed_s, working, steps, decision_early, decision, status, provider]
+      properties:
+        run_id: { type: string }
+        state: { type: string, enum: [running, done] }
+        mode: { type: string, nullable: true, enum: [live, sample, null] }
+        elapsed_s: { type: number }
+        working: { type: array, items: { $ref: "#/components/schemas/ProgressWork" } }
+        steps: { type: array, items: { $ref: "#/components/schemas/ProgressStep" } }
+        decision_early: { $ref: "#/components/schemas/EarlyDecision" }
+        decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
+        status: { type: string, nullable: true, enum: [success, error, null] }
+        provider:
+          type: object
+          required: [primary_used, fallback_reason]
+          properties: { primary_used: { type: boolean, nullable: true }, fallback_reason: { type: string, nullable: true } }
     Source:
       type: object
       properties: { name: { type: string }, format: { type: string }, table: { type: string }, rows: { type: integer }, live: { type: boolean } }
@@ -586,6 +671,8 @@ components:
     RunResult:
       type: object
       properties:
+        provider: { $ref: "#/components/schemas/Provider" }
+        decision_early: { $ref: "#/components/schemas/EarlyDecision" }
         run_id: { type: string }
         status: { type: string, enum: [success, error] }
         output:

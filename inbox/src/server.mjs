@@ -7,6 +7,8 @@ import { basename, join, relative, resolve, sep, extname } from "node:path";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
 import { mask } from "./trace.mjs";
 import { runTicket } from "./loop.mjs";
+import { createProgressBoard, progressFromStored, nightshiftEngine } from "./progress.mjs";
+import { createProviderHealth } from "./provider_health.mjs";
 import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
@@ -251,6 +253,8 @@ function validateMessage(input) {
 }
 
 export function createServer({ cfg = config(), deps = {} } = {}) {
+  const board = deps.progressBoard ?? createProgressBoard();
+  const health = createProviderHealth({ cfg, sample: sampleMode(cfg), statusFn: deps.nightshiftStatus, ...(deps.healthFirstWaitMs ? { firstWaitMs: deps.healthFirstWaitMs } : {}) });
   const CORS = corsHeaders(cfg);
   // einh's ruling (25 Oct 2026): /run and /ask share 2 live slots, held until completion even after disconnect (the page polls after a 524).
   let liveNow = 0;
@@ -362,7 +366,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       const path = new URL(req.url ?? "/", "http://localhost").pathname;
       if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
       if (req.method === "GET" && path === "/health") {
-        send(200, { ok: true, sample_mode: sampleMode(cfg), version: VERSION, uptime_s: Math.round((Date.now() - started) / 1000) });
+        send(200, { ok: true, sample_mode: sampleMode(cfg), version: VERSION, uptime_s: Math.round((Date.now() - started) / 1000), primary: await health.snapshot() });
         return;
       }
       if (path === "/shop" || path === "/shop/") {
@@ -410,7 +414,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         return;
       }
       const GET_ONLY = ["/sources", "/intake", "/counters", "/openapi.yaml"];
-      const runsM = /^\/runs\/([^/]+)(\/trace|\/journey)?$/.exec(path);
+      const runsM = /^\/runs\/([^/]+)(\/trace|\/journey|\/progress)?$/.exec(path);
       if (GET_ONLY.includes(path) || path === "/runs" || path === "/queue" || runsM) {
         if (req.method !== "GET") { send(405, errBody(null, "BadRequest", `use GET ${path}`, false, t0)); return; }
         if (path === "/sources") { send(200, await (deps.sources ?? queries.sources)({ cfg })); return; }
@@ -434,6 +438,15 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         let id;
         try { id = decodeURIComponent(runsM[1]); } catch { id = ""; }
         const stored = runs.get(id);
+        if (runsM[2] === "/progress") {
+          const live = board.get(id);
+          if (live) { send(200, live); return; }
+          if (id.startsWith("ask_") || (stored && !stored.output)) { send(404, errBody(id, "NotFound", "progress exists for /run runs only", false, t0)); return; }
+          if (!stored) { send(404, errBody(id, "NotFound", `no stored run ${id}`, false, t0)); return; }
+          let lines = [];
+          try { lines = readFileSync(join(logsDir, basename(String(stored.log_file ?? `trace-${id}.jsonl`))), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch { /* a stored run remains readable without its trace */ }
+          send(200, progressFromStored(stored, lines)); return;
+        }
         if (!stored) { send(404, errBody(id, "NotFound", `no stored run ${id}`, false, t0)); return; }
         if (!runsM[2]) { send(200, stored); return; }
         const tracePath = join(logsDir, basename(String(stored.log_file ?? `trace-${id}.jsonl`)));
@@ -525,17 +538,27 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       // options.sample_mode:true forces sample mode; false never turns a sample-mode server live.
       const runCfg = opts.sample_mode === true ? { ...cfg, SAMPLE_MODE: "true" } : cfg;
       const release = !sampleMode(runCfg) ? takeLive() : null;
+      board.start(run_id, { mode: sampleMode(runCfg) ? "sample" : "live", fallbackRoute: runCfg.NIGHTSHIFT_ROUTE_FALLBACK ?? null, primaryEngine: nightshiftEngine(runCfg) });
+      const onLine = (l) => { board.line(run_id, l); deps.onLine?.(l); };
+      const onProgress = (e) => {
+        const a = e.kind === "work" ? board.work(run_id, e) : (e.kind === "decided" ? board.decided(run_id, e.early) : undefined);
+        let b; try { b = deps.onProgress?.(e); } catch { b = undefined; }
+        return e.kind === "work" ? (x) => { try { a?.(x); } finally { try { if (typeof b === "function") b(x); } catch { /* ignore listener errors */ } } } : undefined;
+      };
+      const runDeps = { ...deps, onLine, onProgress };
       const run = deps.runTicket ?? runTicket;
       let result;
       try { result = isMsg
-        ? await run(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
-        : await run(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+        ? await run(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...runDeps, runtimeDir }, input: msgInput })
+        : await run(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps: runDeps });
       } finally { release?.(); }
       // the server keeps its own absolute queue path; the public result names the file inside the memory dir only
       const publicOutput = result.output?.queued_for?.queue_file
         ? { ...result.output, queued_for: { ...result.output.queued_for, queue_file: publicQueueFile(result.output.queued_for.queue_file) } }
         : result.output;
       const out = {
+        provider: result.provider,
+        ...(result.decision_early ? { decision_early: result.decision_early } : {}),
         run_id: result.run_id, status: result.status, output: publicOutput, agents: result.agents,
         trace_id: result.trace_id, log_file: result.log_file, execution_time_seconds: result.execution_time_seconds,
         ...(result.scenario !== undefined ? { scenario: result.scenario, resolved_how: result.resolved_how, branch_id: result.branch_id } : {}),
@@ -544,6 +567,8 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         ...(result.error ? { error: result.error } : {}),
       };
       remember(run_id, out); if (deps.persistRuns !== false) persistRun(runsDir, run_id);
+      board.finish(run_id, out);
+      if (!sampleMode(runCfg)) health.note(out.provider);
       // a sample-forced run on a LIVE server is not counted: it writes no row and triggers no publish
       const forcedSampleOnLive = sampleMode(runCfg) && !sampleMode(cfg);
       if (out.status === "success" && out.output?.decision && !forcedSampleOnLive && (!isMsg || out.input?.thread_id)) {
@@ -553,7 +578,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       inflight.delete(run_id);
       send(200, out);
     } catch (e) {
-      if (claimed) inflight.delete(run_id);
+      if (claimed) { inflight.delete(run_id); board.finish(run_id, { status: "error", output: null }); }
       if (e?.name === "IntakeFull") { send(503, errBody(run_id, "IntakeFull", `intake full: ${INTAKE_CAP} rows (cap); message runs refused`, false, t0)); return; }
       if (e instanceof HttpError) { send(e.status, errBody(run_id, e.type, e.message, e.recoverable === true, t0)); return; }
       send(500, errBody(run_id, "InternalError", "unexpected server error", true, t0));

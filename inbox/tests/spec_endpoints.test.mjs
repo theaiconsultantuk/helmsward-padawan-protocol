@@ -40,7 +40,7 @@ async function openapiEndpoints() {
 
 test("the spec names at least the core endpoints", () => {
   const spec = specEndpoints(readFileSync(join(root, "docs", "FRONTEND-SPEC.md"), "utf8"));
-  for (const e of ["POST /run", "GET /runs/{}", "GET /runs/{}/trace", "GET /runs/{}/journey", "GET /runs", "GET /queue", "GET /counters", "POST /feedback", "POST /ask"]) {
+  for (const e of ["POST /run", "GET /runs/{}", "GET /runs/{}/trace", "GET /runs/{}/journey", "GET /runs/{}/progress", "GET /runs", "GET /queue", "GET /counters", "POST /feedback", "POST /ask"]) {
     assert.ok(spec.has(e), `spec lacks ${e}`);
   }
 });
@@ -70,4 +70,13 @@ test("(13) the response scenario enum allows legacy and customer_service, apart 
   assert.match(text, /scenario: \{ \$ref: "#\/components\/schemas\/ResolvedScenario" \}/);
   const req = /MessageInput:[\s\S]*?scenario: \{ type: string, enum: \[([^\]]*)\]/.exec(text);
   assert.ok(req && !/legacy|customer_service/.test(req[1]), "the request enum stays the declared set");
+});
+
+// Boundary: generated clients must validate /ask answers against the result, not the request shape.
+test("POST /ask 200 references AskResult", async (t) => {
+  let yaml;
+  try { yaml = (await import("yaml")).default; }
+  catch { return t.skip("the yaml package is not installed"); }
+  const doc = yaml.parse(readFileSync(join(root, "openapi.yaml"), "utf8"));
+  assert.equal(doc.paths["/ask"].post.responses["200"].content["application/json"].schema.$ref, "#/components/schemas/AskResult");
 });

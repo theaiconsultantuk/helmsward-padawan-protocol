@@ -13,6 +13,8 @@ import { Scout } from "./engines/scout/index.mjs";
 import { verifyContract } from "./engines/scout/contract.mjs";
 import * as nightshift from "./adapters/nightshift.mjs";
 import * as sample from "./adapters/sample.mjs";
+import { providerSummary, isNemotron, nightshiftEngine } from "./progress.mjs";
+import { fallbackOf } from "./adapters/nightshift.mjs";
 import * as queries from "./queries.mjs";
 import { parseRestricted } from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
@@ -342,6 +344,15 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   return { draft, crit, risk, rounds: round, retried, ok };
 }
 
+export function earlyDecision(branchId, facts) {
+  if (branchId === "over-limit") return overLimitRefusal(facts) ? { decision: "escalate", draft_pending: true } : null;
+  if (["complaint-severe", "complaint-legal"].includes(branchId)) return { decision: "escalate", draft_pending: true };
+  if (["fact-block", "misread"].includes(branchId)) return { decision: "escalate", draft_pending: false };
+  if (["data-block", "follow-up"].includes(branchId)) return { decision: "hold", draft_pending: false };
+  if (["duplicate", "thank-you"].includes(branchId)) return { decision: "close", draft_pending: false };
+  return null;
+}
+
 export async function runTicket(thread_id, { run_id = `run-${Date.now().toString(36)}`, as_of, cfg = config(), deps = {}, input = null } = {}) {
   const isMsg = typeof input?.message === "string" && input.message.length > 0;
   if (isMsg && !as_of && input.as_of) as_of = input.as_of;
@@ -350,6 +361,33 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const maxRounds = deps.maxRounds ?? 2;
   const runTimeoutMs = deps.runTimeoutMs ?? 300000;
   const sampleOn = isSampleMode(cfg);
+  const calls = [];
+  const P = (evt) => { try { return deps.onProgress?.(evt); } catch { return undefined; } };
+  const workStart = (purpose, engine) => {
+    const e = P({ kind: "work", purpose, engine });
+    return (x) => { try { if (typeof e === "function") e(x); } catch { /* listeners cannot break a run */ } };
+  };
+  const noteCall = (purpose, res, err) => {
+    const fb = fallbackOf(res);
+    const primary = !err && !fb && res?.lane !== "local-lane" && isNemotron(res?.model ?? (isNemotron(cfg.NIGHTSHIFT_ROUTE_PRIMARY) ? cfg.NIGHTSHIFT_ROUTE_PRIMARY : ""));
+    const name = (e) => `${e?.name ?? "Error"}${e?.status ? ` HTTP ${e.status}` : ""}`;
+    const reason = err ? `failed (${name(err)}); no answer`
+      : primary ? null : res?.lane === "local-lane" ? `Nightshift unreachable (${fb?.reason ?? "Error"}); answered by the local lane (${res.model})`
+      : fb ? `primary failed (${fb.reason}); answered by ${fb.route}`
+      : `primary route answered with ${res?.model ?? "an unknown model"}, not Nemotron`;
+    const rec = { purpose, primary, reason: reason === null ? null : `${purpose}: ${reason}` };
+    calls.push(rec); return rec;
+  };
+  const timed = (purpose, fn, { nightshift: nsCall = true, engine = sampleOn ? "sample rules" : nightshiftEngine(cfg) } = {}) => async (...a) => {
+    const p = typeof purpose === "function" ? purpose(...a) : purpose;
+    const end = workStart(p, engine);
+    let r, err = null;
+    try { r = await fn(...a); } catch (e) { err = e; }
+    const rec = nsCall && !sampleOn ? noteCall(p, r, err) : null;
+    end(rec ? { primary: rec.primary, reason: rec.reason } : {});
+    if (err) throw err;
+    return r;
+  };
   const memoryDir = deps.memoryDir ?? join(INBOX_ROOT, "data", "memory");
   const secret = cfg.SCOUT_SECRET ?? process.env.SCOUT_SECRET ?? "dev-secret";
 
@@ -391,7 +429,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     input_summary: `typed gates for ${id}`, output_summary: "skipped: restricted fact in the message, so no model receives the text; code rules used", status: "skipped" });
   const W = (f) => {
     const out = trace.line(f);
-    if (typeof deps.onLine === "function") deps.onLine(out);
+    try { if (typeof deps.onLine === "function") deps.onLine(out); } catch { /* progress cannot break the trace */ }
     return out;
   };
   const L = (f) => (S.aborted ? null : W(f));
@@ -417,20 +455,20 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   }
   const runAbort = new AbortController();
   const scout = deps.scout ?? new Scout({ intentRegistry: join(INBOX_ROOT, "src", "engines", "scout", "intents.inbox.json"), policyPack: ["default"], secret });
-  const gatesFn = deps.gates ?? typedGates;
+  const gatesFn = timed("gates", deps.gates ?? typedGates, { nightshift: false, engine: sampleOn ? "sample rules" : "OpenJev" });
   const runtimeDir = deps.runtimeDir ?? null;
   const refuseOnce = sampleOn && String(cfg.FAULT_ZETARIS_REFUSE_ONCE) === "true";
-  const factsFn = deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime"), ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) }));
-  const findDup = deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") }));
-  const ledgerFn = deps.ledgerAdjust ?? ((category, o) => (sampleOn
+  const factsFn = timed("facts", deps.facts ?? ((id, o) => factsForTicket(id, { ...o, cfg, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime"), ...(refuseOnce ? { sqlRunImpl: faultingSqlRun(cfg, o.trace) } : {}) })), { nightshift: false, engine: "Zetaris" });
+  const findDup = timed("duplicate", deps.findDuplicate ?? ((tk, o) => findDuplicateZetaris(tk, { cfg, trace: o.trace, runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") })), { nightshift: false, engine: "Zetaris" });
+  const ledgerFn = timed("ledger", deps.ledgerAdjust ?? ((category, o) => (sampleOn
     ? localLedgerAdjust(category, deps.decisionsDir ? { dir: deps.decisionsDir } : undefined)
-    : ledgerAdjustFor(category, { cfg, trace: o.trace })));
-  const drafter = deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose, signal: o.signal ?? runAbort.signal }));
+    : ledgerAdjustFor(category, { cfg, trace: o.trace }))), { nightshift: false, engine: "Zetaris" });
+  const drafter = timed((messages, o) => o?.purpose ?? "draft", deps.drafter ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: o.purpose, signal: o.signal ?? runAbort.signal })));
   const sampleDrafter = deps.sampleDrafter ?? sample.draft;
   const sampleCritic = deps.sampleCritic ?? sample.critique;
-  const reader = deps.reader ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: "refund_read", signal: o.signal ?? runAbort.signal }));
-  const critic = deps.critic ?? (async ({ draft, facts, ticket }) => {
-    const r = await nightshift.draft(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique", signal: runAbort.signal });
+  const reader = timed("refund_read", deps.reader ?? ((messages, o) => nightshift.draft(messages, { cfg, trace: o.trace, purpose: "refund_read", signal: o.signal ?? runAbort.signal })));
+  const critic = deps.critic ? timed("critique", deps.critic) : (async ({ draft, facts, ticket }) => {
+    const r = await timed("critique", nightshift.draft)(evaluatorMessages({ draft, facts, ticket }), { cfg, trace: adapterTrace, purpose: "critique", signal: runAbort.signal });
     const j = parseCriticJson(r.text);
     return j ? { ...j, model: r.model } : { pass: false, reason: "evaluator returned no valid JSON", model: r.model };
   });
@@ -526,7 +564,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       const { thread_id: tid, row } = await appendIntake({ message: input.message, from: input.from, name: input.name, subject: input.subject, channel: input.channel,
         scenario: input.scenario ?? "free_text", received_at }, { runtimeDir: dir });
       thread_id = tid;
-      const pub = await publishIntake({ cfg, runtimeDir: dir });
+      const pub = await timed("intake", publishIntake, { nightshift: false, engine: "Zetaris" })({ cfg, runtimeDir: dir });
       if (pub.error) {
         buf.push({ step: "zetaris.query", agent_name: "Executor", action: "intake_publish", sponsor: "zetaris", input_summary: `intake row ${tid} → JEDI_PACK.intake_runtime`,
           output_summary: `published: false (${one(pub.error, 160)}); the row is read locally`, status: "error" });
@@ -735,7 +773,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
-      maxRounds, runtimeDir, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, reader, adapterTrace, signal: runAbort.signal },
+      maxRounds, runtimeDir, progress: { work: (purpose) => workStart(purpose, sampleOn ? "sample rules" : "OpenJev") }, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, reader, adapterTrace, signal: runAbort.signal },
       readerOn: !(["false", "0"].includes(String(cfg.REFUND_READER ?? "true").trim().toLowerCase())),
     };
 
@@ -760,7 +798,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     if (probe) S.branch = { ...S.branch, branch_id: probe.branch_id, why: probe.why };
     const B = S.branch.branch_id;
-    L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
+    const bl = L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
+    const early = earlyDecision(B, f);
+    if (bl && early) {
+      S.early = { ...early, branch_id: B, why: one(S.branch.why, 200), at_s: Math.round((clock() - t0) / 100) / 10 };
+      P({ kind: "decided", early: S.early });
+    }
 
     // 7a. the typed gates line
     S.current = "nvidia.model";
@@ -963,6 +1006,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   })();
   if (S.queued) S.queued.owner = ownerObj;
   const result = {
+    provider: providerSummary(calls, sampleOn ? "sample" : "live"),
+    ...(S.early ? { decision_early: S.early } : {}),
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",
     output: {
       decision: S.decision, owner: ownerObj, reasons: S.reasons.map((r) => one(r, 300)), cited_rows: [...new Set([...(f?.cited_rows ?? []), ...S.extraCited])],

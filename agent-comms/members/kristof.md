@@ -117,3 +117,9 @@ Names accept letters, spaces, hyphens and apostrophes; generated demo emails hav
 - Stale teardown dates outside our files: `agent-comms/BOARD.md:32,42,59,61`, `agent-comms/decisions.md:16,20`, and `agent-comms/members/jocke.md:42,44`.
 - `inbox/public/shop/js/flow-render.js:257` still says “the two Meterless engines”; there are three: Scout, H-MEM, World Model.
 - Generated `refund-chain*.md` still say USD until Tuesday's judging-pack regeneration; their generator already writes GC. The pack generator's own stale USD literals and fixed table/trace counts are corrected by this build.
+## 2026-10-25 21:39 CET · Build C progress contract [agent: CodexBWAI]
+
+Paul: `GET /runs/{id}/progress` now serves live work, completed steps and a fixed early decision while `/run` is still running. The contract and polling rule are in `inbox/docs/FRONTEND-SPEC.md` §2 “GET /runs/{id}/progress” and §8. Poll every 1.5 s, including after 502/504/524; done means load the journey.
+
+The banner fields are `/health` `primary.fallback_in_use` and each run's `provider.primary_used` / `provider.fallback_reason`. The reason names which step used another model or failed.
+The contact-page live line, early decision line and honest banner are FRONT END for the teammate you assign. No page files changed here; `decisions.md` is not ours to edit.
