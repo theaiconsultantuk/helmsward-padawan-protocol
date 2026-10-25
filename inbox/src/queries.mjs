@@ -377,6 +377,7 @@ export function validate(name, params = {}) {
 
 // why: the caller's reason for the read, in words; it lands in the trace line's input_summary ("owner for refund: under the refund limit 150 (policy:refund)")
 export async function run(name, params = {}, { trace, cfg = config(), limit = 100, sqlRunImpl = zetaris.sqlRun, why, runtimeDir = RUNTIME_DIR } = {}) {
+  const started_at = Date.now();
   const t = validate(name, params);
   const sql = t.sql(params);
   const q = `${t.question} ${JSON.stringify(params)}${why ? ` · ${why}` : ""}${t.layer === "usl" ? " via the USL" : ""}`;
@@ -384,7 +385,7 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
   try {
     r = await sqlRunImpl(sql, { name, params, limit: Math.max(limit, t.minLimit ?? 0), cfg, trace });
   } catch (e) {
-    trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
+    trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, started_at, input_summary: q,
       output_summary: `${e.name}: ${e.message}`, status: "error", sponsor: "zetaris" });
     throw e;
   }
@@ -393,7 +394,7 @@ export async function run(name, params = {}, { trace, cfg = config(), limit = 10
   const objects = r.rows.map((x) => row(r.headers, x));
   const cited = t.cite(params, objects);
   const detail = t.detail ? t.detail(params, objects) : "";
-  trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, input_summary: q,
+  trace?.line({ step: "zetaris.query", agent_name: "Executor", action: `sql:${name}`, started_at, input_summary: q,
     output_summary: `${r.rows.length} rows: ${cited.join(", ") || "none"}`, status: "success", sponsor: "zetaris", ...(detail ? { detail } : {}) });
   return { name, params, headers: r.headers, rows: r.rows, objects, total: r.total ?? r.rows.length, source: r.source ?? "live" };
 }

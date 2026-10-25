@@ -53,7 +53,7 @@ export class Trace {
     return new Trace(run_id, opts);
   }
 
-  constructor(run_id, { logsDir = `${INBOX_ROOT}/logs`, secrets = secretsFromConfig(), stdout = true, trace_id = run_id } = {}) {
+  constructor(run_id, { logsDir = `${INBOX_ROOT}/logs`, secrets = secretsFromConfig(), stdout = true, trace_id = run_id, onLine = null } = {}) {
     if (!run_id || typeof run_id !== "string") throw new Error("Trace.open: run_id is required");
     this.run_id = run_id;
     this.trace_id = trace_id;
@@ -63,7 +63,8 @@ export class Trace {
     this.path = `${logsDir}/trace-${run_id}.jsonl`;
     this._lines = [];
     this._start = Date.now(); // the run's stable start: elapsed_ms counts from here, whatever order buffered lines are flushed in
-    this._ats = []; // the recorded moments of the lines already written
+    this.onLine = onLine;
+    this._spans = []; // disjoint measured work already attributed to a node (CodexBWAI, Build F)
   }
 
   get lines() {
@@ -81,24 +82,37 @@ export class Trace {
     if (fields.sponsor !== undefined && !SPONSORS.includes(fields.sponsor)) {
       throw new Error(`trace line: unknown sponsor "${fields.sponsor}"`);
     }
-    // millisecond ISO timestamp (the line's own `at`); elapsed_ms = at - the run's start (the Trace's construction), duration_ms = at minus
-    // the latest recorded moment strictly before it among the lines already written (the run's start when none), never negative.
-    // A buffered line passes the moment it was recorded as `at`; it is never written out as a field.
+    // `at` is completion, never flush time. Only explicit operation spans own time;
+    // bookkeeping/paired lines own zero. Attribute overlapping work once, to the
+    // first written measured node, so node totals never overclaim wall time.
     const now = Number.isFinite(fields.at) ? fields.at : Date.now();
-    const before = this._ats.filter((a) => a < now);
-    const duration_ms = Math.max(0, now - (before.length ? Math.max(...before) : this._start));
+    const start = Math.min(now, Math.max(this._start, Number.isFinite(fields.started_at) ? fields.started_at : now));
+    let duration_ms = Math.max(0, now - start);
+    for (const [a, b] of this._spans) duration_ms -= Math.max(0, Math.min(now, b) - Math.max(start, a));
+    if (now > start) {
+      const spans = [...this._spans, [start, now]].sort((a, b) => a[0] - b[0]);
+      this._spans = [];
+      for (const span of spans) {
+        const last = this._spans.at(-1);
+        if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1]);
+        else this._spans.push([...span]);
+      }
+    }
     const elapsed_ms = Math.max(0, now - this._start);
-    this._ats.push(now);
     const raw = {
       timestamp: new Date(now).toISOString(),
       duration_ms,
       elapsed_ms,
+      ran_s: Math.round(elapsed_ms / 100) / 10,
+      seen_s: Math.round((Date.now() - this._start) / 100) / 10,
       run_id: this.run_id,
       trace_id: this.trace_id,
     };
     for (const k of REQUIRED) raw[k] = fields[k];
     for (const k of OPTIONAL) if (fields[k] !== undefined) raw[k] = fields[k];
     const out = mask(raw, this.secrets);
+    // The board stamps arrival before the line is persisted, retaining restart parity.
+    try { this.onLine?.(out, fields.flush ?? (Number.isFinite(fields.at) ? "buffered" : "direct")); } catch { /* observers cannot stop a run */ }
     mkdirSync(this.logsDir, { recursive: true });
     appendFileSync(this.path, JSON.stringify(out) + "\n");
     this._lines.push(out);

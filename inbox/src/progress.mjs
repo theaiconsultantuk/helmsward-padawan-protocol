@@ -17,7 +17,7 @@ export const WORK = {
 };
 export const nightshiftEngine = (cfg) => !cfg.NIGHTSHIFT_ROUTE_PRIMARY || isNemotron(cfg.NIGHTSHIFT_ROUTE_PRIMARY) ? "Nemotron" : `Nightshift (${cfg.NIGHTSHIFT_ROUTE_PRIMARY})`;
 export function stepOf(line) {
-  return { step: line.step, agent: line.agent_name, label: labelFor(line.step, line), tech: techOf(line), status: line.status, seconds: Math.round((Number(line.duration_ms) || 0) / 10) / 100 };
+  return { step: line.step, agent: line.agent_name, label: labelFor(line.step, line), tech: techOf(line), status: line.status, seconds: Math.round((Number(line.duration_ms) || 0) / 10) / 100, ran_s: Number.isFinite(line.ran_s) ? line.ran_s : tenth(Number(line.elapsed_ms) || 0), seen_s: Number.isFinite(line.seen_s) ? line.seen_s : tenth(Number(line.elapsed_ms) || 0) };
 }
 export function providerSummary(calls, mode) {
   const bad = calls.filter((c) => c.primary === false);
@@ -51,6 +51,7 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
     },
     line(id, line) {
       const e = running(id); if (!e) return;
+      line.seen_s = tenth(now() - e.t0);
       e.lines.push(stepOf(line));
       if (line.step === "retry" && ["fallback_route", "fallback_local_lane"].includes(line.action)) {
         for (const w of e.working.filter((w) => w.purpose === line.input_summary)) {
@@ -70,7 +71,7 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
         if (typeof primary === "boolean") e.provider.set(key, { purpose, primary, reason });
       };
     },
-    decided(id, early) { const e = running(id); if (e && !e.early) e.early = { ...early }; },
+    decided(id, early) { const e = running(id); if (e && !e.early) { early.seen_s = tenth(now() - e.t0); e.early = { ...early }; } },
     finish(id, result) {
       const e = running(id); if (!e) return;
       e.state = "done"; e.decision = result?.output?.decision ?? null; e.status = result?.status ?? null;

@@ -63,7 +63,12 @@ function oneLine(a) {
 }
 
 export async function typedGates(ticket, facts = {}, { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl, signal } = {}) {
-  const log = (f) => trace?.line({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", input_summary: `typed gates for ${ticket.thread_id ?? "ticket"}`, ...f });
+  let started_at = Date.now();
+  const log = (f) => {
+    const start = started_at;
+    started_at = Date.now();
+    return trace?.line({ started_at: start, step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", input_summary: `typed gates for ${ticket.thread_id ?? "ticket"}`, ...f });
+  };
   const fallback = (status, why) => {
     const g = sample.gates(ticket);
     log({ status, model: g.model, confidence: 0.5, gate_source: "rules", output_summary: `${why}; code rules: ${oneLine(g.answers)}` });
@@ -91,7 +96,12 @@ export async function typedGates(ticket, facts = {}, { trace = null, cfg = confi
 // (OpenJev), or the code rule sample.LEGAL_WORDS when OpenJev is skipped or does not answer it; `kind` echoes the input kind
 // ("vent" | "genuine" | "channel_public"; channel_public makes the sample fallback treat the ticket as on a public channel).
 export async function severityGate(ticket, facts = {}, worldLine = "", { trace = null, cfg = config(), sampleMode = isSampleMode(cfg), fetchImpl, kind = "vent", signal } = {}) {
-  const log = (f) => trace?.line({ step: "nvidia.model", agent_name: "Severity", action: "severity_gate", sponsor: "nvidia", input_summary: `severity for ${ticket.thread_id ?? "ticket"}`, ...f });
+  let started_at = Date.now();
+  const log = (f) => {
+    const start = started_at;
+    started_at = Date.now();
+    return trace?.line({ started_at: start, step: "nvidia.model", agent_name: "Severity", action: "severity_gate", sponsor: "nvidia", input_summary: `severity for ${ticket.thread_id ?? "ticket"}`, ...f });
+  };
   const done0 = (r, skipped = false) => {
     const body = `severity ${r.score} (${r.legend}), raw ${r.raw ?? "n/a"}, confidence ${r.confidence}, source ${r.gate_source}`;
     log({ status: skipped ? "skipped" : "success", model: r.model, confidence: r.confidence, gate_source: r.gate_source, output_summary: skipped ? `sample mode, OpenJev not called; severity by code rules (sample.severity): ${body}` : body });

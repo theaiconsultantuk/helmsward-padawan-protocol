@@ -158,7 +158,7 @@ const redactPaths = (t) => String(t)
 const safeMsg = (e) => redactPaths(String(mask(String(e?.message ?? e))));
 export const redactHostPaths = redactPaths;
 const serverLog = (quiet, step, e) => { if (!quiet) console.error(`[loop] ${step}: ${errName(e)}: ${String(e?.message ?? e)}`); };
-// A buffered trace line keeps the moment it was recorded (`at`), so its timestamp and duration_ms are when the step ran, not when the buffer was written out.
+// A buffered line keeps its completion time independently of its own measured work duration.
 const stampedBuffer = () => { const a = []; a.push = (...xs) => Array.prototype.push.apply(a, xs.map((x) => (x && x.at === undefined ? { ...x, at: Date.now() } : x))); return a; };
 // Cut at a word boundary with "…" when the text is longer than n; never mid-word.
 const one = (s, n = 220) => {
@@ -378,11 +378,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const rec = { purpose, primary, reason: reason === null ? null : `${purpose}: ${reason}` };
     calls.push(rec); return rec;
   };
+  const completed = new Map();
   const timed = (purpose, fn, { nightshift: nsCall = true, engine = sampleOn ? "sample rules" : nightshiftEngine(cfg) } = {}) => async (...a) => {
     const p = typeof purpose === "function" ? purpose(...a) : purpose;
     const end = workStart(p, engine);
+    const started_at = Date.now();
     let r, err = null;
     try { r = await fn(...a); } catch (e) { err = e; }
+    completed.set(p, { started_at: completed.get(p)?.started_at ?? started_at, at: Date.now() });
     const rec = nsCall && !sampleOn ? noteCall(p, r, err) : null;
     end(rec ? { primary: rec.primary, reason: rec.reason } : {});
     if (err) throw err;
@@ -391,7 +394,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const memoryDir = deps.memoryDir ?? join(INBOX_ROOT, "data", "memory");
   const secret = cfg.SCOUT_SECRET ?? process.env.SCOUT_SECRET ?? "dev-secret";
 
-  const trace = Trace.open(run_id, { ...(deps.logsDir ? { logsDir: deps.logsDir } : {}), ...(deps.quiet ? { stdout: false } : {}) });
+  let delayLogged = false;
+  const trace = Trace.open(run_id, { ...(deps.logsDir ? { logsDir: deps.logsDir } : {}), ...(deps.quiet ? { stdout: false } : {}), onLine: (line, flush) => {
+    try { deps.onLine?.(line); } catch { /* progress cannot break the trace */ }
+    if (!sampleOn && !delayLogged && Date.now() - Date.parse(line.timestamp) > 10000) {
+      delayLogged = true;
+      console.error(JSON.stringify({ diagnostic: "progress_delay", run_id, step: line.step, ran_s: line.ran_s, seen_s: line.seen_s, flush }));
+    }
+  } });
   const S = {
     aborted: false, facts: null, recovered: [], decision: null, reasons: [], draft: null, rounds: [], models: {},
     memRead: [], memWritten: [], branch: null, queued: null, current: "memory.read", scoutRisk: null,
@@ -428,9 +438,10 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const restrictedGateSkip = (id, model) => ({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model, gate_source: "rules", confidence: 0.5,
     input_summary: `typed gates for ${id}`, output_summary: "skipped: restricted fact in the message, so no model receives the text; code rules used", status: "skipped" });
   const W = (f) => {
-    const out = trace.line(f);
-    try { if (typeof deps.onLine === "function") deps.onLine(out); } catch { /* progress cannot break the trace */ }
-    return out;
+    const purpose = ({ draft_reply: "draft", draft_revised: "draft", critique_draft: "critique", read_refund: "refund_read", typed_gates: "gates", intake_publish: "intake", read_complaint: "complaint_read", recommend: "recommendation" })[f.action];
+    const span = purpose ? completed.get(purpose) : null;
+    if (span) completed.delete(purpose);
+    return trace.line({ ...(span ?? {}), ...f });
   };
   const L = (f) => (S.aborted ? null : W(f));
   const F = (f) => W(f); // finalisation lines, written even after a timeout
@@ -500,6 +511,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const fc = owner?.fallback_contact ?? f?.fallback_contact ?? null;
     S.meta = { ...S.meta, ...Object.fromEntries(Object.entries({ team: team ?? owner?.team, team_label: team_label ?? owner?.team_label, backup_team, topic_label, cc, also, status, courtesy_reply }).filter(([, v]) => v !== undefined)) };
     const meta = queueMeta();
+    const queueStart = Date.now();
     let memId = null;
     let queueFailed = false;
     try {
@@ -523,7 +535,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       ...(fc ? { fallback_contact: fc, role: "default contact" } : {}), ...meta };
     if (memId) S.memWritten.push(memId);
     L({
-      step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", target_agent: "Human",
+      step: "escalate_or_fallback", agent_name: "Escalator", action: "queue_for_human", started_at: queueStart, target_agent: "Human",
       input_summary: one(reason), output_summary: approval
         ? `escalated to ${approval.approver_name ?? `employee ${approval.approver_id}`} (employee ${approval.approver_id}) for approval of ${approval.amount} GC over the ${approval.limit} GC limit; the draft is attached for approval; ${queueFailed ? "the queue write failed, the draft and both critiques are in this trace" : `draft and both critiques stored in ${queue_name}`}`
         : fc ? `escalated to the default contact ${fc.email} (${backupId == null ? `owner ${ownerId ?? "?"} out, no backup named` : `owner ${ownerId ?? "?"} and backup ${backupId} both out`}); ${queueFailed ? "the queue write failed, both critiques are in this trace" : `both critiques stored in ${queue_name}`}`
@@ -552,6 +564,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const o = { as_of, trace: { line: (f) => buf.push(f) } };
     // A free-text message: append the intake row, publish it, then run Scout and the gates SILENTLY (their lines are written at their usual
     // positions below) so the scenario, and with it the topic the facts are read for, is known before the facts read.
+    let scoutSpan = null;
     let preDecided = null;
     let preErr = null;
     let preGates = null;
@@ -576,11 +589,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       }
       S.msg = { row, published: pub.published === true };
       const rowTicket = { ...row, thread_id: tid };
+      const scoutStart = Date.now();
       try {
         preDecided = await scout.decide({ prompt: `${row.subject ?? ""}\n${row.body}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
       } catch (e) {
         preErr = e;
       }
+      scoutSpan = { started_at: scoutStart, at: Date.now() };
       // Scout's contract and risk block are checked BEFORE any model call: a refused message never reaches the gates.
       let scoutRefused = preErr != null || !preDecided;
       if (!scoutRefused) {
@@ -667,6 +682,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 1. memory.read
     S.current = "memory.read";
+    const memoryReadStart = Date.now();
     let memories = [];
     let memCtx = "";
     try {
@@ -685,7 +701,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const byEmail = mail ? memories.filter((m) => (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) : [];
     S.emailRecall = byEmail.length;
     L({
-      step: "memory.read", agent_name: "Memory", action: "memory_read", input_summary: f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id),
+      step: "memory.read", agent_name: "Memory", action: "memory_read", started_at: memoryReadStart, input_summary: f ? `${f.sender_name} ${f.category} ${thread_id}` : String(thread_id),
       output_summary: S.memRead.length ? `${S.memRead.length} memories: ${memories.map((m) => `${m.memory.id} (${one(m.memory.content, 70)})`).join("; ")}${byEmail.length ? `; ${byEmail.map((m) => m.memory.id).join(", ")} recalled by the client's email ${mail}` : ""}` : "empty (cold first run)",
       status: "success", memory_ids: S.memRead, sponsor: undefined,
     });
@@ -711,7 +727,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     S.current = "executor.act";
     for (const b of buf) {
       if (b.status === "error" && b.step === "zetaris.query") S.recovered.push({ step: "zetaris.query", type: "UpstreamRefused", message: safeMsg(b.output_summary) });
-      L(b);
+      L({ ...b, flush: "facts" });
     }
     if (factsErr) fatal("executor.act", factsErr, "facts unavailable, escalated to human with the ticket id only");
     L({
@@ -725,18 +741,20 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 5. meterless.engine: Scout decides, the contract is verified before any model call
     S.current = "meterless.engine";
     let decided;
+    const scoutStart = Date.now();
     try {
       if (preErr) throw preErr;
       decided = preDecided ?? await scout.decide({ prompt: `${f.subject ?? ""}\n${inputText}`, user: { id: "inbox-loop", roles: ["agent"] }, surface: "email" });
     } catch (e) {
       fatal("meterless.engine", e, "Scout failed before any model call, escalated to human");
     }
+    scoutSpan ??= { started_at: scoutStart, at: Date.now() };
     S.scoutRisk = decided.risk?.level ?? "low";
     const contract = decided.executionContract;
     const ver = verifyContract(contract, { secret: scout.secret ?? secret });
     if (!ver.ok || decided.risk?.level === "block") {
       L({
-        step: "meterless.engine", agent_name: "Scout", action: "decide_contract", sponsor: "meterless", input_summary: one(`${f.subject}: ${inputText}`, 120),
+        step: "meterless.engine", agent_name: "Scout", action: "decide_contract", ...scoutSpan, sponsor: "meterless", input_summary: one(`${f.subject}: ${inputText}`, 120),
         output_summary: ver.ok ? `refused: risk block (${(decided.risk.flags ?? []).join(", ") || "policy"}), contract ${contract.contractId}` : `refused: contract ${ver.reason}`,
         status: "refused",
       });
@@ -745,7 +763,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       throw new Stop("scout refused");
     }
     L({
-      step: "meterless.engine", agent_name: "Scout", action: "decide_contract", sponsor: "meterless", input_summary: one(`${f.subject}: ${inputText}`, 120),
+      step: "meterless.engine", agent_name: "Scout", action: "decide_contract", ...scoutSpan, sponsor: "meterless", input_summary: one(`${f.subject}: ${inputText}`, 120),
       output_summary: `contract ${contract.contractId} verified; intent ${decided.intent?.primary?.id}; risk ${S.scoutRisk}`, status: "success",
       confidence: decided.intent?.confidence,
     });
@@ -801,13 +819,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     const bl = L({ step: "branch", agent_name: "Planner", action: "select_branch", branch_id: B, input_summary: `category ${f.category}, amount ${f.amount ?? "none"}`, output_summary: S.branch.why, status: "success", memory_ids: S.memRead });
     const early = earlyDecision(B, f);
     if (bl && early) {
-      S.early = { ...early, branch_id: B, why: one(S.branch.why, 200), at_s: Math.round((clock() - t0) / 100) / 10 };
+      S.early = { ...early, branch_id: B, why: one(S.branch.why, 200), at_s: Math.round((Date.now() - trace._start) / 100) / 10, seen_s: Math.round((Date.now() - trace._start) / 100) / 10 };
       P({ kind: "decided", early: S.early });
     }
 
     // 7a. the typed gates line
     S.current = "nvidia.model";
-    for (const g of gbuf) L({ ...g, branch_id: B });
+    for (const g of gbuf) L({ ...g, branch_id: B, flush: preGates ? "pre-gates" : "gates" });
     if (!gbuf.length) L({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model: gates.model, gate_source: gates.gate_source, input_summary: `typed gates for ${thread_id}`, output_summary: "gates supplied by caller", status: "success", branch_id: B });
 
     if (notDispatched) L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`, output_summary: notDispatched, status: "success", memory_ids: S.memRead });
@@ -941,6 +959,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   }
 
   // 11. memory.write (one factual memory per run)
+  const memoryWriteStart = Date.now();
   let written = null;
   try {
     const f = S.facts;
@@ -960,7 +979,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     F({ step: "memory.write", agent_name: "Memory", action: "memory_write", input_summary: "hmem.add", output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
     F({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after memory.write error", output_summary: "continued, nothing remembered from this run", status: "success" });
   }
-  F({ step: "memory.write", agent_name: "Memory", action: "memory_write", input_summary: `decision ${S.decision}`,
+  F({ step: "memory.write", agent_name: "Memory", action: "memory_write", started_at: memoryWriteStart, input_summary: `decision ${S.decision}`,
     output_summary: S.memWritten.length ? `wrote ${S.memWritten.join(", ")} from ${run_id}` : "nothing written", status: S.memWritten.length ? "success" : "skipped",
     memory_ids: S.memWritten, ...(S.branch ? { branch_id: S.branch.branch_id } : {}) });
 
@@ -1006,6 +1025,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   })();
   if (S.queued) S.queued.owner = ownerObj;
   const result = {
+    wall_ms: trace.lines.at(-1).elapsed_ms,
     provider: providerSummary(calls, sampleOn ? "sample" : "live"),
     ...(S.early ? { decision_early: S.early } : {}),
     run_id, trace_id: trace.trace_id, status: unrecovered ? "error" : "success",

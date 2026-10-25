@@ -354,6 +354,7 @@ export function deriveJourney(result, lines, extras = {}) {
   const finalStatus = sent?.status ?? pick("status");
   return {
     run_id: res.run_id ?? ls[0]?.run_id ?? null,
+    wall_ms: Number.isFinite(res.wall_ms) ? res.wall_ms : null,
     team: pick("team"),
     team_label: pick("team_label"),
     topic_label: pick("topic_label"),

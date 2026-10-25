@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { config, INBOX_ROOT } from "../src/config.mjs";
 import * as loop from "../src/loop.mjs";
+import { createProgressBoard, progressFromStored } from "../src/progress.mjs";
+import { deriveJourney } from "../src/journey.mjs";
 import { factsForTicket } from "../src/queries.mjs";
 const mk = (p) => mkdtempSync(join(tmpdir(), `pc-${p}-`));
 const dirs = () => ({ logsDir: mk("logs"), memoryDir: mk("mem"), runtimeDir: mk("rt"), decisionsDir: mk("dec"), quiet: true });
@@ -33,7 +35,8 @@ test("early = final on 24 threads, 30 shape cells and 14 demos plus existing H16
   const seen = new Set();
   for (const [i, c] of cases.entries()) {
     const events = [], order = [];
-    const r = await loop.runTicket(c.thread ?? null, { cfg: sampleCfg, run_id: `pc-sweep-${i}`, input: c.input, as_of: c.as_of, deps: { ...dirs(), onLine: (l) => order.push(l.step), onProgress: (e) => { events.push(e); order.push(e.kind === "work" ? e.purpose : "decided"); } } });
+    const runDirs = dirs();
+    const r = await loop.runTicket(c.thread ?? null, { cfg: sampleCfg, run_id: `pc-sweep-${i}`, input: c.input, as_of: c.as_of, deps: { ...runDirs, onLine: (l) => order.push(l.step), onProgress: (e) => { events.push(e); order.push(e.kind === "work" ? e.purpose : "decided"); } } });
     const e = events.find((e) => e.kind === "decided");
     if (fixed.includes(r.branch_id) && (r.branch_id !== "over-limit" || r.output.queued_for?.approval)) {
       assert.ok(e, `${i} ${r.branch_id} has early decision`); seen.add(r.branch_id);
@@ -42,6 +45,12 @@ test("early = final on 24 threads, 30 shape cells and 14 demos plus existing H16
     if (c.input && r.branch_id === "over-limit") {
       for (const purpose of ["intake", "gates", "facts"]) assert.ok(order.indexOf(purpose) >= 0 && order.indexOf(purpose) < order.indexOf("memory.read"), purpose);
       assert.ok(order.indexOf("branch") < order.indexOf("decided") && order.indexOf("decided") < order.indexOf("synthesis"));
+    }
+    if (i >= cases.length - demos.length) {
+      const lines = readFileSync(join(runDirs.logsDir, r.log_file.split("/").pop()), "utf8").trim().split("\n").map(JSON.parse);
+      const journey = deriveJourney(r, lines);
+      assert.ok(journey.nodes.reduce((n, l) => n + (l.duration_ms ?? 0), 0) <= journey.wall_ms, `demo ${i}: node sum <= wall_ms`);
+      assert.ok(journey.wall_ms <= r.execution_time_seconds * 1000 + 50, `demo ${i}: wall_ms <= execution time`);
     }
     assert.equal(r.provider?.mode, "sample"); assert.equal(r.provider.primary_used, null);
   }
@@ -78,4 +87,42 @@ test("throwing start, line and end listeners cannot alter a run; abandoned body 
   const events = []; const f = await base.facts();
   const r = await go({ runTimeoutMs: 20, facts: async () => { await new Promise((r) => setTimeout(r, 70)); return f; }, onProgress: (e) => events.push(e) }, "pc-abandoned");
   assert.equal(r.status, "error"); await new Promise((r) => setTimeout(r, 120)); assert.ok(!events.some((e) => e.kind === "decided"));
+}));
+
+// Build F boundary: buffered execution vs board arrival, persisted through trace read-back.
+test("slow buffered sample facts preserve ran/seen timing, direct timing and restart parity", async () => {
+  const d = dirs(), board = createProgressBoard();
+  const f = await factsForTicket("T03", { cfg: sampleCfg, as_of: "2026-10-19" });
+  board.start("f-buffer", { mode: "sample" });
+  const result = await loop.runTicket("T03", { run_id: "f-buffer", cfg: sampleCfg, deps: {
+    ...d, facts: async (_id, { trace }) => {
+      trace.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:thread", input_summary: "thread", output_summary: "one row", status: "success" });
+      await new Promise((r) => setTimeout(r, 350)); return f;
+    }, onLine: (l) => board.line("f-buffer", l),
+    onProgress: (e) => e.kind === "decided" ? board.decided("f-buffer", e.early) : undefined,
+  } });
+  board.finish("f-buffer", result);
+  const done = board.get("f-buffer"), buffered = done.steps.find((l) => l.step === "zetaris.query");
+  assert.ok(buffered.seen_s - buffered.ran_s >= 0.2, "buffered arrival lags execution");
+  const direct = done.steps.find((l) => l.step === "memory.read");
+  assert.ok(Math.abs(direct.seen_s - direct.ran_s) <= 0.2, "direct arrival tracks execution");
+  const lines = readFileSync(join(d.logsDir, "trace-f-buffer.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
+  assert.deepEqual(progressFromStored(result, lines), done, "disk retains both timings and early seen_s");
+});
+
+// Build F diagnostic boundary: a real delayed flush emits once, with metadata only.
+test("delayed live-stub flush journals one safe diagnostic per run", guard(async () => {
+  const deps = await liveDeps(), messages = [];
+  const facts = await deps.facts();
+  deps.facts = async (_id, { trace }) => {
+    for (let i = 0; i < 2; i++) trace.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:thread", input_summary: "PRIVATE-CONTENT", output_summary: "PRIVATE-NAME", status: "success" });
+    await new Promise((r) => setTimeout(r, 10150)); return facts;
+  };
+  const realError = console.error; console.error = (s) => messages.push(s);
+  try { await loop.runTicket("T03", { run_id: "f-delay", cfg: liveCfg, deps }); }
+  finally { console.error = realError; }
+  const diagnostics = messages.filter((s) => String(s).includes('"diagnostic":"progress_delay"')).map(JSON.parse);
+  assert.equal(diagnostics.length, 1);
+  assert.deepEqual(Object.keys(diagnostics[0]).sort(), ["diagnostic", "flush", "ran_s", "run_id", "seen_s", "step"]);
+  assert.ok(diagnostics[0].flush === "facts" && diagnostics[0].seen_s > diagnostics[0].ran_s + 10);
 }));
