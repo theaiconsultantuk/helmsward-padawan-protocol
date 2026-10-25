@@ -12,7 +12,7 @@ servers:
   - url: http://127.0.0.1:8000
     description: Default. Set PORT to move it (8810 on the dev VM); HOST defaults to 127.0.0.1.
   - url: https://jedi.blastworks.ai
-    description: "Team instance for the hackathon (until 29 Oct 2026): pages and API on one origin; POST routes need the bearer token"
+    description: "Team instance for the hackathon (until 5 Nov 2026): pages and API on one origin; POST routes need the bearer token"
 paths:
   /health:
     get:
