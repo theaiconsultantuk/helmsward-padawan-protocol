@@ -24,3 +24,4 @@
 - 2026-10-25: The contact page offers Live or Simulated. Simulated sends options.sample_mode:true and is never counted (no decision row, no publish).
 - 2026-10-25: The held-out set (inbox/judging/heldout/) is never used to tune rules. Its result is reported as is: 13/20 on main in sample mode.
 - 2026-10-25: Proposed to Kristof, not yet agreed: a thank-you that carries a request holds; an over-limit refund reaches the amount approver even when the order number is unknown.
+- 2026-10-25: Teardown of the hosted instance moves to 7 Nov 2026 00:00 UTC, after the 6 Nov 16:00 UTC results call (Kristof, 25 Oct 19:28Z). Supersedes 5 Nov and 29 Oct. The deploy key is deleted then (P18).
