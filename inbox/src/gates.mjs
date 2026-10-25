@@ -131,9 +131,49 @@ export function trustFloor(facts, gates, { ledgerAdjust = { affirmed: 0, rejecte
 }
 
 // Dean X16, einh's pick "Allow known amounts" (25 Oct 2026): refund text may name only ticket, customer or policy amounts.
-export const GC_AMOUNT = /\b(\d[\d.,]*)\s*(?:gc|galactic credits?)\b/gi;
-const gcAmounts = (s) => [...String(s ?? "").matchAll(GC_AMOUNT)]
-  .map((m) => Number(m[1].replace(/,/g, "").replace(/\.$/, ""))).filter(Number.isFinite);
+const NUMBER_WORDS = Object.fromEntries([
+  ..."one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty".split(" ").map((word, i) => [word, i + 1]),
+  ..."thirty forty fifty sixty seventy eighty ninety".split(" ").map((word, i) => [word, (i + 3) * 10]),
+]);
+// Review 46: recognise number-like tokens first, then parse strictly. Unsupported scales and malformed digits fail closed.
+const WORD_TOKEN = `(?:${Object.keys(NUMBER_WORDS).join("|")}|hundred|thousand|million|billion|trillion|zillion)[\\p{L}]*`;
+const DIGIT_TOKEN = "[\\p{L}]*\\d[\\p{L}\\d.,+-]*(?:[ \\u00a0\\u2009\\u202f]+\\d[\\p{L}\\d.,+-]*)*";
+const AMOUNT_TOKEN = `(?:${DIGIT_TOKEN}|${WORD_TOKEN}(?:[ -]+(?:and[ -]+)?${WORD_TOKEN})*)`;
+const GC_UNIT = "(?:gc|galactic credits?)";
+export const GC_AMOUNT = new RegExp(`(?<![\\p{L}\\p{N}_])(?:(${AMOUNT_TOKEN})\\s*${GC_UNIT}\\b|${GC_UNIT}\\s*(${AMOUNT_TOKEN})(?![\\p{L}\\p{N}_]))`, "giu");
+
+function smallWordAmount(words) {
+  let value = 0;
+  if (words[0] === "hundred") { value = 100; words = words.slice(1); }
+  else if (words[1] === "hundred" && NUMBER_WORDS[words[0]] <= 9) {
+    value = NUMBER_WORDS[words[0]] * 100; words = words.slice(2);
+  }
+  if (value && words[0] === "and") words = words.slice(1);
+  if (!words.length) return value;
+  const first = NUMBER_WORDS[words[0]], second = NUMBER_WORDS[words[1]];
+  if (words.length === 1 && first) return value + first;
+  if (words.length === 2 && first >= 20 && first % 10 === 0 && second >= 1 && second <= 9) return value + first + second;
+  return null;
+}
+
+function parseGCAmount(raw) {
+  if (/\d/.test(raw)) {
+    const text = raw.replace(/\.$/, "");
+    if (!/^(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:[ \u00a0\u2009\u202f]\d{3})+)(?:\.\d+)?$/.test(text)) return null;
+    const value = Number(text.replace(/[, \u00a0\u2009\u202f]/g, ""));
+    return Number.isFinite(value) ? value : null;
+  }
+  const words = raw.toLowerCase().split(/[ -]+/);
+  const thousand = words.indexOf("thousand");
+  if (thousand < 0) return smallWordAmount(words);
+  if (words.lastIndexOf("thousand") !== thousand) return null;
+  const head = thousand ? smallWordAmount(words.slice(0, thousand)) : 1;
+  let tailWords = words.slice(thousand + 1);
+  if (tailWords[0] === "and") tailWords = tailWords.slice(1);
+  const tail = smallWordAmount(tailWords);
+  return head == null || tail == null ? null : head * 1000 + tail;
+}
+const gcAmounts = (s) => [...String(s ?? "").matchAll(GC_AMOUNT)].map((m) => parseGCAmount(m[1] ?? m[2]));
 
 export function hardRisk(facts, draft = null) {
   const reasons = [];
@@ -149,9 +189,10 @@ export function hardRisk(facts, draft = null) {
   if (draft?.promises?.refund_amount != null && limit == null) reasons.push("draft promises a refund with no policy limit behind it");
   if (facts.category === "refund" || draft?.promises?.refund_amount != null) {
     const known = new Set([facts.amount, facts.policy_limit].filter((x) => x != null).map(Number));
-    for (const text of [facts.body, facts.follow_up_body, facts.subject]) for (const x of gcAmounts(text)) known.add(x);
-    const foreign = gcAmounts(draft?.text).find((x) => !known.has(x));
-    if (foreign !== undefined) reasons.push(`draft names ${foreign} GC, not the ticket amount (${facts.amount ?? "none"})`);
+    for (const text of [facts.body, facts.follow_up_body, facts.subject]) for (const x of gcAmounts(text)) if (x != null) known.add(x);
+    const amounts = [...gcAmounts(draft?.text), ...gcAmounts(typeof draft?.promises?.other === "string" ? draft.promises.other : "")];
+    const foreign = amounts.find((x) => x == null || !known.has(x));
+    if (foreign !== undefined) reasons.push(`draft names ${foreign == null ? "an unparseable GC amount" : `${foreign} GC`}, not the ticket amount (${facts.amount ?? "none"})`);
   }
   // refunds are mentioned only on refund requests (einh, 24 Oct 2026; questions may quote the policy): the reason, or null, from one place
   const rr = refundRuleReason(facts, draft);

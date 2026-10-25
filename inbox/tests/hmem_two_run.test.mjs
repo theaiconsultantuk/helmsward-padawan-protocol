@@ -111,3 +111,14 @@ test("threshold 0 returns everything", () => {
   assert.equal(r.memories.length, 3);
   assert.equal(r.trace.strategy, "comprehensive");
 });
+
+// Review 46: a model critic can quote a greeting; only the learned reason is redacted, never the approval queue.
+test('review46: own sender name is removed from critic memory as full name and whole tokens',()=>{
+ const dir=mk(),m=new HMEM({persistDir:dir,clock:fixed});
+ const critic=()=>({pass:false,reason:'Hello CAMREN COBBLETON, Camren and cobbleton need a rewrite; Camrenian stays.'});
+ const critiques=[{source:'Evaluator',reason:critic().reason}];
+ const id=m.queueForHuman({id:'T-name',thread_id:'T-name',sender_name:'Camren Cobbleton'},critiques);
+ assert.equal(m.all().find(r=>r.id===id).content,'ticket T-name escalated: Hello the customer, the customer and the customer need a rewrite; Camrenian stays.');
+ const q=JSON.parse(fs.readFileSync(path.join(dir,'queue','T-name.json'),'utf8'));
+ assert.deepEqual(q.critiques,critiques);assert.equal(q.ticket.sender_name,'Camren Cobbleton');
+});

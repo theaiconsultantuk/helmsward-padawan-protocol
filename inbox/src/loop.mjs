@@ -7,7 +7,7 @@ import { config, sampleMode as isSampleMode, INBOX_ROOT } from "./config.mjs";
 import { Trace, mask } from "./trace.mjs";
 import { factsForTicket, findDuplicate as findDuplicateZetaris, ledgerAdjustFor, CATEGORIES } from "./queries.mjs";
 import { ledgerAdjust as localLedgerAdjust } from "./decisions.mjs";
-import { typedGates, trustFloor, hardRisk } from "./gates.mjs";
+import { typedGates, trustFloor, hardRisk, GC_AMOUNT } from "./gates.mjs";
 import { HMEM } from "./engines/hmem/index.mjs";
 import { Scout } from "./engines/scout/index.mjs";
 import { verifyContract } from "./engines/scout/contract.mjs";
@@ -184,13 +184,14 @@ export function overLimitRefusal(f) {
 
 // P11 (einh's board, 24 Oct 2026): above the approver's limit the draft says "routed for approval" and never promises a refund, an amount or a date.
 export const OVER_LIMIT_LINE = "The amount is above the approver's limit: say the request has been routed for approval; never promise a refund, an amount or a date.";
-const MONEY_PROMISE = /\b(?:we|i)(?:'ll|\s+will|\s+are\s+going\s+to|\s+can|\s+shall)\s+(?:gladly\s+)?(?:refund|reimburse|credit|pay)\b|\b(?:refund|reimburse)(?:ed|ing)?\s+(?:you|of)\b|\b\d[\d.,]*\s*(?:gc|galactic credits?)\b|\b20\d\d-\d\d-\d\d\b|\b(?:by|on|before|within)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|\d)/i;
+const MONEY_PROMISE = /\b(?:we|i)(?:'ll|\s+will|\s+are\s+going\s+to|\s+can|\s+shall)\s+(?:gladly\s+)?(?:refund|reimburse|credit|pay)\b|\b(?:refund|reimburse)(?:ed|ing)?\s+(?:you|of)\b|\b20\d\d-\d\d-\d\d\b|\b(?:by|on|before|within)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|\d)/i;
 // Does an over-limit draft promise money: a refund amount in its promises, or the amount, a date or "we will refund" in its words?
 export function promisesMoney(d, f) {
   if (!d || d.failed) return false;
   if (d.promises?.refund_amount != null) return true;
   const text = String(d.text ?? "");
-  if (MONEY_PROMISE.test(text)) return true;
+  // Review 46: share the amount recogniser with hardRisk, including promises.other; no mirrored amount grammar to drift.
+  if (MONEY_PROMISE.test(text) || [text, typeof d.promises?.other === "string" ? d.promises.other : ""].some((s) => [...s.matchAll(GC_AMOUNT)].length > 0)) return true;
   return f?.amount != null && new RegExp(`(^|[^\\d.])${String(f.amount).replace(/\.0+$/, "").replace(".", "\\.")}(?:\\.0+)?([^\\d]|$)`).test(text);
 }
 
@@ -507,7 +508,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   };
 
   async function pipeline() {
-    // Facts first, silently: memory.read needs the customer's name. Their zetaris.query lines are logged at step 4.
+    // Facts first, silently: memory.read needs the sender's email and the thread (never the display name). Their zetaris.query lines are logged at step 4.
     const buf = stampedBuffer();
     let factsErr = null;
     const o = { as_of, trace: { line: (f) => buf.push(f) } };
