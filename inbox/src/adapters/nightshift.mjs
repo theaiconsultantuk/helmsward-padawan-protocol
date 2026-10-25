@@ -158,6 +158,11 @@ const nightshiftUnreachable = (e) => isAdapterError(e) && e.service === "nightsh
 const PRIMARY_ATTEMPTS = 2;
 const retryPrimary = (e) => e.name === "UpstreamTimeout" || (e.name === "BadResponse" && Number(e.status) >= 500);
 
+const reasonOf = (e) => `${e?.name ?? "Error"}${e?.status ? ` HTTP ${e.status}` : ""}`;
+export function fallbackOf(res) {
+  return res && typeof res === "object" && res.fallback && typeof res.fallback.reason === "string" ? res.fallback : null;
+}
+
 export async function draft(messages, { cfg = config(), trace = null, purpose = "draft", fetchImpl = globalThis.fetch, timeoutMs, signal } = {}) {
   if (sampleMode(cfg)) return { text: null, model: "sample/rules", route: "sample", latencyMs: 0, sample: true };
   const primary = cfg.NIGHTSHIFT_ROUTE_PRIMARY;
@@ -188,7 +193,8 @@ export async function draft(messages, { cfg = config(), trace = null, purpose = 
     status: "retrying", retry_count: retries, sponsor: "meterless",
   });
   try {
-    return await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
+    const res = await chat(messages, { route: fallback, timeoutMs, purpose, cfg, fetchImpl, signal });
+    return { ...res, fallback: { reason: reasonOf(first), route: fallback } };
   } catch (e2) {
     second = e2;
   }
@@ -200,5 +206,5 @@ export async function draft(messages, { cfg = config(), trace = null, purpose = 
     status: "retrying", retry_count: retries + 1,
   });
   const r = await localLane(messages, { cfg, trace, fetchImpl, signal });
-  return { ...r, sponsor: null };
+  return { ...r, sponsor: null, fallback: { reason: reasonOf(second), route: "local-lane" } };
 }
