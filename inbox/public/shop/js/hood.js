@@ -46,7 +46,10 @@
   var ac = null, master = null, soundOn = true, bufs = {};
   try {
     ac = new (window.AudioContext || window.webkitAudioContext)();
-    master = ac.createGain(); master.gain.value = 0.6; master.connect(ac.destination);
+    master = ac.createGain(); master.gain.value = 0.6;
+    var lim = ac.createDynamicsCompressor();   // a limiter: overlapping sounds can no longer stack into a spike
+    lim.threshold.value = -14; lim.knee.value = 6; lim.ratio.value = 12; lim.attack.value = 0.003; lim.release.value = 0.15;
+    master.connect(lim); lim.connect(ac.destination);
     var S = window.JP_HOOD_SOUNDS || {};
     Object.keys(S).forEach(function (k) {
       var bin = atob(S[k]), u = new Uint8Array(bin.length);
@@ -252,9 +255,9 @@
       var n = v.nodes[i];
       whoEl.textContent = nodeMeta(n);
       if (many) { lineEl.textContent = nodeText(n); sfx("line", 0.3); await sleep(150, my); }
-      else { await type(nodeText(n), my, 110); await sleep(520, my); }
+      else { await type(nodeText(n), my, 220); await sleep(300, my); }
     }
-    var extra = v.dur > 1500 ? Math.min(2600, v.dur / 18) : 0;   // real time, compressed: the counter runs up to the node's own duration_ms
+    var extra = v.dur > 1500 ? Math.min(1100, v.dur / 40) : 0;   // not real time: a short run-up to the recorded duration_ms, which stays on the station
     if (extra) {
       var t0 = performance.now();
       for (;;) {
