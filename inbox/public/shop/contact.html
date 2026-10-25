@@ -57,6 +57,7 @@
 
   <section class="sc" aria-labelledby="sc-title">
     <h2 class="sc__title" id="sc-title">Try a scenario</h2>
+    <p class="sc__note" id="sc-judges">Judges' corner (hackOS): pick one and watch the agent work it live. Some take a few minutes.</p>
     <p class="sc__note">Fills the form with a sample message; nothing runs until you submit.</p>
     <div id="scenarios"></div>
     <p class="sc__expected" id="sc-expected" hidden></p>
@@ -68,6 +69,7 @@
       <span class="flow__state" id="flow-state" data-kind="none"><span class="flow__badge" id="flow-badge"></span></span>
       <span class="flow__run" id="flow-run"></span>
       <button type="button" class="btn-line" id="open-drawer">Under the hood</button>
+      <span class="flow__hint" id="drawer-hint" hidden>See how the agent decided</span>
     </div>
     <div class="thread" id="thread"></div>
     <p class="thread__meta" id="send-note" role="status"></p>

@@ -8,6 +8,9 @@ tags: [team, board]
 # Board (orchestrator edits this; everyone reads it)
 Updated: 2026-10-24. Status: BUILD phase, core service built on main, now the submission package and the front end. Idea: Jedi Pack inbox (Kristof's FLOW and SCOUT). Freeze 26 Oct 23:59 UTC; submission closes 27 Oct 23:45 UTC.
 
+> **RULE FOR THE WHOLE TEAM (Kristof, 25 Oct): DO NOT ADD ANY PRODUCTS OR CHANGE PRODUCT DESCRIPTIONS.**
+> The storefront catalogue (`inbox/public/shop/data/catalogue.json`) and the agent's product data (`kristof/data/products.csv` → `inbox/data/synthetic/products.csv`, Zetaris) are kept identical and are checked against each other by the storefront parity test; the demo scenarios answer from them. Any change there, even one word, breaks the parity test or changes what the agent tells a judge. Need something changed? Ask Kristof first.
+
 Idea in one line: one decision per customer message, send, hold or escalate, with the Zetaris rows that justified it.
 Track: proposed Track 3 Reasoning Architecture (SCOUT fit 9/10; Track 2 fit 7/10). Paul to confirm.
 Scope cut (SCOUT): four Zetaris sources, 24 authored threads, file drop-ins for email, contact form and Trustpilot, one screen with four counters. Not the 27-item list.

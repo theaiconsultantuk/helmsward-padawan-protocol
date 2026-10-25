@@ -359,7 +359,7 @@ Committed traces for judges are in [judging/traces/](judging/traces/trace-two-ru
 
 ## Tests
 
-`npm test` runs `node --test tests/*.test.mjs`. The files:
+`npm test` runs `node scripts/test.mjs`, which runs `node --test tests/*.test.mjs` with one private temp folder (removed afterwards); `node --test tests/<file>.test.mjs` still works directly. The files:
 
 - `trace_shape`: step and status vocabularies, required fields, masking.
 - `queries`: template whitelist, injection rejected before any fetch, deterministic SQL.

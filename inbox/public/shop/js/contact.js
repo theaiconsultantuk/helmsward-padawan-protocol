@@ -5,8 +5,35 @@
 (function () {
   "use strict";
 
+  // Where focus goes after a scenario fill, as a small state machine with no DOM in it (the test drives it with plain booleans).
+  // A pointer pick may hand focus to Submit as soon as the fill lands. A key pick (Enter/Space on the scenario button) waits for that key's
+  // release first, because a held key auto-repeats on whatever has focus and must never repeat onto Submit. Either way focus only moves while it
+  // is still on the scenario button (or nowhere); if the judge moved on, nothing is stolen, and if the key's release never arrives (the window lost
+  // focus) nothing moves. Submit itself is never vetoed: this only decides when focus may be moved.
+  function createHandoff() {
+    var st = null;
+    function tryMove(onButton) {
+      if (!st || st.dead || st.moved || !st.filled || !st.released) return false;
+      if (!onButton) { st.dead = true; return false; }
+      st.moved = true;
+      return true;
+    }
+    return {
+      // viaKey: the pick came from the keyboard; keyDown: that key is still held right now
+      begin: function (viaKey, keyDown) { st = { filled: false, released: !(viaKey && keyDown), dead: false, moved: false }; },
+      cancel: function () { st = null; },
+      // the fill landed; true means "move focus to Submit now"
+      filled: function (onButton) { if (st) st.filled = true; return tryMove(onButton); },
+      // the held key was released; true means "move focus to Submit now"
+      keyup: function (onButton) { if (st && !st.released) st.released = true; return tryMove(onButton); },
+      // the window lost focus before the release: the keyup may never come, so do not move focus at all
+      blur: function () { if (st && !st.released) st.dead = true; },
+      pending: function () { return Boolean(st && !st.dead && !st.moved); }
+    };
+  }
+
   // Outside a browser (no document) only the token function is exposed, for the test that drives it with throwing stubs.
-  if (typeof document === "undefined") { globalThis.JP_CONTACT_TEST = { resolveToken: resolveToken }; return; }
+  if (typeof document === "undefined") { globalThis.JP_CONTACT_TEST = { resolveToken: resolveToken, createHandoff: createHandoff }; return; }
 
   var meta = document.querySelector('meta[name="api-base"]');
   var base = ((meta && meta.getAttribute("content")) || "").replace(/\/+$/, "");
@@ -23,6 +50,7 @@
   var sending = false;
   var ticker = null;
   var pickSeq = 0;
+  var picked = null;
   var drawerOpener = null;
 
   /* ---------- helpers ---------- */
@@ -168,8 +196,18 @@
     sel.value = REASON_VALUES.indexOf(v) >= 0 ? v : "free_text";
   }
 
+  // The form's Reason is filled from the entry's own reason ("Question"); only an entry without one falls back to its scenario.
+  var REASON_BY_LABEL = { Refund: "refund", Question: "question", Quote: "rfq", Complaint: "complaint", Other: "free_text" };
+  function reasonValueFor(e) {
+    var r = REASON_BY_LABEL[str(e.reason)];
+    return r || str(e.scenario);
+  }
+
   function readInput() {
     var reason = $("reason").value;
+    // A scenario's declared kind still travels as its own: the Reason the form shows can read "Question" for an entry that is declared free text,
+    // and the shown label must not change what is declared. Editing the Reason takes over.
+    if (active && picked && reason === picked.shown) reason = picked.sent;
     var name = $("name").value.trim();
     var email = $("email").value.trim();
     var input = {
@@ -191,6 +229,8 @@
     if (res) res.setAttribute("aria-busy", on ? "true" : "false");
     var form = $("contact-form");
     if (form) Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = on; });
+    var sub = $("submit");
+    if (sub) sub.textContent = on ? "Running\u2026" : "Submit dispatch";
     Array.prototype.forEach.call(document.querySelectorAll(".sc__btn"), function (b) { b.disabled = on; });
   }
 
@@ -312,6 +352,7 @@
   function writeOwn() {
     active = null;
     pickSeq++;
+    handoff.cancel();
     markActive(null);
     showExpected();
     hideSourceCard();
@@ -320,7 +361,32 @@
     setStatus("");
   }
 
-  function pickScenario(id) {
+  // A click only fills. The form sits above the scenario list, so bring it into view and park focus on the button that starts the run
+  // (when createHandoff says it is safe: see above).
+  var handoff = createHandoff();
+  var handoffTarget = null, handoffFrom = null, keyDown = null;
+  function onFrom() {
+    var ae = document.activeElement;
+    return !ae || ae === document.body || ae === document.documentElement || ae === handoffFrom;
+  }
+  function focusTarget() {
+    var btn = handoffTarget;
+    if (btn && btn.focus) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
+  }
+  function scrollToForm() {
+    var form = $("contact-form");
+    var reduced = window.T && window.T.reduced;
+    if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" }); } catch (e) { /* position only */ } }
+  }
+  function focusSubmit(btn) {
+    handoffTarget = btn;
+    scrollToForm();
+    if (handoff.filled(onFrom())) focusTarget();
+  }
+
+  function pickScenario(id, fromBtn, viaKey) {
+    handoffFrom = fromBtn || null;
+    handoff.begin(Boolean(viaKey), Boolean(viaKey && keyDown));
     var e = entryById(id);
     if (!e || busy) return;
     var seq = ++pickSeq;
@@ -329,7 +395,8 @@
     showExpected();
     var f = $("flow");
     if (f) f.hidden = true;
-    setReason(str(e.scenario));
+    setReason(reasonValueFor(e));
+    picked = { shown: $("reason") ? $("reason").value : "", sent: str(e.scenario) || "free_text" };
     if ($("channel")) $("channel").value = str(e.channel) || "contact-form";
     $("message").value = str(e.message);
     if ($("as_of")) $("as_of").value = str(e.as_of) || DEFAULT_AS_OF;
@@ -349,9 +416,11 @@
         if (e.channel === "trustpilot" || e.channel === "email") {
           showSourceCard(e, res.client);
           setStatus(res.note + "Message filled. Press Simulate arrival to send it.");
+          focusSubmit(document.querySelector("#source-card .src__submit"));
         } else {
           hideSourceCard();
-          setStatus(res.note + "Form filled. Submit dispatch to send it.");
+          setStatus(res.note + "Ready: check the message, then press Submit dispatch.");
+          focusSubmit($("submit"));
         }
       });
   }
@@ -539,6 +608,21 @@
     }
   }
 
+  // "Nudge, don't open": a one-time pulse and a hint beside Under the hood once the reply has landed; the drawer stays shut.
+  function nudgeDrawer() {
+    var b = $("open-drawer"), h = $("drawer-hint"), d = $("drawer");
+    if (!b || !h || (d && d.open)) return;
+    h.hidden = false;
+    b.classList.remove("is-nudge");
+    void b.offsetWidth;
+    b.classList.add("is-nudge");
+  }
+  function clearNudge() {
+    var b = $("open-drawer"), h = $("drawer-hint");
+    if (b) b.classList.remove("is-nudge");
+    if (h) h.hidden = true;
+  }
+
   function renderJourney(j) {
     cur.journey = j;
     showFlow();
@@ -552,6 +636,7 @@
       slot.textContent = str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
     }
     paint(j);
+    nudgeDrawer();
     if (active && cur.entry === active && cur.runId === j.run_id) {
       var cmp = callFlow("compareExpected", [active.expected, j]);
       showExpected(cmp && typeof cmp.text === "string" ? cmp.text : "");
@@ -570,6 +655,7 @@
     var runId = "run-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
     cur = { runId: runId, journey: null, started: Date.now(), entry: active };
     setBusy(true);
+    clearNudge();
     setStatus("");
     setNote("");
     showFlow();
@@ -587,7 +673,7 @@
       .then(function (r) {
         if (typeof cur.postMs !== "number") cur.postMs = Date.now() - cur.started;
         if (r.code === 502 || r.code === 504 || r.code === 524) {
-          setStatus("Still working: long runs can take up to 3 minutes…");
+          setStatus("Still working: long runs can take a few minutes…");
           return pollRunUntilDone(runId, 100);
         }
         return r;
@@ -657,6 +743,7 @@
     if (!d || d.open) return;
     if (!cur.journey) { setNote("Nothing to show yet: run a dispatch first."); return; }
     drawerOpener = opener || null;
+    clearNudge();
     if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
     if (window.T && window.T.lenis && typeof window.T.lenis.stop === "function") window.T.lenis.stop();
     var c = d.querySelector("[data-close]");
@@ -720,12 +807,22 @@
     }
     var msg = $("message");
     if (msg) msg.addEventListener("input", function () {
-      if (active && msg.value.trim() !== str(active.message).trim()) { active = null; pickSeq++; markActive(null); showExpected(); }
+      if (active && msg.value.trim() !== str(active.message).trim()) { active = null; pickSeq++; handoff.cancel(); markActive(null); showExpected(); }
     });
+    document.addEventListener("keydown", function (ev) {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target && ev.target.closest && ev.target.closest(".sc__btn")) keyDown = ev.target.closest(".sc__btn");
+    }, true);
+    document.addEventListener("keyup", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      var was = keyDown;
+      keyDown = null;
+      if (was && handoff.keyup(onFrom())) focusTarget();
+    }, true);
+    window.addEventListener("blur", function () { keyDown = null; handoff.blur(); });
     var box = $("scenarios");
     if (box) box.addEventListener("click", function (ev) {
       var b = ev.target.closest ? ev.target.closest(".sc__btn") : null;
-      if (b) pickScenario(b.getAttribute("data-id"));
+      if (b) pickScenario(b.getAttribute("data-id"), b, ev.detail === 0 || keyDown === b);
     });
     var card = $("source-card");
     if (card) card.addEventListener("click", function (ev) {
