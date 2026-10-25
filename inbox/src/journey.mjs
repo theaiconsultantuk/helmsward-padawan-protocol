@@ -188,7 +188,7 @@ function looksLikeAsk(result) {
 }
 
 // the human a hand-off is for: the explicit approver when an over-limit approval is queued, else the owner
-function recipientOf(q) {
+export function recipientOf(q) {
   const a = isObj(q?.approval) ? q.approval : null;
   if (a && a.approver_id !== undefined && a.approver_id !== null) return { id: a.approver_id, name: a.approver_name ?? null };
   const fc = isObj(q?.fallback_contact) ? q.fallback_contact : null;

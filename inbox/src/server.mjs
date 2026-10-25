@@ -2,7 +2,7 @@
 // JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
-import { readFileSync, readdirSync, statSync, writeFileSync, renameSync, mkdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, writeFileSync, renameSync, mkdirSync, unlinkSync } from "node:fs";
 import { basename, join, relative, resolve, sep, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
@@ -12,7 +12,7 @@ import { askQuestion } from "./ask.mjs";
 import * as queries from "./queries.mjs";
 import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
-import { deriveJourney, publicQueueFile } from "./journey.mjs";
+import { deriveJourney, publicQueueFile, recipientOf } from "./journey.mjs";
 import { readCsv } from "./csv.mjs";
 import { generateClient } from "./demo_names.mjs";
 
@@ -32,6 +32,28 @@ function remember(run_id, result) {
   for (const k of runAt.keys()) if (!runs.has(k)) runAt.delete(k);
 }
 const atOf = (id) => runAt.get(id) ?? null;
+// Finished runs are kept on disk (<runtimeDir>/runs/<run_id>.json) so a restart does not blank the desk, the queue and Under the hood.
+const runFile = (dir, id) => join(dir, `${String(id).replace(/[^A-Za-z0-9._-]/g, "_")}.json`);
+function persistRun(dir, id) {
+  try {
+    mkdirSync(dir, { recursive: true });
+    const tmp = runFile(dir, id) + ".tmp";
+    writeFileSync(tmp, JSON.stringify({ at: atOf(id), result: runs.get(id) }));
+    renameSync(tmp, runFile(dir, id));
+    const keep = new Set([...runs.keys()].map((k) => runFile(dir, k)));
+    for (const f of readdirSync(dir)) if (f.endsWith(".json") && !keep.has(join(dir, f))) { try { unlinkSync(join(dir, f)); } catch { /* already gone */ } }
+  } catch { /* a run that cannot be saved is still served from memory */ }
+}
+export function loadRuns(dir) {
+  let rows = [];
+  try {
+    rows = readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => { try { return JSON.parse(readFileSync(join(dir, f), "utf8")); } catch { return null; } })
+      .filter((r) => r && r.result && typeof r.result.run_id === "string");
+  } catch { return 0; }
+  rows.sort((a, b) => Date.parse(a.at ?? "") - Date.parse(b.at ?? ""));
+  for (const r of rows.slice(-RUN_CAP)) { if (runs.has(r.result.run_id)) continue; runs.set(r.result.run_id, r.result); if (r.at) runAt.set(r.result.run_id, r.at); }
+  return runs.size;
+}
 const personOf = (id, name) => ({ employee_id: id ?? null, name: name ?? null });
 
 // GET /runs rows, newest first
@@ -68,12 +90,13 @@ function queueList(memoryDir) {
       const t = q.ticket ?? {};
       const mtime = statSync(full).mtime.toISOString();
       const row = { ticket_id: t.thread_id ?? t.id ?? f.replace(/\.json$/, ""), file: f, category: t.category ?? null, decision_reason: t.decision_reason ?? null };
+      const hit = [...runs.values()].find((r) => (r.input?.thread_id ?? null) === row.ticket_id || r.output?.queued_for?.queue_file?.endsWith(`/${f}`));
+      const qf = hit?.output?.queued_for;
       if (t.approval) row.approver = personOf(t.approval.approver_id, t.approval.approver_name);
-      else {
-        const hit = [...runs.values()].find((r) => (r.input?.thread_id ?? null) === row.ticket_id || r.output?.queued_for?.queue_file?.endsWith(`/${f}`));
-        const qf = hit?.output?.queued_for;
-        row.owner = personOf(own?.owner_id ?? qf?.owner_id ?? t.owner_id, own?.owner_name ?? qf?.owner_name ?? t.owner_name);
-      }
+      else row.owner = personOf(own?.owner_id ?? qf?.owner_id ?? t.owner_id, own?.owner_name ?? qf?.owner_name ?? t.owner_name);
+      // who holds it now: the backup when the owner is out (owner above stays the policy owner)
+      if (qf) { const h = recipientOf(qf); row.holder = personOf(h.id, h.name); } else row.holder = row.approver ?? row.owner ?? null;
+      if (hit) row.run_id = hit.run_id;
       row.status = t.status ?? q.sent?.status ?? null;
       row.sent_at = q.sent?.at ?? null;
       row.has_draft = Boolean(t.draft?.text);
@@ -91,7 +114,7 @@ function queueList(memoryDir) {
     // a hold with no draft (the customer-service withheld draft) is still waiting on a human when it carries a recommendation
     if (!hasDraft && !(qf?.recommendation ?? r.output.recommendation)) continue;
     out.push({ run_id: id, ticket_id: r.input?.thread_id ?? null, kind: "held", scenario: r.scenario ?? null,
-      owner: personOf(qf?.owner_id, qf?.owner_name), has_draft: hasDraft,
+      owner: personOf(qf?.owner_id, qf?.owner_name), holder: (() => { const h = recipientOf(qf); return personOf(h.id, h.name); })(), has_draft: hasDraft,
       recommendation: qf?.recommendation ?? r.output.recommendation ?? null, status: null, at: atOf(id) });
   }
   const when = (x) => Date.parse(x.mtime ?? x.at ?? "") || 0;
@@ -217,6 +240,8 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
   const memoryDir = deps.memoryDir ?? join(INBOX_ROOT, "data", "memory");
   const logsDir = deps.logsDir ?? join(INBOX_ROOT, "logs");
   const runtimeDir = deps.runtimeDir ?? dir; // intake.csv lives beside decisions.csv (data/runtime by default)
+  const runsDir = join(runtimeDir, "runs");
+  if (deps.persistRuns !== false) loadRuns(runsDir);
   // publishes are serialised; /run fires one and moves on, /feedback and /counters wait for the queue
   let pending = Promise.resolve();
   const queue = () => {
@@ -423,7 +448,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         const askId = `ask_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
         const r = await (deps.ask ?? askQuestion)(body.question, { customer: body.customer || null, run_id: askId, cfg, deps });
         const out = { run_id: askId, ...r };
-        remember(askId, out);
+        remember(askId, out); if (deps.persistRuns !== false) persistRun(runsDir, askId);
         send(200, out);
         return;
       }
@@ -482,7 +507,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         ...(result.memory ? { memory: result.memory } : {}),
         ...(result.error ? { error: result.error } : {}),
       };
-      remember(run_id, out);
+      remember(run_id, out); if (deps.persistRuns !== false) persistRun(runsDir, run_id);
       // a sample-forced run on a LIVE server is not counted: it writes no row and triggers no publish
       const forcedSampleOnLive = sampleMode(runCfg) && !sampleMode(cfg);
       if (out.status === "success" && out.output?.decision && !forcedSampleOnLive && (!isMsg || out.input?.thread_id)) {
