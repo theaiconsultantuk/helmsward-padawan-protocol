@@ -153,7 +153,7 @@ Not every node is a separate piece of code here. Intake is the `thread_id` the c
 2. `planner.plan` and `delegate`: choose reply-now or hold-or-escalate.
 3. `executor.act` and `zetaris.query`: read the facts the scenario needs (the ticket, who owns the topic, the owner's holiday row, the backup's only when the owner is out, the contact desk only when both are out; the policy limit only for a refund) through named query templates; a scenario's own route may read its own records on top (the FAQ, a wiki page). A stored thread keeps the full read and also reads the contact desk when nobody is in.
 4. `meterless.engine`: Scout classifies the message and issues a signed execution contract. The contract is verified before any model call. A blocked message stops here and escalates.
-5. Typed gates (OpenJev) and `branch`: pick a branch (under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel). An amount over the policy limit (`over-limit`) is a hard fact: Risk refuses on round 1, there is no retry, and the ticket escalates to the policy's over-limit owner (the backup if the owner is out) for approval, with the draft and both critiques attached.
+5. Typed gates (OpenJev) and `branch`: pick a branch (thanks-request, under-floor, over-limit, owner-out, send-ok, thank-you, misread, data-block, follow-up, duplicate, public-channel). An amount over the policy limit (`over-limit`) is a hard fact: Risk refuses, there is no draft/critic/revision model call, and the ticket escalates to the policy's over-limit owner (the backup if the owner is out) for approval, with the fixed reply template and decision checks attached.
 6. `nvidia.model`: the drafter writes a reply as JSON.
 7. `critique` (a model), the refund read (a model, non-refund drafts only) and `risk.signoff` (code) read the draft.
 8. If either fails on round 1: `retry`, a revised plan, one redraft with both critiques. That is the only retry.
@@ -169,7 +169,7 @@ Steps a branch does not reach are still logged with status `skipped`.
 - `question-records`: no FAQ match, but the Zetaris records answer it; the answer is drafted and held for the question owner. A question that asks about refunds (the refund limit, say) may quote the policy; a question about anything else whose draft names a refund is refused and rewritten.
 - `question-unanswered`: neither; the ticket escalates to a person with a recommendation.
 - `rfq`: a request for quote escalates to sales with the product price rows attached and a short acknowledgement, written by a code template, for the person to send. No price is quoted to the customer.
-- `complaint-severe`, `complaint-genuine`, `complaint-vent`: the complaint route (see World Model below). Severity 9 or above escalates with the draft attached; genuine holds with the handling note; vent holds with a calm acknowledgement.
+- `complaint-severe`, `complaint-genuine`, `complaint-vent`: the complaint route (see World Model below). Severity 9 or above escalates with a fixed acknowledgement template attached; genuine holds with the handling note; vent holds with a calm acknowledgement.
 - `customer-service`: free text that matches nothing defaults to Support with a recommendation and a draft with `[[blank: …]]` markers for the person to fill.
 
 **The free-text road.** `POST /run` with a `message` appends the ticket row (`F<n>`) to `data/runtime/intake.csv` first, publishes it to Zetaris as `JEDI_PACK.intake_runtime` (an `intake_publish` line), then runs Scout and the gates silently so the scenario is known before the facts are read; the canonical step order follows. The ticket's facts are therefore read back through Zetaris like any thread's. These pre-run reads are buffered and written at their usual positions, as the facts are.
@@ -192,8 +192,8 @@ typed gates (OpenJev, or code rules) -> branch
   |
   +-- public-channel ------------------------------------------> escalate
   |
-  +-- over-limit: draft, critique, Risk REFUSES (amount needs approval), no retry
-  |       --> escalate to the policy's over-limit owner (backup if out) with the draft and both critiques attached
+  +-- over-limit: fixed approval template, Risk REFUSES, no draft/critic/revision call
+  |       --> escalate to the policy's over-limit owner (backup if out), with the reply attached
   |
   +-- reply branches:
         draft (Nemotron via Nightshift) -> critique + refund read + risk.signoff
@@ -254,6 +254,10 @@ The feature it powers: the complaint route. For a complaint, the loop asks the W
 Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformance:reference` scores the vendored TypeScript 8/8. Scorecards: [judging/engine-world-model-conformance.md](judging/engine-world-model-conformance.md); the feature, its tests and a live trace: [judging/engine-world-model.md](judging/engine-world-model.md).
 
 ## Providers
+
+**Fixed decisions (P3, 25 October 2026).** The hero shows the decision and the Nemotron read; the approval reply is a fixed template, so the agent never improvises money language. The `earlyDecision` table defines fixed decisions. Over-limit and severe-complaint replies use templates without drafter, critic or revision calls; legal threats keep their courtesy template and Support/Legal routing; data-block keeps its no-draft hold. Typed gates, the complaint vent-or-genuine read and severity still run. Other paths keep their model drafting and critique.
+
+**Request and retry guards (P43/P55).** Appreciation carrying a request holds as `thanks-request`; pure thanks is unchanged. An undeclared over-limit GC refund on a money road reaches the approver when the order is unknown or missing (`resolved_how: amount`); known orders and product, RFQ and complaint roads retain their rules. Unknown ids are named in the approval reason and reply; missing ids are named only after a re-route. Intake rows start `decision_state: pending` and become `decided` only after the decision pipeline completes. Only decided rows suppress repeats, so interrupted runs remain retryable across restarts. Equal FAQ scores prefer a general answer unless the message names the location. Any held refund draft carrying a money promise or the closed approval-verb set is replaced by “a colleague will review your request”, without retrying the model for that commitment.
 
 **Nightshift (Meterless) is the primary provider** for the draft, the critique, the refund reader and `/ask`. The app calls `POST {METERLESS_BASE_URL}/chat/completions` with the primary route `NIGHTSHIFT_ROUTE_PRIMARY`, pinned to `nvidia/nemotron-3.5-lightning-30b-a3b`. Nightshift lists NVIDIA Nemotron routes next to its own `meterless/*` routes ([judging/nightshift-models.json](judging/nightshift-models.json)).
 
