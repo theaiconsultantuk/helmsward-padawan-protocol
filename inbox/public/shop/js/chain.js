@@ -35,7 +35,7 @@
   var dlg = null;
   function ensure() {
     if (dlg) return dlg;
-    dlg = el("dialog", null, "chain"); dlg.setAttribute("aria-label", "Approval chain");
+    dlg = el("dialog", null, "chain"); dlg.setAttribute("aria-label", "Sign-off");
     document.body.appendChild(dlg);
     dlg.addEventListener("click", function (e) { if (e.target === dlg) dlg.close(); });
     return dlg;
@@ -45,7 +45,7 @@
     var id = run.run_id, st = getState(id), p = plan(j, d), box = ensure();
     box.textContent = "";
     var head = el("div", null, "chain__head");
-    head.appendChild(el("h2", "Approval chain"));
+    head.appendChild(el("h2", "Sign-off"));
     var x = el("button", "Close", "desk__btn"); x.type = "button"; x.addEventListener("click", function () { box.close(); }); head.appendChild(x);
     box.appendChild(head);
     box.appendChild(el("p", "SIMULATION: no email leaves the system and nothing is signed on the server. The first two steps are the run's own record.", "chain__sim"));
@@ -66,7 +66,7 @@
       var prevOk = i === 0 || (st.signed && st.signed[i - 1]);
       if (!signed) allSigned = false;
       if (st.rejected || !prevOk) { if (!st.rejected) { step("Then: " + cur.name + " (" + cur.role + ")", "waiting", "is-wait"); } return; }
-      var li = step((signed ? "Signed by " : "Approval request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
+      var li = step((signed ? "Signed by " : "Sign-off request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
       if (out) li.appendChild(el("p", orig.name + " is out of office, so the request goes to the backup, " + cur.name + ".", "chain__out"));
       var more = el("details", null, "chain__mail"); more.appendChild(el("summary", "The email (simulated)"));
       var body = ["To: " + cur.name + " <" + cur.email + ">", "Subject: Approval needed: " + (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request") + " (" + id + ")", "",

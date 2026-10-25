@@ -53,12 +53,12 @@
 
   function chainChanged(id, label) { document.querySelectorAll('[data-chain="' + id + '"]').forEach(function (e) { e.textContent = label; }); }
   function chainButton(id) {
-    var b = el("button", "Approval chain", "desk__btn");
+    var b = el("button", "Sign-off", "desk__btn");
     b.type = "button";
     b.addEventListener("click", function () {
       b.disabled = true;
       journey(id).then(function (j) { return window.JP_CHAIN.open(runRows[id] || { run_id: id }, j, b, chainChanged); })
-        .catch(function (e) { setStatus("Could not open the approval chain: " + e.message, true); })
+        .catch(function (e) { setStatus("Could not open the sign-off: " + e.message, true); })
         .then(function () { b.disabled = false; });
     });
     return b;
