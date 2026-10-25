@@ -85,3 +85,19 @@ test('intake fast refusal leaves ask/thread runs available; race maps to IntakeF
  const race=await setup(t,{}, {runTicket:async()=>{throw Object.assign(Error('x'),{name:'IntakeFull'});}});assert.equal((await race.post()).body.error.type,'IntakeFull');
 });
 test('config preserves CORS_ORIGIN',()=>{const old=process.env.CORS_ORIGIN;try{process.env.CORS_ORIGIN='https://jedi.blastworks.ai';assert.equal(config().CORS_ORIGIN,process.env.CORS_ORIGIN);}finally{if(old===undefined)delete process.env.CORS_ORIGIN;else process.env.CORS_ORIGIN=old;}});
+// A bounded old-code proof: without the cap the third stub returns immediately, so the failure is HTTP 200 versus 503, never a hang.
+test('behavioural proof: third live run or ask is refused before its provider starts',async t=>{
+ seam();
+ for(const thirdPath of ['/run','/ask']){
+  const releases=[];let calls=0;
+  const slow=async()=>{calls++;if(calls>2)return result();await new Promise(r=>releases.push(r));return result();};
+  const s=await setup(t,{SAMPLE_MODE:'false'},{runTicket:slow,ask:slow});
+  const a=s.post(),b=s.post();
+  try {
+   await until(()=>releases.length===2);
+   const third=await s.post(thirdPath,thirdPath==='/ask'?{question:'Hi'}:{input});
+   assert.equal(third.status,503,`${thirdPath}: third call must not reach the provider`);
+   assert.equal(calls,2);
+  } finally {releases.forEach(r=>r());await Promise.all([a,b]);}
+ }
+});
