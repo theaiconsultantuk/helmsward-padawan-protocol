@@ -79,6 +79,7 @@ Hero demo thread: owner on holiday, refund over the limit, reply held, backup pe
 | P38 | Under the hood: removed the loud opening sound | Paul + Claude | | done 25 Oct | PR #46 merged. The panel clunk is still there; cut it too if it is still too loud |
 | P39 | Sign-off for a legal threat: Support then Legal signers, Head of Support and Head of Legal in Cc | Paul + Claude | | done 25 Oct | PR #47 merged. Checked on a local sample run, not yet on the hosted instance |
 | P40 | Hosted instance: pull main and restart so P36 to P39 show on `jedi.blastworks.ai/shop/desk.html`, then team feedback on the desk | Kristof (pull), team (feedback) | | open | Update sent to the group once Paul says send |
+| P41 | Contact page: Live / Simulated choice (Simulated sends `options.sample_mode:true`, not counted) and themed waiting lines while a run goes | Paul + Claude | | in review 25 Oct | Lines are flavour, not real step progress; real progress needs a server endpoint reading the live trace (ask Kristof) |
 
 ## Rules for today
 - Every task we work on goes on this board, with an owner and a status.
