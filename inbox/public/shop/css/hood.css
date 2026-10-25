@@ -1,0 +1,70 @@
+/* "Under the hood" bonnet panel. Uses the Farstrand TOTALITY tokens from totality.css (void, bone, ember, ash). */
+.hood-switch{display:inline-flex;align-items:center;gap:12px;background:none;border:0;padding:6px 0;color:var(--bone,#F2EEE6);font:500 13px/1 var(--text,Manrope,sans-serif);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.hood-switch__track{position:relative;width:54px;height:28px;border:1px solid var(--ash,#8A8A8F);background:var(--void,#050506);transition:border-color .25s,box-shadow .25s,background .25s}
+.hood-switch__knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:var(--ash,#8A8A8F);transition:transform .22s cubic-bezier(.3,1.6,.5,1),background .2s,box-shadow .2s}
+.hood-switch[aria-checked="true"] .hood-switch__track{border-color:var(--ember,#FF5A1F);box-shadow:0 0 18px rgba(255,90,31,.55),inset 0 0 12px rgba(255,90,31,.25)}
+.hood-switch[aria-checked="true"] .hood-switch__knob{transform:translateX(26px);background:var(--ember,#FF5A1F);box-shadow:0 0 14px var(--ember,#FF5A1F)}
+.hood-switch:hover .hood-switch__track{border-color:var(--bone,#F2EEE6)}
+.hood-switch:focus-visible{outline:2px solid var(--ember,#FF5A1F);outline-offset:4px}
+#open-drawer{display:none}
+.hood-scrim{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.62);opacity:0;transition:opacity .45s}
+.hood-scrim.is-on{opacity:1}
+.hood{position:fixed;left:0;right:0;bottom:0;z-index:901;height:min(92vh,920px);display:flex;flex-direction:column;background:var(--void,#050506);color:var(--bone,#F2EEE6);border-top:2px solid var(--ember,#FF5A1F);box-shadow:0 -14px 90px rgba(255,90,31,.35);transform:translateY(105%)}
+.hood.is-open{animation:hoodglow 3.4s ease-in-out infinite}
+.hood.is-flare{box-shadow:0 -14px 160px rgba(255,90,31,.85)}
+@keyframes hoodglow{50%{box-shadow:0 -14px 120px rgba(255,90,31,.55)}}
+.hood__head{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;padding:18px 28px 6px;position:relative}
+.hood__title{margin:0;font:800 clamp(44px,7vw,88px)/.84 var(--display,"Big Shoulders Display",Impact,sans-serif);text-transform:uppercase;letter-spacing:-.01em}
+.hood__title em{font-style:normal;color:var(--ember,#FF5A1F)}
+.hood__label{font:500 12px/1.4 var(--text,Manrope,sans-serif);letter-spacing:.14em;text-transform:uppercase;color:var(--ash,#8A8A8F)}
+.hood__ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hood__btn{font:500 12px/1 var(--text,Manrope,sans-serif);letter-spacing:.12em;text-transform:uppercase;background:transparent;color:var(--bone,#F2EEE6);border:1px solid var(--ash,#8A8A8F);padding:11px 14px;cursor:pointer;border-radius:0}
+.hood__btn:hover{border-color:var(--bone,#F2EEE6)}
+.hood__btn[aria-pressed="true"]{border-color:var(--ember,#FF5A1F);color:var(--ember,#FF5A1F)}
+.hood__btn:focus-visible{outline:2px solid var(--ember,#FF5A1F);outline-offset:3px}
+.hood__body{flex:1;overflow:auto;padding:0 28px 28px;overscroll-behavior:contain}
+.hood__piston{position:absolute;top:-2px;width:14px;height:34px;pointer-events:none}
+.hood__piston--l{left:14px}.hood__piston--r{right:14px}
+.hood__piston i{position:absolute;left:3px;width:8px;top:0;height:30px;background:linear-gradient(90deg,#3b3b3f,#F2EEE6 45%,#8A8A8F);transform:translateY(-30px);transition:transform .7s cubic-bezier(.2,.9,.2,1)}
+.hood.is-open .hood__piston i{transform:translateY(0)}
+.hood svg{display:block;width:100%;max-width:calc(46vh * 2.553);height:auto;margin:8px auto 0}
+.hood .wire{fill:none;stroke:rgba(138,138,143,.3);stroke-width:2}
+.hood .energy{fill:none;stroke:var(--ember,#FF5A1F);stroke-width:3;filter:drop-shadow(0 0 6px rgba(255,90,31,.8))}
+.hood .packet{fill:var(--bone,#F2EEE6);filter:drop-shadow(0 0 8px var(--ember,#FF5A1F)) drop-shadow(0 0 16px var(--ember,#FF5A1F));opacity:0}
+.hood .node{opacity:.4;cursor:pointer;transition:opacity .3s}
+.hood .node rect.box{fill:var(--void,#050506);stroke:rgba(138,138,143,.24);stroke-width:1.5;transition:stroke .25s,fill .25s}
+.hood .node .tick{fill:none;stroke:var(--ash,#8A8A8F);stroke-width:1.5;opacity:.7}
+.hood .node text{font-family:var(--text,Manrope,sans-serif);fill:var(--ash,#8A8A8F)}
+.hood .node .nm{font:800 44px var(--display,"Big Shoulders Display",Impact,sans-serif);text-transform:uppercase;fill:var(--bone,#F2EEE6)}
+.hood .node .no,.hood .node .tg,.hood .node .st{font-size:12px;font-weight:500;letter-spacing:.14em;text-transform:uppercase}
+.hood .node.on,.hood .node.done,.hood .node.skip,.hood .node.refused{opacity:1}
+.hood .node.on rect.box{stroke:var(--ember,#FF5A1F);stroke-width:2.5}
+.hood .node.on{filter:drop-shadow(0 0 14px rgba(255,90,31,.6))}
+.hood .node.on .st{fill:var(--ember,#FF5A1F)}
+.hood .node.done rect.box{stroke:var(--ember,#FF5A1F);stroke-width:1.2}
+.hood .node.done .st{fill:var(--bone,#F2EEE6)}
+.hood .node.skip rect.box{stroke-dasharray:6 5;stroke:var(--ash,#8A8A8F)}
+.hood .node.skip .nm{fill:var(--ash,#8A8A8F)}
+.hood .node.refused rect.box{fill:var(--ember,#FF5A1F);stroke:var(--ember,#FF5A1F)}
+.hood .node.refused text{fill:var(--ember-ink,#050506)}
+.hood .node.sel rect.box{stroke:var(--ember,#FF5A1F)!important;stroke-width:3.5}
+.hood .node:hover rect.box{stroke:var(--bone,#F2EEE6)}
+.hood__subs{min-height:72px;text-align:center;max-width:78ch;margin:6px auto 0}
+.hood__who{display:block;margin-bottom:4px}
+.hood__line{font:500 clamp(16px,2vw,21px)/1.45 var(--text,Manrope,sans-serif)}
+.hood__line.typing::after{content:"";display:inline-block;width:.5ch;height:1em;margin-left:2px;vertical-align:-.12em;background:var(--ember,#FF5A1F);animation:hoodbl 1s steps(2) infinite}
+@keyframes hoodbl{50%{opacity:0}}
+.hood__verdict{border-top:1px solid rgba(138,138,143,.24);padding-top:14px;margin-top:12px;display:grid;gap:6px 32px;grid-template-columns:minmax(0,1fr);opacity:0;transition:opacity .5s}
+.hood__verdict.is-on{opacity:1}
+.hood__v{margin:0;font:800 clamp(40px,7vw,96px)/.84 var(--display,"Big Shoulders Display",Impact,sans-serif);text-transform:uppercase;color:var(--ember,#FF5A1F)}
+.hood__q{margin:6px 0 0;font-weight:500;font-size:19px}
+.hood__why{margin:4px 0 0;color:var(--ash,#8A8A8F);max-width:80ch}
+.hood__detail{position:fixed;right:16px;top:96px;width:min(380px,34vw);max-height:calc(100vh - 130px);overflow:auto;z-index:5;background:rgba(5,5,6,.94);border:1px solid var(--ember,#FF5A1F);box-shadow:0 0 28px rgba(255,90,31,.25);padding:14px 16px;margin:0}
+.hood__detail h3{margin:2px 0 8px;font:800 clamp(24px,3vw,38px)/.9 var(--display,"Big Shoulders Display",Impact,sans-serif);text-transform:uppercase}
+.hood__detail ol{list-style:none;margin:0;padding:0}
+.hood__detail li{padding:9px 0;border-top:1px solid rgba(138,138,143,.24)}
+.hood__detail p{margin:3px 0 0;font-weight:500;overflow-wrap:anywhere}
+.hood__detail p.more{color:var(--ash,#8A8A8F);font-weight:400;font-size:15px;line-height:22px}
+@media (min-width:900px){.hood__verdict{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}}
+@media (max-width:700px){.hood .node .tg,.hood .node .st,.hood .node .no{display:none}.hood .node .nm{font-size:58px}.hood__head{padding:14px 16px 4px}.hood__body{padding:0 16px 20px}}
+@media (prefers-reduced-motion:reduce){.hood.is-open{animation:none}.hood__piston i,.hood-switch__knob,.hood-scrim{transition:none}}

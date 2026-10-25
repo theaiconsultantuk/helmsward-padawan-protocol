@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="api-base" content="">
+<title>Staff desk · Farstrand Supply Co.</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#050506">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23050506' stroke='%23FF5A1F' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/big-shoulders-display-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="shared/reset.css">
+<link rel="stylesheet" href="css/totality.css">
+<link rel="stylesheet" href="css/hood.css">
+<link rel="stylesheet" href="css/desk.css">
+</head>
+<body class="page-desk">
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast">
+  <a class="mast__brand" href="./index.html"><span class="mast__logo" data-logo-slot></span><span data-brand="shop_name">Farstrand Supply Co.</span></a>
+  <nav class="mast__nav" aria-label="Primary"><ul><li><a href="index.html">Home</a></li><li><a href="shop.html">Shop</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html" >Contact</a></li></ul></nav>
+  <button class="mast__menu" type="button" data-open="menu" aria-haspopup="dialog">Menu</button>
+  <button class="mast__cart" type="button" data-open-cart aria-haspopup="dialog">Cart <span class="mast__count" data-cart-count>0</span></button>
+</header>
+<dialog class="menu" id="menu" aria-label="Menu">
+  <div class="menu__top"><span class="menu__brand" data-brand="shop_name">Farstrand Supply Co.</span><button class="btn-line" type="button" data-close>Close</button></div>
+  <nav aria-label="Menu"><ul class="menu__list"><li><a href="index.html" data-close>Home</a></li><li><a href="shop.html" data-close>Shop</a></li><li><a href="faq.html" data-close>FAQ</a></li><li><a href="contact.html"  data-close>Contact</a></li></ul></nav>
+</dialog>
+<main id="main" class="desk" data-no-translate>
+  <h1 class="desk__title">Staff desk</h1>
+  <p class="desk__lede">Every message the agent has handled, who holds it now, and what happened inside. Press <b>Under the hood</b> on any run to replay it from the real trace.</p>
+  <p id="status" class="desk__status" role="status" aria-live="polite"></p>
+  <section aria-labelledby="h-counters"><h2 class="desk__h" id="h-counters">Counters</h2><div id="counters" class="tiles"></div></section>
+  <section aria-labelledby="h-board"><h2 class="desk__h" id="h-board">Who holds what</h2><div id="board" class="board"></div></section>
+  <section aria-labelledby="h-runs"><h2 class="desk__h" id="h-runs">Recent runs</h2><ul id="runs" class="runs"></ul></section>
+</main>
+<script src="js/hood-sounds.js"></script>
+<script src="js/hood.js"></script>
+<script src="js/desk.js"></script>
+</body>
+</html>
