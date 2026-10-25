@@ -17,6 +17,8 @@ bash inbox/scripts/judging_pack.sh
 
 The script reruns the sample-mode examples in a `--network none` container, runs the hero thread live, regenerates `../result.md` from that trace, reads `GET /sources` from a server it starts, runs `scripts/scenario_proofs.mjs` (examples 4 to 8 live and in sample mode, which writes `scenarios.md`, `engine-world-model.md` and the ten scenario traces), scans for secrets, and exits non-zero if a file below is missing or the scan is not clean. It never writes a trace line by hand.
 
+**Build B (25 October 2026): current hero behavior.** The hero shows the decision and the Nemotron read; the approval reply is a fixed template, so the agent never improvises money language. Fixed over-limit and severe-complaint replies skip draft, critic and revision model calls; legal threats retain the courtesy template and data-block retains its no-draft hold. Gates and complaint reads still run. Existing traces and generated result pages below are historical evidence; this build does not regenerate the judging pack. A fresh s03 timing proof and the pack refresh remain due after review and merge.
+
 Start with [../result.md](../result.md), then [rules-checklist.md](rules-checklist.md).
 
 | File | What it is | Rule or criterion it answers |

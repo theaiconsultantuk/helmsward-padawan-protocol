@@ -34,32 +34,34 @@ async function liveDeps() {
   const facts = await factsForTicket("T03", { cfg: cfg(), as_of: "2026-10-19" });
   return { ...dirs(), facts: async () => facts, gates: async () => ({ answers: {}, model: "rules", gate_source: "rules", confidence: 0.5 }), findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }), drafter: async () => drafted, critic: async () => ({ pass: true, reason: "ok", model: "nvidia/nemotron-x" }), nightshiftStatus: async () => ({ state: "offline", models: [], ms: 1 }) };
 }
-test("slow live stubs expose early escalation, then increasing steps during critique; reused and busy ids cannot reset progress", guarded(async () => {
-  const D = latch(), C = latch(); const deps = await liveDeps();
-  deps.drafter = async () => { await D.promise; return drafted; }; deps.critic = async () => { await C.promise; return { pass: true, reason: "ok", model: "nvidia/nemotron-x" }; };
+test("fixed escalation skips slow draft/critic stubs; busy and reused ids cannot reset progress", guarded(async () => {
+  const G = latch(); const deps = await liveDeps(); let drafts = 0, critics = 0;
+  deps.gates = async () => { await G.promise; return { answers: {}, model: "rules", gate_source: "rules", confidence: 0.5 }; };
+  deps.drafter = async () => { drafts++; throw Error("fixed decision called drafter"); };
+  deps.critic = async () => { critics++; throw Error("fixed decision called critic"); };
   const s = await server({ live: true, deps }); let pending, second;
   try {
     pending = s.post("/run", { run_id: "c-slow", input: { thread_id: "T03" } });
-    const first = await until(s, "c-slow", (p) => p.decision_early && p.working.some((w) => w.agent === "Drafter"));
+    const first = await until(s, "c-slow", p => p.working.some(w => w.agent === "Gates"));
     assert.equal(first.state, "running"); assert.equal(first.decision, null);
-    assert.equal(first.decision_early.decision, "escalate"); assert.equal(first.decision_early.branch_id, "over-limit"); assert.equal(first.decision_early.draft_pending, true);
-    assert.deepEqual(first.working.map(({ agent, label, engine }) => ({ agent, label, engine })), [{ agent: "Drafter", label: "Drafter writing", engine: "Nemotron" }]);
     assert.equal((await s.post("/run", { run_id: "c-slow", input: { thread_id: "T03" } })).status, 409);
-    assert.deepEqual((await (await s.get("/runs/c-slow/progress")).json()).decision_early, first.decision_early);
-    second = s.post("/run", { run_id: "c-second", input: { thread_id: "T03" } }); await until(s, "c-second", (p) => p.working.length > 0);
+    second = s.post("/run", { run_id: "c-second", input: { thread_id: "T03" } }); await until(s, "c-second", p => p.working.length > 0);
     assert.equal((await s.post("/run", { run_id: "c-refused", input: { thread_id: "T03" } })).status, 503); assert.equal((await s.get("/runs/c-refused/progress")).status, 404);
-    D.resolve(); const mid = await until(s, "c-slow", (p) => p.working.some((w) => w.agent === "Evaluator"));
-    assert.equal(mid.state, "running"); assert.ok(mid.steps.length > first.steps.length); assert.ok(mid.steps.some((l) => l.step === "nvidia.model" && l.agent === "Drafter"));
-    C.resolve(); const response = await pending; assert.equal(response.status, 200); const run = await response.json(); assert.equal(run.output.decision, "escalate");
-    await second; const done = await (await s.get("/runs/c-slow/progress")).json(); assert.equal(done.state, "done"); assert.equal(done.decision, "escalate"); assert.deepEqual(done.working, []); assert.deepEqual(done.decision_early, first.decision_early);
+    G.resolve(); const response = await pending; assert.equal(response.status, 200); assert.equal((await response.json()).output.decision, "escalate");
+    await second; const done = await (await s.get("/runs/c-slow/progress")).json();
+    assert.equal(done.state, "done"); assert.equal(done.decision, "escalate"); assert.deepEqual(done.working, []);
+    assert.equal(done.decision_early.branch_id, "over-limit"); assert.equal(done.decision_early.decision, "escalate");
+    assert.ok(done.steps.length > first.steps.length); assert.equal(drafts, 0); assert.equal(critics, 0);
     assert.equal((await (await s.get("/runs/c-slow/progress")).json()).elapsed_s, done.elapsed_s); await sweep(s, "c-slow");
-  } finally { D.resolve(); C.resolve(); await Promise.allSettled([pending, second]); s.srv.close(); }
+  } finally { G.resolve(); await Promise.allSettled([pending, second]); s.srv.close(); }
 }));
 test("health primary down is safe and passive fallback is reported; sample never probes and a hanging first probe is capped", guarded(async () => {
-  const deps = await liveDeps(); deps.drafter = async () => ({ ...drafted, model: "llama-x", lane: "local-lane", fallback: { route: "local-lane", reason: "UpstreamRefused" } });
+  const deps = await liveDeps();
+  const facts = await factsForTicket("T02", { cfg: cfg() }); deps.facts = async () => facts;
+  deps.drafter = async () => ({ ...drafted, model: "llama-x", lane: "local-lane", fallback: { route: "local-lane", reason: "UpstreamRefused" } });
   const s = await server({ live: true, deps });
   try { const h = await (await s.get("/health")).json(); assert.equal(h.ok, true); assert.equal(h.primary?.reachable, false); assert.equal(h.primary.fallback_in_use, true);
-    const r = await (await s.post("/run", { run_id: "c-fallback", input: { thread_id: "T03" } })).json(); assert.equal(r.provider?.primary_used, false); assert.match(r.provider.fallback_reason, /^draft:/);
+    const r = await (await s.post("/run", { run_id: "c-fallback", input: { thread_id: "T02" } })).json(); assert.equal(r.provider?.primary_used, false); assert.match(r.provider.fallback_reason, /^draft:/);
     assert.equal((await (await s.get("/health")).json()).primary.last_fallback_reason, r.provider.fallback_reason);
   } finally { s.srv.close(); }
   let probes = 0; const sample = await server({ deps: { ...dirs(), nightshiftStatus: () => { probes++; } } });

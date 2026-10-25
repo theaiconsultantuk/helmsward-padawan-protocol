@@ -917,7 +917,7 @@
       },
       "sequence": [
         "branch:success:over-limit",
-        "critique:success:over-limit",
+        "critique:skipped:over-limit",
         "risk.signoff:refused:over-limit",
         "escalate_or_fallback:success:over-limit",
         "memory.write:success:over-limit",

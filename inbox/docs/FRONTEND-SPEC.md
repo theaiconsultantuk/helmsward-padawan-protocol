@@ -219,6 +219,8 @@ Affirms or rejects a decision: body `{ "run_id": "demo-1", "verdict": "affirm", 
 Returns the decision row, for example `{ "run_id": "demo-1", "thread_id": "T02", "category": "refund", "decision": "hold", "verdict": "affirm", "delta": 0.05, "published": true }`.
 400 on a bad verdict, 404 on an unknown run.
 
+**Build B routing additions (25 October 2026).** `resolved_how: amount` means an over-limit GC refund was re-routed to the amount approver because its order was unknown or missing. `branch_id: thanks-request` holds an appreciation carrying a request, with a draft for a person. Existing branch and scenario display fields carry both additions; no page change is needed. Fixed-decision reply lines identify `source: template`; the typed gates and complaint reads still run. A held refund draft that promises money is replaced by the acknowledgement template without a model retry.
+
 `POST /ask`
 
 A question about policy, owners or a customer: body `{ "question": "Can I get a refund on my lightsaber?", "customer": "optional email or name" }`.
@@ -321,7 +323,7 @@ The derivation, in plain words:
 Closed enums:
 
 - `human.reply.kind`: `auto_reply` (decision `send`) | `draft_for_human` (decision `hold` with a draft) | `escalation` | `answer` (an `/ask` run) | `none` (`close`, or a `hold` with no draft).
-- `resolved_how`: `declared | thread | scout | gates | faq | none | unrouted` (how the scenario was decided).
+- `resolved_how`: `declared | thread | scout | gates | faq | none | unrouted | amount` (how the scenario was decided).
 - `input.kind`: `thread | message | ask`.
 
 ## 4. The two views

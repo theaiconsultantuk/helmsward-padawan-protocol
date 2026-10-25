@@ -483,6 +483,7 @@ export function earliestIntakeDuplicate(ticket, rows) {
   const at = Date.parse(ticket.received_at);
   if (!mail || !body || Number.isNaN(at)) return null;
   const hits = (rows ?? []).filter((t) => {
+    if (t.decision_state !== "decided") return false;
     if (t.thread_id === ticket.thread_id || norm(t.sender_email) !== mail || norm(t.body) !== body) return false;
     const ta = Date.parse(t.received_at);
     if (Number.isNaN(ta) || at - ta > DUP_WINDOW_MS) return false;

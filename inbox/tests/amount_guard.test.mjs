@@ -24,7 +24,7 @@ test('GC pattern stays aligned with loop money detection',async()=>{
 });
 test('a foreign GC amount is never signed off or sent by the loop',async()=>{
  const {result,lines}=await runMessage(msg('I want a refund of 80 GC for my cracked saber','email','amount.guard@email.com',{scenario:'refund'}),{extra:{sampleDrafter:()=>({text:'We will refund 80 GC and add 5000 GC store credit.',promises:{refund_amount:80},model:'stub'})}});
- assert.notEqual(result.output.decision,'send');assert.ok(lines.some(l=>l.step==='risk.signoff'&&/Not signed:.*draft names 5000 GC/.test(l.output_summary)));
+ assert.notEqual(result.output.decision,'send');assert.ok(lines.some(l=>l.action==='hold_draft_replaced'&&/money promise/.test(l.output_summary)));assert.doesNotMatch(result.output.draft.text,/5000 GC/);
 });
 // Review 46: the refund guard must see equivalent amount spellings and commitments in promises.other.
 test('review46: promises.other is scanned alongside reply text',()=>{

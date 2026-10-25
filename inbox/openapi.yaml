@@ -756,8 +756,8 @@ components:
                               short: { type: boolean }
                     cited: { type: array, items: { type: string }, description: "Row ids, for example products:FS-B01." }
         scenario: { $ref: "#/components/schemas/ResolvedScenario" }
-        resolved_how: { type: string, enum: [declared, thread, scout, gates, faq, none, unrouted], description: How the scenario was decided. }
-        branch_id: { type: string, nullable: true, description: "The branch the loop took, for example faq-hit. Free text: the legacy ids (send-ok, thank-you, follow-up, duplicate, public-channel, owner-out, over-limit, under-floor, data-block, misread, unknown) and the scenario ids, including delivery-not-owner." }
+        resolved_how: { type: string, enum: [declared, thread, scout, gates, faq, none, unrouted, amount], description: "How the scenario was decided; amount means an over-limit GC refund re-routed to the approver." }
+        branch_id: { type: string, nullable: true, description: "The branch the loop took, for example faq-hit. Free text: the legacy ids (send-ok, thank-you, thanks-request, follow-up, duplicate, public-channel, owner-out, over-limit, under-floor, data-block, misread, unknown) and the scenario ids, including delivery-not-owner." }
         input:
           type: object
           description: The ticket as the loop read it.
@@ -926,7 +926,7 @@ components:
         run_id: { type: string, nullable: true }
         wall_ms: { type: integer, nullable: true, minimum: 0, description: "Run start to final decision synthesis. Null for older stored runs; use this for total run time." }
         scenario: { type: string, nullable: true }
-        resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, null] }
+        resolved_how: { type: string, nullable: true, enum: [declared, thread, scout, gates, faq, none, unrouted, amount, null] }
         decision: { type: string, nullable: true, enum: [send, hold, escalate, close, null] }
         team: { type: string, nullable: true }
         team_label: { type: string, nullable: true }
@@ -1008,7 +1008,7 @@ components:
         queue_file: { type: string }
     TraceLine:
       type: object
-      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: Own measured work; overlapping work attributed once; paired and bookkeeping lines carry zero }, elapsed_ms: { type: integer, description: since the stable trace start }, ran_s: { type: number, description: Completion seconds since trace start }, seen_s: { type: number, description: Arrival seconds since board start }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
+      properties: { timestamp: { type: string, description: ISO with milliseconds }, duration_ms: { type: integer, description: Own measured work; overlapping work attributed once; paired and bookkeeping lines carry zero }, elapsed_ms: { type: integer, description: since the stable trace start }, ran_s: { type: number, description: Completion seconds since trace start }, seen_s: { type: number, description: Arrival seconds since board start }, run_id: { type: string }, trace_id: { type: string }, step: { type: string }, agent_name: { type: string }, action: { type: string }, source: { type: string, description: "Reply text source; template identifies a deterministic reply with no drafting model call." }, input_summary: { type: string }, output_summary: { type: string }, status: { type: string } }
       additionalProperties: true
     Error:
       type: object

@@ -59,7 +59,8 @@ for (const n of [1, 2, 3]) {
     const nv = lines.filter((l) => l.step === "nvidia.model");
     assert.ok(nv.length > 0, "nvidia.model lines present");
     for (const l of nv) {
-      assert.equal(l.status, "skipped");
+      assert.equal(l.status, l.source === "template" ? "success" : "skipped");
+      if (l.source === "template") assert.match(l.model, /^template\//);
       assert.ok(l.output_summary && l.output_summary.length > 0, "a skip reason");
     }
     assert.ok(lines.some((l) => l.step === "escalate_or_fallback"), "escalate_or_fallback present (reached or skipped)");

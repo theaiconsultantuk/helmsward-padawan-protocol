@@ -118,16 +118,26 @@ const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
 // opts.overLimit (true when the refund is over the policy limit; 2.1d wires it from the loop): the draft says the request is
 // routed for approval and promises no refund, amount or date.
-export function draft(ticket, facts, { seed = "correct", overLimit = false } = {}) {
+// P43 (einh, 25 Oct 2026): the single producer of unknown/missing-order wording.
+export function orderSentence(check) {
+  if (!check || check.known !== false) return "";
+  return check.order_id
+    ? `We could not find order ${check.order_id} in our records; please reply with your order number.`
+    : "We could not find an order number in your message; please reply with your order number.";
+}
+
+export function draft(ticket, facts, { seed = "correct", overLimit = false, thanksRequest = false, orderCheck = null } = {}) {
   const cat = facts.category ?? ticket.category;
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
   // an over-limit reply never quotes the subject: a free-text subject is the body's first 60 characters and can carry the amount or a date
   const quoted = overLimit ? null : quotable(ticket);
-  const ask = overLimit ? "Thank you for your message." : quoted ? `You wrote about "${quoted}".` : "Thank you for your message.";
+  const ask = thanksRequest ? "Thank you for your kind words." : overLimit ? "Thank you for your message." : quoted ? `You wrote about "${quoted}".` : "Thank you for your message.";
   const promises = { refund_amount: null, replacement: false, other: null };
   let mid;
-  if (overLimit && (cat === "refund" || seed === "revised")) {
+  if (thanksRequest) {
+    mid = "You also asked us for something, and we have passed it on: a colleague will look at it and come back to you.";
+  } else if (overLimit) {
     mid = "Your refund request is routed for approval. We are not promising an amount or a date yet, and a colleague will follow up with you.";
   } else if (seed === "revised") {
     const lim = facts.policy_limit == null ? "We are not promising anything today" : `We cannot approve an amount above our limit of ${facts.policy_limit} GC, so we are not promising it today`;
@@ -144,6 +154,7 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false } = {
   } else {
     mid = "Thank you for getting in touch.";
   }
+  if (overLimit && orderSentence(orderCheck)) mid += ` ${orderSentence(orderCheck)}`;
   return { text: frame(ticket, `${ask} ${mid}`), model: MODEL, route: "sample", promises };
 }
 

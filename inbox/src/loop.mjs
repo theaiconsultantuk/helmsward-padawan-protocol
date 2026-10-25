@@ -17,8 +17,8 @@ import { providerSummary, isNemotron, nightshiftEngine } from "./progress.mjs";
 import { fallbackOf } from "./adapters/nightshift.mjs";
 import * as queries from "./queries.mjs";
 import { parseRestricted } from "./queries.mjs";
-import { appendIntake, publishIntake } from "./intake.mjs";
-import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
+import { appendIntake, publishIntake, markIntakeDecided } from "./intake.mjs";
+import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS, ORDER_ID } from "./scenarios.mjs";
 import { readRefund } from "./refund_reader.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
 
@@ -37,7 +37,7 @@ const WHO = {
   "memory.write": ["Memory", "memory_write"], synthesis: ["Planner", "synthesis"], recovery: ["Planner", "recover"],
 };
 
-// Branch ids: under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's fact-block (a fact that
+// Branch ids: thanks-request, under-floor, over-limit, owner-out, send-ok, thank-you, misread, plus the grid's fact-block (a fact that
 // may not leave: escalate), data-block (a check unavailable or a restricted fact in the message: hold), follow-up and duplicate.
 // The duplicate lookup is queries.findDuplicate (the thread_fingerprints template through Zetaris).
 // FAULT_ZETARIS_REFUSE_ONCE in sample mode: the first Zetaris call of the run goes through the real adapter with
@@ -63,6 +63,7 @@ function faultingSqlRun(cfg, trace) {
   };
 }
 
+const MONEY_ROADS = new Set(["delivery", "customer_service", "other", "question", "legacy"]);
 const BRANCH_RE = /^amount .* over the policy limit/;
 const LEGACY_CATEGORY = { "refund.request": "refund", "replacement.request": "replacement", complaint: "complaint", appreciation: "appreciation" };
 
@@ -96,7 +97,22 @@ export function restrictedInMessage(facts) {
   return null;
 }
 
+// Paul's P43, agreed by einh 25 Oct 2026: classifier outputs plus "?" identify a carried request.
+export function carriedRequest(facts, gates, extra = {}) {
+  const asks = [];
+  const g = gates?.answers ?? {};
+  if (Number(g.asks_for_money ?? 0) >= 0.5) asks.push("the gate reads a request for money");
+  const choice = g.category?.choice;
+  if (["refund", "replacement", "complaint"].includes(choice)) asks.push(`the gate reads a ${choice}`);
+  const amount = facts?.amount ?? extra.stated_amount;
+  if (amount != null) asks.push(`an amount is stated (${amount} ${extra.stated_currency ?? "GC"})`);
+  const text = facts?.follow_up_kind ? (facts.follow_up_body || facts.body) : facts?.body;
+  if (String(text ?? "").includes("?")) asks.push("the message asks a question");
+  return asks.length ? asks : null;
+}
+
 function decideBranchCore(facts, gates, memory, extra = {}) {
+  const asks = facts.category === "appreciation" ? carriedRequest(facts, gates, extra) : null;
   const ticket = facts.ticket ?? {};
   const g = gates?.answers ?? {};
   const followUp = Number(g.is_follow_up ?? 0);
@@ -110,7 +126,7 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   } else if (facts.follow_up_kind === "misread" || (followUp >= 0.5 && ticket.agent_category && ticket.agent_category !== facts.category)) {
     return { branch_id: "misread", why: `the customer says the earlier reply misread the ask (we answered "${ticket.agent_category || "?"}", they asked for "${facts.category}")` };
   }
-  if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you") {
+  if (facts.category === "appreciation" && facts.follow_up_kind === "thank-you" && !asks) {
     return { branch_id: "thank-you", why: "a pure thank-you with no new question: nothing to send" };
   }
   if (facts.follow_up_kind === "follow-up") {
@@ -134,13 +150,16 @@ function decideBranchCore(facts, gates, memory, extra = {}) {
   if (facts.owner_out && facts.backup_out) {
     return { branch_id: "owner-out", why: `${facts.backup_id == null ? `owner ${facts.owner_id} is out and no backup is named` : `owner ${facts.owner_id} and backup ${facts.backup_id} are both out`} on ${facts.as_of ?? "the day"}` };
   }
+  const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
+  // Precedence: misread, follow-up, fact-block, duplicate, the restricted-fact data-block, over-limit and owner-out come first.
+  // Then thanks-request, but only when every check is available; otherwise the trust floor and no-draft data-block stand.
+  if (asks && !unavailable.length) return { branch_id: "thanks-request", why: `a thank-you that also carries a request (${asks.join("; ")}): held for a person with a draft` };
   const tf = trustFloor(facts, gates ?? undefined, extra.ledgerAdjust ? { ledgerAdjust: extra.ledgerAdjust } : undefined);
   if (tf.under) {
     const who = facts.owner_out ? `owner ${facts.owner_id} out, ${facts.backup_id == null ? "no backup named" : `backup ${facts.backup_id} ${facts.backup_out ? "out" : "in"}`}` : `owner ${facts.owner_id} in`;
     const noAmount = facts.amount == null && /refund/.test(String(facts.category)) ? `; no amount stated${facts.channel_public ? ` on a public channel (channels:${facts.channel})` : ""}` : "";
     return { branch_id: "under-floor", why: `${tf.category ?? facts.category} weight ${tf.weight} is under the floor ${tf.floor}; ${who}${noAmount}${memory?.length ? "; memory consulted" : ""}` };
   }
-  const unavailable = [...(extra.checks_unavailable ?? []), ...(facts.disclosure_unknown === true ? ["disclosure policy"] : [])];
   if (unavailable.length) {
     return { branch_id: "data-block", checks_unavailable: unavailable, why: `${unavailable.join(" and ")} unavailable: a reply cannot be cleared to send, held for a person` };
   }
@@ -185,6 +204,7 @@ export function overLimitRefusal(f) {
 }
 
 // P11 (einh's board, 24 Oct 2026): above the approver's limit the draft says "routed for approval" and never promises a refund, an amount or a date.
+export const THANKS_REQUEST_LINE = "The customer thanks us and also asks for something: thank them in one sentence, then say a colleague will look at their request and come back to them. Call it 'your request'; never use the words refund, money back, reimburse or replacement, and never promise an amount or a date.";
 export const OVER_LIMIT_LINE = "The amount is above the approver's limit: say the request has been routed for approval; never promise a refund, an amount or a date.";
 const MONEY_PROMISE = /\b(?:we|i)(?:'ll|\s+will|\s+are\s+going\s+to|\s+can|\s+shall)\s+(?:gladly\s+)?(?:refund|reimburse|credit|pay)\b|\b(?:refund|reimburse)(?:ed|ing)?\s+(?:you|of)\b|\b20\d\d-\d\d-\d\d\b|\b(?:by|on|before|within)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|\d)/i;
 // Does an over-limit draft promise money: a refund amount in its promises, or the amount, a date or "we will refund" in its words?
@@ -195,6 +215,20 @@ export function promisesMoney(d, f) {
   // Review 46: share the amount recogniser with hardRisk, including promises.other; no mirrored amount grammar to drift.
   if (MONEY_PROMISE.test(text) || [text, typeof d.promises?.other === "string" ? d.promises.other : ""].some((s) => [...s.matchAll(GC_AMOUNT)].length > 0)) return true;
   return f?.amount != null && new RegExp(`(^|[^\\d.])${String(f.amount).replace(/\.0+$/, "").replace(".", "\\.")}(?:\\.0+)?([^\\d]|$)`).test(text);
+}
+
+// P55 C (einh, 25 Oct 2026): the closed set is intentional; additional phrases need the orchestrator's ruling.
+const HOLD_APPROVAL = /\b(?:processing|being processed|approved|issued|refunded|on its way)\b/i;
+export function guardHeldRefund(draft, facts, gates, L, branch) {
+  // A policy question or an RFQ is not a refund request, even when its gate mentions refunds.
+  if (!draft || (facts?.category !== "refund" && (gates?.answers?.category?.choice !== "refund" || ["question", "rfq"].includes(facts?.category)))) return draft;
+  const text = [draft.text, typeof draft.promises?.other === "string" ? draft.promises.other : ""].join(" ");
+  const approval = HOLD_APPROVAL.exec(text)?.[0];
+  if (!approval && !promisesMoney(draft, facts)) return draft;
+  L({ step: "nvidia.model", agent_name: "Drafter", action: "hold_draft_replaced", source: "template", model: "template/hold", branch_id: branch,
+    input_summary: "held refund draft", output_summary: `held refund commitment guard: ${approval ?? "money promise"}; replaced with the hold template, no model retry`, status: "success" });
+  return { text: sample.frame(facts?.ticket ?? { sender_name: facts?.sender_name }, "Thank you for your message. A colleague will review your request and come back to you."),
+    promises: { refund_amount: null, replacement: false, other: null }, model: "template/hold" };
 }
 
 // The ONE send-eligibility rule (Codex 29, finding 2): a decision "send" needs a non-empty draft and a channel whose row does not say
@@ -214,7 +248,7 @@ export const APPROVAL_ACK = "Thank you for your request. It has been routed for 
 //   sampleDraftFn(seed)       -> sample-mode draft        (default: the run's sample drafter)
 //   hardRefusal(f, draft, n)  -> a reason string that makes the round a hard Risk refusal, or null (default: the over-limit rule)
 // Returns { draft, crit, risk, rounds, retried, ok }; rounds is the number of rounds run.
-export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRounds, hardRefusal } = {}) {
+export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRounds, hardRefusal, hold = false } = {}) {
   const { f, ticket, L, skipped, fatal, S, sampleOn, memCtx, io } = tb;
   const B = branch ?? S.branch?.branch_id;
   const max = maxRounds ?? tb.maxRounds ?? 2;
@@ -225,17 +259,41 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   let refused = false;
   // the approval path: an amount over the limit with someone to approve it (the default hardRefusal; a caller's own refusal is not this path)
   const approvalPath = !hardRefusal && Boolean(overLimitRefusal(f));
+  const named = f.order_check?.known === false && (f.order_check.order_id != null || S.rerouted === true);
+  const orderLine = named ? sample.orderSentence(f.order_check) : "";
+
+  // P3 (einh, 25 Oct 2026): the early-decision table is the one definition of a fixed reply.
+  // Legal already uses its courtesy template; data-block keeps its no-draft early exit.
+  if (earlyDecision(B, f)?.draft_pending) {
+    const built = B === "over-limit"
+      ? sample.draft(f.ticket ?? ticket, ctxFacts, { overLimit: true, orderCheck: named ? f.order_check : null })
+      : { text: sample.frame(f.ticket ?? ticket, sample.genuineComplaintBody(f.ticket ?? ticket)), promises: { refund_amount: null, replacement: false, other: null } };
+    const draft = { text: built.text, promises: built.promises, model: B === "over-limit" ? "template/approval-ack" : "template/complaint" };
+    const crit = { pass: true, reason: "fixed reply template; no model critique", model: "template" };
+    const risk = { pass: false, reasons: [refusalOf(f, draft, 1) ?? "a person handles this fixed decision"], hard: true, level: S.scoutRisk };
+    L({ step: "nvidia.model", agent_name: "Drafter", action: "draft_template", source: "template", model: draft.model, branch_id: B, retry_count: 0,
+      input_summary: "fixed decision", output_summary: "fixed reply template, no drafter or revision model call", status: "success" });
+    skipped("critique", "fixed template: no critic call");
+    L({ step: "risk.signoff", agent_name: "Risk", action: "risk_signoff", sponsor: "meterless", branch_id: B, retry_count: 0,
+      input_summary: "fixed decision", output_summary: `Refused: ${risk.reasons.join("; ")}`, status: "refused" });
+    skipped("retry", "fixed template: no revision call");
+    S.models.drafter = draft.model;
+    S.draft = draft;
+    S.rounds.push({ n: 1, critique: crit, risk });
+    return { draft, crit, risk, rounds: 1, retried: false, ok: false };
+  }
 
   const makeDraft = async (seed, critiques, n) => {
     const sampled = () => {
-      const d = sampleDraft(seed, { overLimit: approvalPath });
+      const d = sampleDraft(seed, { overLimit: approvalPath, thanksRequest: B === "thanks-request", orderCheck: named ? f.order_check : null });
       L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
       S.models.drafter = d.model;
       return { text: d.text, promises: d.promises, model: d.model };
     };
     if (sampleOn) return sampled();
     let messages = msgs({ critiques });
-    if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}` } : m));
+    if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}${orderLine ? `\n${orderLine} Say this to the customer.` : ""}` } : m));
+    if (B === "thanks-request") messages = messages.map((m, i) => i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${THANKS_REQUEST_LINE}` } : m);
     let res;
     try {
       res = await io.drafter(messages, { purpose: "draft", trace: io.adapterTrace, signal: io.signal });
@@ -302,7 +360,9 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     return { pass, reasons, hard, level: S.scoutRisk };
   };
 
-  let draft = await makeDraft("correct", [], 1);
+  const held = hold || B === "under-floor" || B === "thanks-request" || f.channel_autonomous === false;
+  const holdDraft = d => held ? guardHeldRefund(d, f, tb.gates, L, B) : d;
+  let draft = holdDraft(await makeDraft("correct", [], 1));
   if (!draft.failed) S.draft = { text: draft.text, promises: draft.promises, model: draft.model }; // kept even if a later gate dies, so a chain can hand it on
   let round = 1;
   let retried = false;
@@ -329,14 +389,18 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     retried = true;
     L({ step: "planner.plan", agent_name: "Planner", action: "plan_revision", branch_id: B, retry_count: round, input_summary: "both critiques",
       output_summary: `revised plan: branches reply-now vs hold-or-escalate; keep ${B}, redraft once with both critiques, then gate`, status: "success", memory_ids: S.memRead });
-    draft = await makeDraft("revised", both, round + 1);
+    draft = holdDraft(await makeDraft("revised", both, round + 1));
     round += 1;
   }
   if (approvalPath && promisesMoney(draft, f)) {
     // the one rewrite round did not remove the promise: nothing the model wrote is attached; the approver gets the fixed acknowledgement
     L({ step: "nvidia.model", agent_name: "Drafter", action: "draft_replaced", model: "template/approval-ack", branch_id: B, retry_count: round - 1,
       input_summary: `round ${round} draft still promises money after the rewrite`, output_summary: "replaced by the approval acknowledgement (code, no amount, no date); the model draft is not attached", status: "success" });
-    draft = { text: sample.frame({ sender_name: f.sender_name }, APPROVAL_ACK), promises: { refund_amount: null, replacement: false, other: null }, model: "template/approval-ack" };
+    draft = { text: sample.frame({ sender_name: f.sender_name }, APPROVAL_ACK + (orderLine ? ` ${orderLine}` : "")), promises: { refund_amount: null, replacement: false, other: null }, model: "template/approval-ack" };
+  }
+  if (approvalPath && orderLine && !/could not find/i.test(draft.text)) {
+    const sign = draft.text.lastIndexOf("\n\nBest regards");
+    draft.text = sign >= 0 ? `${draft.text.slice(0, sign)} ${orderLine}${draft.text.slice(sign)}` : `${draft.text} ${orderLine}`;
   }
   S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
   const ok = Boolean(crit.pass && risk.pass);
@@ -550,6 +614,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     if (S.decision !== "send" || sendEligible(S.facts, S.draft)) return false;
     const why = sendBlockReason(S.facts, S.draft);
     S.decision = "hold";
+    S.draft = guardHeldRefund(S.draft, S.facts, S.gates, L, S.branch?.branch_id);
     S.autoReply = false;
     S.meta = { ...S.meta, status: "open" };
     S.reasons.push(`held for owner ${S.facts?.owner_id ?? "?"}, draft kept: ${why}`);
@@ -570,6 +635,24 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let preGates = null;
     let preGbuf = stampedBuffer();
     const factsOpts = {};
+    let checkedOrder = null;
+    // P43, einh 25 Oct 2026: share the delivery id grammar; JP-99310 and "order 4512" are missing ids.
+    const orderCheck = async (text) => {
+      if (checkedOrder) return checkedOrder;
+      const oid = (ORDER_ID.exec(String(text ?? ""))?.[0] ?? "").toUpperCase();
+      if (!oid) return checkedOrder = { order_id: null, known: false };
+      const orderTrace = { line: (x) => {
+        if (x.action === "sql:order") { const { detail, ...safe } = x; buf.push(safe); }
+        else buf.push(x);
+      } };
+      try {
+        const r = await (deps.orderQuery ?? queries.run)("order", { order_id: oid }, { cfg, trace: orderTrace });
+        return checkedOrder = { order_id: oid, known: r.objects.length > 0 };
+      } catch (e) {
+        buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after sql:order error", output_summary: "order lookup unavailable: no claim is made about a missing order", status: "success" });
+        return checkedOrder = { order_id: oid, known: null };
+      }
+    };
     if (isMsg) {
       S.current = "executor.act";
       const dir = deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime");
@@ -635,6 +718,20 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit, text: row.body, productHit });
       const params = preDecided?.parameters ?? {};
       if (params.summed >= 2 && params.currency === "GC") S.summedNote = `summed ${params.summed} listed amounts (${(params.amounts ?? []).join(" + ")} = ${params.amount} GC; the message never says "total")`;
+      // P43, einh 25 Oct 2026: GC only; known orders, declared scenarios and non-money roads keep their rules.
+      if (S.scenario.how !== "declared" && MONEY_ROADS.has(S.scenario.scenario) && params.currency === "GC" && params.amount != null
+          && Number(preGates?.answers?.asks_for_money ?? 0) >= 0.5) {
+        let limit = null;
+        try { limit = (await queries.run("policy", { topic: "refund" }, { cfg, trace: { line: () => {} } })).objects[0]?.limit_amount; } catch { /* no policy proof, no reroute */ }
+        if (limit != null && params.amount > Number(limit)) {
+          const check = await orderCheck(row.body);
+          if (check.known === false) {
+            S.rerouteNote = `a refund of ${params.amount} GC is over the ${limit} GC limit, order ${check.order_id || "number not given"} not found: routed to the amount approver (was the ${S.scenario.scenario} road)`;
+            S.rerouted = true;
+            S.scenario = { scenario: "refund", how: "amount" };
+          }
+        }
+      }
       // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
       Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
         amount: params.currency === "GC" ? params.amount : undefined });
@@ -680,6 +777,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     const inputText = f ? (f.follow_up_kind ? (f.follow_up_body || f.body) : f.body) : "";
 
+    if (isMsg && f && overLimit(f)) f.order_check = await orderCheck(inputText);
+
     // 1. memory.read
     S.current = "memory.read";
     const memoryReadStart = Date.now();
@@ -709,13 +808,13 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // 2. planner.plan
     S.current = "planner.plan";
     const known = f && memories.find((m) => (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
-    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable }) : { branch_id: "unknown", why: "facts unavailable" };
+    const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable, stated_amount: preDecided?.parameters?.amount ?? null, stated_currency: preDecided?.parameters?.currency }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
         + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : "")
-        + (secondRefund() ? `. ${secondRefund()}` : "") + (S.summedNote ? `. ${S.summedNote}` : ""),
+        + (secondRefund() ? `. ${secondRefund()}` : "") + (S.summedNote ? `. ${S.summedNote}` : "") + (S.rerouteNote ? `. ${S.rerouteNote}` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -791,13 +890,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
+      holdDraft: (d, branch) => guardHeldRefund(d, f, gates, L, branch),
       maxRounds, runtimeDir, progress: { work: (purpose) => workStart(purpose, sampleOn ? "sample rules" : "OpenJev") }, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, reader, adapterTrace, signal: runAbort.signal },
       readerOn: !(["false", "0"].includes(String(cfg.REFUND_READER ?? "true").trim().toLowerCase())),
     };
 
     // 6. branch
     S.current = "branch";
-    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable });
+    S.branch = decideBranch(f, gates, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable, stated_amount: (preDecided ?? decided)?.parameters?.amount ?? null, stated_currency: (preDecided ?? decided)?.parameters?.currency });
     const B0 = S.branch.branch_id;
     // A scenario with a handler takes over only where the legacy branch would have drafted (under-floor or send-ok); the pre-empting branches stand.
     const handler = HANDLERS[S.scenario.scenario];
@@ -834,6 +934,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`,
         output_summary: `scenario ${S.scenario.scenario} (${S.scenario.how}) → ${B}`, status: "success", memory_ids: S.memRead });
       const a = await handler.act(tb, probe);
+      if (a.decision === "hold" && a.draft) a.draft = tb.holdDraft(a.draft, B);
       S.decision = a.decision;
       if (a.reasons?.length) S.reasons = [...a.reasons];
       if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model, ...(a.draft.blanks ? { blanks: a.draft.blanks } : {}) };
@@ -903,14 +1004,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       const ap = approverOf(f);
       const approval = { kind: "amount", amount: f.amount, limit: f.policy_limit, approver_id: ap.id, approver_name: ap.name };
       escalate([...critiques, { source: "Draft", reason: `proposed reply, attached for approval: ${draft.text}` }],
-        `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount`, {}, { approval, draft });
+        `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount${f.order_check?.known === false && (f.order_check.order_id != null || S.rerouted === true) ? `; ${f.order_check.order_id ? `order ${f.order_check.order_id} is not in the records` : "no order number given"}` : ""}`, {}, { approval, draft });
       return;
     }
     if (!ok) {
       escalate(critiques, risk.hard ? `hard fact Risk cannot rewrite: ${risk.reasons.join("; ")}` : `two negative rounds: ${one(crit.reason)} | ${risk.reasons.join("; ")}`);
       return;
     }
-    if (B === "under-floor") {
+    if (B === "under-floor" || B === "thanks-request") {
       S.decision = "hold";
       // the hold names the person it waits for (the backup when the owner is out); there is no queue file for a plain hold
       if (!S.queued) S.queued = { owner_id: f.owner_id ?? null, backup_id: f.backup_id ?? null, owner_name: f.owner_name ?? null, backup_name: f.backup_name ?? null, ...queueMeta() };
@@ -927,8 +1028,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   async function body() {
     try {
       await pipeline();
+      S.intakeDecided = true;
     } catch (e) {
       if (e?.name === "IntakeFull") throw e;
+      // P55, review 53: an intentional Stop after a decision still completes the intake row.
+      if (e instanceof Stop && S.decision) S.intakeDecided = true;
       if (!(e instanceof Stop)) {
         S.recovered.push({ step: S.current, type: errName(e), message: safeMsg(e) });
         L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "unexpected_error", input_summary: `${S.current} threw`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
@@ -956,6 +1060,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after run timeout", output_summary: "run capped, escalated to human", status: "success" });
     if (!S.decision) escalate([{ source: "Planner", reason: msg }], msg);
     S.aborted = true; // later lines from the abandoned body are dropped; the finalisation below uses F
+  }
+
+  if (isMsg && S.intakeDecided && !timedOut) {
+    try { await markIntakeDecided(thread_id, { runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") }); }
+    catch (e) { soft("executor.act", e, "intake completion could not be saved: this run will not suppress a retry"); }
   }
 
   // 11. memory.write (one factual memory per run)

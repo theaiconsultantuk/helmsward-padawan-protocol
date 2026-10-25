@@ -44,7 +44,7 @@ test("sendEligible: needs a draft and a channel that is not autonomous_reply fal
 });
 
 // finding 4
-test("a model that promises money twice on an over-limit amount: the attached draft is the approval acknowledgement", async () => {
+test("a fixed over-limit amount: the approval template bypasses a money-promising model", async () => {
   const f = { amount: 500, policy_limit: 100, owner_id: 1, owner_out: false, backup_out: false, sender_name: "Ann", cited_rows: [] };
   const promised = { text: "We will refund you 500 GC by Friday.", promises: { refund_amount: 500, replacement: false, other: null }, model: "stub" };
   const lines = [];
@@ -55,9 +55,9 @@ test("a model that promises money twice on an over-limit amount: the attached dr
     io: { drafter: async () => { calls += 1; return { text: JSON.stringify({ reply_text: promised.text, promises: promised.promises, cited_rows: [] }), model: "stub" }; },
       critic: async () => ({ pass: true, reason: "ok", model: "stub" }), reader: async () => ({ text: "{}", model: "stub" }), sampleDrafter: () => { throw new Error("no"); }, sampleCritic: () => ({ pass: true }), adapterTrace: { line: () => {} } } };
   const r = await replyLoop(tb);
-  assert.equal(calls, 2, "first draft and the one rewrite both promised");
+  assert.equal(calls, 0, "P3: fixed reply never calls the model");
   assert.ok(!promisesMoney(r.draft, f), "attached draft promises no money");
-  assert.match(r.draft.text, new RegExp(APPROVAL_ACK.slice(0, 40)));
+  assert.match(r.draft.text, /routed for approval/);
   assert.equal(r.draft.promises.refund_amount, null);
-  assert.ok(lines.some((l) => l.action === "draft_replaced"));
+  assert.ok(lines.some((l) => l.action === "draft_template"));
 });

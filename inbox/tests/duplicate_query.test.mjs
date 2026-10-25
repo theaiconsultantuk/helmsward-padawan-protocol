@@ -54,7 +54,7 @@ test("P13/H13 runtime intake rows: same sender_email + same body within 7 days i
   const { mkdtempSync, writeFileSync } = await import("node:fs");
   const { tmpdir } = await import("node:os");
   const { join } = await import("node:path");
-  const { INTAKE_HEADER, appendIntake } = await import("../src/intake.mjs");
+  const { INTAKE_HEADER, appendIntake, markIntakeDecided } = await import("../src/intake.mjs");
   assert.ok(INTAKE_HEADER.includes("sender_email"));
   const dir = mkdtempSync(join(tmpdir(), "dup-rt-"));
   const a = await appendIntake({ message: "Where is my order?", from: "x@email.com", subject: "one", received_at: "2026-10-20T10:00:00Z" }, { runtimeDir: dir });
@@ -62,6 +62,8 @@ test("P13/H13 runtime intake rows: same sender_email + same body within 7 days i
   const c = await appendIntake({ message: "Where is my order?", from: "y@email.com", received_at: "2026-10-22T11:00:00Z" }, { runtimeDir: dir });
   const old = await appendIntake({ message: "Where is my order?", from: "x@email.com", received_at: "2026-11-05T10:00:00Z" }, { runtimeDir: dir });
   const stub = async () => ({ headers: HEADERS, rows: [], total: 0 });
+  assert.equal(await findDuplicate(b.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "pending intake is not duplicate evidence (P55 A)");
+  await markIntakeDecided(a.thread_id, { runtimeDir: dir });
   assert.deepEqual(await findDuplicate(b.row, { sqlRunImpl: stub, runtimeDir: dir }), { thread_id: a.thread_id, received_at: "2026-10-20T10:00:00Z" });
   assert.equal(await findDuplicate(a.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "the first message has no earlier twin");
   assert.equal(await findDuplicate(c.row, { sqlRunImpl: stub, runtimeDir: dir }), null, "another sender");
