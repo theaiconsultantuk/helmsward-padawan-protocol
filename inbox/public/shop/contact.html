@@ -42,7 +42,7 @@
           </select>
         </label>
         <div class="cu__row">
-          <label class="cu__field" for="name"><span>Name or callsign</span><input type="text" id="name" name="name" maxlength="120" autocomplete="off"></label>
+          <label class="cu__field" for="name"><span>Name or callsign</span><input type="text" id="name" name="name" maxlength="120" autocomplete="off" aria-describedby="name-hint"><small class="cu__fine" id="name-hint">Letters, spaces, hyphens and apostrophes only (no dots or numbers).</small></label>
           <label class="cu__field" for="email"><span>Email</span><input type="email" id="email" name="email" maxlength="200" autocomplete="off"></label>
         </div>
         <label class="cu__field" for="message"><span>Message</span><textarea id="message" name="message" rows="5" maxlength="4000" required></textarea></label>
