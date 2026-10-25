@@ -1,6 +1,7 @@
 // Boundaries: concurrent work, fallback provenance, immutable completion and stored projection.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { createProgressBoard, providerSummary, progressFromStored, stepOf, isNemotron } from "../src/progress.mjs";
 const line = { step: "nvidia.model", agent_name: "Drafter", action: "draft_reply", model: "nvidia/nemotron-x", status: "success", duration_ms: 123, input_summary: "/opt/private", output_summary: "/home/private", detail: "/tmp/private" };
 test("board lifecycle keeps concurrent work and retry provenance, freezes at first finish and matches stored projection", () => {
@@ -26,5 +27,6 @@ test("provider summary distinguishes no calls, primary, fallback, failure and sa
   assert.equal(providerSummary([], "live").primary_used, null); assert.equal(providerSummary([{ primary: true }], "live").primary_used, true);
   assert.equal(providerSummary([{ primary: false, reason: null }, { primary: false, reason: "critique: failed" }], "live").fallback_reason, "critique: failed");
   assert.deepEqual(providerSummary([{ primary: false, reason: "x" }], "sample"), { mode: "sample", primary_used: null, fallback_reason: null, calls: 1 });
-  for (const id of ["nvidia/nemotron-3.5-lightning-30b-a3b", "nvidia/nemotron-3-super-120b-a12b", "meterless/auto"]) assert.equal(isNemotron(id), id.startsWith("nvidia/nemotron"));
+  const candidates = readFileSync(new URL("../src/cli.mjs", import.meta.url), "utf8").match(/const CANDIDATES = \[([\s\S]*?)\];/)[1].match(/"[^"]+"/g).map(JSON.parse);
+  for (const id of candidates) assert.equal(isNemotron(id), id.startsWith("nvidia/nemotron"));
 });

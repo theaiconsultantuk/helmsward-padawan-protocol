@@ -40,7 +40,7 @@ async function openapiEndpoints() {
 
 test("the spec names at least the core endpoints", () => {
   const spec = specEndpoints(readFileSync(join(root, "docs", "FRONTEND-SPEC.md"), "utf8"));
-  for (const e of ["POST /run", "GET /runs/{}", "GET /runs/{}/trace", "GET /runs/{}/journey", "GET /runs", "GET /queue", "GET /counters", "POST /feedback", "POST /ask"]) {
+  for (const e of ["POST /run", "GET /runs/{}", "GET /runs/{}/trace", "GET /runs/{}/journey", "GET /runs/{}/progress", "GET /runs", "GET /queue", "GET /counters", "POST /feedback", "POST /ask"]) {
     assert.ok(spec.has(e), `spec lacks ${e}`);
   }
 });

@@ -25,10 +25,11 @@ const guard = (fn) => async () => {
   globalThis.fetch = (url, o) => /^http:\/\/127\.0\.0\.1:\d+\//.test(String(url)) ? real(url, o) : Promise.reject(Object.assign(Error("no network"), { code: "ENETUNREACH" }));
   try { await fn(real); } finally { globalThis.fetch = real; }
 };
-test("early = final on 24 threads, 30 shape cells and 14 demos; event order in the buffered free-text path", async () => {
+test("early = final on 24 threads, 30 shape cells and 14 demos plus existing H16 data-block; event order in the buffered free-text path", async () => {
   const demos = read("public/demo-scenarios.json");
   const cells = read("tests/fixtures/scenario_shapes.json").cells;
-  const cases = [...threads.map((t) => ({ thread: t.thread_id })), ...cells, ...demos.map((d) => ({ input: { message: d.message, from: d.email ?? "visitor@example.com", name: d.name, channel: d.channel, scenario: d.scenario, as_of: d.as_of }, as_of: d.as_of }))];
+  const h16 = read("tests/fixtures/freetext_cases.json").cases.find((c) => c.id === "H16");
+  const cases = [{ input: { message: h16.message, from: h16.from, name: h16.name, subject: h16.subject, channel: h16.channel } }, ...threads.map((t) => ({ thread: t.thread_id })), ...cells, ...demos.map((d) => ({ input: { message: d.message, from: d.email ?? "visitor@example.com", name: d.name, channel: d.channel, scenario: d.scenario, as_of: d.as_of }, as_of: d.as_of }))];
   const seen = new Set();
   for (const [i, c] of cases.entries()) {
     const events = [], order = [];

@@ -115,6 +115,9 @@ curl -s $B/openapi.yaml
 **The message road.** `POST /run` also takes a free-text message: `{"input": {"message": "How long does shipping take?", "from": "a@example.com", "channel": "chat", "scenario": "question", "as_of": "2026-10-20"}}`. `scenario` is `refund | question | rfq | complaint | free_text` (absent means `free_text`, and the loop resolves it from the message). `as_of` pins the date the facts are read as of, which is how the demos stay repeatable. The message becomes a ticket `F<n>` that Zetaris can read.
 
 **Runs, journeys and the queue.** `GET /runs?limit=50` lists the stored runs newest first; `GET /runs/<run_id>/journey` returns how the information travelled (one node per trace step, what each step consulted and what the reply kept, and what reached a human); `GET /queue` lists what is waiting for a person.
+`GET /runs/{id}/progress` returns live work, completed steps and fixed early decisions; poll every 1.5 s until done (see `docs/FRONTEND-SPEC.md` §2 and §8).
+`GET /health` adds cached `primary` lane reachability and fallback state; each run result carries `provider` provenance.
+
 
 **The pages.** The service serves a storefront and an internal dashboard, driven only by the API above.
 `GET /` redirects to the storefront (Home, Shop, FAQ and Contact under `/shop/`).

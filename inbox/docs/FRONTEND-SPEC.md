@@ -53,7 +53,7 @@ The hosted CORS setting is `CORS_ORIGIN=https://jedi.blastworks.ai`; a clean clo
 
 `POST /run`
 
-Runs the loop on one ticket and returns the result (also kept for `GET /runs/{id}`).
+Runs the loop on one ticket and returns the result (also kept for `GET /runs/{id}`). Every result adds `provider: { mode: "live" | "sample", primary_used: true | false | null, fallback_reason: string | null, calls: number }` and optionally `decision_early` (the same object as progress). `primary_used` is null with no Nightshift calls, true only when all calls answered on primary with a Nemotron model, false if any fell back, failed, or answered with a non-Nemotron or unknown model. `fallback_reason` is the first non-null reason prefixed with its step, for example `critique: primary failed (BadResponse HTTP 503); answered by meterless/local`. Sample mode reports nulls and zero calls.
 Two input shapes, one `input` object:
 
 ```json
@@ -106,6 +106,78 @@ Optional fields a line may carry: `target_agent`, `model`, `confidence`, `retry_
 `GET /runs/{id}/journey`
 
 The run as a journey a person can read (section 3); 404 when the run or its trace file is gone.
+
+`GET /runs/{id}/progress`
+
+Live progress, open like every GET. **Front end: built by the teammate Paul assigns.**
+
+```json
+{
+  "run_id": "demo-s03",
+  "state": "running",
+  "mode": "live",
+  "elapsed_s": 23.4,
+  "working": [
+    { "agent": "Drafter", "label": "Drafter writing", "engine": "Nemotron", "since_s": 12.1 }
+  ],
+  "steps": [
+    { "step": "memory.read", "agent": "Memory", "label": "Memory read", "tech": "H-MEM", "status": "success", "seconds": 0.01 },
+    { "step": "branch", "agent": "Planner", "label": "Branch", "tech": "rules", "status": "success", "seconds": 0 }
+  ],
+  "decision_early": { "decision": "escalate", "branch_id": "over-limit", "why": "amount 400 GC is over the 150 GC policy limit", "draft_pending": true, "at_s": 2.1 },
+  "decision": null,
+  "status": null,
+  "provider": { "primary_used": null, "fallback_reason": null }
+}
+```
+
+- `state`: `running` | `done`. `mode`: `live` | `sample`.
+- `working`: the provider calls in flight right now, oldest first; empty when none (or done). The critic and the refund reader run side by side, so two entries is normal.
+- `steps`: every trace line written so far, in trace order, as `{ step, agent, label, tech, status, seconds }` with `label = labelFor(line.step, line)`, `tech = techOf(line)`, `agent = line.agent_name`, `seconds = round(duration_ms / 1000, 2)`. The buffered early lines (facts, gates) appear in one burst when the run reaches `executor.act`; until then `working` shows them live.
+- `decision_early`: `null` until the branch decides; then set once and never changed. Only for a fixed branch (table below). `draft_pending: true` means the final result may still attach a draft.
+- `decision`, `status`: `null` while running; the result's `output.decision` and `status` once done.
+- `provider`: the result's `primary_used` and `fallback_reason`, so far.
+
+Working labels and engines:
+
+| Wrapped call | `agent` | `label` | `engine` |
+|---|---|---|---|
+| drafter, purpose `draft` | Drafter | Drafter writing | see engine rule |
+| drafter, purpose `complaint_read` | Drafter | Reading the complaint | engine rule |
+| drafter, purpose `recommendation` | Drafter | Writing the recommendation | engine rule |
+| critic | Evaluator | Evaluator checking the draft | engine rule |
+| reader | RefundReader | Refund read | engine rule |
+| typed gates | Gates | Typed gates | OpenJev |
+| severity gate | Severity | Severity gate | OpenJev |
+| facts read | Executor | Facts from Zetaris | Zetaris |
+| duplicate check | Executor | Duplicate check | Zetaris |
+| trust ledger | Executor | Trust ledger | Zetaris |
+| intake publish | Executor | Saving the message to Zetaris | Zetaris |
+
+Wiki, FAQ, product and complaint-context lookups may briefly have no working entry.
+
+Nightshift work begins with engine `Nemotron` when the primary route names Nemotron (or is unset), otherwise `Nightshift (<route>)`. A fallback changes that entry to `Nightshift (<fallback route>)` or `local lane`. Sample gates use `sample rules` and sample drafter/critic work is inline, without a working entry.
+
+Early-decision timing: over-limit decides after the typed-gates call (OpenJev, live a few seconds); the complaint branches decide after the complaint read (a Nemotron call) and the severity gate, so s09's early decision comes after one model call, not at 2 s.
+
+| `branch_id` | decision | `draft_pending` |
+|---|---|---|
+| `over-limit`, only when someone is available to approve | escalate | true |
+| `complaint-severe` | escalate | true |
+| `complaint-legal` | escalate | true (the courtesy reply template) |
+| `fact-block` | escalate | false |
+| `misread` | escalate | false |
+| `data-block` | hold | false |
+| `follow-up` | hold | false |
+| `duplicate` | close | false |
+| `thank-you` | close | false |
+| anything else | `null` (no early decision) | — |
+
+The early decision follows the completed branch step. `why` is limited to 200 characters. It equals the final decision; a pending draft can still be attached.
+
+Poll every 1.5 s after posting with your own `run_id`, also after a 502/504/524. A 404 in the first 5 s means not started; keep polling. A later 404 means unknown or lost after a service restart: show the existing “open it later” message. `done` → load the journey. Stored ask ids return 404 “progress exists for /run runs only”; a stored run whose trace is missing has `steps: []`.
+
+Show `working[0].label · working[0].engine · since_s` as the live line and `steps` as the done list. The moment `decision_early` arrives, show its decision and, when `draft_pending`, “the draft is still being written”. It is fixed once; `at_s` records when it was decided. Done `elapsed_s` is frozen and matches the stored result. In-flight progress is lost on service restart; finished progress is recovered from stored results and traces.
 
 `GET /runs?limit=`
 
@@ -182,6 +254,14 @@ Closed extension list: `.html .css .js .json .svg .webp .png .jpg .woff2 .glb .m
 Also available, not needed by a front end:
 
 `GET /health`
+
+Adds `primary` (a cached probe, never a model call):
+
+```json
+{"mode":"live","reachable":true,"probe":"online","nemotron_listed":true,"checked_at":"2026-10-26T14:02:11.000Z","last_primary_answer_at":"2026-10-26T14:01:40.000Z","last_fallback_at":null,"last_fallback_reason":null,"fallback_in_use":false}
+```
+
+`reachable` means the gateway lists a Meterless route; `nemotron_listed` separately says whether it lists Nemotron. The probe is cached for 60 s, single-flight. The first request waits at most 2 s, then returns null probe fields while it finishes; later requests return cached data immediately. Sample mode never probes: `mode: "sample"`, all probe/time/reason fields null, `fallback_in_use: false`. Live results update the last-primary or last-fallback times; sample-forced runs do not. `fallback_in_use` is true if the probe is offline/unauthorized or the last fallback is newer than the last primary answer. Existing `ok` remains true even if the probe fails.
 
 Liveness and mode: `{ "ok": true, "sample_mode": true, "version": "0.1.0", "uptime_s": 12 }`.
 
@@ -316,7 +396,9 @@ A run can also return 200 with `status: "error"`: check `status`, not only the H
 
 A live `POST /run` goes through real models and can take minutes (sample mode answers in milliseconds).
 So: show the run id and elapsed seconds while it is in flight, disable Submit until it ends, never double-submit, and do not time out earlier than the server does.
-Generate the `run_id` yourself if you want to poll `GET /runs/{id}/trace` for progress while waiting; a retry with the same id is a 409, so use a fresh id for a deliberate re-run.
+Generate the `run_id` yourself and poll `GET /runs/{id}/progress` every 1.5 s while waiting, including after 502/504/524. `/trace`, `/journey` and `/runs/{id}` answer 404 until the run ends. A 404 on `/progress` in the first 5 s means not started; later it means lost or unknown. On `done`, load the journey. A retry with the same id is a 409, so use a fresh id for a deliberate re-run.
+
+**Honest banner (front end: built by the teammate Paul assigns).** When `/health` `primary.fallback_in_use` is true, show “Nemotron is not answering right now: live runs use a fallback model”. For a run with `provider.primary_used === false`, show “Not every step ran on Nemotron: <fallback_reason>”, using the reason as text. It names the step, so a fallback critique is not described as a fallback draft.
 
 ## 9. The reference pages and what a replacement must keep
 
