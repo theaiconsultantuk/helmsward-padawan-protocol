@@ -707,6 +707,12 @@ model-viewer.stage-3d__mv:active{cursor:grabbing}
 .sc__btn:hover{border-color:var(--bone)}
 .sc__btn.is-active,.sc__btn[aria-pressed="true"]{background:var(--ember);border-color:var(--ember);color:var(--ember-ink)}
 .sc__btn:disabled{cursor:not-allowed;color:var(--ash);border-color:var(--hair)}
+/* P57: "★ Full journey" on the three cases that run through to a solved ticket */
+.sc__note--star{color:var(--bone)}
+.sc__note--star [aria-hidden]{color:var(--ember)}
+.sc__star{display:inline-block;margin-left:10px;padding:1px 7px;border:1px solid var(--ember);color:var(--ember);font-size:11px;letter-spacing:.1em;white-space:nowrap;vertical-align:1px}
+.sc__btn.is-active .sc__star,.sc__btn[aria-pressed="true"] .sc__star{border-color:var(--ember-ink);color:var(--ember-ink)}
+.sc__btn:disabled .sc__star{border-color:var(--hair);color:var(--ash)}
 .sc__expected{margin:0;padding:10px 14px;border-left:2px solid var(--ember);color:var(--bone);font-size:15px;line-height:1.5;background:var(--plate)}
 
 /* source cards: Trustpilot review, email envelope */
