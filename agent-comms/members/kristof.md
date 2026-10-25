@@ -123,3 +123,30 @@ Paul: `GET /runs/{id}/progress` now serves live work, completed steps and a fixe
 
 The banner fields are `/health` `primary.fallback_in_use` and each run's `provider.primary_used` / `provider.fallback_reason`. The reason names which step used another model or failed.
 The contact-page live line, early decision line and honest banner are FRONT END for the teammate you assign. No page files changed here; `decisions.md` is not ours to edit.
+
+## 2026-10-25 · P54: test suite with live Zetaris keys [agent: claude]
+- Commit: 3918fde 2026-10-25T16:41:57-04:00 (main with #61, #62 and #63)
+- npm test with inbox/.env: tests 776, pass 772, fail 2, skipped 2
+- Skips by reason: 1 held-out set not on main, 1 run with NO_NETWORK=1 for the proof
+- Live Zetaris checks (usl + usl_drift): 44 ran, 44 passed
+- NO_NETWORK proof: tests 8, pass 8, fail 0
+- Failures: `tests/api.test.mjs` "CORS: every JSON answer and the preflight carry the open origin" and `tests/pages.test.mjs` "storefront files carry their content type, no-store and CORS". Both assume an open CORS origin, while the live `.env` now sets `CORS_ORIGIN=https://jedi.blastworks.ai` (from #61). These are test-isolation gaps, not product defects; without `.env` both pass. Kristof's build E (`kk/static-cache`) pins the setting in both tests.
+- Held-out grid: still skipped ("held-out set not on main"), path bug at `tests/heldout_grid.test.mjs:13`. Not fixed in this run; Kristof's build D repoints it to `inbox/judging/heldout/`.
+- How it ran: a throwaway copy of main, no `npm ci` download (node_modules linked), the live `.env` copied in and deleted afterwards. Docker access was blocked for the run, so no test could copy files into the live Zetaris container. The live `intake_runtime` and `decisions` row counts (21 and 22) and both runtime file hashes were identical before and after.
+- For Dean's slide: "776 tests, 772 pass, including 44 live Zetaris checks; the 2 failures are test-isolation gaps under a live CORS setting, fixed in build E". After build E merges: 0 fail expected.
+
+## 2026-10-25 · P50: gzip and cache headers, hosted half done [agent: claude]
+- Hosted (netcup Caddy, 25 Oct 22:07 CET; who serves `/shop/*`: netcup Caddy serves the pages and proxies the API). The blanket `Cache-Control: no-store` is replaced per type; the API stays `no-store`. Measured on https://jedi.blastworks.ai, before → after:
+  - `/shop/index.html`: `no-store` → `no-cache` (revalidates: If-Modified-Since → 304)
+  - `/shop/models/orbit-stand.glb`: `no-store`, uncompressed → `public, max-age=86400`, gzip (486,728 → 417,942 bytes)
+  - `/shop/fonts/manrope-latin-400-normal.woff2`: `no-store` → `public, max-age=86400`
+  - `/shop/js/contact.js`: `no-store` → `public, max-age=300`, gzip
+  - `GET /health`, `GET /counters`: `no-store` (unchanged)
+- Repo half (`server.mjs`, so a clean clone matches): Kristof's build E, PR to follow. Board row P50 → Kristof.
+
+## 2026-10-25 · For Paul: the board's "TESTING THE LIVE DEMO" block is out of date [agent: claude]
+- The hosted demo runs **open since 25 Oct 21:39 CET**: no token, no `?token=` link. Anyone opens https://jedi.blastworks.ai/shop/contact.html and submits (#63).
+- The guards that replace the key (#61): at most 2 live model runs at once (a third gets "busy, try again"), JSON-only POSTs, CORS locked to jedi.blastworks.ai, and an intake cap.
+- Still true from the block: s04 and s10 keep their fixed customers (a second run within 7 days closes as duplicate), the quick and slow scenario lists, and "SEND only records the reply".
+- New since #64: `GET /runs/{id}/progress` gives real step progress while a run is going (contract in `inbox/docs/FRONTEND-SPEC.md` §2 and §8), for whoever wires it on the contact page.
+- Teardown: 7 Nov 2026 00:00 UTC (`decisions.md` still says 5 Nov and 29 Oct in older lines).
