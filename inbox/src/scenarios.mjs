@@ -106,6 +106,8 @@ export function negatedTokens(text) {
   return out;
 }
 
+// P55 B: derive location qualifiers from the FAQ questions, never from row ids or edited FAQ data.
+const faqLocation = row => [...String(row.question ?? "").matchAll(/\b(?:at|in|to|from)\s+(?:the\s+)?(\p{Lu}[\p{L}-]*(?:\s+\p{Lu}[\p{L}-]*)*)/gu)].flatMap(m => tokens(m[1]));
 export function matchFaq(text, faqRows) {
   const t = new Set(tokens(text));
   const neg = negatedTokens(text);
@@ -117,7 +119,11 @@ export function matchFaq(text, faqRows) {
     const shared = [...t].filter((w) => pool.has(w));
     const negated = shared.filter((w) => neg.has(w));
     const score = (shared.length - negated.length / 2) / q.size;
-    if (!best || score > best.score) best = { row, score, shared, ...(negated.length ? { negated } : {}) };
+    const location = faqLocation(row);
+    const specificity = location.length ? (location.every(w => t.has(w)) ? 1 : -1) : 0;
+    const bestLocation = best ? faqLocation(best.row) : [];
+    const bestSpecificity = bestLocation.length ? (bestLocation.every(w => t.has(w)) ? 1 : -1) : 0;
+    if (!best || score > best.score || (score === best.score && specificity > bestSpecificity)) best = { row, score, shared, ...(negated.length ? { negated } : {}) };
   }
   return best && best.score >= 0.6 && best.shared.length >= 2 ? best : null;
 }
@@ -314,7 +320,7 @@ async function actQuestion(tb, p) {
       text: sample.frame(tb.ticket ?? tb.f, `From our records${quote?.page ? ` ("${quote.page}")` : ""}: ${quote ? sentences(quote.text) : "see the cited rows"}`),
       promises: NO_PROMISES(), model: "sample/rules",
     });
-    const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B });
+    const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B, hold: true });
     const draft = { text: r.draft.text, promises: r.draft.promises, model: r.draft.model };
     if (!r.ok) {
       const rounds = tb.S.rounds ?? [];
@@ -689,7 +695,7 @@ async function actComplaint(tb, p) {
       ? "Thank you for letting us know. We are sorry the order did not arrive as you hoped, and we have noted it."
       : sample.genuineComplaintBody(tb.ticket ?? tb.f)), // 2.1d: an injury is named (adapters/sample.mjs)
     promises: NO_PROMISES(), model: "sample/rules" });
-  const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B, hardRefusal: severe ? () => `severity ${sev.score}: a person handles it` : undefined });
+  const r = await tb.replyLoop(tb, { messagesFn, sampleDraftFn, branch: B, hold: !severe, hardRefusal: severe ? () => `severity ${sev.score}: a person handles it` : undefined });
   const draft = { text: r.draft.text, promises: r.draft.promises, model: r.draft.model };
   const critiques = (tb.S.rounds ?? []).flatMap((x) => [{ round: x.n, source: "Evaluator", pass: x.critique.pass, reason: x.critique.reason }, { round: x.n, source: "Risk", pass: x.risk.pass, reason: x.risk.reasons.join("; ") || "signed off" }]);
   const escalation = { severity: sev.score, kind: read.kind, reasoning: read.reasoning, handle: read.handle, world: ctx.provenance.map((x) => x.id) };
@@ -798,7 +804,7 @@ async function actCustomerService(tb, p) {
       const r = twin(); callLine(r.model, r, { input_summary: "rules recommendation after the model failed" }); return r;
     }
   };
-  const build = (rec) => ({ text: rec.draft, promises: NO_PROMISES(), model: rec.model, blanks: completeBlanks(rec.draft, rec.blanks) });
+  const build = (rec) => tb.holdDraft({ text: rec.draft, promises: NO_PROMISES(), model: rec.model, blanks: completeBlanks(rec.draft, rec.blanks) }, B);
   const check = (draft) => {
     const hr = tb.hardRisk(f, draft);
     const reasons = [...hr.reasons];

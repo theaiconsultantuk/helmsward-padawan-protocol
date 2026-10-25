@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { config } from "./config.mjs";
 import { RUNTIME_DIR, parseCsv, publishFile, q, serial } from "./decisions.mjs";
 
-export const INTAKE_HEADER = ["thread_id", "received_at", "channel", "sender_name", "sender_email", "subject", "body", "scenario", "category"];
+export const INTAKE_HEADER = ["thread_id", "received_at", "channel", "sender_name", "sender_email", "subject", "body", "scenario", "category", "decision_state"];
 export const INTAKE_CAP = 5000;
 export const INTAKE_FILE = "intake.csv";
 export const INTAKE_TABLE = "intake_runtime";
@@ -60,11 +60,22 @@ export function appendIntake({ message, from, name, subject, channel, scenario, 
     const row = {
       thread_id: nextId(rows), received_at: received_at ?? now().toISOString(), channel: channel ?? "",
       sender_name: name ?? (isEmail ? "" : f), sender_email: isEmail ? f : "",
-      subject: subject || subjectLabel(body), body, scenario: scenario ?? "", category: "",
+      subject: subject || subjectLabel(body), body, scenario: scenario ?? "", category: "", decision_state: "pending",
     };
     rows.push(row);
     writeAll(rows, runtimeDir);
     return { thread_id: row.thread_id, row };
+  });
+}
+
+// P55 A (einh, 25 Oct 2026): only completed decisions can suppress a retry, including after a restart.
+export function markIntakeDecided(thread_id, { runtimeDir = RUNTIME_DIR } = {}) {
+  return serial(async () => {
+    const rows = readIntake({ runtimeDir });
+    const row = rows.find(r => r.thread_id === thread_id);
+    if (!row) throw new Error("intake row missing at decision completion");
+    row.decision_state = "decided";
+    writeAll(rows, runtimeDir);
   });
 }
 

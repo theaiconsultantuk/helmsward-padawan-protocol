@@ -17,7 +17,7 @@ import { providerSummary, isNemotron, nightshiftEngine } from "./progress.mjs";
 import { fallbackOf } from "./adapters/nightshift.mjs";
 import * as queries from "./queries.mjs";
 import { parseRestricted } from "./queries.mjs";
-import { appendIntake, publishIntake } from "./intake.mjs";
+import { appendIntake, publishIntake, markIntakeDecided } from "./intake.mjs";
 import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS, ORDER_ID } from "./scenarios.mjs";
 import { readRefund } from "./refund_reader.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
@@ -217,6 +217,19 @@ export function promisesMoney(d, f) {
   return f?.amount != null && new RegExp(`(^|[^\\d.])${String(f.amount).replace(/\.0+$/, "").replace(".", "\\.")}(?:\\.0+)?([^\\d]|$)`).test(text);
 }
 
+// P55 C (einh, 25 Oct 2026): the closed set is intentional; additional phrases need the orchestrator's ruling.
+const HOLD_APPROVAL = /\b(?:processing|being processed|approved|issued|refunded|on its way)\b/i;
+export function guardHeldRefund(draft, facts, gates, L, branch) {
+  if (!draft || (facts?.category !== "refund" && gates?.answers?.category?.choice !== "refund")) return draft;
+  const text = [draft.text, typeof draft.promises?.other === "string" ? draft.promises.other : ""].join(" ");
+  const approval = HOLD_APPROVAL.exec(text)?.[0];
+  if (!approval && !promisesMoney(draft, facts)) return draft;
+  L({ step: "nvidia.model", agent_name: "Drafter", action: "hold_draft_replaced", source: "template", model: "template/hold", branch_id: branch,
+    input_summary: "held refund draft", output_summary: `held refund commitment guard: ${approval ?? "money promise"}; replaced with the hold template, no model retry`, status: "success" });
+  return { text: sample.frame(facts?.ticket ?? { sender_name: facts?.sender_name }, "Thank you for your message. A colleague will review your request and come back to you."),
+    promises: { refund_amount: null, replacement: false, other: null }, model: "template/hold" };
+}
+
 // The ONE send-eligibility rule (Codex 29, finding 2): a decision "send" needs a non-empty draft and a channel whose row does not say
 // autonomous_reply false (channels.csv). Every send path asks here; a send that fails it becomes a hold for the owner.
 export function sendEligible(facts, draft) {
@@ -234,7 +247,7 @@ export const APPROVAL_ACK = "Thank you for your request. It has been routed for 
 //   sampleDraftFn(seed)       -> sample-mode draft        (default: the run's sample drafter)
 //   hardRefusal(f, draft, n)  -> a reason string that makes the round a hard Risk refusal, or null (default: the over-limit rule)
 // Returns { draft, crit, risk, rounds, retried, ok }; rounds is the number of rounds run.
-export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRounds, hardRefusal } = {}) {
+export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRounds, hardRefusal, hold = false } = {}) {
   const { f, ticket, L, skipped, fatal, S, sampleOn, memCtx, io } = tb;
   const B = branch ?? S.branch?.branch_id;
   const max = maxRounds ?? tb.maxRounds ?? 2;
@@ -346,7 +359,9 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     return { pass, reasons, hard, level: S.scoutRisk };
   };
 
-  let draft = await makeDraft("correct", [], 1);
+  const held = hold || B === "under-floor" || B === "thanks-request" || f.channel_autonomous === false;
+  const holdDraft = d => held ? guardHeldRefund(d, f, tb.gates, L, B) : d;
+  let draft = holdDraft(await makeDraft("correct", [], 1));
   if (!draft.failed) S.draft = { text: draft.text, promises: draft.promises, model: draft.model }; // kept even if a later gate dies, so a chain can hand it on
   let round = 1;
   let retried = false;
@@ -373,7 +388,7 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     retried = true;
     L({ step: "planner.plan", agent_name: "Planner", action: "plan_revision", branch_id: B, retry_count: round, input_summary: "both critiques",
       output_summary: `revised plan: branches reply-now vs hold-or-escalate; keep ${B}, redraft once with both critiques, then gate`, status: "success", memory_ids: S.memRead });
-    draft = await makeDraft("revised", both, round + 1);
+    draft = holdDraft(await makeDraft("revised", both, round + 1));
     round += 1;
   }
   if (approvalPath && promisesMoney(draft, f)) {
@@ -598,6 +613,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     if (S.decision !== "send" || sendEligible(S.facts, S.draft)) return false;
     const why = sendBlockReason(S.facts, S.draft);
     S.decision = "hold";
+    S.draft = guardHeldRefund(S.draft, S.facts, S.gates, L, S.branch?.branch_id);
     S.autoReply = false;
     S.meta = { ...S.meta, status: "open" };
     S.reasons.push(`held for owner ${S.facts?.owner_id ?? "?"}, draft kept: ${why}`);
@@ -873,6 +889,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     // The toolbox the reply loop (and, from S1.3a, the scenario handlers) work through.
     const tb = {
       f, ticket, inputText, L, skipped, soft, fatal, escalate, replyLoop, hardRisk, queries, o, sampleOn, cfg, trace, memCtx, decided, gates, S,
+      holdDraft: (d, branch) => guardHeldRefund(d, f, gates, L, branch),
       maxRounds, runtimeDir, progress: { work: (purpose) => workStart(purpose, sampleOn ? "sample rules" : "OpenJev") }, scenario: S.scenario, io: { drafter, sampleDrafter, sampleCritic, critic, reader, adapterTrace, signal: runAbort.signal },
       readerOn: !(["false", "0"].includes(String(cfg.REFUND_READER ?? "true").trim().toLowerCase())),
     };
@@ -916,6 +933,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       L({ step: "planner.plan", agent_name: "Planner", action: "route_scenario", branch_id: B, input_summary: `ticket ${thread_id}`,
         output_summary: `scenario ${S.scenario.scenario} (${S.scenario.how}) → ${B}`, status: "success", memory_ids: S.memRead });
       const a = await handler.act(tb, probe);
+      if (a.decision === "hold" && a.draft) a.draft = tb.holdDraft(a.draft, B);
       S.decision = a.decision;
       if (a.reasons?.length) S.reasons = [...a.reasons];
       if (a.draft) S.draft = { text: a.draft.text, promises: a.draft.promises, model: a.draft.model, ...(a.draft.blanks ? { blanks: a.draft.blanks } : {}) };
@@ -1009,6 +1027,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   async function body() {
     try {
       await pipeline();
+      S.intakeDecided = true;
     } catch (e) {
       if (e?.name === "IntakeFull") throw e;
       if (!(e instanceof Stop)) {
@@ -1038,6 +1057,11 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     L({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after run timeout", output_summary: "run capped, escalated to human", status: "success" });
     if (!S.decision) escalate([{ source: "Planner", reason: msg }], msg);
     S.aborted = true; // later lines from the abandoned body are dropped; the finalisation below uses F
+  }
+
+  if (isMsg && S.intakeDecided && !timedOut) {
+    try { await markIntakeDecided(thread_id, { runtimeDir: deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime") }); }
+    catch (e) { soft("executor.act", e, "intake completion could not be saved: this run will not suppress a retry"); }
   }
 
   // 11. memory.write (one factual memory per run)
