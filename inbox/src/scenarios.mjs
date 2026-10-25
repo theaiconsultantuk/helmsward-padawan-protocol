@@ -580,8 +580,11 @@ async function probeComplaint(tb) {
     }
   }
   // severity (the gate logs its own line through the shim)
-  const sev = await seams.severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
+  const endSev = tb.progress?.work?.("severity") ?? (() => {});
+  let sev;
+  try { sev = await seams.severityGate(ticket, { ...f, repeat: ctx.summary.earlier_threads > 0, publicChannel: f.channel_public === true }, wline,
     { trace: { line: (x) => lines.push(x) }, cfg: tb.cfg, sampleMode: tb.sampleOn, kind: read.kind, signal: tb.io?.signal });
+  } finally { endSev({}); }
   // a legal threat wins over the channel and over plain severity: the severity read says legal, or a score of 10 on lawyer/legal/sue words
   const legal = sev.legal === true || (sev.score >= 10 && LEGAL_TEXT.test(`${ticket.subject} ${ticket.body}`));
   // a self-described mild injury is a genuine complaint whatever the severity model scored it: a person still owns it, the draft is attached, and the note names the injury

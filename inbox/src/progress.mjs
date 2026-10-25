@@ -11,6 +11,8 @@ export const WORK = {
   gates: { agent: "Gates", label: "Typed gates", engine: "OpenJev" },
   severity: { agent: "Severity", label: "Severity gate", engine: "OpenJev" },
   facts: { agent: "Executor", label: "Facts from Zetaris", engine: "Zetaris" },
+  duplicate: { agent: "Executor", label: "Duplicate check", engine: "Zetaris" },
+  ledger: { agent: "Executor", label: "Trust ledger", engine: "Zetaris" },
   intake: { agent: "Executor", label: "Saving the message to Zetaris", engine: "Zetaris" },
 };
 export const nightshiftEngine = (cfg) => !cfg.NIGHTSHIFT_ROUTE_PRIMARY || isNemotron(cfg.NIGHTSHIFT_ROUTE_PRIMARY) ? "Nemotron" : `Nightshift (${cfg.NIGHTSHIFT_ROUTE_PRIMARY})`;
