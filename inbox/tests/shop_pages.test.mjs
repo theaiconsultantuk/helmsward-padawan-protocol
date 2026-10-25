@@ -263,7 +263,7 @@ test("(judges) a scenario click fills the form, never starts a run, and hands fo
   const pick = fnBody(js, "pickScenario");
   assert.ok(!/\brun\(|requestSubmit|\.submit\(|\.click\(\)|dispatchEvent/.test(pick), "pickScenario must not start a run");
   assert.match(pick, /Ready: check the message, then press Submit dispatch\./);
-  assert.match(pick, /focusSubmit\(\$\("submit"\)\)/);
+  assert.match(pick, /focusSubmit\(\$\("submit"\), from\)/);
   const focus = fnBody(js, "focusSubmit");
   assert.match(focus, /scrollIntoView/);
   assert.match(focus, /\.focus\(/);
@@ -303,4 +303,17 @@ test("(judges) a rendered journey nudges Under the hood without opening the draw
 
 test("(judges) the form and the flow clear the fixed masthead when scrolled to", () => {
   assert.match(readShop("css/totality.css"), /#contact-form,#flow\{scroll-margin-top:calc\(var\(--mast,72px\) \+ 16px\)\}/);
+});
+
+test("(judges) a held Enter on a scenario button cannot press Submit, and focus is not stolen", () => {
+  const js = readShop("js/contact.js");
+  const focus = fnBody(js, "focusSubmit");
+  assert.match(focus, /document\.activeElement/);
+  assert.match(focus, /stillThere && btn/, "focus moves only if the judge is still on the scenario button or nowhere");
+  assert.match(focus, /focusMovedAt = Date\.now\(\)/);
+  assert.match(fnBody(js, "pickScenario"), /var from = document\.activeElement/);
+  assert.match(js, /focusSubmit\(\$\("submit"\), from\)/);
+  assert.match(js, /if \(scKeyHeld \|\| Date\.now\(\) - focusMovedAt < 600\) return;/, "the submit handler ignores a held key and the first 600 ms");
+  assert.match(js, /ev\.target\.closest\("\.sc__btn"\)\) scKeyHeld = true/);
+  assert.match(js, /keyup[\s\S]{0,120}scKeyHeld = false/);
 });

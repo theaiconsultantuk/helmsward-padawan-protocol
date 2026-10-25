@@ -334,14 +334,24 @@
   }
 
   // A click only fills. The form sits above the scenario list, so bring it into view and park focus on the button that starts the run.
-  function focusSubmit(btn) {
+  // Guard against a held Enter/Space: the click on a scenario button repeats while the key is down, and once the fill moves focus to Submit the
+  // repeats would press it. Focus only moves if the judge is still on that scenario button (or nowhere), and a Submit that arrives while the
+  // key is still down, or within 600 ms of the focus move, is ignored.
+  var scKeyHeld = false, focusMovedAt = 0;
+  function focusSubmit(btn, from) {
+    var ae = document.activeElement;
+    var stillThere = !ae || ae === document.body || ae === document.documentElement || (from && ae === from);
     var form = $("contact-form");
     var reduced = window.T && window.T.reduced;
     if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" }); } catch (e) { /* position only */ } }
-    if (btn && btn.focus) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
+    if (stillThere && btn && btn.focus) {
+      focusMovedAt = Date.now();
+      try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); }
+    }
   }
 
   function pickScenario(id) {
+    var from = document.activeElement;
     var e = entryById(id);
     if (!e || busy) return;
     var seq = ++pickSeq;
@@ -371,11 +381,11 @@
         if (e.channel === "trustpilot" || e.channel === "email") {
           showSourceCard(e, res.client);
           setStatus(res.note + "Message filled. Press Simulate arrival to send it.");
-          focusSubmit(document.querySelector("#source-card .src__submit"));
+          focusSubmit(document.querySelector("#source-card .src__submit"), from);
         } else {
           hideSourceCard();
           setStatus(res.note + "Ready: check the message, then press Submit dispatch.");
-          focusSubmit($("submit"));
+          focusSubmit($("submit"), from);
         }
       });
   }
@@ -753,6 +763,8 @@
       form.addEventListener("submit", function (ev) {
         ev.preventDefault();
         if (busy) return;
+        // a Submit pressed by a key still held from a scenario button, or right after focus moved to it, is not a deliberate press
+        if (scKeyHeld || Date.now() - focusMovedAt < 600) return;
         var input = readInput();
         if (!input.message) { setStatus("Write a message first.", true); $("message").focus(); return; }
         var em = $("email").value.trim();
@@ -764,6 +776,11 @@
     if (msg) msg.addEventListener("input", function () {
       if (active && msg.value.trim() !== str(active.message).trim()) { active = null; pickSeq++; markActive(null); showExpected(); }
     });
+    document.addEventListener("keydown", function (ev) {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target && ev.target.closest && ev.target.closest(".sc__btn")) scKeyHeld = true;
+    }, true);
+    document.addEventListener("keyup", function (ev) { if (ev.key === "Enter" || ev.key === " ") scKeyHeld = false; }, true);
+    window.addEventListener("blur", function () { scKeyHeld = false; });
     var box = $("scenarios");
     if (box) box.addEventListener("click", function (ev) {
       var b = ev.target.closest ? ev.target.closest(".sc__btn") : null;

@@ -4,7 +4,7 @@
 // Extra argv is passed through: `npm test -- tests/queries.test.mjs` runs just that file; with no file argument, every tests/*.test.mjs runs.
 import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, constants as osConstants } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -12,11 +12,25 @@ const inbox = join(dirname(fileURLToPath(import.meta.url)), "..");
 const testsDir = join(inbox, "tests");
 const runDir = mkdtempSync(join(tmpdir(), "jedi-test-"));
 
-let cleaned = false;
+// The run folder counts as cleaned only once it is really gone; a failed removal is reported (with the path) and fails an otherwise green run.
+let removed = false;
+let removeError = null;
 function cleanup() {
-  if (cleaned) return;
-  cleaned = true;
-  try { rmSync(runDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch { /* best effort */ }
+  if (removed) return true;
+  try {
+    rmSync(runDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+    removed = true;
+    removeError = null;
+  } catch (e) {
+    removeError = e;
+  }
+  return removed;
+}
+let reported = false;
+function reportLeft() {
+  if (reported || removed) return;
+  reported = true;
+  console.error(`test wrapper: could not remove the run folder ${runDir}: ${removeError && removeError.message}`);
 }
 
 const args = process.argv.slice(2);
@@ -29,12 +43,27 @@ const env = { ...process.env, TMPDIR: runDir, TEMP: runDir, TMP: runDir };
 delete env.NODE_TEST_CONTEXT;
 const child = spawn(process.execPath, ["--test", ...args, ...files], { cwd: inbox, stdio: "inherit", env });
 
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {
-  process.on(sig, () => { try { child.kill(sig); } catch { /* already gone */ } });
+const SIGNALS = ["SIGINT", "SIGTERM", "SIGHUP"];
+const forwarders = {};
+for (const sig of SIGNALS) {
+  forwarders[sig] = () => { try { child.kill(sig); } catch { /* already gone */ } };
+  process.on(sig, forwarders[sig]);
 }
-child.on("error", (e) => { console.error(`test wrapper: ${e.message}`); cleanup(); process.exit(1); });
+child.on("error", (e) => { console.error(`test wrapper: ${e.message}`); cleanup(); reportLeft(); process.exit(1); });
 child.on("close", (code, signal) => {
-  cleanup();
-  process.exit(code ?? (signal ? 128 + (signal === "SIGINT" ? 2 : 15) : 1));
+  const ok = cleanup();
+  if (!ok) reportLeft();
+  if (signal) {
+    // keep the child's termination signal: drop the forwarders and re-raise it on ourselves; where that cannot end us (Windows), exit 128+signo
+    for (const sig of SIGNALS) process.removeListener(sig, forwarders[sig]);
+    const no = osConstants.signals[signal] ?? 0;
+    try { process.kill(process.pid, signal); } catch { /* fall through */ }
+    setTimeout(() => process.exit(128 + no), 200);
+    return;
+  }
+  process.exit(code !== 0 ? (code ?? 1) : (ok ? 0 : 1));
 });
-process.on("exit", cleanup);
+// last chance: retry the removal; if it still fails, an otherwise passing run fails
+process.on("exit", () => {
+  if (!cleanup()) { reportLeft(); if (!process.exitCode) process.exitCode = 1; }
+});
