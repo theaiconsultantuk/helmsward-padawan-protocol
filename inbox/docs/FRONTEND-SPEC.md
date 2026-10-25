@@ -30,7 +30,7 @@ Static files only: there is no build step on the server. Commit the built output
 `/static/<name>` maps to `public/<name>`, and `/dashboard` maps to `public/dashboard.html`. The hosted instance serves any file under `inbox/public/`. The reference server in a clean clone serves only its closed list (`app.js`, `dashboard.js`, `style.css`, `demo-scenarios.json`).
 Hidden files (any path segment starting with `.`) are 404 on the hosted instance.
 A new API route needs its line in the netcup proxy list. Ask Kristof.
-The write calls need the bearer token (section 1). It is handed over directly, never committed. A page takes `?token=` once and then strips it from the address bar after reading it.
+The hosted instance runs without `API_TOKEN`, so the write calls need no token there. When an instance does set it (section 1), the token is handed over directly, never committed; a page takes `?token=` once and then strips it from the address bar after reading it.
 Cloudflare's edge returns a gateway error after about 100 s with no response, while the run completes server-side. Generate your own `run_id` before `POST /run` (section 2 allows it) and, after any gateway error, poll `GET /runs/{id}` with that id.
 On your own machine, run `SAMPLE_MODE=true npm start`, or point the `api-base` meta at the hosted host.
 
