@@ -193,26 +193,8 @@
     setInterval(function () { if (!document.hidden) load(); }, 20000);
   }
 
-  // Access code gate (P53). A convenience, NOT security: the server's reads (/counters, /queue, /runs) are open to
-  // anyone, and only the POST routes check the bearer. This just asks once for the code a judge who arrived without
-  // ?token= needs for Affirm/Reject, saves it under the same jp_token key contact.js uses, and carries on.
-  var gate = $("access");
-  if (token || !gate) start();
-  else {
-    gate.hidden = false;
-    var field = $("access-code");
-    try { field.focus(); } catch (e) { /* focus only */ }
-    gate.addEventListener("submit", function (e) {
-      e.preventDefault();
-      var v = String(field.value || "").trim();
-      if (!v) return;
-      token = v;
-      try { localStorage.setItem("jp_token", v); } catch (err) { /* kept in memory only */ }
-      field.value = "";
-      gate.hidden = true;
-      start();
-    });
-  }
+  // No access code: the hosted demo runs open since 25 Oct 21:39 CET (no token), so the desk loads straight away.
+  start();
 
   // The desk loads no core.js, so the Menu button in the masthead would do nothing: open and close that one dialog here.
   document.addEventListener("click", function (e) {
