@@ -11,6 +11,13 @@ Updated: 2026-10-24. Status: BUILD phase, core service built on main, now the su
 > **RULE FOR THE WHOLE TEAM (Kristof, 25 Oct): DO NOT ADD ANY PRODUCTS OR CHANGE PRODUCT DESCRIPTIONS.**
 > The storefront catalogue (`inbox/public/shop/data/catalogue.json`) and the agent's product data (`kristof/data/products.csv` → `inbox/data/synthetic/products.csv`, Zetaris) are kept identical and are checked against each other by the storefront parity test; the demo scenarios answer from them. Any change there, even one word, breaks the parity test or changes what the agent tells a judge. Need something changed? Ask Kristof first.
 
+> **TESTING THE LIVE DEMO (Kristof, 25 Oct)**
+> - Link: `https://jedi.blastworks.ai/shop/contact.html?token=<team token>`. The token is the one Kristof shared with you; never paste it in the repo, the board, a screenshot or the video. Open the link with `?token=` once: the page removes it from the address bar and remembers it in that browser, so afterwards `https://jedi.blastworks.ai/shop/contact.html` works there.
+> - Yes, the bearer token still applies: without it the page loads, the FAQ and the scenario list show, but Submit is refused (401).
+> - **Do NOT use s04 ("Second refund from the same client") or s10 ("Delivery to a suspended planet").** They always send as the same seeded customer (Lira Venn, Cass Holm), so each gives one clean answer; a second run within 7 days closes as "duplicate". The live inbox was cleared on 25 Oct so judges get the real answer.
+> - Every other scenario is fine: each click gets a fresh random customer. Quick (seconds): s05, s06, s07, s11, s12. About 20 s: s09. Slow, live model (1-4 min, the page shows "Still working"): s01, s02, s03, s08, s13, s14.
+> - A scenario click only fills the form; press Submit dispatch to run it. Every run lands in the live inbox; SEND only records the reply (no email goes out).
+
 Idea in one line: one decision per customer message, send, hold or escalate, with the Zetaris rows that justified it.
 Track: proposed Track 3 Reasoning Architecture (SCOUT fit 9/10; Track 2 fit 7/10). Paul to confirm.
 Scope cut (SCOUT): four Zetaris sources, 24 authored threads, file drop-ins for email, contact form and Trustpilot, one screen with four counters. Not the 27-item list.
