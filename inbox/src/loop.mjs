@@ -18,7 +18,7 @@ import { fallbackOf } from "./adapters/nightshift.mjs";
 import * as queries from "./queries.mjs";
 import { parseRestricted } from "./queries.mjs";
 import { appendIntake, publishIntake } from "./intake.mjs";
-import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS } from "./scenarios.mjs";
+import { HANDLERS, resolveScenario, matchFaq, matchProductLookup, TOPIC_OF, FACT_NEEDS, ORDER_ID } from "./scenarios.mjs";
 import { readRefund } from "./refund_reader.mjs";
 import { draftMessages, evaluatorMessages, parseDraftJson, parseCriticJson, NUDGE, mentionsRefund, normalizeReply, REFUND_WORDS } from "./prompts.mjs";
 
@@ -63,6 +63,7 @@ function faultingSqlRun(cfg, trace) {
   };
 }
 
+const MONEY_ROADS = new Set(["delivery", "customer_service", "other", "question", "legacy"]);
 const BRANCH_RE = /^amount .* over the policy limit/;
 const LEGACY_CATEGORY = { "refund.request": "refund", "replacement.request": "replacement", complaint: "complaint", appreciation: "appreciation" };
 
@@ -244,17 +245,19 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
   let refused = false;
   // the approval path: an amount over the limit with someone to approve it (the default hardRefusal; a caller's own refusal is not this path)
   const approvalPath = !hardRefusal && Boolean(overLimitRefusal(f));
+  const named = f.order_check?.known === false && (f.order_check.order_id != null || S.rerouted === true);
+  const orderLine = named ? sample.orderSentence(f.order_check) : "";
 
   const makeDraft = async (seed, critiques, n) => {
     const sampled = () => {
-      const d = sampleDraft(seed, { overLimit: approvalPath, thanksRequest: B === "thanks-request" });
+      const d = sampleDraft(seed, { overLimit: approvalPath, thanksRequest: B === "thanks-request", orderCheck: named ? f.order_check : null });
       L({ step: "nvidia.model", agent_name: "Drafter", action: n > 1 ? "draft_revised" : "draft_reply", model: d.model, input_summary: `round ${n}, seed ${seed}`, output_summary: "sample mode: rules drafter, no model call", status: "skipped", branch_id: B, retry_count: n - 1 });
       S.models.drafter = d.model;
       return { text: d.text, promises: d.promises, model: d.model };
     };
     if (sampleOn) return sampled();
     let messages = msgs({ critiques });
-    if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}` } : m));
+    if (approvalPath) messages = messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${OVER_LIMIT_LINE}${orderLine ? `\n${orderLine} Say this to the customer.` : ""}` } : m));
     if (B === "thanks-request") messages = messages.map((m, i) => i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n${THANKS_REQUEST_LINE}` } : m);
     let res;
     try {
@@ -356,7 +359,11 @@ export async function replyLoop(tb, { messagesFn, sampleDraftFn, branch, maxRoun
     // the one rewrite round did not remove the promise: nothing the model wrote is attached; the approver gets the fixed acknowledgement
     L({ step: "nvidia.model", agent_name: "Drafter", action: "draft_replaced", model: "template/approval-ack", branch_id: B, retry_count: round - 1,
       input_summary: `round ${round} draft still promises money after the rewrite`, output_summary: "replaced by the approval acknowledgement (code, no amount, no date); the model draft is not attached", status: "success" });
-    draft = { text: sample.frame({ sender_name: f.sender_name }, APPROVAL_ACK), promises: { refund_amount: null, replacement: false, other: null }, model: "template/approval-ack" };
+    draft = { text: sample.frame({ sender_name: f.sender_name }, APPROVAL_ACK + (orderLine ? ` ${orderLine}` : "")), promises: { refund_amount: null, replacement: false, other: null }, model: "template/approval-ack" };
+  }
+  if (approvalPath && orderLine && !/could not find/i.test(draft.text)) {
+    const sign = draft.text.lastIndexOf("\n\nBest regards");
+    draft.text = sign >= 0 ? `${draft.text.slice(0, sign)} ${orderLine}${draft.text.slice(sign)}` : `${draft.text} ${orderLine}`;
   }
   S.draft = { text: draft.text, promises: draft.promises, model: draft.model };
   const ok = Boolean(crit.pass && risk.pass);
@@ -590,6 +597,24 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let preGates = null;
     let preGbuf = stampedBuffer();
     const factsOpts = {};
+    let checkedOrder = null;
+    // P43, einh 25 Oct 2026: share the delivery id grammar; JP-99310 and "order 4512" are missing ids.
+    const orderCheck = async (text) => {
+      if (checkedOrder) return checkedOrder;
+      const oid = (ORDER_ID.exec(String(text ?? ""))?.[0] ?? "").toUpperCase();
+      if (!oid) return checkedOrder = { order_id: null, known: false };
+      const orderTrace = { line: (x) => {
+        if (x.action === "sql:order") { const { detail, ...safe } = x; buf.push(safe); }
+        else buf.push(x);
+      } };
+      try {
+        const r = await (deps.orderQuery ?? queries.run)("order", { order_id: oid }, { cfg, trace: orderTrace });
+        return checkedOrder = { order_id: oid, known: r.objects.length > 0 };
+      } catch (e) {
+        buf.push({ step: "recovery", agent_name: "Planner", action: "recover", input_summary: "after sql:order error", output_summary: "order lookup unavailable: no claim is made about a missing order", status: "success" });
+        return checkedOrder = { order_id: oid, known: null };
+      }
+    };
     if (isMsg) {
       S.current = "executor.act";
       const dir = deps.runtimeDir ?? join(INBOX_ROOT, "data", "runtime");
@@ -655,6 +680,20 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       S.scenario = resolveScenario({ kind: "message", declared: input.scenario, decided: preDecided, gates: preGates, faqHit, text: row.body, productHit });
       const params = preDecided?.parameters ?? {};
       if (params.summed >= 2 && params.currency === "GC") S.summedNote = `summed ${params.summed} listed amounts (${(params.amounts ?? []).join(" + ")} = ${params.amount} GC; the message never says "total")`;
+      // P43, einh 25 Oct 2026: GC only; known orders, declared scenarios and non-money roads keep their rules.
+      if (S.scenario.how !== "declared" && MONEY_ROADS.has(S.scenario.scenario) && params.currency === "GC" && params.amount != null
+          && Number(preGates?.answers?.asks_for_money ?? 0) >= 0.5) {
+        let limit = null;
+        try { limit = (await queries.run("policy", { topic: "refund" }, { cfg, trace: { line: () => {} } })).objects[0]?.limit_amount; } catch { /* no policy proof, no reroute */ }
+        if (limit != null && params.amount > Number(limit)) {
+          const check = await orderCheck(row.body);
+          if (check.known === false) {
+            S.rerouteNote = `a refund of ${params.amount} GC is over the ${limit} GC limit, order ${check.order_id || "number not given"} not found: routed to the amount approver (was the ${S.scenario.scenario} road)`;
+            S.rerouted = true;
+            S.scenario = { scenario: "refund", how: "amount" };
+          }
+        }
+      }
       // a legacy-resolved message keeps the category Scout read (a replacement request is not a question); the scenario's own topic otherwise
       Object.assign(factsOpts, { ticketSource: "intake", intakeRow: row, published: S.msg.published, topic: TOPIC_OF[S.scenario.scenario] ?? LEGACY_CATEGORY[preDecided?.intent?.primary?.id] ?? "question", needs: FACT_NEEDS[S.scenario.scenario] ?? [],
         amount: params.currency === "GC" ? params.amount : undefined });
@@ -700,6 +739,8 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     }
     const inputText = f ? (f.follow_up_kind ? (f.follow_up_body || f.body) : f.body) : "";
 
+    if (isMsg && f && overLimit(f)) f.order_check = await orderCheck(inputText);
+
     // 1. memory.read
     S.current = "memory.read";
     const memoryReadStart = Date.now();
@@ -735,7 +776,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       step: "planner.plan", agent_name: "Planner", action: "plan", input_summary: `ticket ${thread_id}`,
       output_summary: `branches: reply-now vs hold-or-escalate; selected ${replyNow ? "reply-now" : "hold-or-escalate"} (${pre.branch_id}: ${one(pre.why, 120)}). memory ids: ${S.memRead.join(", ") || "none"}`
         + (known ? `. Memory ${known.memory.id} recalls this customer from an earlier run: the planner reused its decision context and re-read the rows through Zetaris (amount ${f.amount ?? "none"} vs limit ${f.policy_limit ?? "?"})` : "")
-        + (secondRefund() ? `. ${secondRefund()}` : "") + (S.summedNote ? `. ${S.summedNote}` : ""),
+        + (secondRefund() ? `. ${secondRefund()}` : "") + (S.summedNote ? `. ${S.summedNote}` : "") + (S.rerouteNote ? `. ${S.rerouteNote}` : ""),
       status: "success", memory_ids: S.memRead, ...(known ? { retry_count: 0 } : {}),
     });
 
@@ -923,7 +964,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       const ap = approverOf(f);
       const approval = { kind: "amount", amount: f.amount, limit: f.policy_limit, approver_id: ap.id, approver_name: ap.name };
       escalate([...critiques, { source: "Draft", reason: `proposed reply, attached for approval: ${draft.text}` }],
-        `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount`, {}, { approval, draft });
+        `${S.branch.why}; Risk refused, ${ap.name ?? `employee ${ap.id}`} approves the amount${f.order_check?.known === false && (f.order_check.order_id != null || S.rerouted === true) ? `; ${f.order_check.order_id ? `order ${f.order_check.order_id} is not in the records` : "no order number given"}` : ""}`, {}, { approval, draft });
       return;
     }
     if (!ok) {

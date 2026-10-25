@@ -26,7 +26,7 @@ const NO_PROMISES = () => ({ refund_amount: null, replacement: false, other: nul
 
 // words that put a message about an order id on the delivery road
 const DELIVERY_WORDS = /\b(deliver\w*|order|shipping|shipped|ship|where is|track\w*|parcel|package|arriv\w*)\b/i;
-const ORDER_ID = /\bJP-\d{4}\b/i;
+export const ORDER_ID = /\bJP-\d{4}\b/i;
 // a question about what a product is, made of or costs, with or without the product named
 const PRODUCT_WORDS = /\b(made of|made from|made out of|material|materials|specs?|specifications?|dimensions?|weigh\w*|price|cost|costs|how much|lead time)\b/i;
 const COMPLAINT_CUES = /\b(lawyer|lawyers|attorney|solicitor|legal action|sue|sued|suing|court|burn|burns|burning|burned|burnt|injur\w*|hurt|hurts|hurting|unsafe|split open|furious|unacceptable|never again|worst|disgusting|terrible|nobody (?:replied|answered))\b/i;

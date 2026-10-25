@@ -118,7 +118,14 @@ const REPLACE = /replacement|replace|broken|damaged|cracked/i;
 
 // opts.overLimit (true when the refund is over the policy limit; 2.1d wires it from the loop): the draft says the request is
 // routed for approval and promises no refund, amount or date.
-export function draft(ticket, facts, { seed = "correct", overLimit = false, thanksRequest = false } = {}) {
+export function orderSentence(check) {
+  if (!check || check.known !== false) return "";
+  return check.order_id
+    ? `We could not find order ${check.order_id} in our records; please reply with your order number.`
+    : "We could not find an order number in your message; please reply with your order number.";
+}
+
+export function draft(ticket, facts, { seed = "correct", overLimit = false, thanksRequest = false, orderCheck = null } = {}) {
   const cat = facts.category ?? ticket.category;
   // The rows the draft rests on travel in the result's cited_rows and the trace, never in the customer's text (a draft printed "holiday_2026:15@2026-10-22" to a customer; Dean, 24 Oct).
   const hi = `Hello${ticket.sender_name ? ` ${ticket.sender_name}` : ""},`;
@@ -146,6 +153,7 @@ export function draft(ticket, facts, { seed = "correct", overLimit = false, than
   } else {
     mid = "Thank you for getting in touch.";
   }
+  if (overLimit && orderSentence(orderCheck)) mid += ` ${orderSentence(orderCheck)}`;
   return { text: frame(ticket, `${ask} ${mid}`), model: MODEL, route: "sample", promises };
 }
 
