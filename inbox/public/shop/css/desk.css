@@ -45,3 +45,5 @@
 .run__acts { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 10px; align-items: center; }
 .is-bad { color: #FF5A1F; }
 @media (max-width: 640px) { .desk { padding: 96px 16px 56px; } }
+.dcard__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.dcard__acts .desk__btn { flex: 1 1 auto; }
