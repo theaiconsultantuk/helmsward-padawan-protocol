@@ -1,0 +1,28 @@
+/* Approval chain dialog (chain.js). TOTALITY tokens; simulation is flagged in ember. */
+.chain { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; margin: auto; padding: 24px; background: #050506; color: #F2EEE6; border: 1px solid #FF5A1F; box-shadow: 0 0 40px rgba(255, 90, 31, .3); }
+.chain::backdrop { background: rgba(0, 0, 0, .75); }
+.chain__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.chain__head h2 { margin: 0; font: 800 clamp(34px, 5vw, 52px)/.9 var(--display, "Big Shoulders Display", Impact, sans-serif); text-transform: uppercase; }
+.chain__sim { margin: 12px 0 4px; padding: 8px 12px; border: 1px dashed #FF5A1F; color: #FF5A1F; font: 500 12px/1.5 var(--font, Manrope, sans-serif); letter-spacing: .1em; text-transform: uppercase; }
+.chain__why { margin: 0 0 14px; color: #8A8A8F; }
+.chain__steps { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 2px solid #8A8A8F; display: grid; gap: 14px; }
+.chain__step { position: relative; padding: 0 0 0 8px; }
+.chain__step::before { content: ""; position: absolute; left: -22px; top: 6px; width: 10px; height: 10px; background: #050506; border: 2px solid #8A8A8F; }
+.chain__step.is-real::before, .chain__step.is-done::before { background: #F2EEE6; border-color: #F2EEE6; }
+.chain__step.is-live::before { background: #FF5A1F; border-color: #FF5A1F; box-shadow: 0 0 12px rgba(255, 90, 31, .8); }
+.chain__step.is-wait { opacity: .55; }
+.chain__step.is-bad::before { background: #FF5A1F; border-color: #FF5A1F; }
+.chain__t { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.chain__t strong { font-weight: 500; }
+.chain__tag { font: 500 10px/1.8 var(--font, Manrope, sans-serif); letter-spacing: .12em; text-transform: uppercase; padding: 0 8px; border: 1px solid #8A8A8F; color: #8A8A8F; }
+.is-live .chain__tag, .is-done .chain__tag { border-color: #FF5A1F; color: #FF5A1F; }
+.chain__p, .chain__reply { margin: 6px 0 0; color: #8A8A8F; overflow-wrap: anywhere; }
+.chain__reply { color: #F2EEE6; border-left: 2px solid #FF5A1F; padding-left: 12px; }
+.chain__out { margin: 6px 0 0; color: #FF5A1F; font: 500 12px/1.4 var(--font, Manrope, sans-serif); letter-spacing: .08em; text-transform: uppercase; }
+.chain__mail { margin: 8px 0 0; }
+.chain__mail summary { cursor: pointer; color: #8A8A8F; font: 500 12px/1.6 var(--font, Manrope, sans-serif); letter-spacing: .1em; text-transform: uppercase; }
+.chain__pre { margin: 8px 0 0; padding: 12px; background: #0a0a0c; border: 1px solid rgba(138, 138, 143, .3); white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.5 ui-monospace, Menlo, monospace; color: #F2EEE6; }
+.chain__acts { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 10px; align-items: center; }
+.chain__out-toggle { color: #8A8A8F; font-size: 14px; cursor: pointer; }
+.chain__out-toggle input { accent-color: #FF5A1F; }
+.chain__reset { margin-top: 18px; }
