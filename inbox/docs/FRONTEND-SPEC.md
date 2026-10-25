@@ -22,7 +22,7 @@ Your page should do the same: `fetch(base + "/run", ...)`.
 
 ## 1b. The hosted instance: https://jedi.blastworks.ai
 
-The team shares one hosted instance at https://jedi.blastworks.ai. It is live from 23 Oct 2026 and stays up after the hackathon (Kristof, 25 Oct).
+The team shares one hosted instance at https://jedi.blastworks.ai. It is live from 23 Oct 2026 until 5 Nov 2026 (Kristof, 25 Oct).
 The pages are static files served from netcup (`X-Served-By: prodsites-netcup`). The API runs on the dev VM. Both answer on the same origin, so keep the `api-base` meta empty.
 The pages are whatever `inbox/public/` holds on `main`. They follow `main` within about a minute of a merge, once the deploy key is in place; until then a seed of the 23 Oct `main` is served.
 The API follows `main` within about two minutes. It has its own release timer and rolls back if the health check fails.
