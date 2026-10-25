@@ -161,9 +161,11 @@ for (const [id, decision] of [["T19", "send"], ["T18", "hold"], ["T02", "hold"],
     assert.equal(b.result.output.decision, decision);
     assert.deepEqual(a.result.memory.read, [], "first run reads nothing");
     assert.ok(a.result.memory.written.length >= 1);
-    for (const m of a.result.memory.written) assert.ok(b.result.memory.read.includes(m), `second run read ${m}`);
+    // Build A: recall the email/thread-keyed factual record; queue memories no longer contain the personalised draft and may fall below the retrieval threshold.
+    const factual = a.result.memory.written.at(-1);
+    assert.ok(b.result.memory.read.includes(factual), `second run read factual memory ${factual}`);
     const mr = b.lines.find((l) => l.step === "memory.read");
-    for (const m of a.result.memory.written) assert.ok((mr.memory_ids ?? []).includes(m));
+    assert.ok((mr.memory_ids ?? []).includes(factual));
   });
 }
 

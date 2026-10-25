@@ -156,7 +156,9 @@ export class HMEM {
     const priorStatus = prior?.ticket?.status;
     const nextTicket = priorStatus !== undefined && ticket && typeof ticket === "object" ? { ...ticket, status: priorStatus } : ticket;
     atomicWrite(qfile, JSON.stringify({ ticket: nextTicket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}), ...(extra?.attachments != null ? { attachments: extra.attachments } : {}), ...(extra?.escalation != null ? { escalation: extra.escalation } : {}), ...(extra?.cc != null ? { cc: extra.cc } : {}), ...(extra?.also != null ? { also: extra.also } : {}), ...(extra?.status != null ? { status: extra.status } : {}), ...(extra?.courtesy_reply === true ? { courtesy_reply: true } : {}), ...carried }, null, 2) + "\n");
+    // Build A amendment 1 (25 Oct 2026): personalised drafts stay in the approval queue, not learned memory.
     const reason = (Array.isArray(critiques) ? critiques : [critiques])
+      .filter((c) => c?.source !== "Draft")
       .map((c) => (typeof c === "string" ? c : c?.reason)).filter(Boolean).join("; ");
     const rec = this.add({
       content: `ticket ${ticket.id ?? ticket.thread_id} escalated: ${reason}`,

@@ -92,8 +92,10 @@ test("query: entity matching is case-insensitive (an email entity matches)", () 
 test("queueForHuman writes queue file and tagged memory", () => {
   const dir = mk();
   const m = new HMEM({ persistDir: dir, clock: fixed });
-  const id = m.queueForHuman({ id: "T-1", thread_id: "th1" }, [{ reason: "low confidence" }, { reason: "policy gap" }]);
+  const critiques = [{ reason: "low confidence" }, { reason: "policy gap" }, { source: "Draft", reason: "Hello Zyxquorn Testerly, your proposed reply" }];
+  const id = m.queueForHuman({ id: "T-1", thread_id: "th1" }, critiques);
   const q = JSON.parse(fs.readFileSync(path.join(dir, "queue", "th1.json"), "utf-8"));
+  assert.deepEqual(q.critiques, critiques, "the approval queue retains the complete personalised draft");
   assert.equal(q.ticket.id, "T-1");
   assert.equal(q.queuedAt, T0);
   const rec = m.all().find((r) => r.id === id);

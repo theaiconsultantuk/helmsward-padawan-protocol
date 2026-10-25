@@ -632,11 +632,12 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     let memCtx = "";
     try {
       if (hmemInitErr) throw hmemInitErr;
-      // keyed by the sender's email as well as the name: the same client under another name is still the same client
-      const q = f ? `${f.sender_name} ${emailKey(f.sender_email)} ${f.category} ${thread_id}` : String(thread_id);
-      const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [f.sender_name, emailKey(f.sender_email)].filter(Boolean) } : {}) });
-      memories = r.memories;
-      memCtx = r.context;
+      // einh (25 Oct 2026): recall by client email and thread, never by display name shared by visitors.
+      const q = f ? `${emailKey(f.sender_email)} ${f.category} ${thread_id}` : String(thread_id);
+      const r = hmem.query(q, { topN: 5, threshold: 0.2, ...(f ? { tags: [f.category], entities: [emailKey(f.sender_email)].filter(Boolean) } : {}) });
+      const mail = emailKey(f?.sender_email);
+      memories = r.memories.filter((m) => (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
+      memCtx = memories.map((m) => m.memory.content).join("\n");
     } catch (e) {
       soft("memory.read", e, hmemInitErr ? "memory unavailable, continuing without it" : "continued without memory");
     }
@@ -652,7 +653,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
     // 2. planner.plan
     S.current = "planner.plan";
-    const known = f && memories.find((m) => (m.memory.entities ?? []).includes(f.sender_name) || (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
+    const known = f && memories.find((m) => (mail && (m.memory.entities ?? []).some((e) => emailKey(e) === mail)) || String(m.memory.content).includes(thread_id));
     const pre = f ? decideBranch(f, null, S.memRead, { duplicate_of: dup, prior_draft: deps.priorDraft, ledgerAdjust: ledger, checks_unavailable: unavailable }) : { branch_id: "unknown", why: "facts unavailable" };
     const replyNow = pre.branch_id === "send-ok";
     L({
@@ -865,6 +866,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     try {
       await pipeline();
     } catch (e) {
+      if (e?.name === "IntakeFull") throw e;
       if (!(e instanceof Stop)) {
         S.recovered.push({ step: S.current, type: errName(e), message: safeMsg(e) });
         L({ step: S.current === "zetaris.query" ? "executor.act" : S.current, agent_name: "Planner", action: "unexpected_error", input_summary: `${S.current} threw`, output_summary: `${errName(e)}: ${safeMsg(e)}`, status: "error" });
@@ -876,12 +878,15 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
 
   let timedOut = false;
   let timer;
-  await Promise.race([
-    body(),
-    new Promise((resolve) => { timer = setTimeout(() => { timedOut = true; resolve(); }, runTimeoutMs); }),
-  ]);
-  clearTimeout(timer);
-  runAbort.abort(new Error(timedOut ? "RunTimeout" : "RunEnded")); // 24 Oct 2026: always, so a late model answer cannot write a line after synthesis
+  try {
+    await Promise.race([
+      body(),
+      new Promise((resolve) => { timer = setTimeout(() => { timedOut = true; resolve(); }, runTimeoutMs); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+    runAbort.abort(new Error(timedOut ? "RunTimeout" : "RunEnded")); // 24 Oct 2026: always, so a late model answer cannot write a line after synthesis
+  }
   if (timedOut) {
     const msg = `run exceeded ${runTimeoutMs} ms at ${S.current}`;
     S.recovered.push({ step: S.current, type: "RunTimeout", message: msg });
@@ -895,14 +900,14 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   let written = null;
   try {
     const f = S.facts;
-    // A delivery answer is built from an order's rows (planet, status, sku, amount) that only the order's customer may see. Memory is recalled by display name
-    // and by thread, so a later run from anyone else could read it back: a delivery memory records that a delivery enquiry was handled, never the order's facts.
+    // Memory is recalled by email and thread and holds no customer display name (einh, 25 Oct 2026).
+    // Delivery memories record only that an enquiry was handled, never the order details.
     const orderRun = /^delivery-/.test(S.branch?.branch_id ?? "");
     const reason = orderRun ? "a delivery enquiry was handled; no order details are kept in memory" : one(S.reasons[0] ?? "no reason recorded", 160);
     written = hmem.add({
-      content: `${orderRun ? "delivery enquiry" : thread_id} ${S.decision}: ${f && !orderRun ? `${f.sender_name} ${f.category}. ` : ""}${reason}`,
+      content: `${orderRun ? "delivery enquiry" : thread_id} ${S.decision}: ${f && !orderRun ? `${f.category}. ` : ""}${reason}`,
       source: "loop", type: "factual", tags: [f?.category ?? "unknown", S.decision],
-      entities: [f?.sender_name, emailKey(f?.sender_email), thread_id].filter(Boolean), provenance: { origin: "loop", run_id, learnedAt: clock(), label: "factual" },
+      entities: [emailKey(f?.sender_email), thread_id].filter(Boolean), provenance: { origin: "loop", run_id, learnedAt: clock(), label: "factual" },
     });
     S.memWritten.push(written.id);
   } catch (e) {
