@@ -196,7 +196,7 @@ test("hardRisk and the sample critic: money promised outside the refund category
   assert.equal(sample.critique(says("Thank you for getting in touch (policy rows: policy:refund)."), qc).pass, true);
   // the refund category keeps its limit rules and nothing else
   assert.deepEqual(hardRisk(facts02, says("We will refund 40 GC.", 40)).reasons, []);
-  assert.deepEqual(hardRisk({ ...facts02, owner_out: false }, says("We will refund 400 GC.", 400)).reasons, ["draft promises refund above the limit"]);
+  assert.deepEqual(hardRisk({ ...facts02, owner_out: false }, says("We will refund 400 GC.", 400)).reasons, ["draft promises refund above the limit", "draft names 400 GC, not the ticket amount (40)"]);
   assert.equal(sample.critique(says("We will refund 40 GC.", 40), facts02).pass, true);
   // a draft with no refund in it passes on any category
   assert.deepEqual(hardRisk(vent, says("We are sorry the box arrived dented and have noted it.")).reasons, []);

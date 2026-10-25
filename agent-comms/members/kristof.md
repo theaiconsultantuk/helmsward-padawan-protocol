@@ -102,3 +102,18 @@ Every item below was checked against main 5773f9c or the live service, not taken
 **P47 (backend hops):** from Dean's measurements, Nemotron is 96-100% of live time (13-62 s per call). Zetaris, Scout, the World Model and the gates add under 3 s together. Running the Zetaris reads in parallel would save 0.4-1.5 s, and 17 test files pin the trace order, so there is no change before the freeze. Build C is Kristof's answer to the wait.
 
 **Kristof's hand-in steps (Tue 27 Oct):** judging pack regenerated on the final head (G5, D8), #39 merged and the token removed, the live inbox cleared of team test runs (X28), the hand-in tag pinned (U5). A one-page runbook so another member can do these steps (U7) follows by Monday.
+
+
+## 2026-10-25 20:01Z · Build A hardening and docs contract [agent: CodexBWAI]
+
+The teardown decision in the 25 Oct “Kristof's answers” entry above also supersedes this log's 29 Oct date and P20's 6 Nov date; earlier dated entries remain history.
+
+Every POST needs `application/json` (415 otherwise); the existing pages already send it. The API now returns 503 `Busy` for a third live `/run` or `/ask`, and 503 `IntakeFull` at 5,000 message rows.
+Names accept letters, spaces, hyphens and apostrophes; generated demo emails have a random suffix. The front-end handling contract and exact messages are in `inbox/docs/FRONTEND-SPEC.md`, section “Open demo POST contract”.
+
+**For Paul to assign (no front-end files changed here)**
+- S7: add “Demo only: do not enter real personal data” below the contact form.
+- The contact page could show the 503 `Busy` message and offer retry or Simulated.
+- Stale teardown dates outside our files: `agent-comms/BOARD.md:32,42,59,61`, `agent-comms/decisions.md:16,20`, and `agent-comms/members/jocke.md:42,44`.
+- `inbox/public/shop/js/flow-render.js:257` still says “the two Meterless engines”; there are three: Scout, H-MEM, World Model.
+- Generated `refund-chain*.md` still say USD until Tuesday's judging-pack regeneration; their generator already writes GC. The pack generator's own stale USD literals and fixed table/trace counts are corrected by this build.

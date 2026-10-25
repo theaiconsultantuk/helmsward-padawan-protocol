@@ -92,8 +92,10 @@ test("query: entity matching is case-insensitive (an email entity matches)", () 
 test("queueForHuman writes queue file and tagged memory", () => {
   const dir = mk();
   const m = new HMEM({ persistDir: dir, clock: fixed });
-  const id = m.queueForHuman({ id: "T-1", thread_id: "th1" }, [{ reason: "low confidence" }, { reason: "policy gap" }]);
+  const critiques = [{ reason: "low confidence" }, { reason: "policy gap" }, { source: "Draft", reason: "Hello Zyxquorn Testerly, your proposed reply" }];
+  const id = m.queueForHuman({ id: "T-1", thread_id: "th1" }, critiques);
   const q = JSON.parse(fs.readFileSync(path.join(dir, "queue", "th1.json"), "utf-8"));
+  assert.deepEqual(q.critiques, critiques, "the approval queue retains the complete personalised draft");
   assert.equal(q.ticket.id, "T-1");
   assert.equal(q.queuedAt, T0);
   const rec = m.all().find((r) => r.id === id);
@@ -108,4 +110,15 @@ test("threshold 0 returns everything", () => {
   const r = m.query("zzz unrelated", { threshold: 0, topN: 10 });
   assert.equal(r.memories.length, 3);
   assert.equal(r.trace.strategy, "comprehensive");
+});
+
+// Review 46: a model critic can quote a greeting; only the learned reason is redacted, never the approval queue.
+test('review46: own sender name is removed from critic memory as full name and whole tokens',()=>{
+ const dir=mk(),m=new HMEM({persistDir:dir,clock:fixed});
+ const critic=()=>({pass:false,reason:'Hello CAMREN COBBLETON, Camren and cobbleton need a rewrite; Camrenian stays.'});
+ const critiques=[{source:'Evaluator',reason:critic().reason}];
+ const id=m.queueForHuman({id:'T-name',thread_id:'T-name',sender_name:'Camren Cobbleton'},critiques);
+ assert.equal(m.all().find(r=>r.id===id).content,'ticket T-name escalated: Hello the customer, the customer and the customer need a rewrite; Camrenian stays.');
+ const q=JSON.parse(fs.readFileSync(path.join(dir,'queue','T-name.json'),'utf8'));
+ assert.deepEqual(q.critiques,critiques);assert.equal(q.ticket.sender_name,'Camren Cobbleton');
 });

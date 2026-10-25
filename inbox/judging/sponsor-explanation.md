@@ -17,7 +17,7 @@ Kristof Kennes, who registered the layer: "Implementing the USL was so easy that
 
 ## Meterless Engines and Nightshift
 
-Three engines are implemented in `src/engines/`, all our own code following the Meterless specs.
+Three engines are implemented in `src/engines/`: Scout and H-MEM are our own code following the Meterless specs; the World Model is vendored verbatim from the Meterless repository and bundled once with esbuild (README, World Model section).
 
 - Scout Intent classifies the message, checks for injection, redacts PII and issues an HMAC-signed execution contract that the loop verifies before any model call; a blocked message escalates without a model call. Test: the Scout eval harness (copied from Meterless, Apache-2.0) exits 0 on the 32-example v1 set, run on 23 Oct 2026. That set is a smoke test, not a benchmark. Report: [engine-scout-evals.md](engine-scout-evals.md). Unit tests: `scout_contract`, `scout_inbox`.
 - H-MEM stores one sourced memory per run and reads memories before planning. Test: the two-run proof, where run B's `planner.plan` names the chunk it skipped because run A wrote it: [engine-hmem-two-run.md](engine-hmem-two-run.md). Retrieval is lexical; no embedder is used.

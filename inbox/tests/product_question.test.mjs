@@ -67,7 +67,7 @@ test("s06: a product in the catalogue but not in the row holds for the Product o
   assert.equal(o.status, "open");
   assert.equal(o.auto_reply, false);
   assert.ok(!o.draft, "no draft");
-  assert.match(o.reasons.join(" "), /not in the catalogue row/);
+  assert.match(o.reasons.join(" "), /but no field of its row answers what was asked/);
   assert.ok(o.cited_rows.includes("products:FS-A01"));
   assert.ok(!lines.some((l) => l.step === "critique" && l.status === "success"), "nothing to critique");
   assertAutoReplyInvariant(assert, result, "s06");

@@ -1,10 +1,9 @@
 // Jedi Pack inbox HTTP server: /health /run /ask /sources /intake /counters /feedback /faq /demo/scenarios /demo/client /runs /runs/:id[/trace|/journey] /queue /openapi.yaml.
-// JSON everywhere (except the YAML file), CORS *, zero deps (node:http). Contract: inbox/openapi.yaml.
+// JSON everywhere (except the YAML file), CORS from CORS_ORIGIN, default *, zero deps (node:http). Contract: inbox/openapi.yaml.
 import { createServer as httpServer } from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { readFileSync, readdirSync, statSync, writeFileSync, renameSync, mkdirSync, unlinkSync } from "node:fs";
 import { basename, join, relative, resolve, sep, extname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { config, secrets, sampleMode, INBOX_ROOT } from "./config.mjs";
 import { mask } from "./trace.mjs";
 import { runTicket } from "./loop.mjs";
@@ -14,6 +13,8 @@ import * as decisions from "./decisions.mjs";
 import { SCENARIOS } from "./scenarios.mjs";
 import { deriveJourney, publicQueueFile, recipientOf } from "./journey.mjs";
 import { readCsv } from "./csv.mjs";
+import { INTAKE_CAP, readIntake } from "./intake.mjs";
+import { isMain } from "./main_guard.mjs";
 import { generateClient } from "./demo_names.mjs";
 
 export const VERSION = "0.1.0";
@@ -157,10 +158,23 @@ function staticFile(path) {
   return { file: join(INBOX_ROOT, "public", entry), type: STATIC_TYPES[ext] };
 }
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+export const LIVE_RUN_CAP = 2;
+function corsHeaders(cfg) {
+  const origin = cfg.CORS_ORIGIN;
+  const headers = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+  if (!origin || origin === "*") headers["Access-Control-Allow-Origin"] = "*";
+  else if (/^https?:\/\/[^\s,/]+$/.test(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers.Vary = "Origin";
+  } else console.error("CORS_ORIGIN is not one origin; sending no Access-Control-Allow-Origin");
+  return headers;
+}
+const requireJson = (req) => {
+  if (!/^application\/json\s*(;|$)/i.test(String(req.headers["content-type"] ?? "").trim()))
+    throw new HttpError(415, "UnsupportedMediaType", "unsupported media type: application/json required");
 };
 
 // thread_id -> category, from the committed threads file
@@ -196,7 +210,7 @@ const errBody = (run_id, type, message, recoverable, t0, trace_id = null) => ({
 });
 
 class HttpError extends Error {
-  constructor(status, type, message) { super(message); this.status = status; this.type = type; }
+  constructor(status, type, message, recoverable = false) { super(message); this.status = status; this.type = type; this.recoverable = recoverable; }
 }
 
 function readBody(req) {
@@ -228,12 +242,23 @@ function validateMessage(input) {
   for (const k of ["name", "subject"]) {
     if (input[k] !== undefined && input[k] !== null && (typeof input[k] !== "string" || input[k].length > 200)) bad(`${k} must be a string of at most 200 characters`);
   }
+  if (typeof input.name === "string" && input.name !== "" &&
+      (!/^[\p{L}\p{M}' ’-]+$/u.test(input.name) || !/\p{L}/u.test(input.name.trim())))
+    bad("name: only letters, space, - and ' allowed");
   if (input.as_of !== undefined && (typeof input.as_of !== "string" || !ASOF.test(input.as_of))) bad("as_of must be YYYY-MM-DD");
   return { message, from: input.from.trim(), channel: input.channel, ...(input.scenario ? { scenario: input.scenario } : {}),
     ...(input.name ? { name: input.name } : {}), ...(input.subject ? { subject: input.subject } : {}), ...(input.as_of ? { as_of: input.as_of } : {}) };
 }
 
 export function createServer({ cfg = config(), deps = {} } = {}) {
+  const CORS = corsHeaders(cfg);
+  // einh's ruling (25 Oct 2026): /run and /ask share 2 live slots, held until completion even after disconnect (the page polls after a 524).
+  let liveNow = 0;
+  const takeLive = () => {
+    if (liveNow >= LIVE_RUN_CAP) throw new HttpError(503, "Busy", `busy: ${LIVE_RUN_CAP} live runs in flight (cap ${LIVE_RUN_CAP}); retry later`, true);
+    liveNow += 1;
+    return () => { liveNow -= 1; };
+  };
   const started = Date.now();
   const sec = secrets();
   const dir = deps.dir ?? decisions.RUNTIME_DIR;
@@ -426,12 +451,14 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       if (sendM) {
         if (req.method !== "POST") { send(405, errBody(null, "BadRequest", `use POST ${path}`, false, t0)); return; }
         requireBearer(req);
+        requireJson(req);
         await handleSend(sendM, req, send, t0);
         return;
       }
       if (!["/run", "/ask", "/feedback"].includes(path)) { send(404, errBody(null, "NotFound", `no route ${req.method} ${path}`, false, t0)); return; }
       if (req.method !== "POST") { send(405, errBody(null, "BadRequest", `use POST ${path}`, false, t0)); return; }
       requireBearer(req);
+      requireJson(req);
 
       let body;
       try { body = JSON.parse(await readBody(req) || "null"); }
@@ -446,7 +473,10 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
         if (body.question.length > 2000) throw new HttpError(400, "BadRequest", "question is over 2000 characters");
         if (body.customer !== undefined && body.customer !== null && typeof body.customer !== "string") throw new HttpError(400, "BadRequest", "customer must be a string");
         const askId = `ask_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
-        const r = await (deps.ask ?? askQuestion)(body.question, { customer: body.customer || null, run_id: askId, cfg, deps });
+        const release = !sampleMode(cfg) ? takeLive() : null;
+        let r;
+        try { r = await (deps.ask ?? askQuestion)(body.question, { customer: body.customer || null, run_id: askId, cfg, deps }); }
+        finally { release?.(); }
         const out = { run_id: askId, ...r };
         remember(askId, out); if (deps.persistRuns !== false) persistRun(runsDir, askId);
         send(200, out);
@@ -486,15 +516,21 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
           return;
         }
       }
+      if (isMsg && readIntake({ runtimeDir }).length >= INTAKE_CAP)
+        throw new HttpError(503, "IntakeFull", `intake full: ${INTAKE_CAP} rows (cap); message runs refused`);
       if (runs.has(run_id) || inflight.has(run_id) || traceExists(logsDir, run_id)) throw new HttpError(409, "Conflict", `run_id ${run_id} was already used`);
       inflight.add(run_id);
       claimed = true;
 
       // options.sample_mode:true forces sample mode; false never turns a sample-mode server live.
       const runCfg = opts.sample_mode === true ? { ...cfg, SAMPLE_MODE: "true" } : cfg;
-      const result = isMsg
-        ? await runTicket(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
-        : await runTicket(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+      const release = !sampleMode(runCfg) ? takeLive() : null;
+      const run = deps.runTicket ?? runTicket;
+      let result;
+      try { result = isMsg
+        ? await run(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...deps, runtimeDir }, input: msgInput })
+        : await run(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps });
+      } finally { release?.(); }
       // the server keeps its own absolute queue path; the public result names the file inside the memory dir only
       const publicOutput = result.output?.queued_for?.queue_file
         ? { ...result.output, queued_for: { ...result.output.queued_for, queue_file: publicQueueFile(result.output.queued_for.queue_file) } }
@@ -518,7 +554,8 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       send(200, out);
     } catch (e) {
       if (claimed) inflight.delete(run_id);
-      if (e instanceof HttpError) { send(e.status, errBody(run_id, e.type, e.message, false, t0)); return; }
+      if (e?.name === "IntakeFull") { send(503, errBody(run_id, "IntakeFull", `intake full: ${INTAKE_CAP} rows (cap); message runs refused`, false, t0)); return; }
+      if (e instanceof HttpError) { send(e.status, errBody(run_id, e.type, e.message, e.recoverable === true, t0)); return; }
       send(500, errBody(run_id, "InternalError", "unexpected server error", true, t0));
     }
   });
@@ -561,4 +598,4 @@ export function main({ cfg = config(), log = console.log } = {}) {
   return server;
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+if (isMain(import.meta.url)) main();

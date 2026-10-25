@@ -52,8 +52,11 @@ export function refundRuleReason(facts, draft) {
   return refundOutOfCategory(cat);
 }
 
+export const signOff = (team = "Support") => `Best regards,\nFarstrand ${team} team`;
+
 export const DRAFTER_SYSTEM = [
   "You write the customer reply for the Jedi Pack support inbox.",
+  "End the reply with exactly this sign-off, on its own lines: " + JSON.stringify(signOff()) + ". Never sign as Jedi Pack.",
   "Answer what the customer actually asked, in a short, polite email, using only the facts you are given.",
   "Promise money only when the Category is refund. Mention a refund only on a refund request, or when the customer's question itself asks about refunds; on any other message do not mention refunds or money back.",
   "Return strict JSON and nothing else, in exactly this shape:",
@@ -228,6 +231,7 @@ export const fillCourtesy = ({ situation = "your order" } = {}) => fillTpl(COURT
 export const RECOMMENDATION_SYSTEM = [
   "You help the Jedi Pack support lead with a customer message that matched no known request type and no FAQ answer.",
   "Write a short recommendation for the support lead (what the customer seems to want, what the records say, what to do next) and a draft reply the lead can finish.",
+  "End the draft with exactly this sign-off, on its own lines: " + JSON.stringify(signOff()) + ". Never sign as Jedi Pack.",
   "Use only the records you are given. Never invent an order number, a date, an amount, an address or a name: wherever the reply needs one you do not have, write [[blank: <what is needed>]].",
   "Promise no refund, replacement or date, and never mention a stored card number, an internal price list or a staff address.",
   'Return strict JSON and nothing else, in exactly this shape: {"recommendation": string, "draft": string, "blanks": [{"id": string, "what": string}]}',

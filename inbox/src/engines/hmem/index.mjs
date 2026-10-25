@@ -156,8 +156,17 @@ export class HMEM {
     const priorStatus = prior?.ticket?.status;
     const nextTicket = priorStatus !== undefined && ticket && typeof ticket === "object" ? { ...ticket, status: priorStatus } : ticket;
     atomicWrite(qfile, JSON.stringify({ ticket: nextTicket, critiques, queuedAt: now, ...(extra?.owner ? { owner: extra.owner } : {}), ...(extra?.scenario ? { scenario: extra.scenario } : {}), ...(extra?.recommendation != null ? { recommendation: extra.recommendation } : {}), ...(extra?.attachments != null ? { attachments: extra.attachments } : {}), ...(extra?.escalation != null ? { escalation: extra.escalation } : {}), ...(extra?.cc != null ? { cc: extra.cc } : {}), ...(extra?.also != null ? { also: extra.also } : {}), ...(extra?.status != null ? { status: extra.status } : {}), ...(extra?.courtesy_reply === true ? { courtesy_reply: true } : {}), ...carried }, null, 2) + "\n");
-    const reason = (Array.isArray(critiques) ? critiques : [critiques])
+    // Build A amendment 1 (25 Oct 2026): personalised drafts stay in the approval queue, not learned memory.
+    let reason = (Array.isArray(critiques) ? critiques : [critiques])
+      .filter((c) => c?.source !== "Draft")
       .map((c) => (typeof c === "string" ? c : c?.reason)).filter(Boolean).join("; ");
+    // Review 46: critics may quote a greeting; redact only this ticket's own name in learned memory, never the queue.
+    const senderName = String(ticket.sender_name ?? "").trim();
+    if (senderName) {
+      const names = [...new Set([senderName, ...(senderName.match(/[\p{L}\p{M}]+/gu) ?? []).filter((token) => (token.match(/\p{L}/gu) ?? []).length >= 3)])]
+        .sort((a, b) => b.length - a.length).map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      reason = reason.replace(new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_])(?:${names.join("|")})(?![\\p{L}\\p{M}\\p{N}_])`, "giu"), "the customer");
+    }
     const rec = this.add({
       content: `ticket ${ticket.id ?? ticket.thread_id} escalated: ${reason}`,
       source: "loop", type: "factual", tags: ["queue:human"],

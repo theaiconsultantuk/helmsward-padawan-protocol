@@ -902,7 +902,7 @@ async function probeProduct(tb) {
       [`products:${sku}`], { sku, row, answers, owner: null });
   }
   const owner = await ownerOf(tb, "product", o);
-  return fin("product-unanswered", `${row?.name ?? sku} is in the catalogue (products:${sku}) but not in the catalogue row: no field answers what was asked`,
+  return fin("product-unanswered", `${row?.name ?? sku} is in the catalogue (products:${sku}), but no field of its row answers what was asked`,
     [`products:${sku}`, ...(owner.looked_up ? ["responsibility:product"] : [])], { owner, sku, answers: [] });
 }
 

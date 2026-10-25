@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     The Jedi Pack support inbox: one ticket in, a decision out (send, hold, escalate or close), with every step traced.
-    JSON everywhere except this file. CORS is open (`Access-Control-Allow-Origin: *`) and `API_TOKEN` is opt-in: when set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
+    JSON everywhere except this file. CORS follows `CORS_ORIGIN` (unset or `*` allows any origin; a fixed origin adds `Vary: Origin`; invalid settings omit the allow-origin header; the hosted setting is `https://jedi.blastworks.ai`) and `API_TOKEN` is opt-in: when set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need `Authorization: Bearer <token>` (see `components.securitySchemes.bearer`); every GET, the pages and `/health` stay open.
     Errors are `{run_id, status: "error", error: {type, message, recoverable}, trace_id, execution_time_seconds}`.
     Start the service with `node src/server.mjs`; `SAMPLE_MODE=true` answers from cached rows with no network.
     The examples below come from a sample-mode run of thread T02.
@@ -12,7 +12,7 @@ servers:
   - url: http://127.0.0.1:8000
     description: Default. Set PORT to move it (8810 on the dev VM); HOST defaults to 127.0.0.1.
   - url: https://jedi.blastworks.ai
-    description: "Team instance for the hackathon (until 5 Nov 2026): pages and API on one origin; POST routes need the bearer token"
+    description: "Team instance for the hackathon (until 7 Nov 2026 00:00 UTC): pages and API on one origin; POST routes need the bearer token"
 paths:
   /health:
     get:
@@ -81,7 +81,7 @@ paths:
   /demo/client:
     get:
       summary: A client for a demo run
-      description: "A GENERATED client on every call (fictional given and family name from two fixed lists, `<given><family>@email.com` lower-case), so a repeated demo never meets a prior refund. For `scenario=s04` the seeded customer from `customers.csv` whose earlier refunds (T02, T06) are on record. For `scenario=s10` the owner of order JP-1001 (Cass Holm, cass.holm@example.com): `{ customer_id, name, email, generated: false, order_owner: true, order_id }`. Sent with `Cache-Control: no-store`. An unknown scenario id answers 400."
+      description: "A GENERATED client on every call (fictional given and family name from two fixed lists, `<given><family>.<suffix>@email.com` lower-case, with a random six-character base-36 suffix), so a repeated demo never meets a prior refund. For `scenario=s04` the seeded customer from `customers.csv` whose earlier refunds (T02, T06) are on record. For `scenario=s10` the owner of order JP-1001 (Cass Holm, cass.holm@example.com): `{ customer_id, name, email, generated: false, order_owner: true, order_id }`. Sent with `Cache-Control: no-store`. An unknown scenario id answers 400."
       parameters:
         - { name: scenario, in: query, required: false, schema: { type: string, pattern: "^s(0[1-9]|1[0-4])$" }, example: s04 }
       responses:
@@ -92,7 +92,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DemoClient" }
-              example: { name: Emeric Kettleby, email: emerickettleby@email.com, generated: true }
+              example: { name: Emeric Kettleby, email: emerickettleby.a1b2c3@email.com, generated: true }
         "400": { $ref: "#/components/responses/BadRequest" }
   /intake:
     get:
@@ -174,6 +174,18 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "404": { $ref: "#/components/responses/NotFound" }
         "409": { $ref: "#/components/responses/Conflict" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "503":
+          description: "At most 2 live runs across /run and /ask; Busy is recoverable. Message runs also return IntakeFull (not recoverable) at 5000 intake rows."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                busy:
+                  value: { run_id: null, status: error, error: { type: Busy, message: "busy: 2 live runs in flight (cap 2); retry later", recoverable: true }, trace_id: null, execution_time_seconds: 0 }
+                intakeFull:
+                  value: { run_id: null, status: error, error: { type: IntakeFull, message: "intake full: 5000 rows (cap); message runs refused", recoverable: false }, trace_id: null, execution_time_seconds: 0 }
+
   /ask:
     post:
       security: [{}, {bearer: []}]
@@ -201,6 +213,16 @@ paths:
                 trace_id: ask_mvk7ru456hv
                 log_file: logs/trace-ask_mvk7ru456hv.jsonl
         "400": { $ref: "#/components/responses/BadRequest" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "503":
+          description: "At most 2 live runs across /run and /ask; Busy is recoverable."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                busy:
+                  value: { run_id: null, status: error, error: { type: Busy, message: "busy: 2 live runs in flight (cap 2); retry later", recoverable: true }, trace_id: null, execution_time_seconds: 0 }
+
   /runs:
     get:
       summary: The stored runs and asks, newest first
@@ -325,6 +347,8 @@ paths:
               example: { run_id: demo-1, thread_id: T02, category: refund, decision: hold, verdict: affirm, delta: 0.05, ts: "2026-10-23T00:10:42.128Z", note: good call, published: true }
         "400": { $ref: "#/components/responses/BadRequest" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+
   /runs/{id}/send:
     post:
       security: [{}, {bearer: []}]
@@ -369,6 +393,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+
   /counters:
     get:
       summary: Decision and feedback counters
@@ -487,8 +513,14 @@ components:
     bearer:
       type: http
       scheme: bearer
-      description: Only when the instance runs with API_TOKEN set (a shared instance); the default loopback instance needs no token. Applies to POST /run, /ask and /feedback; reads and pages stay open.
+      description: Only when the instance runs with API_TOKEN set (a shared instance); the default loopback instance needs no token. Applies to POST /run, /ask, /feedback and /runs/{id}/send; reads and pages stay open.
   responses:
+    UnsupportedMediaType:
+      description: Every POST body requires application/json, with optional parameters such as charset=utf-8.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { run_id: null, status: error, error: { type: UnsupportedMediaType, message: "unsupported media type: application/json required", recoverable: false }, trace_id: null, execution_time_seconds: 0 }
     BadRequest:
       description: The body or a field is invalid.
       content:
@@ -540,7 +572,11 @@ components:
         from: { type: string, minLength: 1, maxLength: 200, description: An email address or a name. }
         channel: { type: string, enum: [email, contact-form, chat, trustpilot] }
         scenario: { type: string, enum: [refund, question, rfq, complaint, free_text], description: "Declares the scenario. Absent means free_text: the loop resolves it from the message (see `resolved_how`)." }
-        name: { type: string, maxLength: 200 }
+        name:
+          type: string
+          maxLength: 200
+          pattern: "^[\\p{L}\\p{M}' ’-]+$"
+          description: "Letters (including Unicode letters and combining marks), spaces, hyphens and apostrophes only; a non-empty name must contain a letter. Invalid names return 400 with: name: only letters, space, - and ' allowed."
         subject: { type: string, maxLength: 200, description: Defaults to the first 60 characters of the message. }
         as_of: { type: string, pattern: "^\\d{4}-\\d{2}-\\d{2}$", example: "2026-10-20", description: "Date the facts are read as of (holidays, availability); today when absent." }
     ResolvedScenario:

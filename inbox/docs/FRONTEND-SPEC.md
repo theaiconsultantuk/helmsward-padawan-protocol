@@ -15,14 +15,14 @@ All examples below come from sample-mode runs (see [example 4](../output_example
 
 A customer-support inbox agent: one ticket in, a decision out (`send`, `hold`, `escalate` or `close`), every step traced.
 It runs on loopback by default: `http://127.0.0.1:8000`; `PORT` moves it (8810 on the dev VM), `HOST` defaults to `127.0.0.1`.
-CORS is open (`Access-Control-Allow-Origin: *`) and a shared instance may set `API_TOKEN`; then `POST /run`, `/ask` and `/feedback` need `Authorization: Bearer <token>`, while every GET, the pages and `/health` stay open.
+CORS follows `CORS_ORIGIN` (unset or `*`: `Access-Control-Allow-Origin: *`; a fixed origin adds `Vary: Origin`; invalid settings send no allow-origin header), and a shared instance may set `API_TOKEN`; then `POST /run`, `/ask`, `/feedback` and `/runs/{id}/send` need `Authorization: Bearer <token>`, while every GET, the pages and `/health` stay open.
 JSON everywhere.
 The reference pages read their API base from `<meta name="api-base" content="">`; an empty value means the same origin.
 Your page should do the same: `fetch(base + "/run", ...)`.
 
 ## 1b. The hosted instance: https://jedi.blastworks.ai
 
-The team shares one hosted instance at https://jedi.blastworks.ai. It is live from 23 Oct 2026 until 5 Nov 2026 (Kristof, 25 Oct).
+The team shares one hosted instance at https://jedi.blastworks.ai. It is live from 23 Oct 2026 until 7 Nov 2026 00:00 UTC (Kristof, 25 Oct).
 The pages are static files served from netcup (`X-Served-By: prodsites-netcup`). The API runs on the dev VM. Both answer on the same origin, so keep the `api-base` meta empty.
 The pages are whatever `inbox/public/` holds on `main`. They follow `main` within about a minute of a merge, once the deploy key is in place; until then a seed of the 23 Oct `main` is served.
 The API follows `main` within about two minutes. It has its own release timer and rolls back if the health check fails.
@@ -33,6 +33,21 @@ A new API route needs its line in the netcup proxy list. Ask Kristof.
 The write calls need the bearer token (section 1). It is handed over directly, never committed. A page takes `?token=` once and then strips it from the address bar after reading it.
 Cloudflare's edge returns a gateway error after about 100 s with no response, while the run completes server-side. Generate your own `run_id` before `POST /run` (section 2 allows it) and, after any gateway error, poll `GET /runs/{id}` with that id.
 On your own machine, run `SAMPLE_MODE=true npm start`, or point the `api-base` meta at the hosted host.
+
+## 1c. Open demo POST contract (25 Oct 2026)
+
+Every POST must send `Content-Type: application/json` (parameters such as `charset=utf-8` are allowed); other media types receive 415 `UnsupportedMediaType` with `unsupported media type: application/json required`.
+Method (405) and bearer (401) checks come first.
+The hosted CORS setting is `CORS_ORIGIN=https://jedi.blastworks.ai`; a clean clone leaves it unset (`*`), and same-origin pages work with either setting.
+
+- At most 2 live runs across `/run` and `/ask` may be in flight; another receives 503 `Busy`, `recoverable: true`, with `busy: 2 live runs in flight (cap 2); retry later`.
+  Show that message and let the visitor retry or switch to Simulated; sample runs never consume a live slot, and disconnecting does not release a live slot before the run ends.
+- At 5,000 intake rows, new message runs receive 503 `IntakeFull`, `recoverable: false`, with `intake full: 5000 rows (cap); message runs refused`.
+  Message runs are then closed, including Simulated runs; stored-thread runs and `/ask` still work.
+- An optional non-empty `name` must contain a letter and use letters (including Unicode letters and combining marks), spaces, hyphens or apostrophes only, within 200 characters.
+  Invalid characters or spaces alone receive 400 `BadRequest` with `name: only letters, space, - and ' allowed`.
+- Generated `GET /demo/client` emails now have a random six-character base-36 suffix: `<given><family>.<suffix>@email.com` in lower case.
+  Scenarios s04 and s10 retain their fixed customers.
 
 ## 2. The endpoints the front end uses
 
