@@ -204,7 +204,7 @@ paths:
           description: The answer with the rows it used. `run_id` also works on `GET /runs/{id}/trace`.
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/AskRequest" }
+              schema: { $ref: "#/components/schemas/AskResult" }
               example:
                 run_id: ask_mvk7ru456hv
                 answer: "The refund limit is 150 GC: up to it the owner is employee 15 (backup 27), above it the Sales head, employee 40 (the CEO, employee 201, when out). Source: the \"Refund policy\" page."

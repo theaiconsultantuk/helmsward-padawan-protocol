@@ -131,7 +131,7 @@ Live progress, open like every GET. **Front end: built by the teammate Paul assi
 }
 ```
 
-- `state`: `running` | `done`. `mode`: `live` | `sample`.
+- `state`: `running` | `done`. `mode`: `live` | `sample` | `null` (null for runs stored before `provider` existed).
 - `working`: the provider calls in flight right now, oldest first; empty when none (or done). The critic and the refund reader run side by side, so two entries is normal.
 - `steps`: every trace line written so far, in trace order, as `{ step, agent, label, tech, status, seconds }` with `label = labelFor(line.step, line)`, `tech = techOf(line)`, `agent = line.agent_name`, `seconds = round(duration_ms / 1000, 2)`. The buffered early lines (facts, gates) appear in one burst when the run reaches `executor.act`; until then `working` shows them live.
 - `decision_early`: `null` until the branch decides; then set once and never changed. Only for a fixed branch (table below). `draft_pending: true` means the final result may still attach a draft.
