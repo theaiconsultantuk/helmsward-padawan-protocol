@@ -203,7 +203,7 @@ test("POST /run takes a free-text FAQ question: scenario, branch, send, the FAQ 
   assert.equal(run.scenario, "question");
   assert.equal(run.branch_id, "faq-hit");
   assert.equal(run.output.decision, "send");
-  assert.match(run.output.draft.text, /Shipping time depends/);
+  assert.match(run.output.draft.text, /Faster than the Kessel Run/);
   assert.equal(run.input.kind, "message");
   assert.match(run.input.thread_id, /^F\d+$/);
   const stored = await (await get("/runs/msg-faq")).json();

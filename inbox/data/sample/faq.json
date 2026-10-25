@@ -13,126 +13,126 @@
         [
           "Q01",
           "How long does shipping take?",
-          "Shipping time depends on your region and the product. Your order confirmation shows the estimate for your address, and customer service can tell you where your order is.",
+          "Faster than the Kessel Run, though we measure in days, not parsecs. Your order confirmation shows the estimate for your address, and we are happy to check where your parcel is.",
           "shipping delivery time long arrive ship days",
           "authored"
         ],
         [
           "Q02",
-          "Which regions do you ship to, and do you ship to post boxes?",
-          "We ship to most regions. Some remote regions and post boxes cannot take a courier delivery, so give a street address where you can. Customer service confirms your region before the order ships.",
-          "regions region country countries post box pobox ship international",
+          "Which regions do you ship to, and do you ship to space stations?",
+          "We ship galaxy-wide. Most space stations can take a delivery too, but a few docking rings will not accept a courier, so a planet-side address is the safest bet. We confirm your region before anything leaves the warehouse.",
+          "regions region country countries post box pobox ship international space station stations",
           "authored"
         ],
         [
           "Q03",
           "How do I care for my gear?",
-          "Wipe it with a soft dry cloth, keep it out of long direct sun, and store it in its case or bag. Do not use solvents on the hilt or the crystal case.",
+          "A soft dry cloth, no long sunbaths, and back in its case or bag when you are done. Keep solvents well away from the hilt and the crystal case.",
           "care clean cleaning wash maintain store storage",
           "authored"
         ],
         [
           "Q04",
           "How long is the warranty?",
-          "Every product carries a warranty against manufacturing faults. The length is stated on your order confirmation, and a faulty item is handled as a replacement, not a refund.",
+          "Every piece is covered against manufacturing faults for 24 months from delivery. If something is faulty, we replace it, as long as there is no stormtrooper blood on it.",
           "warranty guarantee fault faulty defect length covered",
           "wiki/replacement-policy.md"
         ],
         [
           "Q05",
           "Which colours do you ship?",
-          "The colours shown on each product page are the colours we ship. If a colour is not shown, it is not in stock, and customer service can tell you if it is coming back.",
+          "Every colour on a product page is one we ship. Pink kyber crystals are commonly in short supply, so pink blades sell out first. If a colour is missing, it is out of stock for now; ask us and we will tell you when it is back.",
           "colour colours color colors shade available stock",
           "authored"
         ],
         [
           "Q06",
           "Do you sell stands for the sabers?",
-          "Yes, the Orbit Display Stand is in our product list, and it fits the Vanta Arc Trainer and the Strand Emitter Hilt.",
+          "Yes: the Orbit Display Stand holds the Vanta Arc Trainer and the Strand Emitter Hilt.",
           "stand stands display holder saber hilt training saber saber stand orbit vanta arc trainer emitter",
           "products.csv"
         ],
         [
           "Q07",
           "Can you engrave my gear?",
-          "Engraving is not offered at the moment. Customer service can note a request, but we do not promise it.",
+          "Not yet. Tell us what you had in mind and we will note it, though we cannot promise it.",
           "engrave engraving engraved personalise personalize name custom",
           "authored"
         ],
         [
           "Q08",
           "What is your returns and refund policy?",
-          "A refund at or under 150 GC can be approved by our refund owner. Above 150 GC it goes to the Sales head for approval. A replacement is not a refund. Write to us with your order reference.",
+          "Even the best blade can disappoint. Send it back unused within 30 days and we will make it right, no Jedi mind tricks. Arrived faulty? We replace it. Just tell us your order reference and what happened.",
           "return returns refund refunds money back policy",
           "wiki/refund-policy.md"
         ],
         [
           "Q09",
           "Where is my order?",
-          "Send us your order reference and customer service will check its status and reply to you. We never ask for a card number.",
+          "Send us your order reference and we will check on it and reply. We will never ask you for your banking guild identification.",
           "order status track tracking where parcel package reference",
           "wiki/what-may-leave.md"
         ],
         [
           "Q10",
           "Which payment methods do you accept?",
-          "We accept the payment methods shown at checkout. We never ask for a card number by email or chat.",
+          "Everything shown at checkout. We will never ask for your banking guild identification by email or chat.",
           "payment pay payments card methods checkout invoice",
           "wiki/what-may-leave.md"
         ],
         [
           "Q11",
           "Do you offer gift wrapping?",
-          "Gift wrapping is not offered at the moment. Customer service can add a gift note to the order.",
+          "Not at the moment, but we can add a gift note to your order.",
           "gift wrapping wrap present note",
           "authored"
         ],
         [
           "Q12",
           "Can I place a bulk order?",
-          "Yes. Sales quotes bulk orders: tell us the product and the quantity and sales will reply with a quote.",
+          "Yes. Tell us the product and how many, and we will send you a quote.",
           "bulk order quote quotes wholesale quantity volume units",
           "authored"
         ],
         [
           "Q13",
           "Do you offer gift wrapping at the Coruscant store?",
-          "Gift wrapping is not offered at the moment. Customer service can add a gift note to the order, and the cloak of your choice can be folded neatly in the box.",
+          "Not at the moment, but we can add a gift note, and a cloak can be folded neatly in its box.",
           "gift wrapping wrap present ribbon box",
           "authored"
         ],
         [
           "Q14",
           "How long do I have to return something?",
-          "You have 30 days from delivery to ask for a return, and the item should be unused. Write to us with your order reference. A refund at or under 150 GC is approved by our refund owner.",
+          "30 days from delivery, as long as it is unused and there is no stormtrooper blood on it. Write to us with your order reference and we will take it from there.",
           "return returns window days send back unused",
           "wiki/refund-policy.md"
         ],
         [
           "Q15",
           "What does the warranty cover and for how long?",
-          "Every product carries a warranty against manufacturing faults for 24 months from delivery. A faulty item is replaced, not refunded. Wear and tear and hilts used as paperweights are not covered.",
+          "Manufacturing faults, for 24 months from delivery; a faulty item is replaced, not refunded. Wear and tear is not covered, and neither is a hilt used as a paperweight.",
           "warranty covered months fault faulty replacement guarantee",
           "wiki/replacement-policy.md"
         ],
         [
           "Q16",
           "How can I track my order?",
-          "Send us your order reference, which looks like JP-1234, and customer service will check its status and reply to you. We never ask for a card number.",
+          "Send us your order reference (it looks like JP-1234) and we will check on it and reply. We will never ask you for your banking guild identification.",
           "track tracking order status reference parcel package where shipped",
           "wiki/what-may-leave.md"
         ],
         [
           "Q17",
           "Do you ship to Alderaan?",
-          "Not at the moment. Deliveries to Alderaan are currently suspended; see the shipping rules for Alderaan. Orders already placed for Alderaan are held until deliveries resume.",
+          "Deliveries to Alderaan are indefinitely suspended: there is, regrettably, no longer an Alderaan to deliver to. Orders already placed for Alderaan are held.",
           "alderaan ship shipping deliver delivery suspended planet",
           "shipping_rules.csv"
         ],
         [
           "Q18",
           "What are the opening hours of the Coruscant store?",
-          "The Coruscant store is open from 09:00 to 18:00 Galactic Standard Time, Monday to Saturday, and closed on Life Day.",
+          "09:00 to 18:00 Galactic Standard Time, Monday to Saturday. Closed on Life Day.",
           "opening hours open store coruscant closed time",
           "authored"
         ]

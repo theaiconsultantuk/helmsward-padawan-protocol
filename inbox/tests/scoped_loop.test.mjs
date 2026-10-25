@@ -195,7 +195,9 @@ test("the returns-and-refund FAQ on a question sends: the question asks about re
   assert.equal(result.branch_id, "faq-hit");
   assert.equal(result.output.decision, "send");
   assert.equal(lines.find((l) => l.step === "risk.signoff").status, "success");
-  assert.ok(mentionsRefund(result.output.draft), "the sent FAQ text names refunds");
+  // the canonical Q08 copy (einh 25 Oct: no approval chain in the FAQ) carries the 30-day return rule; it may name refunds but no longer has to
+  assert.ok(result.output.cited_rows.includes("faq:Q08"), "the sent text is the returns FAQ");
+  assert.match(result.output.draft.text, /Send it back unused within 30 days/);
 });
 
 test("the refund-limit question is held for the question owner with the quoted policy as its draft", async () => {

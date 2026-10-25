@@ -485,7 +485,6 @@
       },
       "sequence": [
         "branch:success:delivery-suspended",
-        "nvidia.model:skipped:delivery-suspended",
         "planner.plan:success:delivery-suspended",
         "nvidia.model:skipped:delivery-suspended",
         "critique:skipped:delivery-suspended",
@@ -562,7 +561,6 @@
       },
       "sequence": [
         "branch:success:other-unanswered",
-        "nvidia.model:skipped:other-unanswered",
         "planner.plan:success:other-unanswered",
         "nvidia.model:skipped:other-unanswered",
         "critique:skipped:other-unanswered",

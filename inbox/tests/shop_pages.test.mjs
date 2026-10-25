@@ -243,3 +243,64 @@ test("no served shop page shows a dollar sign before a number or USD to the visi
   // the price formatter the pages share prints GC
   assert.match(readShop("js/core.js"), /const usd = n => `\$\{n\} GC`;/);
 });
+
+test("(judges) the scenario heading carries the muted Judges' corner line", () => {
+  const html = readShop("contact.html");
+  assert.match(html, /id="sc-title">Try a scenario<\/h2>\s*<p class="sc__note" id="sc-judges">Judges' corner \(hackOS\): pick one and watch the agent work it live\. Some take a few minutes\.<\/p>/);
+  assert.match(html, /<div id="scenarios"><\/div>/);
+});
+
+// Static checks on contact.js, in the style of the page tests above: the scenario click only fills.
+const fnBody = (src, name) => {
+  const i = src.indexOf(`function ${name}(`);
+  assert.ok(i >= 0, name);
+  const j = src.indexOf("\n  function ", i + 10);
+  return src.slice(i, j < 0 ? undefined : j);
+};
+
+test("(judges) a scenario click fills the form, never starts a run, and hands focus to Submit", () => {
+  const js = readShop("js/contact.js");
+  const pick = fnBody(js, "pickScenario");
+  assert.ok(!/\brun\(|requestSubmit|\.submit\(|\.click\(\)|dispatchEvent/.test(pick), "pickScenario must not start a run");
+  assert.match(pick, /Ready: check the message, then press Submit dispatch\./);
+  assert.match(pick, /focusSubmit\(\$\("submit"\)\)/);
+  const focus = fnBody(js, "focusSubmit");
+  assert.match(focus, /scrollIntoView/);
+  assert.match(focus, /\.focus\(/);
+  assert.match(pick, /seq !== pickSeq/, "the pickSeq guard stays");
+});
+
+test("(judges) the Reason is filled from the entry's reason, falling back to its scenario", () => {
+  const js = readShop("js/contact.js");
+  assert.match(fnBody(js, "pickScenario"), /setReason\(reasonValueFor\(e\)\)/);
+  const f = fnBody(js, "reasonValueFor");
+  assert.match(f, /str\(e\.reason\)/);
+  assert.match(f, /str\(e\.scenario\)/);
+  assert.match(js, /Question: "question"/);
+});
+
+test("(judges) the Submit button shows Running… while busy and is restored", () => {
+  const js = readShop("js/contact.js");
+  const busy = fnBody(js, "setBusy");
+  assert.match(busy, /on \? "Running\\u2026" : "Submit dispatch"/);
+  assert.match(busy, /b\.disabled = on/);
+  assert.match(readShop("contact.html"), /id="submit">Submit dispatch<\/button>/);
+});
+
+test("(judges) a rendered journey nudges Under the hood without opening the drawer; opening or a new run clears it", () => {
+  const js = readShop("js/contact.js");
+  const html = readShop("contact.html");
+  assert.match(html, /<span class="flow__hint" id="drawer-hint" hidden>See how the agent decided<\/span>/);
+  const nudge = fnBody(js, "nudgeDrawer");
+  assert.match(nudge, /is-nudge/);
+  assert.ok(!/showModal|setAttribute\("open"/.test(nudge), "the nudge must not open the drawer");
+  assert.match(fnBody(js, "renderJourney"), /nudgeDrawer\(\)/);
+  assert.match(fnBody(js, "run"), /clearNudge\(\)/);
+  assert.match(fnBody(js, "openDrawer"), /clearNudge\(\)/);
+  const css = readShop("css/totality.css");
+  assert.match(css, /@media \(prefers-reduced-motion:no-preference\)\{\.btn-line\.is-nudge\{animation:nudge/);
+});
+
+test("(judges) the form and the flow clear the fixed masthead when scrolled to", () => {
+  assert.match(readShop("css/totality.css"), /#contact-form,#flow\{scroll-margin-top:calc\(var\(--mast,72px\) \+ 16px\)\}/);
+});

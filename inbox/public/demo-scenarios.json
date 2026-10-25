@@ -107,7 +107,7 @@
   },
   {
     "id": "s06",
-    "label": "Product question, not in the catalogue row",
+    "label": "Product question the catalogue can't answer",
     "scenario": "free_text",
     "reason": "Question",
     "channel": "chat",

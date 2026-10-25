@@ -23,6 +23,7 @@
   var sending = false;
   var ticker = null;
   var pickSeq = 0;
+  var picked = null;
   var drawerOpener = null;
 
   /* ---------- helpers ---------- */
@@ -168,8 +169,18 @@
     sel.value = REASON_VALUES.indexOf(v) >= 0 ? v : "free_text";
   }
 
+  // The form's Reason is filled from the entry's own reason ("Question"); only an entry without one falls back to its scenario.
+  var REASON_BY_LABEL = { Refund: "refund", Question: "question", Quote: "rfq", Complaint: "complaint", Other: "free_text" };
+  function reasonValueFor(e) {
+    var r = REASON_BY_LABEL[str(e.reason)];
+    return r || str(e.scenario);
+  }
+
   function readInput() {
     var reason = $("reason").value;
+    // A scenario's declared kind still travels as its own: the Reason the form shows can read "Question" for an entry that is declared free text,
+    // and the shown label must not change what is declared. Editing the Reason takes over.
+    if (active && picked && reason === picked.shown) reason = picked.sent;
     var name = $("name").value.trim();
     var email = $("email").value.trim();
     var input = {
@@ -191,6 +202,8 @@
     if (res) res.setAttribute("aria-busy", on ? "true" : "false");
     var form = $("contact-form");
     if (form) Array.prototype.forEach.call(form.querySelectorAll('button[type="submit"]'), function (b) { b.disabled = on; });
+    var sub = $("submit");
+    if (sub) sub.textContent = on ? "Running\u2026" : "Submit dispatch";
     Array.prototype.forEach.call(document.querySelectorAll(".sc__btn"), function (b) { b.disabled = on; });
   }
 
@@ -320,6 +333,14 @@
     setStatus("");
   }
 
+  // A click only fills. The form sits above the scenario list, so bring it into view and park focus on the button that starts the run.
+  function focusSubmit(btn) {
+    var form = $("contact-form");
+    var reduced = window.T && window.T.reduced;
+    if (form && form.scrollIntoView) { try { form.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" }); } catch (e) { /* position only */ } }
+    if (btn && btn.focus) { try { btn.focus({ preventScroll: true }); } catch (e) { btn.focus(); } }
+  }
+
   function pickScenario(id) {
     var e = entryById(id);
     if (!e || busy) return;
@@ -329,7 +350,8 @@
     showExpected();
     var f = $("flow");
     if (f) f.hidden = true;
-    setReason(str(e.scenario));
+    setReason(reasonValueFor(e));
+    picked = { shown: $("reason") ? $("reason").value : "", sent: str(e.scenario) || "free_text" };
     if ($("channel")) $("channel").value = str(e.channel) || "contact-form";
     $("message").value = str(e.message);
     if ($("as_of")) $("as_of").value = str(e.as_of) || DEFAULT_AS_OF;
@@ -349,9 +371,11 @@
         if (e.channel === "trustpilot" || e.channel === "email") {
           showSourceCard(e, res.client);
           setStatus(res.note + "Message filled. Press Simulate arrival to send it.");
+          focusSubmit(document.querySelector("#source-card .src__submit"));
         } else {
           hideSourceCard();
-          setStatus(res.note + "Form filled. Submit dispatch to send it.");
+          setStatus(res.note + "Ready: check the message, then press Submit dispatch.");
+          focusSubmit($("submit"));
         }
       });
   }
@@ -539,6 +563,21 @@
     }
   }
 
+  // "Nudge, don't open": a one-time pulse and a hint beside Under the hood once the reply has landed; the drawer stays shut.
+  function nudgeDrawer() {
+    var b = $("open-drawer"), h = $("drawer-hint"), d = $("drawer");
+    if (!b || !h || (d && d.open)) return;
+    h.hidden = false;
+    b.classList.remove("is-nudge");
+    void b.offsetWidth;
+    b.classList.add("is-nudge");
+  }
+  function clearNudge() {
+    var b = $("open-drawer"), h = $("drawer-hint");
+    if (b) b.classList.remove("is-nudge");
+    if (h) h.hidden = true;
+  }
+
   function renderJourney(j) {
     cur.journey = j;
     showFlow();
@@ -552,6 +591,7 @@
       slot.textContent = str(j.run_id) + (ms !== null ? " · " + fmtMs(ms) : "");
     }
     paint(j);
+    nudgeDrawer();
     if (active && cur.entry === active && cur.runId === j.run_id) {
       var cmp = callFlow("compareExpected", [active.expected, j]);
       showExpected(cmp && typeof cmp.text === "string" ? cmp.text : "");
@@ -570,6 +610,7 @@
     var runId = "run-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 6);
     cur = { runId: runId, journey: null, started: Date.now(), entry: active };
     setBusy(true);
+    clearNudge();
     setStatus("");
     setNote("");
     showFlow();
@@ -587,7 +628,7 @@
       .then(function (r) {
         if (typeof cur.postMs !== "number") cur.postMs = Date.now() - cur.started;
         if (r.code === 502 || r.code === 504 || r.code === 524) {
-          setStatus("Still working: long runs can take up to 3 minutes…");
+          setStatus("Still working: long runs can take a few minutes…");
           return pollRunUntilDone(runId, 100);
         }
         return r;
@@ -657,6 +698,7 @@
     if (!d || d.open) return;
     if (!cur.journey) { setNote("Nothing to show yet: run a dispatch first."); return; }
     drawerOpener = opener || null;
+    clearNudge();
     if (typeof d.showModal === "function") d.showModal(); else d.setAttribute("open", "");
     if (window.T && window.T.lenis && typeof window.T.lenis.stop === "function") window.T.lenis.stop();
     var c = d.querySelector("[data-close]");

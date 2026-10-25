@@ -272,16 +272,18 @@ test("S0.2: every number in a FAQ answer appears in a policy row or a wiki page 
   const backing = new Set(readFileSync(new URL("policy.csv", dir), "utf8").split(/\r?\n/).flatMap(nums));
   for (const f of readdirSync(new URL("wiki/", dir))) for (const n of nums(readFileSync(new URL(`wiki/${f}`, dir), "utf8"))) backing.add(n);
   // The answers now say GC and the six added ones (CP1) carry authored figures no policy or wiki row holds. They are pinned here, per row,
-  // so a NEW unbacked number still fails: Q14 returns window 30 days, Q15 warranty 24 months, Q16 the order-reference example JP-1234, Q18 opening hours 09:00-18:00 (parsed as 9, 0, 18).
-  const AUTHORED = { Q14: [30], Q15: [24], Q16: [1234], Q18: [9, 0, 18] };
+  // so a NEW unbacked number still fails: Q04 and Q15 warranty 24 months (Q04 now states it), Q08 and Q14 returns window 30 days, Q15 warranty 24 months, Q16 the order-reference example JP-1234, Q18 opening hours 09:00-18:00 (parsed as 9, 0, 18).
+  const AUTHORED = { Q04: [24], Q08: [30], Q14: [30], Q15: [24], Q16: [1234], Q18: [9, 0, 18] };
   let numbered = 0;
   for (const [id, , answer, , source] of faq.slice(1)) {
     assert.ok(source, `${id} has a source`);
     for (const n of nums(answer)) { numbered++; assert.ok(backing.has(n) || (AUTHORED[id] ?? []).includes(n), `${id}: number ${n} has no policy or wiki row behind it`); }
   }
-  assert.ok(numbered >= 1, "the returns answer quotes the refund limit");
+  assert.ok(numbered >= 1, "the answers carry figures");
   const returns = faq.find((r) => /refund/i.test(r[1]));
-  assert.match(returns[2], /150 GC/);
+  // einh 25 Oct 2026: the FAQ does not mention the approval process or the GC limit; the refund rule lives in the policy rows and the agent's replies
+  assert.match(returns[2], /30 days/);
+  assert.doesNotMatch(returns[2], /150 GC/);
   assert.match(returns[4], /refund-policy/);
 });
 
