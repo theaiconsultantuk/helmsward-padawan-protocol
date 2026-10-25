@@ -19,7 +19,7 @@ Agent frameworks: none. The service has zero runtime dependencies (Node standard
 
 Sponsor technology:
 
-- Zetaris: serves all company data (15 file sources, the runtime decisions table, the REST intake). The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
+- Zetaris: serves all company data (25 file sources, the runtime decisions and intake_runtime tables, and the REST intake: 28 sources in `data/sources.json`). The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
 - Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`. Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, and the Scout eval harness ([engine-scout-evals.md](engine-scout-evals.md), [engine-hmem-two-run.md](engine-hmem-two-run.md)).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
 - NVIDIA: Nemotron lanes through Nightshift for drafting and critique; DiffusionGemma (OpenJev) for typed gates.

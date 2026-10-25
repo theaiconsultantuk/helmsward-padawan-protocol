@@ -5,13 +5,15 @@ date: "2026-10-22"
 tags: [methodology, track-3]
 ---
 
+Design spec. Built: Scout, H-MEM, World Model.
+
 # Methodology
 
 This is the method for the one round. It is not the product.
 Clocks, files, and gates stay in `READ_FIRST.md`. Safety stays in `AGENTS.md`.
 Current proposal, until the group keeps or drops it: `kristof/jedi-pack-inbox.md` (Track 3, Reasoning Architecture).
 
-Engines on disk: `/Users/McEinh/code/meterless` at commit `1742dec`.
+Engines on disk: `the Meterless repository` at commit `1742dec`.
 Model calls go through Nightshift when the hotspot is up (`http://127.0.0.1:8088/v1`). An agent does not install an app, sign up, or create a key. Kristof does that himself.
 
 The build window opened Thu 22 Oct 2026 00:00 UTC. Product code is allowed. Secrets are not.
@@ -32,7 +34,7 @@ The build window opened Thu 22 Oct 2026 00:00 UTC. Product code is allowed. Secr
 | POWER | Prompt-library group. Nightshift is the model provider. Draft and evaluator calls go through it. |
 | HARDEN | Prompt-library group. Scout's injection guard on untrusted input, before the reply loop. The trust ledger is the weight table that audit ships. |
 
-The five prompt-library groups are Ideate, Implement, Combine, Harden, and Power (`docs/agent-ready/prompt-library.md` in `/Users/McEinh/code/meterless`, full set at meterless.ai/engines.html). They are Meterless concepts. They are not extra engines beside H-MEM, World Model, Markovian, and Scout.
+The five prompt-library groups are Ideate, Implement, Combine, Harden, and Power (`docs/agent-ready/prompt-library.md` in `the Meterless repository`, full set at meterless.ai/engines.html). They are Meterless concepts. They are not extra engines beside H-MEM, World Model, Markovian, and Scout.
 
 A Meterless run has used the stack when each of these has happened once, and each has a log line:
 
@@ -156,7 +158,7 @@ From `inputdocs/024-submission-requirements.md`:
 
 ## Reference commands
 
-From `/Users/McEinh/code/meterless`. These are the repo's first steps, not the assignment.
+From `the Meterless repository`. These are the repo's first steps, not the assignment.
 
 ```bash
 npx tsx examples/memory-compounding-research/index.ts

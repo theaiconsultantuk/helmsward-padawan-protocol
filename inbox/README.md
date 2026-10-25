@@ -77,14 +77,24 @@ Reaching Zetaris and Nightshift from inside the container: `localhost` there is 
 The container has no `docker` CLI, so the two Zetaris publishes fall back to local files and say `published: false` (Limitations).
 
 Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, Nightshift, OpenJev and the optional local lane), `npm run cli -- run --thread T02`.
+Without your own Zetaris and Nightshift keys, doctor reports FAIL and exits 1; in sample mode (`SAMPLE_MODE=true`) it skips all three service checks.
+Judges can skip it and use sample mode.
 
 ## API
 
-The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere, CORS open (`*`), no credentials by default (`API_TOKEN` unset); a shared instance that sets `API_TOKEN` protects the four POST routes, see below.
+The contract is `openapi.yaml` (also served at `GET /openapi.yaml`). JSON everywhere; CORS follows `CORS_ORIGIN` (unset: `*`), with `API_TOKEN` unset by default; a shared instance that sets `API_TOKEN` protects the four POST routes, see below.
 
 **Base URL.** `http://127.0.0.1:8000` by default; `PORT` moves it (`8810` on the dev VM) and `HOST` defaults to `127.0.0.1`. Start it with `node src/server.mjs`. `SAMPLE_MODE=true` answers from cached rows with no network (counters then come from the local decisions file); `"options": {"sample_mode": true}` on a `/run` forces it for one call.
 
-**Reaching a shared instance.** A clean run needs no key (Quick start). The team's shared instance is https://jedi.blastworks.ai, and only there is a token set. That instance is not a sample: every submit runs the real agent, calls paid live models and writes into a shared inbox, and it stays up until 5 Nov 2026, so a shared demo key keeps a stranger who finds the URL from spending the model budget or flooding the inbox. Judges receive the contact-page link with the key in it (`/shop/contact.html?token=<key>`) through the submission form; the page removes the key from the address bar on load and remembers it in that browser. When an instance runs with `API_TOKEN` set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS allows any origin and that header, so a front end on another host can call it directly. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
+**Reaching a shared instance.** A clean run needs no key (Quick start). The team's shared instance is https://jedi.blastworks.ai, and only there is a token set. That instance is not a sample: every submit runs the real agent, calls paid live models and writes into a shared inbox, and it stays up until 7 Nov 2026 00:00 UTC, so a shared demo key keeps a stranger who finds the URL from spending the model budget or flooding the inbox. Judges receive the contact-page link with the key in it (`/shop/contact.html?token=<key>`) through the submission form; the page removes the key from the address bar on load and remembers it in that browser. When an instance runs with `API_TOKEN` set, the four POST routes (`/run`, `/ask`, `/feedback`, `/runs/{id}/send`) need the header `Authorization: Bearer <token>`; every GET, the two pages and `/health` stay open. CORS follows `CORS_ORIGIN`: unset or `*` allows any origin, preserving clean-clone and local-page use; the hosted setting is `https://jedi.blastworks.ai`.
+A fixed origin adds `Vary: Origin`; an invalid setting sends no allow-origin header.
+POST bodies must be `application/json` (parameters such as `charset=utf-8` are allowed), otherwise the response is 415. The shipped pages take `?token=<token>` once and keep it in the browser. Unset (the default, and the judges' clean clone) means no token anywhere.
+
+**Open demo limits.** At most 2 live model runs may be in flight across `/run` and `/ask`; a third answers 503 `Busy` with `recoverable: true` and `busy: 2 live runs in flight (cap 2); retry later`.
+A run keeps its slot until it finishes, even if the caller disconnects; sample runs are never counted.
+Message runs stop at 5,000 intake rows (503 `IntakeFull`, `intake full: 5000 rows (cap); message runs refused`); stored-thread runs and `/ask` do not add intake rows.
+An optional non-empty `name` must contain a letter and use only letters, spaces, hyphens and apostrophes (including Unicode letters and combining marks); the 200-character limit still applies.
+Generated demo customers get a random six-character email suffix; s04 and s10 retain their fixed customers.
 
 ```bash
 B=http://127.0.0.1:8000
@@ -217,6 +227,8 @@ Result of the run on 23 Oct 2026: PASS, exit code 0, corpus v1, 32 examples (15 
 ### H-MEM (Meterless)
 
 What: a small memory store. Each run reads memories before planning and writes one after. Memories carry a source (a record with no source is rejected), a type, tags, entities and a confidence; retrieval scores overlap, tags, entity, layer and a 7-day recency half-life. Escalated tickets are written to `data/memory/queue/<thread_id>.json` with both critiques.
+Memory content holds no customer display name; records are keyed and recalled by the client's email and ticket id only (einh, 25 Oct 2026).
+Personalised draft critiques remain in the approval queue and trace; they are excluded from learned escalation memory.
 
 Where: `src/engines/hmem/index.mjs`. State is `data/memory/state.json` and `data/memory/ledger.jsonl`.
 
@@ -268,7 +280,7 @@ Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformanc
 
 ## Data sources
 
-Zetaris holds two layers. `JEDI_PACK` is the raw layer: one Lightning database over every source the company has (28 sources, seven formats including REST), each registered as a filestore table in its own format, read through one SQL surface. On top of it the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` is compiled from typed DDL with primary and foreign keys and read as live views. The scenario routes, the free-text intake read-back and the World Model build read the USL tables (`employee`, `customer`, `ticket`, `product`, `policy`, `responsibility`, `faq`, `holiday`, `intake`, `review`, `decision` and `wiki_page`); the legacy thread facts still read the raw tables. We wrote no adapter, no ETL and no mapping layer; the service even writes two tables back into the raw layer at runtime (`decisions` and `intake_runtime`). See [judging/zetaris-usl.md](judging/zetaris-usl.md).
+Zetaris holds two layers. `JEDI_PACK` is the raw layer: one Lightning database over every source the company has (28 sources, seven formats including REST), each registered as a filestore table in its own format, read through one SQL surface. On top of it the Unified Semantic Layer `lightning.metastore.jedi_pack.jedi_pack` is compiled from typed DDL with primary and foreign keys and read as live views. The scenario routes, the free-text intake read-back and the World Model build read 14 of the 19 USL tables (`bom_part`, `bulk_tier`, `channel`, `client`, `faq`, `hierarchy`, `holiday`, `intake`, `product`, `responsibility`, `review`, `sales_order`, `shipping_rule`, `ticket`); the legacy thread facts still read the raw tables. We wrote no adapter, no ETL and no mapping layer; the service even writes two tables back into the raw layer at runtime (`decisions` and `intake_runtime`). See [judging/zetaris-usl.md](judging/zetaris-usl.md).
 
 All data is synthetic, generated by `scripts/gen_company.py`, licence "synthetic, CC0". Zetaris reads it as `JEDI_PACK.<table>`. The measured register is [judging/zetaris-register.md](judging/zetaris-register.md); the machine-readable list is [data/sources.json](data/sources.json).
 
