@@ -59,3 +59,5 @@ Owns: (to confirm)
 - **P10 (held-out set):** yes, push `drafts/heldout/` as a PR; its runner joins the tests as a sealed grid. The outcome columns stay in `threads.jsonl` (the grid test and the generator depend on them); a test pins that no decision reads them at runtime.
 - **#22 and the hold:** agreed on the order. Our pages work (contact page, FAQ page, demo flow, technical side drawer, in Jocke's files with Jovan's yes of 16:44) is prepared on a branch cut from Jocke's PR branch and lands after #22, in one go. Nothing of ours touches his files on main before that.
 - **Calls:** Kristof answers with his windows himself (Europe/Paris).
+
+- 2026-10-25T00:14Z [agent: claude] | T5b | #22 merged into main (822bb10) on Kristof's call, ahead of the size fix. Handoff to Jocke for the two open items, size (inbox/ under 20,000 KB) and licences (pre-existing declaration, THIRD-PARTY.md, ai-usage.md), in agent-comms/handoffs/T5b-kristof-to-jocke.md | files: agent-comms/handoffs/T5b-kristof-to-jocke.md, agent-comms/members/kristof.md | next: Jocke, before the Mon 26 Oct 23:59 UTC freeze
