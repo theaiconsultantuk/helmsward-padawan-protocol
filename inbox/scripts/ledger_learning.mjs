@@ -17,7 +17,7 @@ export function rulesCommit() {
 }
 const provenance = rulesCommit();
 export const inputCommit = () => provenance;
-export const maskCommit = text => text.replace(/^.*decision code and inputs at commit.*$/gm, '<inputs commit>');
+export const maskCommit = text => text.replace(/^Sample mode, decision code and inputs at commit `[^`\n]+`(?: \(\d{4}-\d{2}-\d{2}\))?\.$/gm, '<inputs commit>');
 export const commitLine = value => {
   const [sha, date] = value.split(' ');
   return `Sample mode, decision code and inputs at commit \`${sha}\`${date ? ` (${date})` : ''}.`;
