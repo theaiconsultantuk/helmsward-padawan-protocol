@@ -24,3 +24,9 @@
 - 2026-10-25: The contact page offers Live or Simulated. Simulated sends options.sample_mode:true and is never counted (no decision row, no publish).
 - 2026-10-25: The held-out set (inbox/judging/heldout/) is never used to tune rules. Its result is reported as is: 13/20 on main in sample mode.
 - 2026-10-25: Proposed to Kristof, not yet agreed: a thank-you that carries a request holds; an over-limit refund reaches the amount approver even when the order number is unknown.
+- 2026-10-25: Teardown of the hosted instance moves to 7 Nov 2026 00:00 UTC, after the 6 Nov 16:00 UTC results call (Kristof, 25 Oct 19:28Z). Supersedes 5 Nov and 29 Oct. The deploy key is deleted then (P18).
+- 2026-10-25: Track 3 "Reasoning Architecture" confirmed (Paul). Supersedes the 22 Oct working track (Track 2). The track is picked in the HackOS submission form and can change until the deadline.
+- 2026-10-25: Agreed with Kristof (20:06): P43 (thanks + request holds; over-limit reaches the approver even with an unknown order) is built in his build B. Supersedes the "not yet agreed" line above.
+- 2026-10-25: What goes public (Dean D4, U12): the repo goes public as it is, Star Wars-flavoured names included, no history rewrite (Paul). Amazon data and CHECKPOINTS come out first (PR #56).
+- 2026-10-25: Won't do before the freeze (Paul): P23-P25, P27, P28 (tone and fiction extensions) and P31-P33 (PR template, deck refresh, brand manual). Scope is frozen to fixes.
+- 2026-10-25: P50 (gzip and cache headers) goes back to Kristof: response headers are server and host config, not front end. Steps in agent-comms/handoffs/P50-paul-to-kristof.md.
