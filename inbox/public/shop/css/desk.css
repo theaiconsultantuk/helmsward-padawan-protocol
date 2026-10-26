@@ -73,3 +73,16 @@
 @media (max-width: 640px) { .desk { padding: 96px 16px 56px; } }
 .dcard__acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .dcard__acts .desk__btn { flex: 1 1 auto; }
+/* who wrote in: name and email from the journey (usability test, 26 Oct) */
+.dcard__who, .run__who { margin: 0; color: #C9C4BA; font: 500 13px/1.4 var(--font, Manrope, sans-serif); overflow-wrap: anywhere; }
+.run__who { margin-top: 6px; }
+/* Reject asks for a reason (js/reject-reason.js) */
+.rr { margin-top: 10px; padding: 12px 14px; border: 1px dashed #FF5A1F; background: #0b0b0d; display: grid; gap: 8px; }
+.rr__h { margin: 0; color: #F2EEE6; font: 500 12px/1.4 var(--font, Manrope, sans-serif); letter-spacing: .12em; text-transform: uppercase; }
+.rr__chips, .rr__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rr__chip, .rr__go, .rr__no { min-height: 36px; padding: 6px 12px; background: transparent; color: #F2EEE6; border: 1px solid #8A8A8F; font: 500 13px/1.2 var(--font, Manrope, sans-serif); cursor: pointer; }
+.rr__chip[aria-pressed="true"] { border-color: #FF5A1F; color: #FF5A1F; }
+.rr__go { background: #FF5A1F; border-color: #FF5A1F; color: #050506; }
+.rr__go:disabled { opacity: .4; cursor: not-allowed; }
+.rr__note { min-height: 56px; padding: 8px 10px; background: #050506; color: #F2EEE6; border: 1px solid #8A8A8F; font: 400 14px/1.4 var(--font, Manrope, sans-serif); resize: vertical; }
+.rr__fine { margin: 0; color: #8A8A8F; font-size: 12px; }

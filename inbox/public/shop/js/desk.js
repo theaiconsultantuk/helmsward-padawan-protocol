@@ -41,6 +41,11 @@
     return api("/runs/" + encodeURIComponent(id) + "/journey").then(function (j) { journeys[id] = j; return j; });
   }
   function name(p) { return p && p.name ? p.name : ""; }
+  // Who wrote in, from the run's journey: "Name · email" (usability test, 26 Oct). Empty when the journey has neither.
+  function sender(j) {
+    var i = j && j.input && typeof j.input === "object" ? j.input : {}, n = String(i.name || "").trim(), f = String(i.from || "").trim();
+    return [n, f && f !== n ? f : ""].filter(Boolean).join(" · ");
+  }
   function hood(id, btn) {
     btn.disabled = true;
     journey(id).then(function (j) { if (window.JP_HOOD) window.JP_HOOD.openJourney(j, btn); })
@@ -121,6 +126,8 @@
     if (q.status === "handled") top.appendChild(el("span", "handled", "dchip dchip--ok"));
     else if (q.status === "follow_up") top.appendChild(el("span", "follow up", "dchip dchip--warn"));
     li.appendChild(top);
+    var who = sender(j);
+    if (who) li.appendChild(el("p", who, "dcard__who"));
     var said = (j && j.human && j.human.input) || q.decision_reason || "";
     if (said) li.appendChild(el("p", clip(said, 120), "dcard__msg"));
     if (held && q.owner && held.employee_id !== q.owner.employee_id) li.appendChild(el("p", "Backup for " + name(q.owner) + ", who is out", "dcard__out"));
@@ -169,20 +176,35 @@
       if (r.execution_time_seconds) top.appendChild(el("span", Math.round(r.execution_time_seconds) + " s", "muted"));
       top.appendChild(el("span", when(r.at), "muted"));
       li.appendChild(top);
+      var rwho = sender(journeys[r.run_id]);
+      if (rwho) li.appendChild(el("p", rwho, "run__who"));
       var acts = el("div", null, "run__acts");
       acts.appendChild(hoodButton(r.run_id));
       acts.appendChild(chainButton(r.run_id));
       var msg = el("span", "", "muted"), buttons = [];
+      var kept = window.JP_REASON ? window.JP_REASON.get(r.run_id) : "";
+      if (kept) { msg.textContent = "Rejected: " + kept; msg.title = window.JP_REASON.note; }
+      // A Reject asks for a reason first (sent as `note`); an Affirm goes straight through.
+      function send(verdict, note) {
+        buttons.forEach(function (x) { x.disabled = true; });
+        msg.className = "muted"; msg.textContent = "sending...";
+        var payload = { run_id: r.run_id, verdict: verdict }; if (note) payload.note = note;
+        api("/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+          .then(function () {
+            if (note && window.JP_REASON) { window.JP_REASON.put(r.run_id, note); msg.title = window.JP_REASON.note; }
+            msg.textContent = verdict === "affirm" ? "affirmed" : "Rejected: " + note;
+            return api("/counters").then(renderCounters);
+          })
+          .catch(function (e) { msg.className = "is-bad"; msg.textContent = e.message; })
+          .then(function () { buttons.forEach(function (x) { x.disabled = false; }); });
+      }
       ["affirm", "reject"].forEach(function (verdict) {
         var b = el("button", verdict === "affirm" ? "Affirm" : "Reject", "desk__btn");
         b.type = "button"; buttons.push(b);
         b.addEventListener("click", function () {
+          if (verdict === "affirm" || !window.JP_REASON) { send(verdict, ""); return; }
           buttons.forEach(function (x) { x.disabled = true; });
-          msg.className = "muted"; msg.textContent = "sending...";
-          api("/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ run_id: r.run_id, verdict: verdict }) })
-            .then(function () { msg.textContent = verdict === "affirm" ? "affirmed" : "rejected"; return api("/counters").then(renderCounters); })
-            .catch(function (e) { msg.className = "is-bad"; msg.textContent = e.message; })
-            .then(function () { buttons.forEach(function (x) { x.disabled = false; }); });
+          window.JP_REASON.ask(acts, function (why) { send("reject", why); }, function () { buttons.forEach(function (x) { x.disabled = false; }); });
         });
         acts.appendChild(b);
       });
@@ -227,7 +249,7 @@
     last.q.forEach(function (x, i) { if (see(facts(x, last.js[i], last.rids[i]))) { q.push(x); js.push(last.js[i]); rids.push(last.rids[i]); } });
     var runs = last.runs.filter(function (r) { return see(facts(r, journeys[r.run_id], r.run_id)); });
     renderCats(seen); renderRuns(runs); renderBoard(q, js, rids);
-    if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton, star: star,
+    if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton, star: star, sender: sender,
       empty: filtering() ? "No ticket matches the filter." : null });
     $("f-count").textContent = filtering()
       ? "Showing " + q.length + " of " + last.q.length + " tickets · " + runs.length + " of " + last.runs.length + " runs"

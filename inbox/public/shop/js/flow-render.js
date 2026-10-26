@@ -302,7 +302,7 @@
 
     var input = isObj(j.input) ? j.input : {};
     var cust = el(doc, "div", null, "thread__msg thread__msg--customer");
-    cust.appendChild(el(doc, "div", [input.from, r.channel_label || input.channel].filter(Boolean).join(" · "), "thread__meta"));
+    cust.appendChild(el(doc, "div", [senderOf(input), r.channel_label || input.channel].filter(Boolean).join(" · "), "thread__meta"));
     cust.appendChild(el(doc, "div", input.text || (j.human && j.human.input) || "", "thread__body"));
     root.appendChild(cust);
 
@@ -352,7 +352,8 @@
       root.appendChild(el(doc, "p", "No draft: " + ((r.to && r.to.name) || "the person") + " writes the reply", "thread__meta"));
     } else {
       var none = el(doc, "div", null, "thread__msg thread__msg--internal");
-      none.appendChild(el(doc, "div", "No reply was produced for this message.", "thread__body"));
+      var dupe = duplicateAck(j);
+      none.appendChild(el(doc, "div", dupe ? "Closed as a duplicate of " + (dupe.original ? "ticket " + dupe.original : "an earlier message") + ": no new draft, the original ticket carries the case." : "No reply was produced for this message.", "thread__body"));
       root.appendChild(none);
     }
 
@@ -483,7 +484,26 @@
     renderDrawer(doc, journey);
   }
 
+  // Who wrote in: "Name <email>" when the journey has both, else whichever it has (usability test, 26 Oct).
+  function senderOf(input) {
+    var i = isObj(input) ? input : {}, name = str(i.name).trim(), from = str(i.from).trim();
+    if (name && from && from !== name) return name + " <" + from + ">";
+    return name || from;
+  }
+  // A duplicate closes with no reply on the server; the acknowledgement the customer would get is simulated.
+  // Same words as the desk's Sign-off (chain.js duplicateMail). Returns null when the run is not a duplicate.
+  function duplicateAck(journey) {
+    var j = isObj(journey) ? journey : {}, nodes = arr(j.nodes), route = "";
+    nodes.forEach(function (n) { if (isObj(n) && n.step === "branch" && n.status !== "skipped") route = str(n.route); });
+    if (j.decision !== "close" || !/duplicate/i.test(route)) return null;
+    var m = /earlier thread\s+(F\d+)/i.exec(route), ref = m ? "ref " + m[1] : "your earlier message";
+    var i = isObj(j.input) ? j.input : {}, first = str(i.name).trim().split(/\s+/)[0] || "there";
+    return { to: senderOf(i), subject: "We've already got your message" + (m ? " (" + ref + ")" : ""), original: m ? m[1] : "",
+      body: "Hello " + first + ",\n\nThanks, we've already got your message (" + ref + "), so you may have sent it twice.\nNo need to resend; a colleague is already on it.\n\nBest regards,\nFarstrand Support team" };
+  }
+
   var JP_FLOW = {
+    senderOf: senderOf, duplicateAck: duplicateAck,
     faqIndex: {},
     techOf: techOf, statusText: statusText, statusSub: statusSub, foldRows: foldRows, durationOf: durationOf, fmtMs: fmtMs,
     factsOf: factsOf, detailFor: detailFor, faqHit: faqHit, outcomeOf: outcomeOf, routeOf: routeOf, stateOf: stateOf,

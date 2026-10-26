@@ -123,3 +123,12 @@ mark.blank::before { content: "fill: "; font-size: .75em; opacity: .75; }
 .chip.kept { background: var(--ember); color: var(--ember-ink); border-color: var(--ember); }
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: reduce) { button, .btn, .pill span { transition: none; } }
+/* Reject asks for a reason (/shop/js/reject-reason.js) */
+.rr { margin-top: 10px; padding: 12px; border: 1px dashed var(--ember); display: grid; gap: 8px; }
+.rr__h { margin: 0; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.rr__chips, .rr__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+.rr__chip, .rr__no { background: transparent; color: var(--text); border: 1px solid var(--ash); }
+.rr__chip[aria-pressed="true"] { border-color: var(--ember); color: var(--ember); }
+.rr__go:disabled { opacity: .4; cursor: not-allowed; }
+.rr__note { min-height: 56px; background: var(--bg); color: var(--text); border: 1px solid var(--ash); padding: 8px; font: inherit; }
+.rr__fine { margin: 0; color: var(--muted); font-size: 12px; }

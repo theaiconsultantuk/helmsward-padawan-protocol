@@ -86,6 +86,59 @@
     return box;
   }
   function mail(lines) { var m = el("details", null, "chain__mail"); m.open = true; m.appendChild(el("summary", "The email (simulated)")); m.appendChild(el("pre", lines.join("\n"), "chain__pre")); return m; }
+
+  /* ---------- what an internal email carries (usability test, 26 Oct) ----------
+     The ticket, who wrote it, what the agent decided and why, and the risk profile, each read from the run's own journey.
+     A line with no data in the journey is left out, never guessed. */
+  function ticketOf(j) { return j && j.input && typeof j.input === "object" && j.input.thread_id ? String(j.input.thread_id) : ""; }
+  function branchRoute(j) { var n = (j.nodes || []).filter(function (x) { return x && x.step === "branch" && x.status !== "skipped"; })[0]; return n ? String(n.route || "") : ""; }
+  function branchId(j, run) {
+    if (run && run.branch_id && !/^F\d+$/.test(run.branch_id)) return String(run.branch_id);
+    var hit = "";
+    (j.nodes || []).forEach(function (n) { var m = n && n.step === "planner.plan" ? /→\s*([\w-]+)/.exec(String(n.route || "")) : null; if (m) hit = m[1]; });
+    return hit;
+  }
+  function riskLines(j, p) {
+    var out = [], route = branchRoute(j);
+    var sev = /severity (\d+) \(([^)]*)\)/i.exec(route);
+    if (sev) out.push("Severity: " + sev[1] + " of 10" + (sev[2] && sev[2] !== sev[1] ? " (" + sev[2].replace(/^\d+\s*/, "") + ")" : ""));
+    if (sev || /legal threat/i.test(route)) out.push("Legal threat: " + (/legal threat/i.test(route) ? "yes" : "no"));
+    if (p && p.amount != null && p.limit != null) out.push("Refund: " + p.amount + " GC against a " + p.limit + " GC limit (" + (p.amount > p.limit ? "over the limit" : "within the limit") + ")");
+    var led = (j.nodes || []).filter(function (n) { return n && /trust ledger/i.test(String(n.label || "")); })[0];
+    var tw = led ? /(\w[\w ]*): trust weight ([\d.]+), floor ([\d.]+)/.exec(String(led.detail || "")) : null;
+    if (tw) out.push("Trust: " + tw[1] + " weight " + tw[2] + " against the floor " + tw[3] + (Number(tw[2]) >= Number(tw[3]) ? " (trusted to send)" : " (still learning: a person decides)"));
+    var hist = nodeLine(j, /world model/i), cust = /customer [^;]*/.exec(hist);
+    if (cust) out.push("History (World Model): " + clip(cust[0], 140));
+    return out;
+  }
+  // The block every internal email carries: ticket, customer, decision and reason, then the risk profile.
+  function caseLines(j, run, p) {
+    var c = customer(j), t = ticketOf(j), b = branchId(j, run), why = branchRoute(j), risk = riskLines(j, p);
+    var out = [];
+    if (t) out.push("Ticket: " + t);
+    if (c.name !== "there" || c.email) out.push("Customer: " + (c.name !== "there" ? c.name : "") + (c.email ? " <" + c.email + ">" : ""));
+    if (j.channel_label) out.push("Channel: " + j.channel_label);
+    var said = (j.input && j.input.text) || (j.human && j.human.input) || "";
+    if (said) out.push("Message: \"" + clip(said, 220) + "\"");
+    if (j.decision) out.push("Agent decision: " + j.decision + (b ? " (branch " + b + ")" : ""));
+    if (why) out.push("Why: " + clip(why, 240));
+    if (risk.length) { out.push("", "Risk profile:"); risk.forEach(function (r) { out.push("  - " + r); }); }
+    return out;
+  }
+  function subjectRef(j) { var t = ticketOf(j); return t ? " [ticket " + t + "]" : ""; }
+
+  // A repeat of an earlier thread (same sender, subject and body) closes as a duplicate. The close is the run's own record;
+  // the acknowledgement to the customer is simulated. Same words as the contact page (flow-render.js duplicateAck).
+  function duplicateOf(j) {
+    var r = branchRoute(j), m = /duplicate/i.test(r) ? /earlier thread\s+(F\d+)/i.exec(r) : null;
+    return m ? m[1] : (/duplicate/i.test(r) ? "your earlier message" : "");
+  }
+  function duplicateMail(j, orig) {
+    var c = customer(j), ref = /^F\d+$/.test(orig) ? "ref " + orig : orig;
+    return ["To: " + c.name + (c.email ? " <" + c.email + ">" : ""), "Subject: We've already got your message" + (/^F\d+$/.test(orig) ? " (" + ref + ")" : ""), "",
+      "Hello " + c.first + ",", "", "Thanks, we've already got your message (" + ref + "), so you may have sent it twice.",
+      "No need to resend; a colleague is already on it.", "", "Best regards,", "Farstrand Support team"];
+  }
   // What happens after the last signature (or a rejection), for the three kinds of case.
   function happyEnd(j, step, said, stars, review) {
     var c = customer(j);
@@ -97,7 +150,7 @@
     var c = customer(j), to = "To: " + c.name + (c.email ? " <" + c.email + ">" : ""), amt = p.amount != null ? p.amount + " GC" : "the full order price";
     var happy = function (said, stars, review) { happyEnd(j, step, said, stars, review); };
     if (p.kind === "repeat" && rejected) {
-      step("Declined, per the repeat-claim SOP", "simulated", "is-bad").appendChild(mail([to, "Subject: Your refund request", "", "Hello " + c.first + ",",
+      step("Declined, per the repeat-claim SOP", "simulated", "is-bad").appendChild(mail([to, "Subject: Your refund request" + subjectRef(j), "", "Hello " + c.first + ",",
         "Thank you for writing. We have looked at this request together with your earlier refunds on the same item, and we cannot approve another refund.",
         "If the item has a fault we can repair or replace it under our replacement policy: reply to this email and we will arrange it.", "", "Best regards,", "Farstrand Support team"]));
       step("Added to the watch list", "simulated", "is-bad").appendChild(el("p", (c.email || c.name) + ": the next claim from this customer always goes to a person, whatever the amount. Memory note: " + (j.memory_note ? clip(j.memory_note, 160) : "earlier refunds on file") + ".", "chain__p"));
@@ -106,7 +159,7 @@
     }
     if (rejected) return false;
     if (p.kind === "refund" || p.kind === "repeat") {
-      step("Refund approved and issued", "simulated", "is-done").appendChild(mail([to, "Subject: Your refund of " + amt + " is on its way", "", "Hello " + c.first + ",",
+      step("Refund approved and issued", "simulated", "is-done").appendChild(mail([to, "Subject: Your refund of " + amt + " is on its way" + subjectRef(j), "", "Hello " + c.first + ",",
         "Good news: your refund of " + amt + " has been approved and issued to your original payment method.", "It reaches you in 5 to 10 working days. You do not need to send the item back.", "", "Best regards,", "Farstrand Support team"]));
       happy("Brilliant, thank you. That was quick and painless.", "★★★★★", "Refund sorted in a day, clear email, no hoops to jump through. Will shop again.");
       return true;
@@ -117,7 +170,7 @@
         step("Legal takes over the reply", "simulated", "is-live").appendChild(el("p", "Per the SOP: acknowledgement only, no offer in writing, evidence kept, Head of Legal in Cc. The ticket stays open with Fine Print Chambers.", "chain__p"));
         return true;
       }
-      step("Legal's decision: goodwill refund", "simulated", "is-done").appendChild(mail([to, "Cc: Head of Support, Head of Legal", "Subject: Your complaint", "", "Hello " + c.first + ",",
+      step("Legal's decision: goodwill refund", "simulated", "is-done").appendChild(mail([to, "Cc: Head of Support, Head of Legal", "Subject: Your complaint" + subjectRef(j), "", "Hello " + c.first + ",",
         "We are sorry the product failed you. Our Legal team has reviewed your message.", "As a gesture of goodwill, and without admission of liability, we are refunding " + amt + " in full. It reaches you in 5 to 10 working days.",
         "If you can send photos of the fault, our Quality team will check the batch so it does not happen to anyone else.", "", "Best regards,", "Farstrand Support team, on behalf of Fine Print Chambers"]));
       step("Logged on the legal register", "simulated", "is-done").appendChild(el("p", "Threat, low risk, settled by goodwill refund. Batch flagged for Quality.", "chain__p"));
@@ -157,6 +210,15 @@
     var dec = step("Agent decision: " + (j.decision || "?"), "real", "is-real");
     dec.appendChild(el("p", [run.branch_id ? "branch " + run.branch_id : "", run.execution_time_seconds ? Math.round(run.execution_time_seconds) + " s" : "", j.decision === "hold" || j.decision === "escalate" ? "needs a person" : ""].filter(Boolean).join(" · "), "chain__p"));
 
+    // A duplicate closes with no reply on the server; the customer still hears back (simulated acknowledgement).
+    var dup = duplicateOf(j);
+    if (dup && j.decision === "close") {
+      step("Acknowledgement emailed to the customer", "simulated", "is-done").appendChild(mail(duplicateMail(j, dup)));
+      step("Ticket closed as a duplicate of " + (/^F\d+$/.test(dup) ? dup : "the earlier request"), "real", "is-real")
+        .appendChild(el("p", "No new draft and no sign-off: the original ticket carries the case.", "chain__p"));
+      return;
+    }
+
     // Already sent for real (a person sent it from the desk, or the agent sent it on its own): show that, not a simulation.
     var real = j.sent && typeof j.sent === "object" && j.sent.body ? j.sent : null;
     if (real || j.decision === "send") {
@@ -183,8 +245,12 @@
       if (p.kind === "legal" && i === p.signers.length - 1) li.appendChild(riskPanel(legalRisk(j)));
       var replyText = j.human && j.human.reply && j.human.reply.text ? String(j.human.reply.text) : "";
       var more = el("details", null, "chain__mail"); more.appendChild(el("summary", "The email (simulated)"));
-      var body = ["To: " + cur.name + " <" + cur.email + ">"].concat((p.cc || []).map(function (c) { return "Cc: " + person(d, c).name + " <" + person(d, c).email + ">"; }), ["Subject: Sign-off needed: " + (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request") + " (" + id + ")", "",
-        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", (replyText ? "Customer message: \"" + clip((j.human && j.human.input) || "", 200) + "\"" : "Note on file (the original message is not kept): \"" + clip((j.human && j.human.input) || "", 200) + "\""), (replyText ? "Draft reply: \"" + clip(replyText, 260) + "\"" : "Draft reply: in the queue file"), "", "[Sign]  [Reject]   (simulated)"]).join("\n");
+      var named = function (x) { return x.name + (x.role ? ", " + x.role : "") + (x.email ? " <" + x.email + ">" : ""); };
+      var what = p.kind === "legal" ? "legal threat" : (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request");
+      var body = ["To: " + named(cur)].concat((p.cc || []).map(function (c) { return "Cc: " + named(person(d, c)); }), ["Subject: Sign-off needed" + (ticketOf(j) ? ": ticket " + ticketOf(j) : "") + ", " + what + " (" + id + ")", "",
+        "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", ""],
+        replyText ? caseLines(j, run, p) : ["Note on file (the original message is not kept): \"" + clip((j.human && j.human.input) || "", 200) + "\""],
+        ["", (replyText ? "Draft reply: \"" + clip(replyText, 260) + "\"" : "Draft reply: in the queue file"), "", "[Sign]  [Reject]   (simulated)"]).join("\n");
       more.appendChild(el("pre", body, "chain__pre")); li.appendChild(more);
       if (!signed) {
         active = i;
@@ -217,6 +283,7 @@
   // A short label for a card: "0 of 2 signed", "signed", "rejected".
   function summary(j, d, run) {
     if ((j.sent && typeof j.sent === "object" && j.sent.body) || j.decision === "send") return "sent";
+    if (j.decision === "close" && duplicateOf(j)) return "duplicate";
     var st = getState(run.run_id), p = plan(j, d), n = 0;
     p.signers.forEach(function (s, i) { if (st.signed && st.signed[i]) n++; });
     if (st.rejected) return "rejected";
