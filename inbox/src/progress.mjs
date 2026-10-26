@@ -57,9 +57,9 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
         // The flush completes metadata and restores trace order, without adding
         // a second step or replacing the original arrival time.
         line.seen_s = previous.seen_s;
-        e.lines.splice(e.lines.indexOf(previous), 1);
+        const i = e.lines.indexOf(previous); if (i >= 0) e.lines.splice(i, 1);
         const step = stepOf(line);
-        e.lines.push(step); e.buffered.set(key, step);
+        e.lines.push(step); e.buffered.delete(key);
         return;
       }
       line.seen_s = tenth(now() - e.t0);
@@ -89,6 +89,11 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
       const e = running(id); if (!e) return;
       e.state = "done"; e.decision = result?.output?.decision ?? null; e.status = result?.status ?? null;
       e.working = []; e.elapsed_s = result?.execution_time_seconds ?? tenth(now() - e.t0);
+      // Review 57, CodexBWAI: a timeout/abort can abandon a buffer before its
+      // trace flush. Only persisted steps belong in finished/restarted progress.
+      for (const pending of e.buffered.values()) {
+        const i = e.lines.indexOf(pending); if (i >= 0) e.lines.splice(i, 1);
+      }
       e.buffered.clear();
       if (result?.provider) e.finishedProvider = { ...result.provider };
       // Completion order, independent of how long each run took. Running entries never count against cap.
