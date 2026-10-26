@@ -14,8 +14,8 @@ Every step works the same on Windows, macOS and Linux.
 The short version:
 
 ```bash
-git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
-cd jedi-pack-star-wars-gifts
+git clone https://github.com/theaiconsultantuk/helmsward-padawan-protocol.git
+cd helmsward-padawan-protocol
 node judge.mjs
 ```
 
@@ -31,8 +31,8 @@ node judge.mjs
 ## Step 1: clone
 
 ```bash
-git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
-cd jedi-pack-star-wars-gifts
+git clone https://github.com/theaiconsultantuk/helmsward-padawan-protocol.git
+cd helmsward-padawan-protocol
 ```
 
 If the submission names a tag or a commit, check it out so you judge exactly what was handed in: `git checkout <tag-or-commit>`.
