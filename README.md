@@ -8,6 +8,7 @@ tags: [hackathon, inbox, zetaris, meterless, nvidia]
 # Jedi Pack Inbox
 
 A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
+**Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron** drafts and critiques through Meterless Nightshift.
 Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". Team: Jedi Pack.
 Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/README.md](inbox/judging/README.md) (the evidence files).
 The service serves a storefront at `GET /` (Home, Shop, FAQ and a Contact page that is the front end, with what happens under the hood beside it) and an internal dashboard at `GET /dashboard`.
@@ -25,6 +26,20 @@ It handles five scenarios (refund, question, request for quote, complaint, free 
 - Desk: Teams kanban, Sign-off dialog (Support then Legal for a legal threat, heads in Cc), Sign-off on cards without a run.
 - Runs survive a server restart; each run gets a fresh customer so a repeat is not closed as a duplicate.
 - 23 input examples, each with its stored sample output; a [held-out set](inbox/judging/heldout/README.md) the rules were never tuned on.
+
+## Zetaris: the agent's data layer
+
+Without Zetaris the agent cannot decide: there is no other source of the owner, the holiday, the refund limit, the trust weight or the price.
+
+| What | How it works here | Proof |
+|---|---|---|
+| One SQL surface over 28 sources | `CREATE LIGHTNING DATABASE JEDI_PACK`, then one `CREATE LIGHTNING FILESTORE TABLE` per source: 25 synthetic files in six formats (CSV, XML, Markdown, JSON, Parquet, text), two runtime tables and a REST source. No adapter, no ETL, no mapping layer | [zetaris-register.md](inbox/judging/zetaris-register.md), [register_zetaris_sources.sql](inbox/scripts/register_zetaris_sources.sql), [data/sources.json](inbox/data/sources.json) |
+| Unified Semantic Layer | `lightning.metastore.jedi_pack.jedi_pack`: typed DDL with primary and foreign keys, live views over the raw sources, so a change in a source shows at once. The scenario routes and the World Model build read its tables (`customer`, `ticket`, `policy`, `responsibility`, `faq`, `holiday`, `decision`, `sales_order` and more) | [zetaris-usl.md](inbox/judging/zetaris-usl.md), [zetaris_usl.sql](inbox/scripts/zetaris_usl.sql) |
+| The agent writes back | Every finished run is a row in `decisions`; each Affirm or Reject on the desk is stored there and moves that category's **trust floor** by 0.05, so people steer the agent through Zetaris. Every customer message is published to `intake_runtime` before the loop reads it back | `POST /feedback`, `/counters` is a live `GROUP BY` over `decisions` |
+| Safe queries | Named SQL templates in [src/queries.mjs](inbox/src/queries.mjs) with whitelisted parameters; customer text never reaches SQL | [src/adapters/zetaris.mjs](inbox/src/adapters/zetaris.mjs) |
+| Tested live | 44 live Zetaris checks pass in the keyed test run (`usl` and `usl_drift`) | [tests/usl.test.mjs](inbox/tests/usl.test.mjs), [tests/usl_drift.test.mjs](inbox/tests/usl_drift.test.mjs) |
+
+See it in the demo: open **Under the hood** on any run; the **Zetaris** station shows each query and its row count and time (for example "1 row in 108 ms"). Sample mode answers from rows cached from the same tables and says so in the trace. Full write-up: [sponsor-explanation.md](inbox/judging/sponsor-explanation.md).
 
 ## Meterless engines
 
