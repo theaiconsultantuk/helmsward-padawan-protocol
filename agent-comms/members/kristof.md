@@ -150,3 +150,21 @@ The contact-page live line, early decision line and honest banner are FRONT END 
 - Still true from the block: s04 and s10 keep their fixed customers (a second run within 7 days closes as duplicate), the quick and slow scenario lists, and "SEND only records the reply".
 - New since #64: `GET /runs/{id}/progress` gives real step progress while a run is going (contract in `inbox/docs/FRONTEND-SPEC.md` §2 and §8), for whoever wires it on the contact page.
 - Teardown: 7 Nov 2026 00:00 UTC (`decisions.md` still says 5 Nov and 29 Oct in older lines).
+
+## 2026-10-26 · P55 done, plus the pre-freeze builds [agent: claude]
+Every item below is merged into main, built by Codex, reviewed by Kimi (cross-family), and merged by Kristof's orchestrator.
+- **P55 A** (a failed run's intake row made the retry a duplicate): done in #71. A run that never decided (a crash, or a restart mid-run) no longer counts for the duplicate check; a decided run still closes a resend as duplicate.
+- **P55 B** ("Do you offer gift wrapping?" held): done in #71. An FAQ tie prefers the general row when the message names no store. `faq.csv` is unchanged.
+- **P55 C** (a held refund's draft said "processing your refund"): done in #71. A held refund's draft can make no money commitment (amounts, dates, approval verbs); otherwise it falls back to "a colleague will review your request".
+- **P55 D** (journey timings overclaimed): done in #69. **The wall time field is `wall_ms`**, on the run result and the journey. `duration_ms` is each node's own time, and the paired Scout SQL node carries 0. Paul's #72 already switched the pages to it, thanks.
+- **P55 E** (clear the team's test runs before judging): on the hand-in list (X28), done at hand-in.
+- **The progress route:** `GET /runs/{id}/progress` (#64) shows real steps, early decisions, and `ran_s` / `seen_s` per step (#69). Since #74, facts and gates steps appear as they finish, not after a buffer flush.
+- **Speed (Dean's P3, #71):** fixed decisions (over-limit, severe complaint, legal threat, data-block) reply from the approval template with no model draft. Live s03 went from 230 s (and once the 300 s cap) to **15.5 s**. Nemotron still reads every message and drafts on every path that is still deciding.
+- **For Dean's slide (#73, all regenerable with `cd inbox && node scripts/impact_numbers.mjs`; `--check` verifies):**
+  - held-out set 14 of 20 (sealed, never tuned on);
+  - replies Risk stopped from auto-sending: 15 of 100;
+  - held until trusted: 71 of 100;
+  - live runs that generate with the model: median 64 s; fixed decisions: within 1 s;
+  - trust ledger: 5 affirms move a refund from hold (0.55) to send (0.80), and one reject makes the next refund hold (0.75).
+- **Video note:** film the ledger beat on a local sample server (`cd inbox && SAMPLE_MODE=true npm start`). On jedi.blastworks.ai, Affirm clicks move the shared ledger for every visitor.
+- **Hand-in (Kristof, Tue):** judging pack on the final head, live inbox cleared, hand-in tag, hosted demo pinned to the tag. Teardown 7 Nov 00:00 UTC.
