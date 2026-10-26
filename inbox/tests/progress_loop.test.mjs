@@ -91,7 +91,7 @@ test("throwing start, line and end listeners cannot alter a run; abandoned body 
   assert.equal(r.status, "error"); await new Promise((r) => setTimeout(r, 120)); assert.ok(!events.some((e) => e.kind === "decided"));
 }));
 
-// Build F boundary: buffered execution vs board arrival, persisted through trace read-back.
+// Build G changes buffered arrival to completion time; retain Build F restart parity.
 test("slow buffered sample facts preserve ran/seen timing, direct timing and restart parity", async () => {
   const d = dirs(), board = createProgressBoard();
   const f = await factsForTicket("T03", { cfg: sampleCfg, as_of: "2026-10-19" });
@@ -105,15 +105,15 @@ test("slow buffered sample facts preserve ran/seen timing, direct timing and res
   } });
   board.finish("f-buffer", result);
   const done = board.get("f-buffer"), buffered = done.steps.find((l) => l.step === "zetaris.query");
-  assert.ok(buffered.seen_s - buffered.ran_s >= 0.2, "buffered arrival lags execution");
+  assert.ok(Math.abs(buffered.seen_s - buffered.ran_s) <= 0.2, "buffered arrival tracks execution");
   const direct = done.steps.find((l) => l.step === "memory.read");
   assert.ok(Math.abs(direct.seen_s - direct.ran_s) <= 0.2, "direct arrival tracks execution");
   const lines = readFileSync(join(d.logsDir, "trace-f-buffer.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
   assert.deepEqual(progressFromStored(result, lines), done, "disk retains both timings and early seen_s");
 });
 
-// Build F diagnostic boundary: a real delayed flush emits once, with metadata only.
-test("delayed live-stub flush journals one safe diagnostic per run", guard(async () => {
+// Build G: a late disk flush is no longer a late progress arrival.
+test("delayed live-stub facts flush does not journal a progress delay", guard(async () => {
   const deps = await liveDeps(), messages = [];
   const facts = await deps.facts();
   deps.facts = async (_id, { trace }) => {
@@ -124,7 +124,5 @@ test("delayed live-stub flush journals one safe diagnostic per run", guard(async
   try { await loop.runTicket("T03", { run_id: "f-delay", cfg: liveCfg, deps }); }
   finally { console.error = realError; }
   const diagnostics = messages.filter((s) => String(s).includes('"diagnostic":"progress_delay"')).map(JSON.parse);
-  assert.equal(diagnostics.length, 1);
-  assert.deepEqual(Object.keys(diagnostics[0]).sort(), ["diagnostic", "flush", "ran_s", "run_id", "seen_s", "step"]);
-  assert.ok(diagnostics[0].flush === "facts" && diagnostics[0].seen_s > diagnostics[0].ran_s + 10);
+  assert.deepEqual(diagnostics, []);
 }));

@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 
 import { tmpdir } from "node:os";
 import { join, basename } from "node:path";
 import { createServer, runs } from "../src/server.mjs";
-import { createProgressBoard } from "../src/progress.mjs";
+import { createProgressBoard, stepOf } from "../src/progress.mjs";
 import { config, INBOX_ROOT } from "../src/config.mjs";
 import { factsForTicket } from "../src/queries.mjs";
 const mk = (s) => mkdtempSync(join(tmpdir(), `pc-api-${s}-`));
@@ -33,6 +33,39 @@ const drafted = { text: JSON.stringify({ reply_text: "Your request has been rout
 async function liveDeps() {
   const facts = await factsForTicket("T03", { cfg: cfg(), as_of: "2026-10-19" });
   return { ...dirs(), facts: async () => facts, gates: async () => ({ answers: {}, model: "rules", gate_source: "rules", confidence: 0.5 }), findDuplicate: async () => null, ledgerAdjust: async () => ({ affirmed: 0, rejected: 0 }), drafter: async () => drafted, critic: async () => ({ pass: true, reason: "ok", model: "nvidia/nemotron-x" }), nightshiftStatus: async () => ({ state: "offline", models: [], ms: 1 }) };
+}
+// Build G boundary: completed buffered work is visible over HTTP while the next
+// operation is blocked; equal-content lines remain distinct across the flush.
+for (const kind of ["facts", "pre-gates", "gates"]) {
+  test(`${kind} reaches progress before its buffer flushes, once per line`, guarded(async () => {
+    const G = latch(), entered = latch(), deps = dirs();
+    const id = `g-${kind}`;
+    const step = kind === "facts" ? "zetaris.query" : "nvidia.model";
+    const field = { step, agent_name: kind === "facts" ? "Executor" : "Gates", action: kind === "facts" ? "sql:thread" : "typed_gates", input_summary: "/opt/private Bearer abcdefgh12345678", output_summary: "same content", status: "success" };
+    const slow = async (trace) => {
+      trace.line(field); trace.line(field); entered.resolve(); await G.promise;
+    };
+    if (kind === "facts") deps.facts = async (_id, { trace }) => {
+      await slow(trace); return factsForTicket("T03", { cfg: cfg(), as_of: "2026-10-19" });
+    };
+    else deps.gates = async (_ticket, _facts, { trace }) => {
+      await slow(trace); return { answers: {}, model: "rules", gate_source: "rules", confidence: 0.5 };
+    };
+    const s = await server({ deps }); let pending;
+    try {
+      pending = s.post("/run", { run_id: id, input: kind === "pre-gates" ? { message: "Please refund 300 GC.", from: "visitor@example.com", channel: "email" } : { thread_id: "T03" } });
+      await entered.promise;
+      const early = await (await s.get(`/runs/${id}/progress`)).json();
+      const matches = (p) => p.steps.filter((l) => l.step === step && l.agent === field.agent_name && l.label === stepOf(field).label);
+      assert.ok(early.state === "running" && matches(early).length === 2 && matches(early).every((l) => Math.abs(l.seen_s - l.ran_s) <= 0.2), `${kind}: completed lines visible before release`);
+      safe(early);
+      G.resolve(); await pending;
+      const done = await (await s.get(`/runs/${id}/progress`)).json();
+      assert.equal(matches(done).length, 2, `${kind}: flush keeps two distinct lines, without replay duplicates`);
+      const lines = readFileSync(join(deps.logsDir, `trace-${id}.jsonl`), "utf8").trim().split("\n").map(JSON.parse);
+      assert.deepEqual(done.steps, lines.map(stepOf), `${kind}: final projection keeps trace order, fields and timing`);
+    } finally { G.resolve(); await pending; s.srv.close(); }
+  }));
 }
 test("fixed escalation skips slow draft/critic stubs; busy and reused ids cannot reset progress", guarded(async () => {
   const G = latch(); const deps = await liveDeps(); let drafts = 0, critics = 0;
