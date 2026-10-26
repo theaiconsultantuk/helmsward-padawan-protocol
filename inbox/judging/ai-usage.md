@@ -13,7 +13,7 @@ Models (through Meterless Nightshift):
 
 - `nvidia/nemotron-3.5-lightning-30b-a3b` (the pinned primary route) drafts the reply, plays the evaluator that critiques the draft, and phrases `/ask` answers from rows. The model that actually answered is logged per request, read from the response body; Nightshift chooses the lane, and the first probe was answered by its local lane ([nightshift-first-call.json](nightshift-first-call.json)).
 - No embedding model is used. H-MEM retrieval is lexical.
-- Typed gates: NVIDIA DiffusionGemma through OpenJev, called directly, not through Nightshift.
+- Typed gates: Google's DiffusionGemma in NVIDIA's NVFP4 build, through OpenJev, called directly, not through Nightshift.
 
 Agent frameworks: none. The service has zero runtime dependencies (Node standard library only).
 
@@ -22,7 +22,7 @@ Sponsor technology:
 - Zetaris: serves all company data (25 file sources, the runtime decisions and intake_runtime tables, and the REST intake: 28 sources in `data/sources.json`). The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
 - Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`. Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, and the Scout eval harness ([engine-scout-evals.md](engine-scout-evals.md), [engine-hmem-two-run.md](engine-hmem-two-run.md)).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
-- NVIDIA: Nemotron lanes through Nightshift for drafting and critique; DiffusionGemma (OpenJev) for typed gates.
+- NVIDIA: Nemotron lanes through Nightshift for drafting and critique; Google's DiffusionGemma in NVIDIA's NVFP4 build (OpenJev) for typed gates.
 
 Development tools:
 
