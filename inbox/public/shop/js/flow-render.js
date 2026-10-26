@@ -47,7 +47,7 @@
     else if (!isModel && agent === "Scout" && step === "meterless.engine") t = { tech: "meterless", label: "Meterless · Scout engine", model: null };
     else if (!isModel && agent === "WorldModel") t = { tech: "meterless", label: "Meterless · World Model", model: null };
     else if (!isModel && step === "risk.signoff") t = { tech: "rules", label: "Code rules · Risk sign-off", model: null };
-    else if (/^openjev/i.test(model)) t = { tech: "openjev", label: "OpenJev · NVIDIA DiffusionGemma", model: n.model };
+    else if (/^openjev/i.test(model)) t = { tech: "openjev", label: "OpenJev · DiffusionGemma (Google, NVIDIA NVFP4)", model: n.model };
     else if ((agent === "Gates" || agent === "Severity") && (!model || model === "sample/rules")) t = { tech: "rules", label: "Code rules (OpenJev not called)", model: null };
     else if (model === "sample/rules") t = { tech: "rules", label: "Code rules (sample mode)", model: null };
     else if (model === "faq/canonical") t = { tech: "zetaris", label: "Zetaris · FAQ text used verbatim", model: null };
@@ -253,7 +253,7 @@
     return [
       "Zetaris holds the data in two layers: the raw tables, and on top of them a semantic layer that the agent's queries read.",
       "Nightshift (Meterless) is the primary provider, pinned to nvidia/nemotron-3.5-lightning-30b-a3b; Nightshift chooses the lane, so the trace logs the model that answered.",
-      "OpenJev serves NVIDIA DiffusionGemma for the typed gates and the complaint severity. It is called directly, beside Nightshift, and code rules take over (gate_source: rules) when it is down.",
+      "OpenJev serves Google's DiffusionGemma in NVIDIA's NVFP4 build for the typed gates and the complaint severity. It is called directly, beside Nightshift, and code rules take over (gate_source: rules) when it is down.",
       "H-MEM and the Scout engine are the two Meterless engines in the loop: H-MEM reads and writes the run's memory, Scout checks the message and issues the signed contract. The World Model, also a Meterless engine, holds the customer's history for complaints.",
     ];
   }

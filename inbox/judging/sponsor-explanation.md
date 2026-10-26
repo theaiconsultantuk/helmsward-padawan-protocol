@@ -27,7 +27,7 @@ Nightshift is the primary provider. The app calls `POST {METERLESS_BASE_URL}/cha
 
 ## NVIDIA
 
-Nemotron 3.5 Lightning, through Nightshift, drafts the reply, plays the evaluator that critiques the draft, and phrases `/ask` answers from rows. Traces whose `nvidia.model` lines carry that model id: [trace-ask-mvk7jd5c](traces/trace-ask-mvk7jd5c.jsonl), [trace-padme-live_1](traces/trace-padme-live_1.jsonl), [trace-padme-live_2](traces/trace-padme-live_2.jsonl), [trace-two-run-A](traces/trace-two-run-A.jsonl), [trace-two-run-B](traces/trace-two-run-B.jsonl). NVIDIA DiffusionGemma, served through OpenJev, answers five typed questions per message (follow-up, category, urgency, tone, asks for money). It is called directly, beside Nightshift, not through it. If OpenJev is down the code rules answer and the trace line says `gate_source: rules`.
+Nemotron 3.5 Lightning, through Nightshift, drafts the reply, plays the evaluator that critiques the draft, and phrases `/ask` answers from rows. Traces whose `nvidia.model` lines carry that model id: [trace-ask-mvk7jd5c](traces/trace-ask-mvk7jd5c.jsonl), [trace-padme-live_1](traces/trace-padme-live_1.jsonl), [trace-padme-live_2](traces/trace-padme-live_2.jsonl), [trace-two-run-A](traces/trace-two-run-A.jsonl), [trace-two-run-B](traces/trace-two-run-B.jsonl). Google's DiffusionGemma in NVIDIA's NVFP4 build, served through OpenJev, answers five typed questions per message (follow-up, category, urgency, tone, asks for money). It is called directly, beside Nightshift, not through it. If OpenJev is down the code rules answer and the trace line says `gate_source: rules`.
 
 ## What was unique
 

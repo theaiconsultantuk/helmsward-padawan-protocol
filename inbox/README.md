@@ -295,7 +295,7 @@ Conformance: `npm run conformance` scores our bundle 8/8 and `npm run conformanc
   The critique lines in padme-live_2 and the two two-run traces carry the same model id.
 - Nightshift's lane choice is its own. `npm run doctor` sends one request to the primary route, reports the model that answered, and warns when Nightshift answered from a local lane. We make no claim that every future request is served by Nemotron.
 
-**OpenJev (typed gates).** NVIDIA DiffusionGemma, served on Thor, answers five typed questions about each message (follow-up, category, urgency, tone, asks for money). It is called directly (`OPENJEV_BASE_URL`), beside Nightshift; it is not routed through Nightshift. When OpenJev is down or answers badly, the code gates take over with confidence 0.5 and the trace line says `gate_source: rules` instead of `openjev`. In the traces its model shows as `openjev-0.1 (openjev-0.1)`.
+**OpenJev (typed gates).** Google's DiffusionGemma in NVIDIA's NVFP4 build, served on Thor, answers five typed questions about each message (follow-up, category, urgency, tone, asks for money). It is called directly (`OPENJEV_BASE_URL`), beside Nightshift; it is not routed through Nightshift. When OpenJev is down or answers badly, the code gates take over with confidence 0.5 and the trace line says `gate_source: rules` instead of `openjev`. In the traces its model shows as `openjev-0.1 (openjev-0.1)`.
 
 **Severity (complaints).** The complaint route asks OpenJev one more typed question, the severity of the complaint. OpenJev accepts at most ten score levels, so the question has ten levels labelled 1 to 10 and severity = round(score) + 1; 9 or above escalates. When OpenJev is down, rules score it (`gate_source: rules`) and the branch still decides.
 
@@ -426,7 +426,7 @@ Models (through Meterless Nightshift):
 
 - `nvidia/nemotron-3.5-lightning-30b-a3b` (the pinned primary route) drafts the reply, plays the evaluator that critiques the draft, and phrases `/ask` answers from rows. The model that actually answered is logged per request (see Providers).
 - No embedding model is used. H-MEM retrieval is lexical.
-- Typed gates: NVIDIA DiffusionGemma through OpenJev, called directly, not through Nightshift.
+- Typed gates: Google's DiffusionGemma in NVIDIA's NVFP4 build, through OpenJev, called directly, not through Nightshift.
 
 Agent frameworks: none. The service has zero runtime dependencies (Node standard library only).
 
@@ -435,7 +435,7 @@ Sponsor technology:
 - Zetaris: serves all company data (25 file sources, the runtime decisions and intake tables, the REST intake) as the raw `JEDI_PACK` layer plus a Unified Semantic Layer of live views over it that the scenario routes read. The agent queries it through whitelisted templates; `/counters` is a live `GROUP BY`.
 - Meterless Engines: Scout Intent (intent, injection guard, signed contract, risk) and H-MEM (shared memory), both implemented in `src/engines/`, and the World Model, vendored and bundled (see Engines). Tests: `scout_contract`, `scout_inbox`, `hmem_two_run`, the Scout eval harness, `world` and the World Model conformance suite (8/8).
 - Meterless Nightshift: the primary AI provider, over its OpenAI-style chat endpoint with a runtime token.
-- NVIDIA: Nemotron lanes through Nightshift for drafting, critique and the complaint read; DiffusionGemma (OpenJev) for typed gates and the complaint severity.
+- NVIDIA: Nemotron lanes through Nightshift for drafting, critique and the complaint read; Google's DiffusionGemma in NVIDIA's NVFP4 build (OpenJev) for typed gates and the complaint severity.
 
 Development tools:
 
@@ -454,7 +454,7 @@ Sample mode:
 - tsx: MIT (dev dependency). yaml: ISC (dev dependency). esbuild: MIT (a pinned dev dependency, 0.28.2, used once to bundle the World Model). Versions are in `package-lock.json`.
 - pyarrow: Apache-2.0, used only by `scripts/gen_company.py` to generate the Parquet file; not needed to run the service.
 - OpenJev: Apache-2.0 (its `LICENSE` file on the serving machine is the Apache License, Version 2.0, January 2004; the file is not copied into this repo).
-- The gates model, NVIDIA DiffusionGemma 26B A4B it NVFP4. Model card fetched 23 Oct 2026 from https://huggingface.co/nvidia/diffusiongemma-26B-A4B-it-NVFP4. The card's front matter reads `license: apache-2.0` (`license_link: https://ai.google.dev/gemma/apache_2`), its "License/Terms of Use" section reads `SPDX-License-Identifier: Apache-2.0`, and its governing-terms line reads, verbatim: "Governing Terms: Apache 2.0, Gemma Terms of Use and Gemma Prohibited Use Policy" (links: https://ai.google.dev/gemma/terms and https://ai.google.dev/gemma/prohibited_use_policy). So the weights are Apache-2.0 and the Gemma Terms of Use and Prohibited Use Policy also govern their use; the card wins over any shorter wording elsewhere in this repo.
+- The gates model, Google's DiffusionGemma 26B A4B it, in NVIDIA's NVFP4 build. Model card fetched 23 Oct 2026 from https://huggingface.co/nvidia/diffusiongemma-26B-A4B-it-NVFP4. The card's front matter reads `license: apache-2.0` (`license_link: https://ai.google.dev/gemma/apache_2`), its "License/Terms of Use" section reads `SPDX-License-Identifier: Apache-2.0`, and its governing-terms line reads, verbatim: "Governing Terms: Apache 2.0, Gemma Terms of Use and Gemma Prohibited Use Policy" (links: https://ai.google.dev/gemma/terms and https://ai.google.dev/gemma/prohibited_use_policy). So the weights are Apache-2.0 and the Gemma Terms of Use and Prohibited Use Policy also govern their use; the card wins over any shorter wording elsewhere in this repo.
 
 ## Limitations
 
