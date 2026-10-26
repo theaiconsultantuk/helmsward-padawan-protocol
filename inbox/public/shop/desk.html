@@ -35,6 +35,16 @@
   <aside class="desk__guide" aria-labelledby="h-guide"><h2 class="desk__guide-h" id="h-guide">How to read this</h2><p class="desk__guide-p">Ran a <span class="desk__guide-star" aria-hidden="true">★</span><span class="sr-only">Full journey</span> case? Open its <b>Sign-off</b> to follow it to the end: approved refund and 5⭐ review, declined repeat claim, or Legal's risk check and goodwill refund.</p></aside>
   <p id="status" class="desk__status" role="status" aria-live="polite"></p>
   <section aria-labelledby="h-counters"><h2 class="desk__h" id="h-counters">Counters</h2><div id="counters" class="tiles"></div></section>
+  <section class="dfilter" aria-labelledby="h-filter">
+    <h2 class="dfilter__h" id="h-filter">Find a ticket</h2>
+    <div class="dfilter__row">
+      <label class="sr-only" for="f-q">Search by name, email, ticket or run id</label>
+      <input id="f-q" class="dfilter__q" type="search" autocomplete="off" spellcheck="false" placeholder="Name, email, ticket or run id">
+      <button id="f-clear" class="desk__btn" type="button">Clear</button>
+    </div>
+    <div id="f-cats" class="dfilter__cats" role="group" aria-label="Show one kind of ticket"></div>
+    <p id="f-count" class="dfilter__count" role="status" aria-live="polite"></p>
+  </section>
   <section aria-labelledby="h-teams"><h2 class="desk__h" id="h-teams">Teams</h2><div id="teams" class="teams"></div></section>
   <section aria-labelledby="h-board"><h2 class="desk__h" id="h-board">Who holds what</h2><div id="board" class="board"></div></section>
   <section aria-labelledby="h-runs"><h2 class="desk__h" id="h-runs">Recent runs</h2><ul id="runs" class="runs"></ul></section>

@@ -104,7 +104,7 @@
 
   function draw(deps) {
     var box = ui.board; box.textContent = "";
-    if (!model.length) { box.appendChild(el("p", "No tickets yet. Log one on the contact page and it will appear here.", "muted")); return; }
+    if (!model.length) { box.appendChild(el("p", deps.empty || "No tickets yet. Log one on the contact page and it will appear here.", "muted")); return; }
     var teams = {}, order = [];
     model.forEach(function (m) {
       if (!teams[m.team]) { teams[m.team] = { label: m.teamLabel, people: {}, porder: [] }; order.push(m.team); }

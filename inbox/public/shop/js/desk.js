@@ -141,7 +141,7 @@
   }
   function renderBoard(items, js, rids) {
     var box = $("board"); box.textContent = "";
-    if (!items.length) { box.appendChild(el("p", "Nothing is waiting for a person.", "muted")); return; }
+    if (!items.length) { box.appendChild(el("p", filtering() ? "No ticket matches the filter." : "Nothing is waiting for a person.", "muted")); return; }
     var cols = {}, order = [];
     items.forEach(function (q, i) {
       var c = dcard(q, js[i], rids[i]);
@@ -158,7 +158,7 @@
 
   function renderRuns(items) {
     var ul = $("runs"); ul.textContent = "";
-    if (!items.length) { ul.appendChild(el("li", "No runs yet.", "muted")); return; }
+    if (!items.length) { ul.appendChild(el("li", filtering() ? "No run matches the filter." : "No runs yet.", "muted")); return; }
     items.forEach(function (r) {
       var li = el("li", null, "run");
       var top = el("div", null, "run__top");
@@ -190,16 +190,65 @@
     });
   }
 
+  // Find a ticket (usability test, 26 Oct): one kind of ticket and/or a search on name, email, ticket or run id.
+  // Client side only: it narrows the Teams view, Who holds what and Recent runs; the counters stay the server's totals.
+  var KINDS = [["refund", "Refunds"], ["complaint", "Complaints"], ["legal", "Legal threats"], ["question", "Questions"], ["product", "Product questions"],
+    ["rfq", "Quotes"], ["delivery", "Delivery"], ["other", "Other"]];
+  var filter = { kind: "", q: "" }, last = null, kindLabels = {};
+  function filtering() { return !!(filter.kind || filter.q); }
+  // What a ticket or run is matched on: its kind (legal threats are complaints the agent read as legal) and who sent it.
+  function facts(row, j, rid) {
+    var r = runRows[rid] || row || {}, inp = (j && j.input) || {};
+    var kind = (j && j.scenario) || row.scenario || row.category || "other";
+    if (j && j.topic_label && !kindLabels[kind]) kindLabels[kind] = j.topic_label;
+    return { kind: kind, legal: /legal/.test(r.branch_id || ""),
+      text: [inp.name, inp.from, row.ticket_id, row.thread_id, rid, row.run_id].filter(Boolean).join(" ").toLowerCase() };
+  }
+  function matches(f) {
+    if (filter.kind === "legal" ? !f.legal : filter.kind && f.kind !== filter.kind) return false;
+    return !filter.q || filter.q.split(/\s+/).every(function (w) { return f.text.indexOf(w) !== -1; });
+  }
+  function renderCats(seen) {
+    var box = $("f-cats"); box.textContent = "";
+    var opts = [["", "All"]].concat(KINDS.filter(function (k) { return seen[k[0]] || k[0] === filter.kind; }));
+    Object.keys(seen).forEach(function (k) { if (!KINDS.some(function (x) { return x[0] === k; })) opts.push([k, k.charAt(0).toUpperCase() + k.slice(1)]); });
+    opts.forEach(function (o) {
+      var on = filter.kind === o[0], b = el("button", o[1], "desk__btn" + (on ? " desk__btn--hot" : ""));
+      b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
+      if (kindLabels[o[0]]) b.title = kindLabels[o[0]];
+      b.addEventListener("click", function () { filter.kind = on && o[0] ? "" : o[0]; renderAll(); });
+      box.appendChild(b);
+    });
+  }
+  function renderAll() {
+    if (!last) return;
+    var seen = {}, q = [], js = [], rids = [];
+    var see = function (f) { seen[f.kind] = true; if (f.legal) seen.legal = true; return matches(f); };   // a chip for every kind on the page
+    last.q.forEach(function (x, i) { if (see(facts(x, last.js[i], last.rids[i]))) { q.push(x); js.push(last.js[i]); rids.push(last.rids[i]); } });
+    var runs = last.runs.filter(function (r) { return see(facts(r, journeys[r.run_id], r.run_id)); });
+    renderCats(seen); renderRuns(runs); renderBoard(q, js, rids);
+    if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton, star: star,
+      empty: filtering() ? "No ticket matches the filter." : null });
+    $("f-count").textContent = filtering()
+      ? "Showing " + q.length + " of " + last.q.length + " tickets · " + runs.length + " of " + last.runs.length + " runs"
+      : last.q.length + " tickets · " + last.runs.length + " runs";
+    $("f-clear").disabled = !filtering();
+  }
+  $("f-q").addEventListener("input", function (e) { filter.q = e.target.value.trim().toLowerCase(); renderAll(); });
+  $("f-clear").addEventListener("click", function () { filter = { kind: "", q: "" }; $("f-q").value = ""; renderAll(); $("f-q").focus(); });
+
   function load() {
     setStatus("Loading...");
     return Promise.all([api("/counters"), api("/queue"), api("/runs?limit=50")]).then(function (v) {
-      renderCounters(v[0]); (v[2] || []).forEach(function (r) { runRows[r.run_id] = r; }); renderRuns(v[2]);
-      var q = v[1] || [];
+      renderCounters(v[0]); (v[2] || []).forEach(function (r) { runRows[r.run_id] = r; });
+      var q = v[1] || [], runs = v[2] || [];
       var byThread = {};
-      (v[2] || []).slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
+      runs.slice().reverse().forEach(function (r) { if (r.thread_id) byThread[r.thread_id] = r.run_id; });   // newest run per thread wins
       var rids = q.map(function (x) { return x.run_id || byThread[x.ticket_id] || ""; });
-      return Promise.all(rids.map(function (id) { return id ? journey(id).catch(function () { return null; }) : Promise.resolve(null); }))
-        .then(function (js) { renderBoard(q, js, rids); if (window.JP_TEAMS) window.JP_TEAMS.render(q, js, rids, { hoodButton: hoodButton, chainButton: cardChainButton, star: star }); setStatus("Updated " + new Date().toLocaleTimeString()); });
+      var soft = function (id) { return id ? journey(id).catch(function () { return null; }) : Promise.resolve(null); };
+      // Runs need their journey too (the sender's name and email live there); journey() fetches each one once.
+      return Promise.all([Promise.all(rids.map(soft)), Promise.all(runs.map(function (r) { return soft(r.run_id); }))])
+        .then(function (both) { last = { q: q, js: both[0], rids: rids, runs: runs }; renderAll(); setStatus("Updated " + new Date().toLocaleTimeString()); });
     }).catch(function (e) { setStatus(e.message, true); });
   }
   function start() {

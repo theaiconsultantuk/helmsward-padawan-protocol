@@ -4,7 +4,7 @@
 .tclock__note { max-width: 74ch; margin: 0 0 18px; }
 .tgroups { display: grid; gap: 24px; }
 .tgroup__h { margin: 0 0 10px; font: 800 24px/1 var(--display, "Big Shoulders Display", Impact, sans-serif); letter-spacing: .06em; text-transform: uppercase; color: #8A8A8F; }
-.tgroup__cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+.tgroup__cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }   /* a row per person; desk.css lays their cards four across */
 .col__head h4 { margin: 0; font: 800 28px/1 var(--display, "Big Shoulders Display", Impact, sans-serif); text-transform: uppercase; color: #F2EEE6; }
 .tcard { border: 1px solid rgba(138, 138, 143, .3); border-left-width: 4px; padding: 12px 14px; background: #050506; display: grid; gap: 6px; }
 .tcard--green { border-left-color: #2fbf71; }
