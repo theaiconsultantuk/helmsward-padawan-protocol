@@ -69,6 +69,8 @@
     top.appendChild(el("span", m.topicLabel, "dchip"));
     if (m.j && deps.star) top.appendChild(deps.star(m.j));   // P57: the desk's "★ Full journey" chip
     li.appendChild(top);
+    var from = m.j && deps.sender ? deps.sender(m.j) : "";   // the customer's name and email, from the journey
+    if (from) li.appendChild(el("p", from, "tcard__from"));
     var line = el("p", null, "tcard__who"), esc = el("p", null, "tcard__esc"), age = el("p", null, "tcard__age muted");
     li.appendChild(line); li.appendChild(esc); li.appendChild(age);
     if (m.rid && deps.hoodButton) li.appendChild(deps.hoodButton(m.rid));

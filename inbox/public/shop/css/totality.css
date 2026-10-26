@@ -765,6 +765,9 @@ p.thread__meta{margin:0}
 .thread__msg--sent .thread__meta::after{content:"\2713";content:"\2713" / "";margin-left:10px;color:var(--ember);font-size:18px;line-height:1;letter-spacing:0}
 .thread__msg .thread__meta{margin:0}
 .thread__body{margin:0;color:var(--bone);font:400 17px/1.6 var(--text);white-space:pre-wrap;overflow-wrap:anywhere}
+/* duplicate acknowledgement (simulated email) */
+.thread__msg--ack{border-style:dashed}
+.thread__body--mail{font-size:15px;line-height:1.55}
 .thread__draft{width:100%;min-height:calc(12 * 1.6em + 28px);resize:vertical;background:var(--void);color:var(--bone);border:1px solid var(--ash);border-radius:0;padding:14px 16px;font:400 17px/1.6 var(--text)}
 .thread__draft:focus{border-color:var(--ember)}
 .thread__blank,mark.thread__blank{background:rgba(242,177,52,.14);color:var(--warn);border:1px dashed rgba(242,177,52,.7);padding:1px 6px 2px;font-weight:500}

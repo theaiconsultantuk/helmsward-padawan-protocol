@@ -519,7 +519,7 @@
     var inp = obj(j.input);
     var kind = stateKind(j);
     var who = el("div", null, "thread__msg thread__msg--customer");
-    who.appendChild(el("p", [str(inp.name) || str(inp.from), str(j.channel_label)].filter(Boolean).join(" · "), "thread__meta"));
+    who.appendChild(el("p", [callFlow("senderOf", [inp]) || str(inp.name) || str(inp.from), str(j.channel_label)].filter(Boolean).join(" · "), "thread__meta"));
     who.appendChild(el("p", str(inp.text) || str(human.input), "thread__body"));
     frag.appendChild(who);
     var to = obj(rep.to);
@@ -629,7 +629,9 @@
     }
     var kind = stateKind(j);
     var st = callFlow("stateOf", [j]);
-    setFlowState(kind, sentWord(j), st && typeof st.text === "string" ? st.text : "");
+    // A duplicate has no reply of its own: say what happened instead of a bare "No reply".
+    var dupText = callFlow("duplicateAck", [j]) ? "Already received: duplicate closed" : "";
+    setFlowState(kind, sentWord(j), dupText || (st && typeof st.text === "string" ? st.text : ""));
     var run = $("dr-run"), total = $("dr-total");
     if (run) run.textContent = str(j.run_id);
     if (total) {
@@ -673,7 +675,15 @@
       freshClientFor(active);
     }
     var dup = duplicateOf(j);
-    if (dup) setStatus("Already handled as " + dup + ": the same customer sent the same message before, so the agent closed this one without a new draft. " + (active ? "A new customer has been filled in: submit again for a fresh run." : "Change the email or the message to send it as a new customer."));
+    var ack = callFlow("duplicateAck", [j]);
+    if (ack && $("thread")) {
+      // The customer is not left in silence: the acknowledgement they would get (simulated; the close itself is real).
+      var am = el("div", null, "thread__msg thread__msg--agent thread__msg--ack");
+      am.appendChild(el("p", "Acknowledgement to the customer · Simulated", "thread__meta"));
+      am.appendChild(el("p", "To: " + ack.to + "\nSubject: " + ack.subject + "\n\n" + ack.body, "thread__body thread__body--mail"));
+      $("thread").appendChild(am);
+    }
+    if (dup) setStatus("Already received as " + dup + ": the same customer sent the same message before, so the agent closed this one without a new draft. " + (active ? "A new customer has been filled in: submit again for a fresh run." : "Change the email or the message to send it as a new customer."));
   }
 
   // The agent closes a repeat of an earlier thread (same sender, subject and body) as a duplicate. Say so, with the thread it matched.
