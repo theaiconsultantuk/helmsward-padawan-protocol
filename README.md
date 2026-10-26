@@ -7,9 +7,14 @@ tags: [hackathon, inbox, zetaris, meterless, nvidia]
 
 # Helmsward: the agent that earns its autonomy
 
-Helmsward is the customer agent of **Farstrand Supply Co.**, a (fictional) Star Wars gift store run by Jedi Pack. It answers the store's email, contact form and review messages, and it runs on the **Padawan Protocol**: a category below the 0.80 trust floor is a Padawan, in learning mode, so its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor Helmsward replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
+**Helmsward is the autonomous contact hub for a company.** It knows the business inside out through the Zetaris Unified Semantic Layer, acts within guardrails set by the Meterless engines (Scout Intent, H-MEM, World Model), and drafts and critiques with NVIDIA Nemotron through Meterless Nightshift.
+Refunds, questions, complaints, tailored quotes: Helmsward handles each one and routes it to the right human(oid) from what Zetaris holds. For example, a refund that needs approval goes to the approver; if the approver is out of office (Zetaris holds the company holiday planner), it goes to the backup approver.
 
-A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
+**It earns its autonomy: the Padawan Protocol.** A category below the 0.80 trust floor is a Padawan, in learning mode: its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor Helmsward replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
+
+**The demo store is Farstrand Supply Co.**, a galactic storefront supplying Jedi with the tools to fight the good fight, owned by the holding company Jedi Pack Inc. The company and its data are fictional.
+
+Under the hood, Helmsward reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
 **Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron 3.5 Lightning** drafts and critiques through Meterless Nightshift (primary route; every trace records the model that answered).
 Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". Team: Jedi Pack.
 Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/README.md](inbox/judging/README.md) (the evidence files).
@@ -64,19 +69,26 @@ Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit
 
 ## Run it from a clean clone
 
-Needs Node 22 or newer and git. No keys, no accounts, no other service:
+**The fastest way, one command:** needs only Git and Node 22 or newer. No keys, no accounts, no install, no network.
 
 ```bash
 git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
-cd jedi-pack-star-wars-gifts/inbox
-npm ci                        # dev tools for the tests only; the service has no runtime dependencies
-SAMPLE_MODE=true npm start    # bundled sample data, no network: open http://127.0.0.1:8000
-npm test                      # in a second terminal: 874 tests, 0 fail, 43 skipped (the live checks need keys)
+cd jedi-pack-star-wars-gifts
+node judge.mjs
 ```
 
-Then open `http://127.0.0.1:8000/shop/contact.html`, pick a scenario and submit; the staff desk is `/shop/desk.html`. `PORT=<free port>` moves the server if 8000 is taken.
-The one process serves the front end, the dashboard and the API. Sample mode runs the same decision code on the bundled rows; the live stack (your own Zetaris and Nightshift keys), Docker, the API and the tests: [inbox/README.md](inbox/README.md).
-Checked on 26 Oct 2026 from a fresh clone (Node 24).
+`judge.mjs` runs all 23 shipped examples against their stored outputs, prints one trace and checks what each step did, reproduces the held-out score (14 of 20), then leaves the app open on `http://127.0.0.1:8000` until Ctrl+C. It ends with `ALL 7 CHECKS PASSED`. Step by step, with what each check proves: [CLEAN-CLONE.md](CLEAN-CLONE.md).
+
+**Or by hand,** from the `inbox/` folder:
+
+```bash
+cd inbox
+SAMPLE_MODE=true npm start    # bundled sample data, no network: open http://127.0.0.1:8000
+npm ci && npm test            # optional, second terminal: 874 tests, 0 fail, 43 skipped (the live checks need keys)
+```
+
+Then open `/shop/contact.html`, pick a ★ scenario and submit, and open **Under the hood** for every step; the staff desk is `/shop/desk.html`. `PORT=<free port>` moves the server if 8000 is taken.
+The one process serves the front end, the dashboard and the API. Sample mode runs the same decision code on rows cached from the same Zetaris tables, with fixed templates standing in for the model calls; the live stack (your own Zetaris and Nightshift keys), Docker, the API and the tests: [inbox/README.md](inbox/README.md).
 
 ## Practice build (pre-existing, not part of the submission)
 
