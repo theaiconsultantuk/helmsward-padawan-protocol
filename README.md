@@ -1,13 +1,21 @@
 ---
-title: "Jedi Pack Inbox: Open Agent Hackathon 2026 submission"
+title: "Helmsward: the agent that earns its autonomy (Open Agent Hackathon 2026)"
 description: "A customer-support inbox agent that decides, critiques and escalates with a full trace. Track 3 Reasoning Architecture. Team: Jedi Pack."
 date: "2026-10-23"
 tags: [hackathon, inbox, zetaris, meterless, nvidia]
 ---
 
-# Jedi Pack Inbox
+# Helmsward: the agent that earns its autonomy
 
-A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
+**Helmsward is the autonomous contact hub for a company.** It knows the business inside out through the Zetaris Unified Semantic Layer, acts within guardrails set by the Meterless engines (Scout Intent, H-MEM, World Model), and drafts and critiques with NVIDIA Nemotron through Meterless Nightshift.
+Refunds, questions, complaints, tailored quotes: Helmsward handles each one and routes it to the right human(oid) from what Zetaris holds. For example, a refund that needs approval goes to the approver; if the approver is out of office (Zetaris holds the company holiday planner), it goes to the backup approver.
+
+**It earns its autonomy: the Padawan Protocol.** A category below the 0.80 trust floor is a Padawan, in learning mode: its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor Helmsward replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
+
+**The demo store is Farstrand Supply Co.**, a galactic storefront supplying Jedi with the tools to fight the good fight, owned by the holding company Jedi Pack Inc. The company and its data are fictional.
+
+Under the hood, Helmsward reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
+**Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron 3.5 Lightning** drafts and critiques through Meterless Nightshift (primary route; every trace records the model that answered).
 Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". Team: Jedi Pack.
 Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/README.md](inbox/judging/README.md) (the evidence files).
 The service serves a storefront at `GET /` (Home, Shop, FAQ and a Contact page that is the front end, with what happens under the hood beside it) and an internal dashboard at `GET /dashboard`.
@@ -25,6 +33,20 @@ It handles five scenarios (refund, question, request for quote, complaint, free 
 - Desk: Teams kanban, Sign-off dialog (Support then Legal for a legal threat, heads in Cc), Sign-off on cards without a run.
 - Runs survive a server restart; each run gets a fresh customer so a repeat is not closed as a duplicate.
 - 23 input examples, each with its stored sample output; a [held-out set](inbox/judging/heldout/README.md) the rules were never tuned on.
+
+## Zetaris: the agent's data layer
+
+Without Zetaris the agent cannot decide: there is no other source of the owner, the holiday, the refund limit, the trust weight or the price.
+
+| What | How it works here | Proof |
+|---|---|---|
+| One SQL surface over 28 sources | `CREATE LIGHTNING DATABASE JEDI_PACK`, then one `CREATE LIGHTNING FILESTORE TABLE` per source: 25 synthetic files in six formats (CSV, XML, Markdown, JSON, Parquet, text), two runtime tables and a REST source. No adapter, no ETL, no mapping layer | [zetaris-register.md](inbox/judging/zetaris-register.md), [register_zetaris_sources.sql](inbox/scripts/register_zetaris_sources.sql), [data/sources.json](inbox/data/sources.json) |
+| Unified Semantic Layer | `lightning.metastore.jedi_pack.jedi_pack`: typed DDL with primary and foreign keys, live views over the raw sources, so a change in a source shows at once. The scenario routes and the World Model build read its tables (`customer`, `ticket`, `policy`, `responsibility`, `faq`, `holiday`, `decision`, `sales_order` and more) | [zetaris-usl.md](inbox/judging/zetaris-usl.md), [zetaris_usl.sql](inbox/scripts/zetaris_usl.sql) |
+| The agent writes back | Every finished run is a row in `decisions`; each Affirm or Reject on the desk is stored there and moves that category's **trust floor** by 0.05, so people steer the agent through Zetaris. Every customer message is published to `intake_runtime` before the loop reads it back | `POST /feedback`, `/counters` is a live `GROUP BY` over `decisions` |
+| Safe queries | Named SQL templates in [src/queries.mjs](inbox/src/queries.mjs) with whitelisted parameters; customer text never reaches SQL | [src/adapters/zetaris.mjs](inbox/src/adapters/zetaris.mjs) |
+| Tested live | 42 live Zetaris checks pass in the keyed test run (874 tests, 0 fail, 26 Oct) (`usl` and `usl_drift`) | [tests/usl.test.mjs](inbox/tests/usl.test.mjs), [tests/usl_drift.test.mjs](inbox/tests/usl_drift.test.mjs) |
+
+See it in the demo: open **Under the hood** on any run; the **Zetaris** station shows each query and its row count and time (for example "1 row in 108 ms"). Sample mode answers from rows cached from the same tables and says so in the trace. Full write-up: [sponsor-explanation.md](inbox/judging/sponsor-explanation.md).
 
 ## Meterless engines
 
@@ -45,19 +67,28 @@ Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit
 [Held-out evidence](inbox/judging/heldout/README.md) · [Results and regeneration](inbox/README.md#results).
 <!-- impact:root:end -->
 
-## Run it
+## Run it from a clean clone
 
-**Judges:** [CLEAN-CLONE.md](CLEAN-CLONE.md) walks you from `git clone` to a checked, running copy, step by step. `node judge.mjs` runs every check in about a second, with no keys and no install.
+**The fastest way, one command:** needs only Git and Node 22 or newer. No keys, no accounts, no install, no network.
 
-The submission is the `inbox/` app. From this folder:
+```bash
+git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
+cd jedi-pack-star-wars-gifts
+node judge.mjs
+```
+
+`judge.mjs` runs all 23 shipped examples against their stored outputs, prints one trace and checks what each step did, reproduces the held-out score (14 of 20), then leaves the app open on `http://127.0.0.1:8000` until Ctrl+C. It ends with `ALL 7 CHECKS PASSED`. Step by step, with what each check proves: [CLEAN-CLONE.md](CLEAN-CLONE.md).
+
+**Or by hand,** from the `inbox/` folder:
 
 ```bash
 cd inbox
-npm ci
-SAMPLE_MODE=true npm start   # bundled data, no network, no keys: open http://127.0.0.1:8000
+SAMPLE_MODE=true npm start    # bundled sample data, no network: open http://127.0.0.1:8000
+npm ci && npm test            # optional, second terminal: 874 tests, 0 fail, 43 skipped (the live checks need keys)
 ```
 
-The one process serves the front end, the dashboard and the API, so a clean run needs no key and no other service. The live stack, Docker, the API and the tests: [inbox/README.md](inbox/README.md).
+Then open `/shop/contact.html`, pick a ★ scenario and submit, and open **Under the hood** for every step; the staff desk is `/shop/desk.html`. `PORT=<free port>` moves the server if 8000 is taken.
+The one process serves the front end, the dashboard and the API. Sample mode runs the same decision code on rows cached from the same Zetaris tables, with fixed templates standing in for the model calls; the live stack (your own Zetaris and Nightshift keys), Docker, the API and the tests: [inbox/README.md](inbox/README.md).
 
 ## Practice build (pre-existing, not part of the submission)
 
