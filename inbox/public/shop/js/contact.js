@@ -414,7 +414,7 @@
     var e = entryById(id);
     if (!e || busy) return;
     var seq = ++pickSeq;
-    active = e;
+    active = repeatVariant(e);
     markActive(id);
     showExpected();
     var f = $("flow");
@@ -422,7 +422,7 @@
     setReason(reasonValueFor(e));
     picked = { shown: $("reason") ? $("reason").value : "", sent: str(e.scenario) || "free_text" };
     if ($("channel")) $("channel").value = str(e.channel) || "contact-form";
-    $("message").value = str(e.message);
+    $("message").value = str(active.message);
     if ($("as_of")) $("as_of").value = str(e.as_of) || DEFAULT_AS_OF;
     setStatus("Filling in a name and email…");
     getJson("/demo/client?scenario=" + enc(id), { timeoutMs: 10000 })
@@ -694,6 +694,18 @@
       if (m && /duplicate/i.test(str(nodes[i].route))) return m[1];
     }
     return "";
+  }
+
+  // s04 keeps its fixed customer (its point is the second refund from the same client), so an unchanged message would close as a
+  // duplicate for every judge after the first. Each click asks for a different amount and part; the same customer still brings her history.
+  var S04_PARTS = ["strap", "buckle", "laces", "sole", "lining", "toe cap", "heel tab", "zip"];
+  function repeatVariant(e) {
+    if (str(e && e.id) !== "s04") return e;
+    var amount = 40 + Math.floor(Math.random() * 56), part = S04_PARTS[Math.floor(Math.random() * S04_PARTS.length)]; // 40-95 GC, under the limit
+    var copy = {};
+    for (var k in e) if (Object.prototype.hasOwnProperty.call(e, k)) copy[k] = e[k];
+    copy.message = "I would like another refund, " + amount + " GC, for the " + part + " on my Drift Boot Wraps.";
+    return copy;
   }
 
   // After a scenario's run finishes, put a new customer in the form so a second submit is a new customer, not a duplicate.
