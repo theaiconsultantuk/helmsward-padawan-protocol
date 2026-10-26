@@ -9,6 +9,7 @@ tags: [hackathon, inbox, zetaris, meterless, nvidia]
 
 **Helmsward is the autonomous contact hub for a company.** It knows the business inside out through the Zetaris Unified Semantic Layer, acts within guardrails set by the Meterless engines (Scout Intent, H-MEM, World Model), and drafts and critiques with NVIDIA Nemotron through Meterless Nightshift.
 Refunds, questions, complaints, tailored quotes: Helmsward handles each one and routes it to the right human(oid) from what Zetaris holds. For example, a refund that needs approval goes to the approver; if the approver is out of office (Zetaris holds the company holiday planner), it goes to the backup approver.
+On the live site customers write through the Contact page; email, chat and review (Trustpilot) messages are simulated intake with sample messages. Every channel becomes the same kind of ticket on the same flow, and each keeps its own rules from Zetaris: a public review never gets an automatic reply.
 
 **It earns its autonomy: the Padawan Protocol.** A category below the 0.80 trust floor is a Padawan, in learning mode: its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor Helmsward replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
 
