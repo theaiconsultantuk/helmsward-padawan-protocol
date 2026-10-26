@@ -33,7 +33,7 @@ Sample mode, decision code and inputs at commit `f7852e8` (2026-10-26).
 | ↳ The earlier reply promised something not asked for: no autonomous reply | 1 |  |
 | Held until trusted | 71 of 100 | [Impact numbers](judging/impact-numbers.md) |
 | Ledger learns | 5 affirms: hold to send; 1 reject: back to hold | [Ledger learning](judging/ledger-learning.md) |
-| Live decision time | median 57 s over 10 live runs that call the model (0-109 s); no fixed-decision timing available | [Committed live traces](judging/traces/) |
+| Live decision time | median 64 s over 7 live runs that call the model (51-109 s); fixed decisions within 1 s | [Committed live traces](judging/traces/) |
 
 No time-saved figure: we measured no human baseline.
 Regenerate: `node scripts/impact_numbers.mjs --write` (from `inbox/`).

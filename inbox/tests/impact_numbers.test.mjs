@@ -110,14 +110,26 @@ test('optional marker removal, mandatory missing markers, malformed markers and 
   } finally { rmSync(parent, { recursive: true, force: true }); }
 });
 
-test('live timing uses committed timestamps and the specified success predicate; an even median averages both middle spans', () => {
+test('live timing uses committed timestamps and successful generative steps', () => {
   const rows = measured.live.traces.map(row => {
     const lines = readFileSync(join(INBOX_ROOT, row.file), 'utf8').trim().split('\n').map(JSON.parse);
-    return { file: row.file, seconds: (new Date(lines.at(-1).timestamp) - new Date(lines[0].timestamp)) / 1000, calls_model: lines.some(l => l.step === 'nvidia.model' && l.status === 'success') };
+    return { file: row.file, seconds: (new Date(lines.at(-1).timestamp) - new Date(lines[0].timestamp)) / 1000, calls_model: lines.some(l => l.step === 'nvidia.model' && l.status === 'success' && !l.gate_source) };
   });
   assert.deepEqual(measured.live.traces, rows);
   const model = rows.filter(x => x.calls_model).map(x => x.seconds).sort((a,b) => a-b);
   const middle = Math.floor(model.length / 2);
   const expected = model.length % 2 ? model[middle] : model.slice(middle - 1, middle + 1).reduce((a,b) => a+b, 0) / 2;
   assert.equal(measured.live.model.median, Math.round(expected));
+});
+
+// Review 55: OpenJev gates alone must not count as a generative model call.
+test('typed-gates-only live traces belong to the fixed-decision group', async () => {
+  const result = measured ?? await computeImpact();
+  for (const scenario of [4, 5, 6]) {
+    const file = `judging/traces/trace-scenario-${scenario}-live.jsonl`;
+    const lines = readFileSync(join(INBOX_ROOT, file), 'utf8').trim().split('\n').map(JSON.parse);
+    const successful = lines.filter(l => l.step === 'nvidia.model' && l.status === 'success');
+    assert.ok(successful.length > 0 && successful.every(l => l.action === 'typed_gates' && l.gate_source === 'openjev'), `${file}: real typed-gates-only fixture`);
+    assert.equal(result.live.traces.find(t => t.file === file).calls_model, false, `${file}: no generative call`);
+  }
 });

@@ -3264,17 +3264,17 @@
       {
         "file": "judging/traces/trace-scenario-4-live.jsonl",
         "seconds": 0,
-        "calls_model": true
+        "calls_model": false
       },
       {
         "file": "judging/traces/trace-scenario-5-live.jsonl",
         "seconds": 0,
-        "calls_model": true
+        "calls_model": false
       },
       {
         "file": "judging/traces/trace-scenario-6-live.jsonl",
         "seconds": 0,
-        "calls_model": true
+        "calls_model": false
       },
       {
         "file": "judging/traces/trace-scenario-7-live.jsonl",
@@ -3288,14 +3288,14 @@
       }
     ],
     "model": {
-      "n": 10,
-      "min": 0,
-      "median": 57,
+      "n": 7,
+      "min": 51,
+      "median": 64,
       "max": 109
     },
     "fixed": {
-      "n": 0,
-      "max": null
+      "n": 3,
+      "max": 0
     }
   }
 }

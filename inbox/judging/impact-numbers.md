@@ -93,7 +93,8 @@ pass 14 / 20
 
 ## Live decision time
 
-median 57 s over 10 live runs that call the model (0-109 s); no fixed-decision timing available.
+median 64 s over 7 live runs that call the model (51-109 s); fixed decisions within 1 s.
+Calls the model here means a successful generative step; OpenJev typed gates are excluded.
 The span is the last minus first committed trace timestamp; these timestamps have whole-second resolution.
 
 | Committed trace | Calls the model | Decision span (s) |
@@ -103,9 +104,9 @@ The span is the last minus first committed trace timestamp; these timestamps hav
 | [trace-padme-live_2.jsonl](traces/trace-padme-live_2.jsonl) | yes | 59 |
 | [trace-refund-live_1.jsonl](traces/trace-refund-live_1.jsonl) | yes | 51 |
 | [trace-refund-live_2.jsonl](traces/trace-refund-live_2.jsonl) | yes | 64 |
-| [trace-scenario-4-live.jsonl](traces/trace-scenario-4-live.jsonl) | yes | 0 |
-| [trace-scenario-5-live.jsonl](traces/trace-scenario-5-live.jsonl) | yes | 0 |
-| [trace-scenario-6-live.jsonl](traces/trace-scenario-6-live.jsonl) | yes | 0 |
+| [trace-scenario-4-live.jsonl](traces/trace-scenario-4-live.jsonl) | no | 0 |
+| [trace-scenario-5-live.jsonl](traces/trace-scenario-5-live.jsonl) | no | 0 |
+| [trace-scenario-6-live.jsonl](traces/trace-scenario-6-live.jsonl) | no | 0 |
 | [trace-scenario-7-live.jsonl](traces/trace-scenario-7-live.jsonl) | yes | 99 |
 | [trace-scenario-8-live.jsonl](traces/trace-scenario-8-live.jsonl) | yes | 109 |
 
