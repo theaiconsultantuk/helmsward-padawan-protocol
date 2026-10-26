@@ -88,8 +88,8 @@ Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit
 **The fastest way, one command:** needs only Git and Node 22 or newer. No keys, no accounts, no install, no network.
 
 ```bash
-git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
-cd jedi-pack-star-wars-gifts
+git clone https://github.com/theaiconsultantuk/helmsward-padawan-protocol.git
+cd helmsward-padawan-protocol
 node judge.mjs
 ```
 
