@@ -139,25 +139,96 @@
       "Hello " + c.first + ",", "", "Thanks, we've already got your message (" + ref + "), so you may have sent it twice.",
       "No need to resend; a colleague is already on it.", "", "Best regards,", "Farstrand Support team"];
   }
-  // What happens after the last signature (or a rejection), for the three kinds of case.
+  // What happens after the last signature (or a rejection): every kind of case, accepted or rejected, ends solved.
   function happyEnd(j, step, said, stars, review) {
     var c = customer(j);
     step("Customer replied", "simulated", "is-done").appendChild(el("p", "\"" + said + "\"", "chain__reply"));
     if (review) step("Review left", "simulated", "is-done").appendChild(el("p", stars + "  \"" + review + "\" · " + c.name + ", Trustpilot", "chain__reply"));
     step("Ticket solved", "simulated · closed", "is-done").appendChild(el("p", "Status: solved. Affirm on the desk (real) writes this verdict to the trust ledger, so the next case like this is judged with it.", "chain__p"));
   }
-  function resolution(p, j, d, step, rejected) {
+  function closeOut(step, said, status) {
+    if (said) step("Customer replied", "simulated", "is-done").appendChild(el("p", "\"" + said + "\"", "chain__reply"));
+    step("Ticket solved", "simulated · closed", "is-done").appendChild(el("p", "Status: " + status, "chain__p"));
+  }
+  function named(x) { return x.name + (x.role ? ", " + x.role : "") + (x.email ? " <" + x.email + ">" : ""); }
+  // An email to the customer: To, Subject with the ticket, greeting, body, signature.
+  function custMail(j, subject, body, sig, cc) {
+    var c = customer(j);
+    return ["To: " + c.name + (c.email ? " <" + c.email + ">" : "")].concat(cc ? ["Cc: " + cc] : [], ["Subject: " + subject + subjectRef(j), "", "Hello " + c.first + ","], body, ["", "Best regards,", sig || "Farstrand Support team"]);
+  }
+  // The person at signature i: the backup when the first choice was marked out of office.
+  function signerAt(p, st, d, i) { var sg = p.signers[i] || {}; return person(d, st.out && st.out[i] ? sg.backup : sg.id); }
+  // A reply a person wrote after Legal or Support turned the agent's draft down: careful, no admission of liability, no money.
+  function revisedLegalReply(j, by) {
+    return custMail(j, "Your complaint", ["", "Further to our earlier reply, a member of our team has now reviewed your message in full.",
+      "We are sorry to hear the product failed, and we take reports like this seriously.",
+      "Please reply with your order number and photos of the item, and we will arrange a repair or a replacement at no cost to you.",
+      "This does not affect your rights."], by.name + ", Farstrand Support team");
+  }
+  // rj (a rejection): { at: signature index, by: the person who rejected, reason: their reason, first: the first signer }.
+  function resolution(p, j, d, step, rejected, rj) {
     var c = customer(j), to = "To: " + c.name + (c.email ? " <" + c.email + ">" : ""), amt = p.amount != null ? p.amount + " GC" : "the full order price";
     var happy = function (said, stars, review) { happyEnd(j, step, said, stars, review); };
+    var why = rj && rj.reason ? rj.reason : "no reason given";
     if (p.kind === "repeat" && rejected) {
-      step("Declined, per the repeat-claim SOP", "simulated", "is-bad").appendChild(mail([to, "Subject: Your refund request" + subjectRef(j), "", "Hello " + c.first + ",",
+      var dec = step("Declined, per the repeat-claim SOP", "simulated", "is-bad");
+      dec.appendChild(el("p", "Internal reason, from " + rj.by.name + " (not sent to the customer): " + why, "chain__p"));
+      dec.appendChild(mail([to, "Subject: Your refund request" + subjectRef(j), "", "Hello " + c.first + ",",
         "Thank you for writing. We have looked at this request together with your earlier refunds on the same item, and we cannot approve another refund.",
         "If the item has a fault we can repair or replace it under our replacement policy: reply to this email and we will arrange it.", "", "Best regards,", "Farstrand Support team"]));
       step("Added to the watch list", "simulated", "is-bad").appendChild(el("p", (c.email || c.name) + ": the next claim from this customer always goes to a person, whatever the amount. Memory note: " + (j.memory_note ? clip(j.memory_note, 160) : "earlier refunds on file") + ".", "chain__p"));
       step("Ticket solved", "simulated · closed", "is-done").appendChild(el("p", "Status: solved (declined). Nothing was refunded.", "chain__p"));
       return true;
     }
-    if (rejected) return false;
+    if (p.kind === "refund" && rejected) {
+      var over = p.amount != null && p.limit != null && p.amount > p.limit;
+      var no = step("Refund declined by " + rj.by.name + (rj.by.role ? " (" + rj.by.role + ")" : ""), "simulated", "is-bad");
+      no.appendChild(el("p", "Internal reason (not sent to the customer): " + why, "chain__p"));
+      no.appendChild(mail(custMail(j, "Your refund request", ["", "Thank you for writing. We have looked at your request" + (p.amount != null ? " for a refund of " + amt : "") + " and we cannot approve a refund as it stands.",
+        "If the item is faulty, we can repair or replace it under our replacement policy: reply to this email with your order number and a photo of the fault and we will arrange it.",
+        "If you think we have missed something, reply and a colleague will look at it again."])));
+      closeOut(step, "OK, photo attached. A replacement would be fine.", "solved (declined" + (over ? ", over the limit" : "") + "). Nothing was refunded; a repair or replacement is offered.");
+      return true;
+    }
+    if (p.kind === "legal" && rejected) {
+      var support = rj.first, legalP = signerAt(p, rj.st, d, p.signers.length - 1), heads = (p.cc || []).map(function (x) { return named(person(d, x)); });
+      var r0 = legalRisk(j);
+      if (rj.at >= p.signers.length - 1) {
+        // Legal turned the reply down: it goes back to Support with Legal's reason, then Support's revised reply goes out.
+        step("Returned to Support: " + support.name, "simulated", "is-bad").appendChild(mail(["From: " + named(rj.by), "To: " + named(support)].concat(heads.map(function (h) { return "Cc: " + h; }), [
+          "Subject: Returned" + (ticketOf(j) ? ": ticket " + ticketOf(j) : "") + ", legal threat: reply not approved", "", "Hello " + support.name.split(" ")[0] + ",",
+          "I can't sign the reply as drafted.", "Reason: " + why, "",
+          "Please revise it: thank them, say we take it seriously, ask for photos and the order number, offer a repair or replacement.",
+          "No admission of liability and no money in writing. Send it back to me before it goes out.", "", "Ticket: " + (ticketOf(j) || "this run"), "Customer: " + c.name + (c.email ? " <" + c.email + ">" : ""), "",
+          rj.by.name.split(" ")[0]])));
+        step("Revised reply cleared by " + rj.by.name + " and sent", "simulated", "is-done").appendChild(mail(revisedLegalReply(j, support)));
+        step("Logged on the legal register", "simulated", "is-done").appendChild(el("p", "Threat, " + (r0.high ? "high" : "low") + " risk. Draft returned by Legal (" + why + "); revised reply sent by Support, no offer of money in writing.", "chain__p"));
+      } else {
+        // Support turned the agent's draft down at the first signature: Support rewrites it, and Legal still reviews it before it goes out.
+        step("Support rewrote the reply: " + rj.by.name, "simulated", "is-bad").appendChild(mail(["From: " + named(rj.by), "To: " + named(legalP)].concat(heads.map(function (h) { return "Cc: " + h; }), [
+          "Subject: Rewritten reply for your review" + (ticketOf(j) ? ": ticket " + ticketOf(j) : "") + ", legal threat", "", "Hello " + legalP.name.split(" ")[0] + ",",
+          "I did not send the agent's draft.", "Reason: " + why, "", "My rewritten reply is below for your review before it goes out.", "",
+          "Ticket: " + (ticketOf(j) || "this run"), "Customer: " + c.name + (c.email ? " <" + c.email + ">" : ""), "", rj.by.name.split(" ")[0]])));
+        var ok = step("Legal cleared the rewritten reply: " + legalP.name, "simulated", "is-done");
+        ok.appendChild(el("p", "Read against the SOP: acknowledgement, no admission of liability, no money in writing.", "chain__p"));
+        ok.appendChild(riskPanel(r0));
+        step("Reply sent to the customer", "simulated", "is-done").appendChild(mail(revisedLegalReply(j, rj.by)));
+        step("Logged on the legal register", "simulated", "is-done").appendChild(el("p", "Threat, " + (r0.high ? "high" : "low") + " risk. Agent's draft rewritten by Support (" + why + "), cleared by Legal; no offer of money in writing.", "chain__p"));
+      }
+      closeOut(step, "Thank you for taking it seriously. Order number and photos attached.", "solved. A repair or replacement follows the photos; the legal register keeps the case.");
+      return true;
+    }
+    if (rejected) {
+      // Any other case: the person who rejected the agent's draft writes to the customer themselves.
+      var rw = step("Agent's draft set aside", "simulated", "is-bad");
+      rw.appendChild(el("p", "The agent's draft was not sent. Internal reason: " + why, "chain__p"));
+      step("Personal reply sent by " + rj.by.name, "simulated", "is-done").appendChild(mail(custMail(j, "Your message", ["",
+        "Thank you for your message. I have read it myself rather than send our standard reply, because I want to be sure you get the right answer.",
+        "I will come back to you with a full answer within two working days. If anything is urgent, reply to this email and it comes straight to me."], rj.by.name + ", Farstrand Support team")));
+      step("Full answer sent", "simulated", "is-done").appendChild(el("p", rj.by.name + " followed up with the full answer.", "chain__p"));
+      closeOut(step, "Thank you, that's sorted it.", "solved after a personal reply.");
+      return true;
+    }
     if (p.kind === "refund" || p.kind === "repeat") {
       step("Refund approved and issued", "simulated", "is-done").appendChild(mail([to, "Subject: Your refund of " + amt + " is on its way" + subjectRef(j), "", "Hello " + c.first + ",",
         "Good news: your refund of " + amt + " has been approved and issued to your original payment method.", "It reaches you in 5 to 10 working days. You do not need to send the item back.", "", "Best regards,", "Farstrand Support team"]));
@@ -167,7 +238,11 @@
     if (p.kind === "legal") {
       var r = legalRisk(j);
       if (r.high) {
-        step("Legal takes over the reply", "simulated", "is-live").appendChild(el("p", "Per the SOP: acknowledgement only, no offer in writing, evidence kept, Head of Legal in Cc. The ticket stays open with Fine Print Chambers.", "chain__p"));
+        var lt = step("Legal takes over the reply", "simulated", "is-live");
+        lt.appendChild(el("p", "Per the SOP: acknowledgement only, no offer in writing, evidence kept, Head of Legal in Cc.", "chain__p"));
+        lt.appendChild(mail(custMail(j, "Your complaint", ["", "Thank you for your message. Our Legal team, Fine Print Chambers, is now handling it and will write to you directly.",
+          "Please keep the item and any packaging, and send us photos of it if you can."], "Fine Print Chambers, for Farstrand Supply Co.", "Head of Legal")));
+        closeOut(step, "", "solved on the support desk; the case continues with Fine Print Chambers on the legal register.");
         return true;
       }
       step("Legal's decision: goodwill refund", "simulated", "is-done").appendChild(mail([to, "Cc: Head of Support, Head of Legal", "Subject: Your complaint" + subjectRef(j), "", "Hello " + c.first + ",",
@@ -177,7 +252,9 @@
       happy("Thank you, that's fair and more than I expected. Photos attached. No need for lawyers.", "★★★★★", "Product failed, but they listened, refunded fast and asked for photos to fix it. Fair company.");
       return true;
     }
-    return false;
+    // Any other case: the signed reply was the answer.
+    closeOut(step, "Thanks, that answers it.", "solved. Affirm on the desk (real) writes this verdict to the trust ledger, so the next case like this is judged with it.");
+    return true;
   }
 
   var dlg = null;
@@ -233,32 +310,44 @@
       return;
     }
     var allSigned = !st.rejected, active = -1;
+    // The signature that was rejected: the stored index, or (for a rejection saved before reasons existed) the first unsigned one.
+    var rejAt = -1;
+    if (st.rejected) { rejAt = st.rejectedAt != null ? st.rejectedAt : 0; while (rejAt < p.signers.length - 1 && st.rejectedAt == null && st.signed && st.signed[rejAt]) rejAt++; }
     p.signers.forEach(function (sg, i) {
       var out = !!(st.out && st.out[i]);
       var cur = person(d, out ? sg.backup : sg.id), orig = person(d, sg.id);
       var signed = !!(st.signed && st.signed[i]);
       var prevOk = i === 0 || (st.signed && st.signed[i - 1]);
       if (!signed) allSigned = false;
-      if (st.rejected || !prevOk) { if (!st.rejected) { step("Then: " + cur.name + " (" + cur.role + ")", "waiting", "is-wait"); } return; }
-      var li = step((signed ? "Signed by " : "Sign-off request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
+      if (st.rejected && i > rejAt) return;
+      if (!st.rejected && !prevOk) { step("Then: " + cur.name + " (" + cur.role + ")", "waiting", "is-wait"); return; }
+      var isRej = st.rejected && i === rejAt;
+      var li = isRej ? step("Rejected by " + cur.name + " (" + cur.role + ")", "simulated · rejected", "is-bad")
+        : step((signed ? "Signed by " : "Sign-off request emailed to ") + cur.name + " (" + cur.role + ")", signed ? "simulated · signed" : "simulated · waiting", signed ? "is-done" : "is-live");
+      if (isRej) li.appendChild(el("p", "Reason: " + (st.reason || "no reason given"), "chain__p"));
       if (out) li.appendChild(el("p", orig.name + " is out of office, so the request goes to the backup, " + cur.name + ".", "chain__out"));
       if (p.kind === "legal" && i === p.signers.length - 1) li.appendChild(riskPanel(legalRisk(j)));
       var replyText = j.human && j.human.reply && j.human.reply.text ? String(j.human.reply.text) : "";
       var more = el("details", null, "chain__mail"); more.appendChild(el("summary", "The email (simulated)"));
-      var named = function (x) { return x.name + (x.role ? ", " + x.role : "") + (x.email ? " <" + x.email + ">" : ""); };
       var what = p.kind === "legal" ? "legal threat" : (p.amount != null ? p.amount + " GC " : "") + (j.scenario || "request");
       var body = ["To: " + named(cur)].concat((p.cc || []).map(function (c) { return "Cc: " + named(person(d, c)); }), ["Subject: Sign-off needed" + (ticketOf(j) ? ": ticket " + ticketOf(j) : "") + ", " + what + " (" + id + ")", "",
         "Hello " + cur.name.split(" ")[0] + ",", "The agent held this for you" + (p.dual ? " (signature " + (i + 1) + " of 2)" : "") + ".", ""],
         replyText ? caseLines(j, run, p) : ["Note on file (the original message is not kept): \"" + clip((j.human && j.human.input) || "", 200) + "\""],
         ["", (replyText ? "Draft reply: \"" + clip(replyText, 260) + "\"" : "Draft reply: in the queue file"), "", "[Sign]  [Reject]   (simulated)"]).join("\n");
       more.appendChild(el("pre", body, "chain__pre")); li.appendChild(more);
-      if (!signed) {
+      if (!signed && !isRej) {
         active = i;
         var row = el("div", null, "chain__acts");
         var sgn = el("button", "Sign as " + cur.name, "desk__btn desk__btn--hot"); sgn.type = "button";
         sgn.addEventListener("click", function () { var s = getState(id); s.signed = s.signed || {}; s.signed[i] = true; putState(id, s); render(run, j, d, onChange); onChange && onChange(id, summary(j, d, run)); });
         var rej = el("button", "Reject", "desk__btn"); rej.type = "button";
-        rej.addEventListener("click", function () { var s = getState(id); s.rejected = true; putState(id, s); render(run, j, d, onChange); onChange && onChange(id, summary(j, d, run)); });
+        // Reject asks why first; the reason goes into the emails that follow. Kept in this browser only, like the rest of the simulation.
+        var doReject = function (why) { var s = getState(id); s.rejected = true; s.rejectedAt = i; s.reason = why || ""; putState(id, s); render(run, j, d, onChange); onChange && onChange(id, summary(j, d, run)); };
+        rej.addEventListener("click", function () {
+          if (!window.JP_REASON) { doReject(""); return; }
+          sgn.disabled = true; rej.disabled = true;
+          window.JP_REASON.ask(row, doReject, function () { sgn.disabled = false; rej.disabled = false; }, "Simulated: the reason goes into the emails below and stays in this browser; nothing reaches the server.");
+        });
         row.appendChild(sgn); row.appendChild(rej);
         if (sg.backup) {
           var lab = el("label", null, "chain__out-toggle"), cb = el("input"); cb.type = "checkbox"; cb.checked = out;
@@ -269,10 +358,14 @@
       }
     });
     if (st.rejected) {
-      if (!resolution(p, j, d, step, true)) step("Rejected", "simulated", "is-bad").appendChild(el("p", "Back to the agent with a reason. Nothing is sent to the customer.", "chain__p"));
+      resolution(p, j, d, step, true, { at: rejAt, by: signerAt(p, st, d, rejAt), reason: st.reason || "", first: signerAt(p, st, d, 0), st: st });
     } else if (allSigned) {
       var fin = step("Reply released to the customer", "simulated · done", "is-done");
-      fin.appendChild(el("p", clip(j.human && j.human.reply && j.human.reply.text, 400), "chain__reply"));
+      var draft = String((j.human && j.human.reply && j.human.reply.text) || "").trim();
+      if (draft) {
+        var c0 = customer(j), lines = draft.split("\n");
+        fin.appendChild(mail(["To: " + c0.name + (c0.email ? " <" + c0.email + ">" : ""), "Subject: Re: your message" + subjectRef(j), ""].concat(lines)));
+      }
       resolution(p, j, d, step, false);
     }
     var rs = el("button", "Reset this demo", "desk__btn chain__reset"); rs.type = "button";
@@ -280,14 +373,17 @@
     box.appendChild(rs);
   }
 
-  // A short label for a card: "0 of 2 signed", "signed", "rejected".
+  // A short label for a card: "0 of 2 signed", "signed, solved", or what a rejection led to ("declined, solved", "returned to Support, solved").
   function summary(j, d, run) {
     if ((j.sent && typeof j.sent === "object" && j.sent.body) || j.decision === "send") return "sent";
     if (j.decision === "close" && duplicateOf(j)) return "duplicate";
     var st = getState(run.run_id), p = plan(j, d), n = 0;
     p.signers.forEach(function (s, i) { if (st.signed && st.signed[i]) n++; });
-    if (st.rejected) return "rejected";
-    return n === p.signers.length ? "signed" : n + " of " + p.signers.length + " signed";
+    if (st.rejected) {
+      if (p.kind === "legal") return (st.rejectedAt != null && st.rejectedAt >= p.signers.length - 1) || (st.rejectedAt == null && n > 0) ? "returned to Support, solved" : "rewritten by Support, solved";
+      return p.kind === "refund" || p.kind === "repeat" ? "declined, solved" : "rewritten, solved";
+    }
+    return n === p.signers.length ? "signed, solved" : n + " of " + p.signers.length + " signed";
   }
 
   window.JP_CHAIN = {
