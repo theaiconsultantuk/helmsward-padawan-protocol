@@ -1,6 +1,7 @@
 // Live progress is a projection of trace metadata, never a store of raw trace bodies.
 // Build C, CodexBWAI.
 import { labelFor, techOf } from "./journey.mjs";
+import { BUFFER_LINE } from "./trace.mjs";
 export const isNemotron = (s) => /nemotron/i.test(String(s ?? ""));
 export const WORK = {
   draft: { agent: "Drafter", label: "Drafter writing" },
@@ -46,13 +47,25 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
   return {
     start(run_id, { mode, cfg, fallbackRoute = cfg?.NIGHTSHIFT_ROUTE_FALLBACK ?? null, primaryEngine = cfg ? nightshiftEngine(cfg) : "Nemotron" }) {
       if (running(run_id)) return running(run_id);
-      const e = { run_id, mode, fallbackRoute, primaryEngine, t0: now(), state: "running", lines: [], working: [], early: null, provider: new Map(), decision: null, status: null };
+      const e = { run_id, mode, fallbackRoute, primaryEngine, t0: now(), state: "running", lines: [], buffered: new Map(), working: [], early: null, provider: new Map(), decision: null, status: null };
       entries.set(run_id, e); return e;
     },
     line(id, line) {
       const e = running(id); if (!e) return;
+      const key = line[BUFFER_LINE], previous = key && e.buffered.get(key);
+      if (previous) {
+        // The flush completes metadata and restores trace order, without adding
+        // a second step or replacing the original arrival time.
+        line.seen_s = previous.seen_s;
+        const i = e.lines.indexOf(previous); if (i >= 0) e.lines.splice(i, 1);
+        const step = stepOf(line);
+        e.lines.push(step); e.buffered.delete(key);
+        return;
+      }
       line.seen_s = tenth(now() - e.t0);
-      e.lines.push(stepOf(line));
+      const step = stepOf(line);
+      e.lines.push(step);
+      if (key) e.buffered.set(key, step);
       if (line.step === "retry" && ["fallback_route", "fallback_local_lane"].includes(line.action)) {
         for (const w of e.working.filter((w) => w.purpose === line.input_summary)) {
           w.engine = line.action === "fallback_local_lane" ? "local lane" : `Nightshift (${e.fallbackRoute})`;
@@ -76,6 +89,12 @@ export function createProgressBoard({ cap = 50, now = Date.now } = {}) {
       const e = running(id); if (!e) return;
       e.state = "done"; e.decision = result?.output?.decision ?? null; e.status = result?.status ?? null;
       e.working = []; e.elapsed_s = result?.execution_time_seconds ?? tenth(now() - e.t0);
+      // Review 57, CodexBWAI: a timeout/abort can abandon a buffer before its
+      // trace flush. Only persisted steps belong in finished/restarted progress.
+      for (const pending of e.buffered.values()) {
+        const i = e.lines.indexOf(pending); if (i >= 0) e.lines.splice(i, 1);
+      }
+      e.buffered.clear();
       if (result?.provider) e.finishedProvider = { ...result.provider };
       // Completion order, independent of how long each run took. Running entries never count against cap.
       entries.delete(id); entries.set(id, e);

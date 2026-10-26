@@ -577,7 +577,7 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       const runCfg = opts.sample_mode === true ? { ...cfg, SAMPLE_MODE: "true" } : cfg;
       const release = !sampleMode(runCfg) ? takeLive() : null;
       board.start(run_id, { mode: sampleMode(runCfg) ? "sample" : "live", fallbackRoute: runCfg.NIGHTSHIFT_ROUTE_FALLBACK ?? null, primaryEngine: nightshiftEngine(runCfg) });
-      const onLine = (l) => { board.line(run_id, l); deps.onLine?.(l); };
+      const onLine = (l, meta) => { board.line(run_id, l); deps.onLine?.(l, meta); };
       const onProgress = (e) => {
         const a = e.kind === "work" ? board.work(run_id, e) : (e.kind === "decided" ? board.decided(run_id, e.early) : undefined);
         let b; try { b = deps.onProgress?.(e); } catch { b = undefined; }

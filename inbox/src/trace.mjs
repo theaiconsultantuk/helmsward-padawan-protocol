@@ -14,6 +14,8 @@ export const STATUSES = [
 const SPONSORS = ["zetaris", "meterless", "nvidia"];
 const REQUIRED = ["step", "agent_name", "action", "input_summary", "output_summary", "status"];
 const OPTIONAL = ["target_agent", "model", "confidence", "retry_count", "branch_id", "memory_ids", "sponsor", "gate_source", "detail", "source"];
+// Build G, CodexBWAI: per-buffer-push identity, copied by spreads but never JSON.
+export const BUFFER_LINE = Symbol("buffer line");
 
 const MASK = "[masked]";
 
@@ -71,7 +73,8 @@ export class Trace {
     return [...this._lines];
   }
 
-  line(fields = {}) {
+  // A safe early copy without writing or claiming any measured work spans.
+  preview(fields = {}) {
     for (const k of REQUIRED) {
       if (fields[k] === undefined || fields[k] === null || fields[k] === "") {
         throw new Error(`trace line: missing required field "${k}"`);
@@ -82,10 +85,30 @@ export class Trace {
     if (fields.sponsor !== undefined && !SPONSORS.includes(fields.sponsor)) {
       throw new Error(`trace line: unknown sponsor "${fields.sponsor}"`);
     }
+    const now = Number.isFinite(fields.at) ? fields.at : Date.now();
+    const elapsed_ms = Math.max(0, now - this._start);
+    const raw = {
+      timestamp: new Date(now).toISOString(),
+      duration_ms: 0,
+      elapsed_ms,
+      ran_s: Math.round(elapsed_ms / 100) / 10,
+      seen_s: fields[BUFFER_LINE]?.seen_s ?? Math.round((Date.now() - this._start) / 100) / 10,
+      run_id: this.run_id,
+      trace_id: this.trace_id,
+    };
+    for (const k of REQUIRED) raw[k] = fields[k];
+    for (const k of OPTIONAL) if (fields[k] !== undefined) raw[k] = fields[k];
+    const out = mask(raw, this.secrets);
+    if (fields[BUFFER_LINE]) out[BUFFER_LINE] = fields[BUFFER_LINE];
+    return out;
+  }
+
+  line(fields = {}) {
+    const out = this.preview(fields);
     // `at` is completion, never flush time. Only explicit operation spans own time;
     // bookkeeping/paired lines own zero. Attribute overlapping work once, to the
     // first written measured node, so node totals never overclaim wall time.
-    const now = Number.isFinite(fields.at) ? fields.at : Date.now();
+    const now = Date.parse(out.timestamp);
     const start = Math.min(now, Math.max(this._start, Number.isFinite(fields.started_at) ? fields.started_at : now));
     let duration_ms = Math.max(0, now - start);
     for (const [a, b] of this._spans) duration_ms -= Math.max(0, Math.min(now, b) - Math.max(start, a));
@@ -98,19 +121,7 @@ export class Trace {
         else this._spans.push([...span]);
       }
     }
-    const elapsed_ms = Math.max(0, now - this._start);
-    const raw = {
-      timestamp: new Date(now).toISOString(),
-      duration_ms,
-      elapsed_ms,
-      ran_s: Math.round(elapsed_ms / 100) / 10,
-      seen_s: Math.round((Date.now() - this._start) / 100) / 10,
-      run_id: this.run_id,
-      trace_id: this.trace_id,
-    };
-    for (const k of REQUIRED) raw[k] = fields[k];
-    for (const k of OPTIONAL) if (fields[k] !== undefined) raw[k] = fields[k];
-    const out = mask(raw, this.secrets);
+    out.duration_ms = duration_ms;
     // The board stamps arrival before the line is persisted, retaining restart parity.
     try { this.onLine?.(out, fields.flush ?? (Number.isFinite(fields.at) ? "buffered" : "direct")); } catch { /* observers cannot stop a run */ }
     mkdirSync(this.logsDir, { recursive: true });

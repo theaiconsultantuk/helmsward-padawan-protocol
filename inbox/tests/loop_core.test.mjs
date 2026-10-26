@@ -292,7 +292,7 @@ const msgRun = async (input, { d = dirs(), runtimeDir = mkdtempSync(join(tmpdir(
 
 test("the journey derived from the collected lines equals the one derived from the file (T02)", async () => {
   const collected = [];
-  const { result, lines } = await run("T02", { run_id: "drift-T02", extra: { onLine: (l) => collected.push(l) } });
+  const { result, lines } = await run("T02", { run_id: "drift-T02", extra: { onLine: (l, { buffered = false } = {}) => { if (!buffered) collected.push(l); } } });
   assert.deepEqual(deriveJourney(result, collected), deriveJourney(result, lines));
 });
 

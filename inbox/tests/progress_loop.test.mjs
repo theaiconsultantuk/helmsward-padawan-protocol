@@ -91,7 +91,29 @@ test("throwing start, line and end listeners cannot alter a run; abandoned body 
   assert.equal(r.status, "error"); await new Promise((r) => setTimeout(r, 120)); assert.ok(!events.some((e) => e.kind === "decided"));
 }));
 
-// Build F boundary: buffered execution vs board arrival, persisted through trace read-back.
+// Build G changes buffered arrival to completion time; retain Build F restart parity.
+// Review 57: timeout before either flush must remove only unpersisted previews.
+test("timeout discards unflushed facts or gates and retains stored progress parity", async () => {
+  for (const kind of ["facts", "gates"]) {
+    const d = dirs(), board = createProgressBoard(), id = `g-timeout-${kind}`;
+    board.start(id, { mode: "sample" });
+    const stall = async (...args) => {
+      const { trace } = args.at(-1);
+      trace.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:thread", input_summary: "unflushed", output_summary: "unflushed", status: "success" });
+      await new Promise(() => {});
+    };
+    const result = await loop.runTicket("T03", { run_id: id, cfg: sampleCfg, deps: {
+      ...d, runTimeoutMs: 30, [kind]: stall, onLine: (l) => board.line(id, l),
+      onProgress: (e) => e.kind === "decided" ? board.decided(id, e.early) : undefined,
+    } });
+    assert.equal(result.status, "error", kind);
+    assert.ok(board.get(id).steps.some((l) => l.label === "Zetaris: the thread"), `${kind}: preview was delivered`);
+    board.finish(id, result);
+    const lines = readFileSync(join(d.logsDir, `trace-${id}.jsonl`), "utf8").trim().split("\n").map(JSON.parse);
+    assert.deepEqual(board.get(id), progressFromStored(result, lines), `${kind}: no unpersisted steps survive finish`);
+  }
+});
+
 test("slow buffered sample facts preserve ran/seen timing, direct timing and restart parity", async () => {
   const d = dirs(), board = createProgressBoard();
   const f = await factsForTicket("T03", { cfg: sampleCfg, as_of: "2026-10-19" });
@@ -105,15 +127,15 @@ test("slow buffered sample facts preserve ran/seen timing, direct timing and res
   } });
   board.finish("f-buffer", result);
   const done = board.get("f-buffer"), buffered = done.steps.find((l) => l.step === "zetaris.query");
-  assert.ok(buffered.seen_s - buffered.ran_s >= 0.2, "buffered arrival lags execution");
+  assert.ok(Math.abs(buffered.seen_s - buffered.ran_s) <= 0.2, "buffered arrival tracks execution");
   const direct = done.steps.find((l) => l.step === "memory.read");
   assert.ok(Math.abs(direct.seen_s - direct.ran_s) <= 0.2, "direct arrival tracks execution");
   const lines = readFileSync(join(d.logsDir, "trace-f-buffer.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
   assert.deepEqual(progressFromStored(result, lines), done, "disk retains both timings and early seen_s");
 });
 
-// Build F diagnostic boundary: a real delayed flush emits once, with metadata only.
-test("delayed live-stub flush journals one safe diagnostic per run", guard(async () => {
+// Build G: a late disk flush is no longer a late progress arrival.
+test("delayed live-stub facts flush does not journal a progress delay", guard(async () => {
   const deps = await liveDeps(), messages = [];
   const facts = await deps.facts();
   deps.facts = async (_id, { trace }) => {
@@ -123,6 +145,27 @@ test("delayed live-stub flush journals one safe diagnostic per run", guard(async
   const realError = console.error; console.error = (s) => messages.push(s);
   try { await loop.runTicket("T03", { run_id: "f-delay", cfg: liveCfg, deps }); }
   finally { console.error = realError; }
+  const diagnostics = messages.filter((s) => String(s).includes('"diagnostic":"progress_delay"')).map(JSON.parse);
+  assert.deepEqual(diagnostics, []);
+}));
+
+// Review 57: delay delivery itself, using a virtual clock to avoid a real 10 s wait.
+test("delayed board delivery journals one safe diagnostic with the original fields", guard(async () => {
+  const deps = await liveDeps(), board = createProgressBoard({ now: () => Date.now() }), messages = [];
+  const facts = await deps.facts(), realNow = Date.now, realError = console.error;
+  let now = realNow(), delayed = false;
+  Date.now = () => now; console.error = (s) => messages.push(s);
+  board.start("g-delivery-delay", { mode: "live" });
+  deps.facts = async (_id, { trace }) => {
+    for (let i = 0; i < 2; i++) trace.line({ step: "zetaris.query", agent_name: "Executor", action: "sql:thread", input_summary: "PRIVATE-CONTENT", output_summary: "PRIVATE-NAME", status: "success" });
+    return facts;
+  };
+  deps.onLine = (l, { buffered }) => {
+    if (buffered && !delayed) { now += 10150; delayed = true; }
+    board.line("g-delivery-delay", l);
+  };
+  try { await loop.runTicket("T03", { run_id: "g-delivery-delay", cfg: liveCfg, deps }); }
+  finally { Date.now = realNow; console.error = realError; }
   const diagnostics = messages.filter((s) => String(s).includes('"diagnostic":"progress_delay"')).map(JSON.parse);
   assert.equal(diagnostics.length, 1);
   assert.deepEqual(Object.keys(diagnostics[0]).sort(), ["diagnostic", "flush", "ran_s", "run_id", "seen_s", "step"]);

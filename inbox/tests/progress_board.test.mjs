@@ -3,7 +3,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createProgressBoard, providerSummary, progressFromStored, stepOf, isNemotron } from "../src/progress.mjs";
+import { BUFFER_LINE } from "../src/trace.mjs";
 const line = { step: "nvidia.model", agent_name: "Drafter", action: "draft_reply", model: "nvidia/nemotron-x", status: "success", duration_ms: 123, input_summary: "/opt/private", output_summary: "/home/private", detail: "/tmp/private" };
+// Review 57: a missing early projection must never splice away unrelated work.
+test("flushing an absent buffered projection preserves unrelated steps", () => {
+  const b = createProgressBoard(), e = b.start("g-missing", { mode: "sample" });
+  const buffered = { ...line, [BUFFER_LINE]: {} }, unrelated = { ...line, step: "memory.read", agent_name: "Memory" };
+  b.line("g-missing", buffered);
+  e.lines.shift(); // simulate the missing-previous invariant failure from review 57
+  b.line("g-missing", unrelated); b.line("g-missing", buffered);
+  assert.deepEqual(b.get("g-missing").steps, [stepOf(unrelated), stepOf(buffered)]);
+  b.finish("g-missing", {});
+  assert.deepEqual(b.get("g-missing").steps, [stepOf(unrelated), stepOf(buffered)]);
+});
 test("board lifecycle keeps concurrent work and retry provenance, freezes at first finish and matches stored projection", () => {
   let t = 1000; const b = createProgressBoard({ cap: 1, now: () => t });
   assert.equal(b.get("empty"), null);

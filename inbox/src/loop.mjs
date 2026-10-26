@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createServer } from "node:net";
 import * as zetaris from "./adapters/zetaris.mjs";
 import { config, sampleMode as isSampleMode, INBOX_ROOT } from "./config.mjs";
-import { Trace, mask } from "./trace.mjs";
+import { Trace, mask, BUFFER_LINE } from "./trace.mjs";
 import { factsForTicket, findDuplicate as findDuplicateZetaris, ledgerAdjustFor, CATEGORIES } from "./queries.mjs";
 import { ledgerAdjust as localLedgerAdjust } from "./decisions.mjs";
 import { typedGates, trustFloor, hardRisk, GC_AMOUNT } from "./gates.mjs";
@@ -178,7 +178,16 @@ const safeMsg = (e) => redactPaths(String(mask(String(e?.message ?? e))));
 export const redactHostPaths = redactPaths;
 const serverLog = (quiet, step, e) => { if (!quiet) console.error(`[loop] ${step}: ${errName(e)}: ${String(e?.message ?? e)}`); };
 // A buffered line keeps its completion time independently of its own measured work duration.
-const stampedBuffer = () => { const a = []; a.push = (...xs) => Array.prototype.push.apply(a, xs.map((x) => (x && x.at === undefined ? { ...x, at: Date.now() } : x))); return a; };
+const stampedBuffer = (onLine) => {
+  const a = [];
+  a.push = (...xs) => {
+    const lines = xs.map((x) => ({ ...x, at: x.at === undefined ? Date.now() : x.at, [BUFFER_LINE]: {} }));
+    const length = Array.prototype.push.apply(a, lines);
+    for (const line of lines) onLine(line);
+    return length;
+  };
+  return a;
+};
 // Cut at a word boundary with "…" when the text is longer than n; never mid-word.
 const one = (s, n = 220) => {
   const t = String(s ?? "").replace(/\s+/g, " ").trim();
@@ -459,13 +468,19 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   const secret = cfg.SCOUT_SECRET ?? process.env.SCOUT_SECRET ?? "dev-secret";
 
   let delayLogged = false;
-  const trace = Trace.open(run_id, { ...(deps.logsDir ? { logsDir: deps.logsDir } : {}), ...(deps.quiet ? { stdout: false } : {}), onLine: (line, flush) => {
-    try { deps.onLine?.(line); } catch { /* progress cannot break the trace */ }
-    if (!sampleOn && !delayLogged && Date.now() - Date.parse(line.timestamp) > 10000) {
+  const notify = (line, flush, { buffered = false } = {}) => {
+    try { deps.onLine?.(line, { buffered }); } catch { /* progress cannot break the trace */ }
+    if (line[BUFFER_LINE] && line[BUFFER_LINE].seen_s === undefined) line[BUFFER_LINE].seen_s = line.seen_s;
+    if (!sampleOn && !delayLogged && line.seen_s - line.ran_s > 10) {
       delayLogged = true;
       console.error(JSON.stringify({ diagnostic: "progress_delay", run_id, step: line.step, ran_s: line.ran_s, seen_s: line.seen_s, flush }));
     }
-  } });
+  };
+  const trace = Trace.open(run_id, { ...(deps.logsDir ? { logsDir: deps.logsDir } : {}), ...(deps.quiet ? { stdout: false } : {}), onLine: notify });
+  const liveBuffer = (flush) => stampedBuffer((fields) => {
+    if (S.aborted) return;
+    try { notify(trace.preview(fields), flush, { buffered: true }); } catch { /* validation remains at the trace flush */ }
+  });
   const S = {
     aborted: false, facts: null, recovered: [], decision: null, reasons: [], draft: null, rounds: [], models: {},
     memRead: [], memWritten: [], branch: null, queued: null, current: "memory.read", scoutRisk: null,
@@ -498,7 +513,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
       channel_label: f?.channel_label ?? null,
     };
   };
-  // The one choke point: every line (direct, buffered-then-flushed, finalisation) is written here, then handed to deps.onLine.
+  // Persist every line here in trace order; buffered work also notifies progress at completion.
   const restrictedGateSkip = (id, model) => ({ step: "nvidia.model", agent_name: "Gates", action: "typed_gates", sponsor: "nvidia", model, gate_source: "rules", confidence: 0.5,
     input_summary: `typed gates for ${id}`, output_summary: "skipped: restricted fact in the message, so no model receives the text; code rules used", status: "skipped" });
   const W = (f) => {
@@ -623,17 +638,17 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
   };
 
   async function pipeline() {
-    // Facts first, silently: memory.read needs the sender's email and the thread (never the display name). Their zetaris.query lines are logged at step 4.
-    const buf = stampedBuffer();
+    // Facts first: progress sees completion now; the trace keeps these lines at step 4.
+    const buf = liveBuffer("facts");
     let factsErr = null;
     const o = { as_of, trace: { line: (f) => buf.push(f) } };
-    // A free-text message: append the intake row, publish it, then run Scout and the gates SILENTLY (their lines are written at their usual
+    // A free-text message: append the intake row, publish it, then run Scout and the gates (their trace lines keep their usual
     // positions below) so the scenario, and with it the topic the facts are read for, is known before the facts read.
     let scoutSpan = null;
     let preDecided = null;
     let preErr = null;
     let preGates = null;
-    let preGbuf = stampedBuffer();
+    let preGbuf = liveBuffer("pre-gates");
     const factsOpts = {};
     let checkedOrder = null;
     // P43, einh 25 Oct 2026: share the delivery id grammar; JP-99310 and "order 4512" are missing ids.
@@ -868,7 +883,7 @@ export async function runTicket(thread_id, { run_id = `run-${Date.now().toString
     });
 
     // gates (a model call, so after the contract check); their line is held back until step 7
-    const gbuf = preGates ? preGbuf : stampedBuffer();
+    const gbuf = preGates ? preGbuf : liveBuffer("gates");
     let gates = preGates;
     if (!gates && restrictedInMessage(f)) {
       const g = sample.gates(ticket);
