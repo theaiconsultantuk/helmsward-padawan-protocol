@@ -586,9 +586,10 @@ export function createServer({ cfg = config(), deps = {} } = {}) {
       const runDeps = { ...deps, onLine, onProgress };
       const run = deps.runTicket ?? runTicket;
       let result;
+      // the loop reads the sample ledger and runtime rows from the folders /feedback and /run write to
       try { result = isMsg
-        ? await run(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...runDeps, runtimeDir }, input: msgInput })
-        : await run(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps: runDeps });
+        ? await run(null, { run_id, as_of: msgInput.as_of, cfg: runCfg, deps: { ...runDeps, decisionsDir: deps.decisionsDir ?? dir, runtimeDir }, input: msgInput })
+        : await run(input.thread_id, { run_id, as_of: input.as_of, cfg: runCfg, deps: { ...runDeps, decisionsDir: deps.decisionsDir ?? dir, runtimeDir } });
       } finally { release?.(); }
       // the server keeps its own absolute queue path; the public result names the file inside the memory dir only
       const publicOutput = result.output?.queued_for?.queue_file

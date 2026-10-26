@@ -1,5 +1,5 @@
 {
-  "_comment": "Pinned floor for the sealed held-out grid (Paul's drafts/heldout/, P10). 14 of 20 per Paul's board, 24 Oct 2026. Raise it as P13's live-checked fixes land; a 20/20 hard assert is a later PR.",
+  "_comment": "Measured 26 Oct 2026 on base 2901d11 (build B merged as #71), with only the server's temp-folder seam fixed. A regression floor, never a tuning target (decision 25 Oct).",
   "min_pass": 14,
   "of": 20
 }

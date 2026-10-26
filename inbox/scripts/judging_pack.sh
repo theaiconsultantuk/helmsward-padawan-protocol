@@ -410,6 +410,10 @@ else
   problem "node is required for scenario_proofs.mjs"
 fi
 
+# Impact numbers follow every trace writer, so the timing report reads the final traces.
+note "impact numbers (sample mode)"
+env -C "$INBOX" SKIP_RUNTIME=1 SAMPLE_MODE=true node scripts/impact_numbers.mjs --write || problem "impact_numbers.mjs --write failed"
+
 # ------------------------------------------------------------------------------------------------
 # 5a. secrets checks, first pass (the checklist tick reads this; secrets-scan.md is written from the final pass below)
 # ------------------------------------------------------------------------------------------------
@@ -567,6 +571,8 @@ engine-hmem-two-run.md	H-MEM two-run proof: a second run reads what the first wr
 nightshift-models.json	The routes Nightshift offered	Nightshift connection; where NVIDIA contributes
 nightshift-first-call.json	The first probe call to Nightshift and its receipt	Nightshift connection; which model handled the request
 padme-chain.md	Seraphine's email chain processed one step after the other, live	Errors and recovery; misread disclosure
+impact-numbers.md	The numbers: held-out, replies Risk stopped from auto-sending, held until trusted, live decision time	Impact
+ledger-learning.md	Staff affirms move a refund from hold to send, one reject moves it back (sample mode)	Innovation, Impact
 trust-floor.md	Why a within-limit refund is still held: the category trust weight, the floor, the affirm and reject deltas, the branch order, with the numbers and the evidence	Shared memory and feedback; Technical: the decision rule a judge can verify
 refund-chain.md	One customer, two refund requests, live: held under the floor with the owner on holiday, then over the limit and escalated with step 1's memory read first	Shared memory (H-MEM); holiday calendar; limit approval
 refund-chain-sample.md	The refund chain's deterministic twin (no model call)	Sample mode; the chain logic alone
