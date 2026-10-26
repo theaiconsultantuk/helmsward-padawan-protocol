@@ -6,7 +6,7 @@
 //   node judge.mjs --docker   also build the Docker image and run one example inside it with no network
 //   node judge.mjs --port 8123   open the app on another port (default: 8000, or the next free one)
 // Runs on Windows, macOS and Linux with Node 22+ alone. The checks run on throwaway temp folders and delete them, so they
-// repeat cleanly; only the app left open for you writes to inbox/data/runtime/ and inbox/logs/ (both gitignored).
+// repeat cleanly; only the app left open for you writes to inbox/data/runtime/, inbox/data/memory/ and inbox/logs/ (all gitignored).
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readFileSync, readdirSync } from "node:fs";
 import { createServer } from "node:net";
@@ -16,15 +16,25 @@ import { fileURLToPath } from "node:url";
 const ORIG_ENV = { ...process.env }; // children get the judge's own environment, not the no-network guard set below
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const INBOX = join(ROOT, "inbox");
-const args = process.argv.slice(2);
-const flag = (f) => args.includes(f);
-const portArg = flag("--port") ? Number(args[args.indexOf("--port") + 1]) : null;
-const KNOWN = new Set(["--check", "--tests", "--docker", "--port", "--help", "-h"]);
-const unknown = args.filter((a, i) => !KNOWN.has(a) && args[i - 1] !== "--port");
-if (flag("--help") || flag("-h") || unknown.length || (flag("--port") && !(portArg > 0))) {
+const usage = (code, why) => {
+  if (why) console.log(`judge.mjs: ${why}\n`);
   console.log(readFileSync(fileURLToPath(import.meta.url), "utf8").split("\n").slice(1, 10).map((l) => l.replace(/^\/\/ ?/, "")).join("\n"));
-  process.exit(flag("--help") || flag("-h") ? 0 : 2);
+  process.exit(code);
+};
+const flags = new Set();
+let portArg = null;
+for (let i = 2; i < process.argv.length; i++) {
+  const a = process.argv[i];
+  if (a === "--help" || a === "-h") usage(0);
+  else if (a === "--port") {
+    if (portArg !== null) usage(2, "--port given twice");
+    const v = process.argv[++i];
+    if (!/^\d+$/.test(v ?? "") || Number(v) < 1 || Number(v) > 65535) usage(2, `--port needs a number from 1 to 65535, got ${v ?? "nothing"}`);
+    portArg = Number(v);
+  } else if (["--check", "--tests", "--docker"].includes(a)) flags.add(a);
+  else usage(2, `unknown option ${a}`);
 }
+const flag = (f) => flags.has(f);
 
 const results = [];
 const record = (name, pass, detail = "") => {
@@ -44,10 +54,12 @@ record("the inbox/ app is here", appHere, INBOX);
 if (!appHere) process.exit(1);
 const git = spawnSync("git", ["-C", ROOT, "log", "-1", "--format=%h %cs %s"], { encoding: "utf8" });
 console.log(`      commit: ${git.status === 0 ? git.stdout.trim() : "(git not available)"}`);
-console.log(`      inbox/.env: ${existsSync(join(INBOX, ".env")) ? "present (not used: everything here runs in sample mode)" : "absent, as in a clean clone"}`);
+console.log(`      inbox/.env: ${existsSync(join(INBOX, ".env")) ? "present: its other settings are read, but sample mode, no network and no API token are forced here" : "absent, as in a clean clone"}`);
 
 // The repo's own sample harness: sets SAMPLE_MODE=true and NO_NETWORK=1 (every fetch rejects) before the app loads,
 // and serves it in-process on fresh temp folders. scripts/heldout_run.mjs uses the same one.
+// A set environment variable wins over inbox/.env, so an empty API_TOKEN keeps a token in .env from locking the harness's POSTs.
+process.env.API_TOKEN = "";
 const { sampleServer, httpJson } = await import("./inbox/scripts/ledger_learning.mjs");
 const { runHeldout } = await import("./inbox/scripts/heldout_run.mjs");
 
@@ -56,7 +68,12 @@ section("2/6 Every shipped input example gives its expected decision (sample mod
 const s = await sampleServer("jedi-judge-");
 const health = (await httpJson(s.base, "/health")).data;
 record("GET /health answers in sample mode", health?.ok === true && health?.sample_mode === true, `version ${health?.version}`);
-const nums = readdirSync(join(INBOX, "input_examples")).map((f) => /^example_(\d+)\.json$/.exec(f)?.[1]).filter(Boolean).map(Number).sort((a, b) => a - b);
+const ids = (dir) => readdirSync(join(INBOX, dir)).map((f) => /^example_(\d+)\.json$/.exec(f)?.[1]).filter(Boolean).map(Number).sort((a, b) => a - b);
+const nums = ids("input_examples");
+const outs = ids("output_examples");
+const MIN_EXAMPLES = 23; // what the submission ships; a missing file must fail, not shrink the check
+const complete = nums.length >= MIN_EXAMPLES && nums.every((n, i) => n === i + 1) && outs.join() === nums.join();
+record(`input_examples/ and output_examples/ both hold examples 1 to ${nums.length}`, complete, complete ? "" : `inputs [${nums.join(",")}], outputs [${outs.join(",")}]`);
 let matched = 0;
 const runIds = {};
 for (const n of nums) {
@@ -76,11 +93,21 @@ record(`${matched} of ${nums.length} examples match inbox/output_examples/`, mat
 section("3/6 One trace: example 3 (thread T01, the misread that escalates)");
 const t = runIds[3] ? await httpJson(s.base, `/runs/${runIds[3]}/trace`) : { data: null };
 const lines = Array.isArray(t.data) ? t.data : [];
-const steps = [...new Set(lines.map((l) => l.step))];
-if (lines.length) console.log(`      ${lines.length} trace lines; steps in order: ${steps.join(" → ")}`);
-const need = ["memory.read", "zetaris.query", "meterless.engine", "critique", "risk.signoff", "retry", "escalate_or_fallback", "memory.write", "synthesis"];
-const missing = need.filter((x) => !steps.includes(x));
-record("the trace shows memory, Zetaris, Scout, the critique, Risk, the retry, the escalation and the synthesis", lines.length > 0 && missing.length === 0, missing.length ? `missing ${missing.join(", ")}` : "");
+for (const l of lines) console.log(`      ${String(l.step).padEnd(21)} ${String(l.status).padEnd(15)} ${String(l.output_summary ?? "").slice(0, 62)}`);
+// Every step the loop does not reach is still logged as "skipped", so a name alone proves nothing: check what each step did.
+const has = (step, status, action) => lines.some((l) => l.step === step && l.status === status && (!action || l.action === action));
+const expect = [
+  ["H-MEM read", has("memory.read", "success")],
+  ["Zetaris read the thread", has("zetaris.query", "success", "sql:thread")],
+  ["Scout verified a contract", has("meterless.engine", "success", "decide_contract")],
+  ["the critique failed the draft", has("critique", "needs_revision")],
+  ["Risk refused it", has("risk.signoff", "refused")],
+  ["it escalated to a human", has("escalate_or_fallback", "success", "queue_for_human")],
+  ["H-MEM write", has("memory.write", "success")],
+  ["the synthesis closed the trace", has("synthesis", "success")],
+];
+const notDone = expect.filter(([, ok]) => !ok).map(([what]) => what);
+record("the trace shows each step doing its work", lines.length > 0 && notDone.length === 0, notDone.length ? `not seen: ${notDone.join("; ")}` : expect.map(([w]) => w).join(" → "));
 await s.close();
 
 // ---- 4. the held-out set -------------------------------------------------------------------------
@@ -111,8 +138,10 @@ if (flag("--docker")) {
   else {
     record("docker build (node:22-slim, no npm step)", true);
     const r = spawnSync("docker", ["run", "--rm", "--network", "none", "-e", "SAMPLE_MODE=true", tag, "node", "src/cli.mjs", "run", "--example", "3"], { encoding: "utf8", shell: win, env: ORIG_ENV });
-    let d = null; try { d = JSON.parse(r.stdout).output.decision; } catch {}
-    record("example 3 inside the container with --network none", d === "escalate", `decision ${d ?? "none"}`);
+    let out = null; try { out = JSON.parse(r.stdout); } catch {}
+    const ran = !r.error && r.signal === null && r.status === 0 && out?.status === "success";
+    record("example 3 inside the container with --network none", ran && out.output?.decision === "escalate",
+      ran ? `decision ${out.output?.decision}` : `exit ${r.status}${r.signal ? ` (${r.signal})` : ""}, status ${out?.status ?? "none"}${r.error ? `, ${r.error.message}` : ""}`);
   }
 } else console.log("      Docker skipped: add --docker to build the image and run example 3 with no network");
 
