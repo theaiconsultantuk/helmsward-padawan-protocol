@@ -12,7 +12,8 @@
   function put(id, text) { try { localStorage.setItem(key(id), text); } catch (e) { /* the page still works without storage */ } }
 
   // Opens the panel after `anchor`. onConfirm(reasonText) sends the Reject; onCancel() puts the buttons back.
-  function ask(anchor, onConfirm, onCancel) {
+  // `fine` replaces the line under the panel (the Sign-off dialog keeps the reason on the page only).
+  function ask(anchor, onConfirm, onCancel, fine) {
     var open = anchor.parentNode && anchor.parentNode.querySelector(".rr");
     if (open) open.remove();
     var box = el("div", null, "rr"), chosen = "";
@@ -35,7 +36,7 @@
     go.addEventListener("click", function () { var t = text(); if (!t) return; box.remove(); onConfirm(t); });
     no.addEventListener("click", function () { box.remove(); if (onCancel) onCancel(); });
     var acts = el("div", null, "rr__acts"); acts.appendChild(go); acts.appendChild(no);
-    box.appendChild(chips); box.appendChild(note); box.appendChild(acts); box.appendChild(el("p", NOTE, "rr__fine"));
+    box.appendChild(chips); box.appendChild(note); box.appendChild(acts); box.appendChild(el("p", fine || NOTE, "rr__fine"));
     anchor.parentNode.insertBefore(box, anchor.nextSibling);
     chips.firstChild.focus();
     return box;
