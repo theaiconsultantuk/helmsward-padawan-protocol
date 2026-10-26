@@ -47,6 +47,8 @@ Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit
 
 ## Run it
 
+**Judges:** [CLEAN-CLONE.md](CLEAN-CLONE.md) walks you from `git clone` to a checked, running copy, step by step. `node judge.mjs` runs every check in about a second, with no keys and no install.
+
 The submission is the `inbox/` app. From this folder:
 
 ```bash

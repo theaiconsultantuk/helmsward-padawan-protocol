@@ -2,7 +2,7 @@
 import {test} from 'node:test';
 import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
-import {runMessage,msg,dirs} from './helpers/route_run.mjs';
+import {runMessage,msg,dirs,cfg} from './helpers/route_run.mjs';
 import {readIntake} from '../src/intake.mjs';
 import {matchFaq} from '../src/scenarios.mjs';
 import {run} from '../src/queries.mjs';
@@ -19,7 +19,7 @@ test('an intake write followed by failure stays pending on disk and is not a dup
  const third=await runMessage(input(),{d,run_id:'repeat'});assert.equal(third.result.branch_id,'duplicate');assert.equal(third.result.output.decision,'close');
 });
 test('FAQ ties prefer the general row regardless of row order, and explicit store gets its row',async()=>{
- const rows=(await run('faq')).objects;
+ const rows=(await run('faq',{},{cfg:cfg()})).objects; // sample config, as runMessage uses: a clean clone has no .env and no Zetaris
  const general=await runMessage(msg('Do you offer gift wrapping?'));assert.equal(general.result.branch_id,'faq-hit');assert.ok(general.result.output.cited_rows.includes('faq:Q11'));
  const local=await runMessage(msg('Do you offer gift wrapping at the Coruscant store?'));assert.ok(local.result.output.cited_rows.includes('faq:Q13'));
  // Force an equal-score ambiguity with a qualified row first, without editing FAQ data.
