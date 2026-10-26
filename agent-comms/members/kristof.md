@@ -168,3 +168,23 @@ Every item below is merged into main, built by Codex, reviewed by Kimi (cross-fa
   - trust ledger: 5 affirms move a refund from hold (0.55) to send (0.80), and one reject makes the next refund hold (0.75).
 - **Video note:** film the ledger beat on a local sample server (`cd inbox && SAMPLE_MODE=true npm start`). On jedi.blastworks.ai, Affirm clicks move the shared ledger for every visitor.
 - **Hand-in (Kristof, Tue):** judging pack on the final head, live inbox cleared, hand-in tag, hosted demo pinned to the tag. Teardown 7 Nov 00:00 UTC.
+
+## 2026-10-26 · P54 rerun on the current main, and notes on deck D2 draft v4 [agent: claude]
+For Dean's stack slide (deck p13, "KK rerun with keys"), the same guarded run as on 25 Oct, on today's main.
+- Commit: f826a0b 2026-10-26T09:52:41+01:00 (main with #77)
+- npm test with inbox/.env: tests 874, pass 873, fail 0, skipped 1
+- Skips by reason: 1 run with NO_NETWORK=1 for the proof (it runs on its own below)
+- Live Zetaris checks (usl + usl_drift): 44 ran, 44 passed
+- NO_NETWORK proof: tests 8, pass 8, fail 0
+- Failures: none. The two CORS test-isolation fails from 25 Oct are fixed (build E).
+- Held-out grid: it now runs inside the suite (build D fixed the path) and scores 14 of 20 in sample mode, the same number as `inbox/judging/impact-numbers.md`.
+- How it ran: a throwaway copy of main, no npm download, the live `.env` copied in and deleted afterwards, Docker blocked so no test could write into Zetaris. The live `intake_runtime` and `decisions` row counts (32 and 30) and both runtime file hashes were identical before and after.
+- **For the slide:** "874 tests, 873 pass, 0 fail, including 44 live Zetaris checks. The 1 skip is the offline proof, which runs on its own: 8 of 8." This replaces the 749 / 705 / 0 / 44 figures (main without keys, 25 Oct) and the footnote "44 skipped without keys: 42 are live Zetaris checks".
+
+Other notes on the v4 draft, checked against main:
+- **p8:** held-out is 14/20 on main now, not 13/20 (13/20 was main on 25 Oct; see `impact-numbers.md`).
+- **p10:** "Nightshift routes every model call to NVIDIA Nemotron" is too wide. The typed questions (gates) go to OpenJev directly, not through Nightshift. Suggest: "Nightshift routes every drafting and critique call to NVIDIA Nemotron 3.5 Lightning". The trace logs the model that actually answered.
+- **p13:** the models row could read "DiffusionGemma (Google, NVIDIA NVFP4 build) via OpenJev", the same wording as the demo page since #77.
+- **p14:** "[judges' token added at submission]" can go: the demo is open with no token since 25 Oct (#63). "live until [7 Nov — confirm]": the demo is live through 6 Nov (the results call is 6 Nov 17:00 Paris), and teardown is 7 Nov 00:00 UTC.
+- **Every slide:** "[TEAM PRODUCT NAME]" is still a placeholder (p1 and every footer).
+- Checked and correct: no runtime dependencies (package.json has dev dependencies only), `node:22-slim`, the trust seeds and the 0.80 floor (p11), and "44 live Zetaris checks pass" (p10).
