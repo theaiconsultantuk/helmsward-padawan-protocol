@@ -1,13 +1,13 @@
 ---
-title: "The Padawan Protocol: Open Agent Hackathon 2026 submission"
+title: "Helmsward: the agent that earns its autonomy (Open Agent Hackathon 2026)"
 description: "A customer-support inbox agent that decides, critiques and escalates with a full trace. Track 3 Reasoning Architecture. Team: Jedi Pack."
 date: "2026-10-23"
 tags: [hackathon, inbox, zetaris, meterless, nvidia]
 ---
 
-# The Padawan Protocol
+# Helmsward: the agent that earns its autonomy
 
-**An inbox agent that earns its autonomy.** A category below the 0.80 trust floor is a Padawan, in learning mode: its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor the agent replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
+Helmsward is the customer agent of **Farstrand Supply Co.**, a (fictional) Star Wars gift store run by Jedi Pack. It answers the store's email, contact form and review messages, and it runs on the **Padawan Protocol**: a category below the 0.80 trust floor is a Padawan, in learning mode, so its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor Helmsward replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
 
 A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
 **Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron 3.5 Lightning** drafts and critiques through Meterless Nightshift (primary route; every trace records the model that answered).
@@ -62,17 +62,21 @@ Across the 100 threads, Risk stopped 15 replies from auto-sending (12 over-limit
 [Held-out evidence](inbox/judging/heldout/README.md) · [Results and regeneration](inbox/README.md#results).
 <!-- impact:root:end -->
 
-## Run it
+## Run it from a clean clone
 
-The submission is the `inbox/` app. From this folder:
+Needs Node 22 or newer and git. No keys, no accounts, no other service:
 
 ```bash
-cd inbox
-npm ci
-SAMPLE_MODE=true npm start   # bundled data, no network, no keys: open http://127.0.0.1:8000
+git clone https://github.com/theaiconsultantuk/jedi-pack-star-wars-gifts.git
+cd jedi-pack-star-wars-gifts/inbox
+npm ci                        # dev tools for the tests only; the service has no runtime dependencies
+SAMPLE_MODE=true npm start    # bundled sample data, no network: open http://127.0.0.1:8000
+npm test                      # in a second terminal: 874 tests, 0 fail, 43 skipped (the live checks need keys)
 ```
 
-The one process serves the front end, the dashboard and the API, so a clean run needs no key and no other service. The live stack, Docker, the API and the tests: [inbox/README.md](inbox/README.md).
+Then open `http://127.0.0.1:8000/shop/contact.html`, pick a scenario and submit; the staff desk is `/shop/desk.html`. `PORT=<free port>` moves the server if 8000 is taken.
+The one process serves the front end, the dashboard and the API. Sample mode runs the same decision code on the bundled rows; the live stack (your own Zetaris and Nightshift keys), Docker, the API and the tests: [inbox/README.md](inbox/README.md).
+Checked on 26 Oct 2026 from a fresh clone (Node 24).
 
 ## Practice build (pre-existing, not part of the submission)
 

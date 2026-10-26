@@ -6,6 +6,7 @@ import {runMessage,msg,dirs} from './helpers/route_run.mjs';
 import {readIntake} from '../src/intake.mjs';
 import {matchFaq} from '../src/scenarios.mjs';
 import {run} from '../src/queries.mjs';
+import {config} from '../src/config.mjs';
 const input=()=>msg('I want a refund of 65 GC for order JP-9931.');
 test('an intake write followed by failure stays pending on disk and is not a duplicate; a completed retry is',async()=>{
  const d=dirs();
@@ -19,7 +20,8 @@ test('an intake write followed by failure stays pending on disk and is not a dup
  const third=await runMessage(input(),{d,run_id:'repeat'});assert.equal(third.result.branch_id,'duplicate');assert.equal(third.result.output.decision,'close');
 });
 test('FAQ ties prefer the general row regardless of row order, and explicit store gets its row',async()=>{
- const rows=(await run('faq')).objects;
+ // FAQ rows from the bundled sample, so a clean clone with no Zetaris URL runs this test too.
+ const rows=(await run('faq',{},{cfg:{...config(),SAMPLE_MODE:'true'}})).objects;
  const general=await runMessage(msg('Do you offer gift wrapping?'));assert.equal(general.result.branch_id,'faq-hit');assert.ok(general.result.output.cited_rows.includes('faq:Q11'));
  const local=await runMessage(msg('Do you offer gift wrapping at the Coruscant store?'));assert.ok(local.result.output.cited_rows.includes('faq:Q13'));
  // Force an equal-score ambiguity with a qualified row first, without editing FAQ data.
