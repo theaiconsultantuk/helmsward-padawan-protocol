@@ -54,7 +54,7 @@ test("invariant on every committed trace: no label names a model the node lacks,
 
 test("techOf on the committed lines", () => {
   const gates8 = j8.nodes.find((n) => n.model === "openjev-0.1 (openjev-0.1)" && n.agent === "Gates");
-  assert.deepEqual(F.techOf(gates8), { tech: "openjev", label: "OpenJev · NVIDIA DiffusionGemma", model: "openjev-0.1 (openjev-0.1)" });
+  assert.deepEqual(F.techOf(gates8), { tech: "openjev", label: "OpenJev · DiffusionGemma (Google, NVIDIA NVFP4)", model: "openjev-0.1 (openjev-0.1)" });
   const gates4 = j4.nodes.find((n) => n.agent === "Gates");
   assert.equal(F.techOf(gates4).tech, "rules");
   assert.equal(F.techOf(gates4).model, null);
