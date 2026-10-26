@@ -28,6 +28,21 @@ It handles five scenarios (refund, question, request for quote, complaint, free 
 - **The desk:** [jedi.blastworks.ai/shop/desk.html](https://jedi.blastworks.ai/shop/desk.html), what the staff see: the queue, who holds what, a kanban per team and the Sign-off chain for refunds over the limit and legal threats. Deadlines, the clock and sign-off emails on the desk are simulated; the first two sign-off steps are the run's real record.
 - **Video:** _link to come_. **Deck:** _link to come_.
 
+## Submission checklist: where each requirement is
+
+| Requirement | Where |
+|---|---|
+| Setup from a clean clone | [Run it from a clean clone](#run-it-from-a-clean-clone) and [CLEAN-CLONE.md](CLEAN-CLONE.md): `node judge.mjs`, no keys |
+| Usage, with sample inputs and outputs | 23 inputs in [inbox/input_examples/](inbox/input_examples/), each with its stored output in [inbox/output_examples/](inbox/output_examples/); the API in [inbox/README.md](inbox/README.md#api) |
+| Dependencies | Node 22 or newer, no runtime packages. The live agent needs Zetaris, Meterless Nightshift and OpenJev: placeholders only in [inbox/.env.example](inbox/.env.example). `SAMPLE_MODE=true` runs everything without them ([Sample mode](inbox/README.md#sample-mode)) |
+| Logs showing how it reached its output, and which model answered | [inbox/judging/traces/](inbox/judging/traces/): one JSON line per step; live traces name the model per request (`nvidia/nemotron-3.5-lightning-30b-a3b`). Format: [Logs and traces](inbox/README.md#logs-and-traces) |
+| Zetaris as the data layer | [Zetaris: the agent's data layer](#zetaris-the-agents-data-layer) |
+| Meterless engines, each with a passing test | [Meterless engines](#meterless-engines): Scout Intent, H-MEM, World Model |
+| Nightshift as the primary AI provider, NVIDIA Nemotron | [inbox/judging/sponsor-explanation.md](inbox/judging/sponsor-explanation.md) and [AI and Model Usage](inbox/README.md#ai-and-model-usage) |
+| No keys in the repo | `.env` is gitignored; the full git history was scanned with gitleaks and trufflehog on 26 Oct 2026: no findings |
+| Pre-existing components | [Pre-existing components](inbox/README.md#pre-existing-components): the practice build at the repo root (committed 18 Oct, before the build window) is not used by `inbox/` |
+| Every rule, checked | [inbox/judging/rules-checklist.md](inbox/judging/rules-checklist.md) |
+
 ## What is new (25 Oct)
 
 - Contact page: Live or Simulated, and a running indicator while the agent works.
