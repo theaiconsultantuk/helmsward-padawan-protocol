@@ -1,14 +1,16 @@
 ---
-title: "Jedi Pack Inbox: Open Agent Hackathon 2026 submission"
+title: "The Padawan Protocol: Open Agent Hackathon 2026 submission"
 description: "A customer-support inbox agent that decides, critiques and escalates with a full trace. Track 3 Reasoning Architecture. Team: Jedi Pack."
 date: "2026-10-23"
 tags: [hackathon, inbox, zetaris, meterless, nvidia]
 ---
 
-# Jedi Pack Inbox
+# The Padawan Protocol
+
+**An inbox agent that earns its autonomy.** A category below the 0.80 trust floor is a Padawan, in learning mode: its messages are held for a person with a finished draft ready (refunds start at 0.55, complaints at 0.62). Each human Affirm adds trust, stored in Zetaris; once a category reaches the floor the agent replies on its own, and one bad call sends it back to training. Proof: [ledger-learning.md](inbox/judging/ledger-learning.md).
 
 A customer-support inbox agent that reads a ticket, decides (send, hold, escalate or close), has a second reader and a policy check challenge the draft, and writes every step to a trace a judge can read.
-**Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron** drafts and critiques through Meterless Nightshift.
+**Built on the sponsor stack:** every fact the agent decides from is a live SQL query to **Zetaris** (28 sources, one semantic layer, no ETL); the reasoning runs on three **Meterless** engines; **NVIDIA Nemotron 3.5 Lightning** drafts and critiques through Meterless Nightshift (primary route; every trace records the model that answered).
 Track: Open Agent Hackathon 2026, Track 3 "Reasoning Architecture". Team: Jedi Pack.
 Read: [inbox/README.md](inbox/README.md) (the submission) and [inbox/judging/README.md](inbox/judging/README.md) (the evidence files).
 The service serves a storefront at `GET /` (Home, Shop, FAQ and a Contact page that is the front end, with what happens under the hood beside it) and an internal dashboard at `GET /dashboard`.
@@ -37,7 +39,7 @@ Without Zetaris the agent cannot decide: there is no other source of the owner, 
 | Unified Semantic Layer | `lightning.metastore.jedi_pack.jedi_pack`: typed DDL with primary and foreign keys, live views over the raw sources, so a change in a source shows at once. The scenario routes and the World Model build read its tables (`customer`, `ticket`, `policy`, `responsibility`, `faq`, `holiday`, `decision`, `sales_order` and more) | [zetaris-usl.md](inbox/judging/zetaris-usl.md), [zetaris_usl.sql](inbox/scripts/zetaris_usl.sql) |
 | The agent writes back | Every finished run is a row in `decisions`; each Affirm or Reject on the desk is stored there and moves that category's **trust floor** by 0.05, so people steer the agent through Zetaris. Every customer message is published to `intake_runtime` before the loop reads it back | `POST /feedback`, `/counters` is a live `GROUP BY` over `decisions` |
 | Safe queries | Named SQL templates in [src/queries.mjs](inbox/src/queries.mjs) with whitelisted parameters; customer text never reaches SQL | [src/adapters/zetaris.mjs](inbox/src/adapters/zetaris.mjs) |
-| Tested live | 44 live Zetaris checks pass in the keyed test run (`usl` and `usl_drift`) | [tests/usl.test.mjs](inbox/tests/usl.test.mjs), [tests/usl_drift.test.mjs](inbox/tests/usl_drift.test.mjs) |
+| Tested live | 42 live Zetaris checks pass in the keyed test run (874 tests, 0 fail, 26 Oct) (`usl` and `usl_drift`) | [tests/usl.test.mjs](inbox/tests/usl.test.mjs), [tests/usl_drift.test.mjs](inbox/tests/usl_drift.test.mjs) |
 
 See it in the demo: open **Under the hood** on any run; the **Zetaris** station shows each query and its row count and time (for example "1 row in 108 ms"). Sample mode answers from rows cached from the same tables and says so in the trace. Full write-up: [sponsor-explanation.md](inbox/judging/sponsor-explanation.md).
 
