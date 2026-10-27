@@ -46,6 +46,8 @@ async function post(baseUrl, sql, { limit, timeoutMs, cfg, fetchImpl }) {
         "X-Org-ID": String(cfg.ZETARIS_ORG_ID ?? ""),
         "X-Request-ID": randomUUID(),
         "Content-Type": "application/json",
+        // Optional: a reverse proxy in front of Zetaris may require its own gate header.
+        ...(cfg.ZETARIS_GATE_TOKEN ? { "X-Jedi-Gate": cfg.ZETARIS_GATE_TOKEN } : {}),
       },
       body: JSON.stringify({ queryId: randomUUID(), sql, source: "SqlEditor", limit }),
     });
