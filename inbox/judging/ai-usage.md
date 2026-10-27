@@ -27,6 +27,7 @@ Sponsor technology:
 Development tools:
 
 - AI coding tool: Claude Code through Glitch (Anthropic), orchestrated in Orca; Cursor (with Claude Opus 4.6 / GPT-5.4) for the Farstrand Supply Co. storefront (`inbox/public/shop/`); no coding tool was pointed at Nightshift.
+- Grok Bot (SpaceXAI, formerly xAI) for team coordination, not product code. Dean used it to build the slide deck and fold in the team's suggested changes. Paul used it to track what the team was doing and to watch the GenAI Works and Discord message boards.
 - All generated code was reviewed and tested by the team.
 
 Storefront (`inbox/public/shop/`) assets and pre-existing work declaration:
