@@ -439,7 +439,8 @@ Sponsor technology:
 
 Development tools:
 
-- AI coding tool: Claude Code through Glitch (Anthropic), orchestrated in Orca. No coding tool was pointed at Nightshift.
+- Backend: Claude Code through Glitch (Anthropic), orchestrated in Orca, for builds and docs; OpenAI Codex CLI as the cross-family reviewer on every PR, and builder of the final pre-freeze items, reviewed by Kimi. No coding tool was pointed at Nightshift.
+- Helmsward desk front end (the dashboard and Under the hood): Claude Code.
 - Cursor (with Claude Opus 4.6 / GPT-5.4) for the Farstrand Supply Co. storefront (`inbox/public/shop/`).
 - Grok Bot (SpaceXAI, formerly xAI) for team coordination, not product code. Dean used it to build the slide deck and fold in the team's suggested changes. Paul used it to track what the team was doing and to watch the GenAI Works and Discord message boards.
 - All generated code was reviewed and tested by the team.
