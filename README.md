@@ -27,7 +27,7 @@ It handles five scenarios (refund, question, request for quote, complaint, free 
 - **Judges' walkthrough (optional):** [JUDGES.md](JUDGES.md), ten things worth trying on the live site, where to find them and what to look for. Fifteen minutes, any order.
 - **Live demo:** [jedi.blastworks.ai/shop/contact.html](https://jedi.blastworks.ai/shop/contact.html). Pick a scenario under "Try a scenario", choose **Live** (real models and data, some runs take minutes) or **Simulated** (rules and sample data, a second or less, not counted), submit, then open **Under the hood** for every step the agent took.
 - **The desk:** [jedi.blastworks.ai/shop/desk.html](https://jedi.blastworks.ai/shop/desk.html), what the staff see: the queue, who holds what, a kanban per team and the Sign-off chain for refunds over the limit and legal threats. Deadlines, the clock and sign-off emails on the desk are simulated; the first two sign-off steps are the run's real record.
-- **Video:** _link to come_. **Deck:** _link to come_.
+- **Video:** [Helmsward demo on YouTube (3:39)](https://youtu.be/xfwEyGLAq60). **Deck:** [docs/helmsward-d2-deck-v5.pdf](docs/helmsward-d2-deck-v5.pdf).
 
 ## Submission checklist: where each requirement is
 
