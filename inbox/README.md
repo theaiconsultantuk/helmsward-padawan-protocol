@@ -96,9 +96,20 @@ Reaching Zetaris and Nightshift from inside the container: `localhost` there is 
 
 The container has no `docker` CLI, so the two Zetaris publishes fall back to local files and say `published: false` (Limitations).
 
-Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, Nightshift, OpenJev and the optional local lane), `npm run cli -- run --thread T02`.
+Other commands: `npm test`, `npm run evals`, `npm run doctor` (checks Zetaris, Nightshift, OpenJev and the optional local lane), `npm run cli -- run --thread T02`, `npm run speedrun`.
 Without your own Zetaris and Nightshift keys, doctor reports FAIL and exits 1; in sample mode (`SAMPLE_MODE=true`) it skips all three service checks.
 Judges can skip it and use sample mode.
+
+## Speedrun
+
+One ordered pass over the hero refund ticket, through the whitelisted Zetaris templates, then one Affirm on the decisions ledger. Each step is one scoreboard line with its wall-clock time. The closing line counts the file formats behind the tables that pass actually queried.
+
+```bash
+SAMPLE_MODE=true npm run speedrun -- --as-of 2026-10-19
+npm run speedrun -- --thread T03 --as-of 2026-10-19
+```
+
+The default thread is `T03` (Cass Holm's refund). `--as-of` defaults to `2026-10-19`. Sample mode reads the cached rows. The Affirm is written with the decisions ledger on this machine.
 
 ## API
 

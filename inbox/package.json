@@ -12,6 +12,7 @@
     "test": "node scripts/test.mjs",
     "evals": "SCOUT_IMPL=$PWD/src/engines/scout/index.mjs npm --prefix engines/scout-evals exec -- tsx engines/scout-evals/runner/index.ts",
     "doctor": "node src/cli.mjs doctor",
+    "speedrun": "node scripts/speedrun.mjs",
     "build:world-model": "node scripts/build_world_model.mjs",
     "conformance": "WORLD_MODEL_IMPL=$PWD/src/engines/world-model/index.mjs npx tsx engines/world-model/conformance/runner.ts",
     "conformance:reference": "npx tsx engines/world-model/conformance/runner.ts"
