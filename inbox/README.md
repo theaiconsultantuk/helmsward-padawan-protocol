@@ -105,11 +105,11 @@ Judges can skip it and use sample mode.
 One ordered pass over the hero refund ticket, through the whitelisted Zetaris templates, then one Affirm on the decisions ledger. Each step is one scoreboard line with its wall-clock time. The closing line counts the file formats behind the tables that pass actually queried.
 
 ```bash
-SAMPLE_MODE=true npm run speedrun -- --as-of 2026-10-19
-npm run speedrun -- --thread T03 --as-of 2026-10-19
+SAMPLE_MODE=true npm run speedrun -- --as-of 2026-10-27
+npm run speedrun -- --thread T02 --as-of 2026-10-27
 ```
 
-The default thread is `T03` (Cass Holm's refund). `--as-of` defaults to `2026-10-19`. Sample mode reads the cached rows. The Affirm is written with the decisions ledger on this machine.
+The default thread is `T02` (Lira Venn's refund, owned by Soren Adey). `--as-of` defaults to `2026-10-27`, a day Soren is on holiday, so the board shows the backup. Sample mode reads the cached rows. The Affirm is written with the decisions ledger on this machine.
 
 ## API
 

@@ -11,8 +11,8 @@ import { appendDecision, setVerdict, ledgerAdjust, publish, VERDICTS, readDecisi
 import { mask } from "../src/trace.mjs";
 import { isMain } from "../src/main_guard.mjs";
 
-export const HERO_THREAD = "T03";
-export const HERO_AS_OF = "2026-10-19";
+export const HERO_THREAD = "T02";
+export const HERO_AS_OF = "2026-10-27";
 
 const THREAD_ID = /^T\d{1,3}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -196,7 +196,9 @@ export async function runSpeedrun({ threadId = HERO_THREAD, asOf = HERO_AS_OF, c
       const verdict = await setVerdict(run_id, "affirm", undefined, { dir });
       if (!verdict || verdict.verdict !== "affirm") throw new Error("affirm did not land on the decisions ledger");
       const ledAfter = ledgerAdjust(topic, { dir });
-      await publish({ dir, cfg });
+      // publish copies the ledger into the Zetaris container, so it only lands when run on the server.
+      let landed = true;
+      try { await publish({ dir, cfg }); } catch { landed = false; }
       const after = await query("table_count", { table: "decisions" });
       const sqlAfter = countOf(after);
       const rowDelta = readDecisions({ dir }).length - rowsBefore;
@@ -207,7 +209,9 @@ export async function runSpeedrun({ threadId = HERO_THREAD, asOf = HERO_AS_OF, c
         ? `decisions ${sqlBefore} → ${sqlBefore + rowDelta} (${signed(rowDelta)} local)`
         : zetarisMoved
           ? `decisions ${sqlBefore} → ${sqlAfter} (${signed(sqlAfter - sqlBefore)})`
-          : `decisions ${sqlBefore} → ${sqlAfter} (${signed(rowDelta)} local, Zetaris pending)`;
+          : landed
+            ? `decisions ${sqlBefore} → ${sqlAfter} (${signed(rowDelta)} local, Zetaris pending)`
+            : `decisions ${sqlBefore} → ${sqlAfter} (${signed(rowDelta)} local · write-back runs on the server)`;
       const w0 = round6(seed + shift(ledBefore));
       const w1 = round6(seed + shift(ledAfter));
       const move = round6(w1 - w0);
