@@ -201,12 +201,17 @@ export async function runSpeedrun({ threadId = HERO_THREAD, asOf = HERO_AS_OF, c
       const sqlAfter = countOf(after);
       const rowDelta = readDecisions({ dir }).length - rowsBefore;
       if (rowDelta !== 1 || ledAfter.affirmed !== ledBefore.affirmed + 1) throw new Error("affirm did not add one decisions row");
-      const shownAfter = sqlAfter !== sqlBefore ? sqlAfter : sqlBefore + rowDelta;
-      const shownDelta = shownAfter - sqlBefore;
+      // Live: show only what Zetaris returned. Sample: the cached count never moves, so count the local ledger.
+      const zetarisMoved = sqlAfter !== sqlBefore;
+      const counts = sample
+        ? `decisions ${sqlBefore} → ${sqlBefore + rowDelta} (${signed(rowDelta)} local)`
+        : zetarisMoved
+          ? `decisions ${sqlBefore} → ${sqlAfter} (${signed(sqlAfter - sqlBefore)})`
+          : `decisions ${sqlBefore} → ${sqlAfter} (${signed(rowDelta)} local, Zetaris pending)`;
       const w0 = round6(seed + shift(ledBefore));
       const w1 = round6(seed + shift(ledAfter));
       const move = round6(w1 - w0);
-      return `decisions ${sqlBefore} → ${shownAfter} (${signed(shownDelta)}) · trust ${w0.toFixed(2)} → ${w1.toFixed(2)} (${signed(move, 2)})`;
+      return `${counts} · trust ${w0.toFixed(2)} → ${w1.toFixed(2)} (${signed(move, 2)})`;
     });
     rows.push({ n: 7, name: "affirm", ms: affirmStep.ms, detail: oneLine(affirmStep.value) });
 
